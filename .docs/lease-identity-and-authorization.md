@@ -32,7 +32,8 @@ bounded values, construct the normalized model, construct the canonical
 mapping, and then compute or verify the digest. Unknown input is never accepted
 as though it were absent from the canonical identity.
 
-Identity validation proves only:
+Identity validation returns a typed `LeaseIdentityValidation` with safe
+`ValidationIssue` entries. It proves only:
 
 - schema validity;
 - canonical form;
@@ -41,10 +42,12 @@ Identity validation proves only:
 - bounded field shape;
 - finite-backlog binding shape.
 
-Identity validation never returns executable authorization. The production
-authorization boundary is separate and fail-closed because no issuer trust,
-verifier trust root, signing authority, key owner, custody model, or
-alternative operator-local authorization mechanism is selected in P1.
+Identity validation never returns executable authorization. The typed
+`AuthorizationDecision` is a contract object for external operator/repo policy
+truth. The production/default provider remains separate and fail-closed because
+no issuer trust, verifier trust root, signing authority, key owner, custody
+model, or alternative operator-local authorization mechanism is selected in
+P1/P1.1.
 
 Production code must contain no allow-all provider, local-dev bypass,
 environment-variable bypass, unsigned-fixture execution path, or implicit
@@ -55,3 +58,6 @@ Permission-shaped fields in the identity contract do not grant P1 execution.
 `local_commit_permission`, `max_repairs`, and `max_concurrency` remain identity
 fields only unless a future exact authorization and execution contract says
 otherwise.
+
+Transition evaluation consumes typed lease identity and authorization
+decisions. Raw caller booleans are not authority.

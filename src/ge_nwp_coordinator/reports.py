@@ -162,7 +162,7 @@ class WorkItemReport:
     def from_dict(cls, payload: Mapping[str, Any]) -> "WorkItemReport":
         raw = require_exact_keys(payload, "work_item", WORK_ITEM_REPORT_KEYS)
         evidence_refs = raw.get("safe_evidence_refs")
-        if not isinstance(evidence_refs, list | tuple):
+        if not isinstance(evidence_refs, list):
             raise ValueError("invalid_field_type:work_item.safe_evidence_refs")
         return cls(
             work_item_id=raw.get("work_item_id"),

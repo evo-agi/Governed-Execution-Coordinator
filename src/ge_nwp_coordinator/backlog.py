@@ -14,7 +14,9 @@ from ge_nwp_coordinator.canonicalization import (
     require_non_negative_int,
     require_positive_int,
     require_safe_ref,
+    require_safe_ref_list,
     require_safe_ref_tuple,
+    require_safe_relative_path_list,
     require_safe_relative_path_tuple,
     require_safe_string,
 )
@@ -122,8 +124,8 @@ class WorkItem:
                 "opaque_private_assignment_ref",
             ),
             repo=require_safe_ref(raw.get("repo"), "repo"),
-            branches=_require_safe_branch_tuple(raw.get("branches"), "branches", ordered=False),
-            allowed_paths=require_safe_relative_path_tuple(raw.get("allowed_paths"), "allowed_paths", ordered=False),
+            branches=_require_safe_branch_list(raw.get("branches"), "branches", ordered=False),
+            allowed_paths=require_safe_relative_path_list(raw.get("allowed_paths"), "allowed_paths", ordered=False),
             task_class=require_safe_ref(raw.get("task_class"), "task_class"),
             risk_lane=require_safe_ref(raw.get("risk_lane"), "risk_lane"),
             required_validation_profile=require_safe_ref(
@@ -131,8 +133,8 @@ class WorkItem:
                 "required_validation_profile",
             ),
             budget_allocation=_require_budget_allocation(raw.get("budget_allocation")),
-            dependencies=require_safe_ref_tuple(raw.get("dependencies"), "dependencies", ordered=False),
-            stop_conditions=require_safe_ref_tuple(raw.get("stop_conditions"), "stop_conditions", ordered=False),
+            dependencies=require_safe_ref_list(raw.get("dependencies"), "dependencies", ordered=False),
+            stop_conditions=require_safe_ref_list(raw.get("stop_conditions"), "stop_conditions", ordered=False),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -252,6 +254,12 @@ def _require_safe_branch_tuple(value: Any, field_name: str, *, ordered: bool = T
     if ordered:
         return items
     return normalize_set_like_strings(items, field_name)
+
+
+def _require_safe_branch_list(value: Any, field_name: str, *, ordered: bool = True) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return _require_safe_branch_tuple(tuple(value), field_name, ordered=ordered)
 
 
 def _require_budget_allocation(value: Any) -> Mapping[str, Any]:

@@ -12,19 +12,29 @@ from ge_nwp_coordinator.canonicalization import (
     canonical_sha256,
     decode_json_object,
     require_exact_keys,
+    require_bool,
     require_non_negative_int,
     require_object,
     require_positive_int,
+    require_safe_ref_list,
     require_safe_ref,
     require_safe_ref_tuple,
+    require_safe_relative_path_list,
     require_safe_relative_path_tuple,
     require_safe_string,
     require_string,
     normalize_set_like_strings,
 )
+from ge_nwp_coordinator.models import (
+    ValidationIssue,
+    require_contract_ref,
+    require_reason_class,
+    safe_issue_from_exception,
+)
 
 LEASE_SCHEMA_ID = "governed-execution.nwp-standing-lease.v1"
 LEASE_SCHEMA_VERSION = 1
+AUTHORIZATION_DECISION_SCHEMA_ID = "governed-execution.nwp-authorization-decision.v1"
 CANONICALIZATION_ID = "governed-execution.nwp-json-canonical.v1"
 SHA256_HEX_LENGTH = 64
 LEASE_KEYS = frozenset(
@@ -85,19 +95,92 @@ class Permission(str, Enum):
     ALLOWED = "allowed"
 
 
+class AuthorizationModel(str, Enum):
+    UNSUPPORTED = "unsupported"
+    OPERATOR_POLICY = "operator_policy"
+
+
 @dataclass(frozen=True)
 class LeaseIdentityValidation:
     identity_valid: bool
     digest: str | None
-    issues: tuple[str, ...]
+    issues: tuple[ValidationIssue, ...]
+    decision_ref: str
+    lease_ref: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "identity_valid", require_bool(self.identity_valid, "lease_identity.identity_valid"))
+        if self.digest is not None:
+            object.__setattr__(self, "digest", require_digest(self.digest, "lease_identity.digest"))
+        if not isinstance(self.issues, tuple):
+            raise ValueError("invalid_field_type:lease_identity.issues")
+        object.__setattr__(
+            self,
+            "issues",
+            tuple(require_contract_issue(issue, "lease_identity.issues[]") for issue in self.issues),
+        )
+        object.__setattr__(
+            self,
+            "decision_ref",
+            require_contract_ref(self.decision_ref, "lease_identity.decision_ref"),
+        )
+        object.__setattr__(self, "lease_ref", require_contract_ref(self.lease_ref, "lease_identity.lease_ref"))
+        if self.identity_valid and self.issues:
+            raise ValueError("invalid_field_value:lease_identity.issues")
+        if not self.identity_valid and not self.issues:
+            raise ValueError("invalid_field_value:lease_identity.issues")
+
+    @property
+    def issue_reasons(self) -> tuple[str, ...]:
+        return tuple(issue.reason for issue in self.issues)
+
+    @property
+    def issue_fields(self) -> tuple[str, ...]:
+        return tuple(issue.field for issue in self.issues)
 
 
 @dataclass(frozen=True)
 class AuthorizationDecision:
-    identity_valid: bool
-    authorized: bool
-    executable: bool
-    reason: str
+    decision_ref: str
+    lease_ref: str
+    lease_identity_valid: bool
+    authorization_model: AuthorizationModel = AuthorizationModel.UNSUPPORTED
+    authorized: bool = False
+    executable: bool = False
+    reason: str = "unsupported_authorization_model"
+    schema_id: str = AUTHORIZATION_DECISION_SCHEMA_ID
+
+    def __post_init__(self) -> None:
+        if require_string(self.schema_id, "authorization_decision.schema_id") != AUTHORIZATION_DECISION_SCHEMA_ID:
+            raise ValueError("invalid_field_type:authorization_decision.schema_id")
+        object.__setattr__(
+            self,
+            "decision_ref",
+            require_contract_ref(self.decision_ref, "authorization_decision.decision_ref"),
+        )
+        object.__setattr__(self, "lease_ref", require_contract_ref(self.lease_ref, "authorization_decision.lease_ref"))
+        object.__setattr__(
+            self,
+            "lease_identity_valid",
+            require_bool(self.lease_identity_valid, "authorization_decision.lease_identity_valid"),
+        )
+        object.__setattr__(
+            self,
+            "authorization_model",
+            _require_authorization_model(self.authorization_model, "authorization_decision.authorization_model"),
+        )
+        object.__setattr__(self, "authorized", require_bool(self.authorized, "authorization_decision.authorized"))
+        object.__setattr__(self, "executable", require_bool(self.executable, "authorization_decision.executable"))
+        object.__setattr__(self, "reason", require_reason_class(self.reason, "authorization_decision.reason"))
+        if self.authorization_model is AuthorizationModel.UNSUPPORTED:
+            if self.authorized or self.executable or self.reason != "unsupported_authorization_model":
+                raise ValueError("invalid_field_value:authorization_decision.unsupported_model")
+        elif self.reason != "accepted" and self.authorized:
+            raise ValueError("invalid_field_value:authorization_decision.reason")
+
+    @property
+    def identity_valid(self) -> bool:
+        return self.lease_identity_valid
 
 
 class AuthorizationProvider(Protocol):
@@ -113,7 +196,9 @@ class UnsupportedAuthorizationProvider:
     def authorize(self, lease: "StandingLease") -> AuthorizationDecision:
         validation = lease.validate_identity()
         return AuthorizationDecision(
-            identity_valid=validation.identity_valid,
+            decision_ref=f"authz-{lease.lease_id}",
+            lease_ref=lease.lease_id,
+            lease_identity_valid=validation.identity_valid,
             authorized=False,
             executable=False,
             reason="unsupported_authorization_model",
@@ -304,13 +389,13 @@ class StandingLease:
             subject=require_safe_ref(raw.get("subject"), "subject"),
             repo_identity=_require_repo_identity(raw.get("repo_identity")),
             branch_policy=_require_branch_policy(raw.get("branch_policy")),
-            allowed_paths=require_safe_relative_path_tuple(raw.get("allowed_paths"), "allowed_paths", ordered=False),
+            allowed_paths=require_safe_relative_path_list(raw.get("allowed_paths"), "allowed_paths", ordered=False),
             forbidden_path_policy_identity=require_safe_ref(
                 raw.get("forbidden_path_policy_identity"),
                 "forbidden_path_policy_identity",
             ),
-            task_classes=require_safe_ref_tuple(raw.get("task_classes"), "task_classes", ordered=False),
-            risk_lanes=require_safe_ref_tuple(raw.get("risk_lanes"), "risk_lanes", ordered=False),
+            task_classes=require_safe_ref_list(raw.get("task_classes"), "task_classes", ordered=False),
+            risk_lanes=require_safe_ref_list(raw.get("risk_lanes"), "risk_lanes", ordered=False),
             finite_backlog_reference=require_safe_ref(
                 raw.get("finite_backlog_reference"),
                 "finite_backlog_reference",
@@ -325,12 +410,12 @@ class StandingLease:
                 raw.get("wall_clock_budget_seconds"),
                 "wall_clock_budget_seconds",
             ),
-            validation_requirements=require_safe_ref_tuple(
+            validation_requirements=require_safe_ref_list(
                 raw.get("validation_requirements"),
                 "validation_requirements",
                 ordered=False,
             ),
-            audit_requirements=require_safe_ref_tuple(
+            audit_requirements=require_safe_ref_list(
                 raw.get("audit_requirements"),
                 "audit_requirements",
                 ordered=False,
@@ -339,7 +424,7 @@ class StandingLease:
             publication_permission=_require_permission(raw.get("publication_permission"), "publication_permission"),
             cross_repo_permission=_require_permission(raw.get("cross_repo_permission"), "cross_repo_permission"),
             maintenance_permission=_require_permission(raw.get("maintenance_permission"), "maintenance_permission"),
-            cleanup_requirements=require_safe_ref_tuple(
+            cleanup_requirements=require_safe_ref_list(
                 raw.get("cleanup_requirements"),
                 "cleanup_requirements",
                 ordered=False,
@@ -416,41 +501,43 @@ class StandingLease:
         return replace(self, canonical_digest_metadata=MappingProxyType(metadata))
 
     def validate_identity(self) -> LeaseIdentityValidation:
-        issues: list[str] = []
+        issues: list[ValidationIssue] = []
         digest: str | None = None
         try:
             if self.schema_id != LEASE_SCHEMA_ID:
-                issues.append("schema_id_mismatch")
+                issues.append(_lease_issue("schema_id_mismatch", "schema_id"))
             if self.schema_version != LEASE_SCHEMA_VERSION:
-                issues.append("schema_version_mismatch")
+                issues.append(_lease_issue("schema_version_mismatch", "schema_version"))
             _validate_time_window(self.issued_at, self.valid_from, self.expires_at, issues)
             if self.max_concurrency > self.max_work_items:
-                issues.append("max_concurrency_exceeds_max_work_items")
+                issues.append(_lease_issue("max_concurrency_exceeds_max_work_items", "max_concurrency"))
             if self.max_attempts < 1:
-                issues.append("max_attempts_malformed")
+                issues.append(_lease_issue("max_attempts_malformed", "max_attempts"))
             if self.max_repairs < 0:
-                issues.append("max_repairs_malformed")
+                issues.append(_lease_issue("max_repairs_malformed", "max_repairs"))
             if not self.finite_backlog_reference or not self.finite_backlog_digest:
-                issues.append("finite_backlog_binding_malformed")
+                issues.append(_lease_issue("finite_backlog_binding_malformed", "finite_backlog_reference"))
             if self.revocation_state is LeaseRevocationState.REVOKED and not self.revocation_reference:
-                issues.append("revoked_without_reference")
+                issues.append(_lease_issue("revoked_without_reference", "revocation_reference"))
             if self.revocation_state is LeaseRevocationState.NOT_REVOKED and self.revocation_reference:
-                issues.append("non_revoked_with_reference")
+                issues.append(_lease_issue("non_revoked_with_reference", "revocation_reference"))
             metadata = dict(self.canonical_digest_metadata)
             if metadata.get("algorithm") != "sha256":
-                issues.append("digest_algorithm_mismatch")
+                issues.append(_lease_issue("digest_algorithm_mismatch", "canonical_digest_metadata.algorithm"))
             if metadata.get("canonicalization") != CANONICALIZATION_ID:
-                issues.append("canonicalization_mismatch")
+                issues.append(_lease_issue("canonicalization_mismatch", "canonical_digest_metadata.canonicalization"))
             expected = metadata.get("digest")
             digest = self.canonical_digest()
             if not isinstance(expected, str) or expected != digest:
-                issues.append("digest_mismatch")
+                issues.append(_lease_issue("digest_mismatch", "canonical_digest_metadata.digest"))
         except ValueError as exc:
-            issues.append(str(exc))
+            issues.append(safe_issue_from_exception(exc))
         return LeaseIdentityValidation(
             identity_valid=not issues,
             digest=digest,
             issues=tuple(issues),
+            decision_ref=f"lease-identity-{self.lease_id}",
+            lease_ref=self.lease_id,
         )
 
 
@@ -466,7 +553,13 @@ def validate_standing_lease(payload: Mapping[str, Any] | str) -> LeaseIdentityVa
         lease = StandingLease.from_json(payload) if isinstance(payload, str) else StandingLease.from_dict(payload)
         return lease.validate_identity()
     except (ValueError, TypeError) as exc:
-        return LeaseIdentityValidation(identity_valid=False, digest=None, issues=(str(exc),))
+        return LeaseIdentityValidation(
+            identity_valid=False,
+            digest=None,
+            issues=(safe_issue_from_exception(exc),),
+            decision_ref="lease-identity-invalid",
+            lease_ref="lease-unknown",
+        )
 
 
 def _require_revocation_state(value: Any) -> LeaseRevocationState:
@@ -481,6 +574,21 @@ def _require_permission(value: Any, field_name: str) -> Permission:
     if raw not in {permission.value for permission in Permission}:
         raise ValueError(f"invalid_field_type:{field_name}")
     return Permission(raw)
+
+
+def _require_authorization_model(value: Any, field_name: str) -> AuthorizationModel:
+    if isinstance(value, AuthorizationModel):
+        return value
+    raw = require_string(value, field_name)
+    if raw not in {model.value for model in AuthorizationModel}:
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return AuthorizationModel(raw)
+
+
+def require_contract_issue(value: Any, field_name: str) -> ValidationIssue:
+    if not isinstance(value, ValidationIssue):
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return value
 
 
 def _require_repo_identity(value: Any) -> Mapping[str, Any]:
@@ -558,15 +666,24 @@ def _parse_timestamp(value: str, field_name: str) -> datetime:
     return parsed.astimezone(timezone.utc)
 
 
-def _validate_time_window(issued_at: str, valid_from: str, expires_at: str, issues: list[str]) -> None:
+def _lease_issue(reason: str, field: str) -> ValidationIssue:
+    return ValidationIssue(field=field, reason=reason)
+
+
+def _validate_time_window(
+    issued_at: str,
+    valid_from: str,
+    expires_at: str,
+    issues: list[ValidationIssue],
+) -> None:
     try:
         issued = _parse_timestamp(issued_at, "issued_at")
         valid = _parse_timestamp(valid_from, "valid_from")
         expires = _parse_timestamp(expires_at, "expires_at")
     except ValueError as exc:
-        issues.append(str(exc))
+        issues.append(safe_issue_from_exception(exc))
         return
     if valid < issued:
-        issues.append("valid_from_before_issued_at")
+        issues.append(_lease_issue("valid_from_before_issued_at", "valid_from"))
     if expires <= valid:
-        issues.append("expires_at_not_after_valid_from")
+        issues.append(_lease_issue("expires_at_not_after_valid_from", "expires_at"))

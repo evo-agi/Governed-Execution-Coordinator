@@ -1,6 +1,6 @@
 # A2-P1 Contract
 
-A2-P1 is the Coordinator skeleton tranche.
+A2-P1/P1.1 is the Coordinator skeleton tranche.
 
 It implements:
 
@@ -9,12 +9,15 @@ It implements:
 - closed-world parsing for versioned v1 inputs, including recursive
   allowed-key checks and duplicate JSON object key rejection before
   canonicalization;
+- exact-shape, non-coercing collection parsing before normalization and digest
+  verification;
 - a distinct authorization-provider boundary whose production/default provider
   always blocks with `unsupported_authorization_model`;
 - finite backlog parsing and canonical identity;
-- immutable work-item records and a pure state transition engine;
-- a state-store protocol only;
-- global-stop models and pure enforcement checks;
+- immutable work-item records and a pure state transition evaluator;
+- P1.1 transition commands, transition events, apply conflicts, committed
+  outcomes, and a state-store protocol only;
+- global-stop command/event models and pure enforcement checks;
 - closed typed report projections.
 
 It does not implement worker execution or any of the following:
@@ -23,7 +26,8 @@ It does not implement worker execution or any of the following:
 - subprocess or shell execution;
 - network clients;
 - scheduler, daemon, queue consumer, or background loop;
-- production storage, SQLite, filesystem journal, or database;
+- production storage, SQLite, filesystem journal, in-memory production store,
+  or database;
 - executable lease authorization;
 - signing, keys, certificates, trust roots, or custody;
 - validation sandboxing;
@@ -45,6 +49,25 @@ future stages. Future tranches must explicitly change or version the contract
 rather than flip a hidden P1 switch.
 
 No publication state exists in P1.
+
+## P1.1 Transition Persistence Contract
+
+`TransitionCommand` carries caller intent and safe decision references.
+`TransitionEvent` is the only durable transition receipt. Caller code never
+provides proposed state, proposed events, or receipts.
+
+The pure evaluator owns domain rules and constructs accepted or
+domain-rejected events. Expected-version comparison, writer fencing,
+idempotency lookup, authoritative state loading, atomic state/event persistence,
+and exact replay belong to the atomic store boundary.
+
+Apply conflicts have no event. They include stale writer token, idempotency key
+reuse with a different command digest, expected-version conflict, and
+authoritative work-item not found. Exact replay returns the original committed
+state/event with `replayed=true` and creates no new event or counter effect.
+
+Global-stop updates use the same command/event/apply-conflict/outcome algebra.
+The Coordinator cannot manufacture operator authorization.
 
 ## Public Projections
 

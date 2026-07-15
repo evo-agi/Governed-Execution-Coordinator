@@ -162,6 +162,14 @@ def test_unknown_field_cannot_preserve_an_accepted_backlog_digest() -> None:
         FiniteBacklog.from_dict(dirty)
 
 
+def test_external_backlog_collection_fields_reject_tuple_shape_before_digest() -> None:
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["branches"] = tuple(payload["work_items"][0]["branches"])
+    with pytest.raises(ValueError, match="invalid_field_type:branches") as exc_info:
+        FiniteBacklog.from_dict(payload)
+    assert "trunk_dev" not in str(exc_info.value)
+
+
 def test_no_arbitrary_metadata_extensions_or_boolean_integer_budget() -> None:
     payload = _backlog().to_dict()
     payload["extensions"] = {}

@@ -2,13 +2,25 @@ import json
 
 import pytest
 
-from ge_nwp_coordinator.global_stop import GlobalStopState
+from ge_nwp_coordinator.global_stop import GlobalStopReasonClass, GlobalStopState
 from ge_nwp_coordinator.reports import (
     NON_AUTHORITY_NOTICE,
     project_work_item_report,
     validate_public_projection_payload,
 )
-from ge_nwp_coordinator.state_machine import TransitionRequest, WorkItemRecord, WorkItemState
+from ge_nwp_coordinator.state_machine import TransitionCommand, WorkItemRecord, WorkItemState
+
+
+def _active_stop() -> GlobalStopState:
+    return GlobalStopState(
+        version=1,
+        active=True,
+        stop_id="stop-1",
+        reason_class=GlobalStopReasonClass.OPERATOR_STOP,
+        issuer_ref="operator-policy",
+        issued_at="2026-07-14T00:00:00Z",
+        operator_decision_ref="operator-decision-1",
+    )
 
 
 def _payload() -> dict[str, object]:
@@ -24,7 +36,7 @@ def _payload() -> dict[str, object]:
         record,
         lease_ref="lease-safe-ref",
         backlog_ref="backlog-safe-ref",
-        global_stop=GlobalStopState(active=True, stop_id="stop-1", reason="RAW_REASON_NOT_PUBLIC"),
+        global_stop=_active_stop(),
         safe_failure_class="operator_action_required",
         safe_evidence_refs=("evidence-safe-ref",),
     ).to_dict()
@@ -90,6 +102,13 @@ def test_paths_and_endpoints_are_rejected_without_echoing_values(unsafe_ref: str
     with pytest.raises(ValueError) as exc_info:
         validate_public_projection_payload(payload)
     assert unsafe_ref not in str(exc_info.value)
+
+
+def test_public_projection_safe_evidence_refs_external_parser_requires_list() -> None:
+    payload = _payload()
+    payload["work_item"]["safe_evidence_refs"] = ("evidence-safe-ref",)
+    with pytest.raises(ValueError, match="invalid_field_type:work_item.safe_evidence_refs"):
+        validate_public_projection_payload(payload)
 
 
 @pytest.mark.parametrize(
@@ -172,4 +191,4 @@ def test_report_does_not_claim_worker_execution_or_expose_global_stop_reason() -
 def test_report_cannot_be_used_directly_as_transition_request() -> None:
     payload = _payload()
     with pytest.raises(TypeError):
-        TransitionRequest(**payload)
+        TransitionCommand(**payload)

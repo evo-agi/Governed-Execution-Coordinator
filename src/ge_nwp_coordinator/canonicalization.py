@@ -140,6 +140,15 @@ def require_string_tuple(value: Any, field_name: str, *, ordered: bool = True) -
     return normalize_set_like_strings(items, field_name)
 
 
+def require_string_list(value: Any, field_name: str, *, ordered: bool = True) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise ValueError(f"invalid_field_type:{field_name}")
+    items = tuple(require_string(item, f"{field_name}[]") for item in value)
+    if ordered:
+        return items
+    return normalize_set_like_strings(items, field_name)
+
+
 def require_safe_ref_tuple(value: Any, field_name: str, *, ordered: bool = True) -> tuple[str, ...]:
     if not isinstance(value, list | tuple):
         raise ValueError(f"invalid_field_type:{field_name}")
@@ -149,8 +158,26 @@ def require_safe_ref_tuple(value: Any, field_name: str, *, ordered: bool = True)
     return normalize_set_like_strings(items, field_name)
 
 
+def require_safe_ref_list(value: Any, field_name: str, *, ordered: bool = True) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise ValueError(f"invalid_field_type:{field_name}")
+    items = tuple(require_safe_ref(item, f"{field_name}[]") for item in value)
+    if ordered:
+        return items
+    return normalize_set_like_strings(items, field_name)
+
+
 def require_safe_relative_path_tuple(value: Any, field_name: str, *, ordered: bool = True) -> tuple[str, ...]:
     if not isinstance(value, list | tuple):
+        raise ValueError(f"invalid_field_type:{field_name}")
+    items = tuple(require_safe_relative_path(item, f"{field_name}[]") for item in value)
+    if ordered:
+        return items
+    return normalize_set_like_strings(items, field_name)
+
+
+def require_safe_relative_path_list(value: Any, field_name: str, *, ordered: bool = True) -> tuple[str, ...]:
+    if not isinstance(value, list):
         raise ValueError(f"invalid_field_type:{field_name}")
     items = tuple(require_safe_relative_path(item, f"{field_name}[]") for item in value)
     if ordered:

@@ -42,9 +42,28 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
 def test_state_store_has_protocol_only_and_no_backend() -> None:
     text = _read("src/ge_nwp_coordinator/state_store.py")
     assert "class StateStore(Protocol)" in text
+    assert "def apply_transition(" in text
+    assert "def apply_global_stop_update(" in text
     assert "sqlite" not in text.lower()
     assert "journal" not in text.lower()
     assert "open(" not in text
+
+
+def test_old_aggregate_apply_and_receipt_lookup_surface_is_absent() -> None:
+    source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
+    forbidden = (
+        "ApplyTransitionRequest",
+        "ApplyTransitionResult",
+        "TransitionReceipt",
+        "append_transition_receipt",
+        "compare_and_set_transition",
+        "read_transition_receipt",
+        "lookup_idempotency",
+        "idempotency_status",
+        "submit_operator_authorized_global_stop_update",
+    )
+    for token in forbidden:
+        assert token not in source
 
 
 def test_codex_agent_config_allowlist_and_hygiene() -> None:

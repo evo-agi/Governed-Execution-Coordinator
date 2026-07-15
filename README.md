@@ -6,8 +6,8 @@ This operational repository name is provisional and may change without changing
 schema, authority, or durable identifiers. The canonical component name is
 NWP Coordinator.
 
-This repository contains the A2-P1 skeleton for the future local coding-work
-coordinator. P1 provides offline contract primitives only:
+This repository contains the A2-P1/P1.1 skeleton for the future local
+coding-work coordinator. P1/P1.1 provides offline contract primitives only:
 
 - standing lease identity parsing, deterministic canonicalization, and digest
   validation for `governed-execution.nwp-standing-lease.v1`;
@@ -15,10 +15,18 @@ coordinator. P1 provides offline contract primitives only:
   before canonicalization;
 - a fail-closed unsupported authorization provider;
 - finite backlog parsing and canonical identity;
-- a pure work-item state transition engine;
-- a state-store protocol with no production backend;
-- operator-owned global-stop models and enforcement checks;
+- a pure work-item state transition evaluator that emits accepted or
+  domain-rejected transition events;
+- a P1.1 command/event/apply-conflict state-store protocol with no production
+  backend;
+- operator-owned global-stop command/event models and enforcement checks;
 - closed, typed, non-authoritative report projections.
+
+P1.1 models expected-version mismatch, stale writer tokens, idempotency key
+reuse, and authoritative not-found cases as apply conflicts with no event.
+Domain rejections, such as invalid predecessors, global stop, budget failure,
+missing evidence, and invariant P1 `stage_not_enabled`, commit exactly one
+event. The event is the receipt.
 
 P1 does not execute workers, invoke Bridge or Codex, start a scheduler, run a
 daemon, consume a queue, create worktrees, select a production state backend,
