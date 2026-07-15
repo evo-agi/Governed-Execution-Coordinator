@@ -1,4 +1,5 @@
 from dataclasses import FrozenInstanceError
+import json
 
 import pytest
 
@@ -96,12 +97,12 @@ def test_dependency_cycle_is_rejected() -> None:
 def test_no_self_expansion_or_private_brief_fields() -> None:
     payload = _backlog().to_dict()
     payload["dynamic_discovery"] = True
-    with pytest.raises(ValueError, match="forbidden fields"):
+    with pytest.raises(ValueError, match="unknown_field:backlog.dynamic_discovery"):
         FiniteBacklog.from_dict(payload)
 
     payload = _backlog().to_dict()
     payload["work_items"][0]["private_brief"] = "not public state"
-    with pytest.raises(ValueError, match="forbidden fields"):
+    with pytest.raises(ValueError, match="unknown_field:work_item.private_brief"):
         FiniteBacklog.from_dict(payload)
 
 
@@ -109,4 +110,65 @@ def test_content_digest_mismatch_rejected() -> None:
     payload = _backlog().to_dict()
     payload["work_items"][0]["objective_label"] = "changed"
     with pytest.raises(ValueError, match="content_digest_mismatch"):
+        FiniteBacklog.from_dict(payload)
+
+
+def test_closed_world_rejects_unknown_backlog_and_work_item_fields_before_digest() -> None:
+    payload = _backlog().to_dict()
+    payload["operator_notes"] = "RAW_VALUE_SHOULD_NOT_LEAK"
+    with pytest.raises(ValueError, match="unknown_field:backlog.operator_notes") as exc_info:
+        FiniteBacklog.from_dict(payload)
+    assert "RAW_VALUE" not in str(exc_info.value)
+
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["operator_notes"] = "not-part-of-v1"
+    with pytest.raises(ValueError, match="unknown_field:work_item.operator_notes"):
+        FiniteBacklog.from_dict(payload)
+
+
+def test_closed_world_rejects_unknown_nested_budget_and_misspelled_fields() -> None:
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["budget_allocation"]["tokens"] = 1
+    with pytest.raises(ValueError, match="unknown_field:budget_allocation.tokens"):
+        FiniteBacklog.from_dict(payload)
+
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["dependency"] = payload["work_items"][0].pop("dependencies")
+    with pytest.raises(ValueError, match="unknown_field:work_item.dependency"):
+        FiniteBacklog.from_dict(payload)
+
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["stopCondition"] = payload["work_items"][0].pop("stop_conditions")
+    with pytest.raises(ValueError, match="unknown_field:work_item.stopCondition"):
+        FiniteBacklog.from_dict(payload)
+
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["branch"] = payload["work_items"][0].pop("branches")
+    with pytest.raises(ValueError, match="unknown_field:work_item.branch"):
+        FiniteBacklog.from_dict(payload)
+
+
+def test_duplicate_json_object_keys_are_rejected_for_backlog_inputs() -> None:
+    with pytest.raises(ValueError, match="duplicate_field:work_item_id"):
+        FiniteBacklog.from_json('{"work_items":[{"work_item_id":"a","work_item_id":"b"}]}')
+
+
+def test_unknown_field_cannot_preserve_an_accepted_backlog_digest() -> None:
+    clean = _backlog().to_dict()
+    dirty = json.loads(json.dumps(clean))
+    dirty["metadata"] = {"anything": "not-allowed"}
+    assert FiniteBacklog.from_dict(clean).content_digest == clean["content_digest"]
+    with pytest.raises(ValueError, match="unknown_field:backlog.metadata"):
+        FiniteBacklog.from_dict(dirty)
+
+
+def test_no_arbitrary_metadata_extensions_or_boolean_integer_budget() -> None:
+    payload = _backlog().to_dict()
+    payload["extensions"] = {}
+    with pytest.raises(ValueError, match="unknown_field:backlog.extensions"):
+        FiniteBacklog.from_dict(payload)
+
+    payload = _backlog().to_dict()
+    payload["work_items"][0]["budget_allocation"]["api_calls"] = True
+    with pytest.raises(ValueError, match="budget_allocation.api_calls must be a non-negative integer"):
         FiniteBacklog.from_dict(payload)

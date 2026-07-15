@@ -104,14 +104,6 @@ EVIDENCE_REQUIRED_STATES = frozenset(
 
 
 @dataclass(frozen=True)
-class P1Policy:
-    worker_execution_enabled: bool = False
-    repair_enabled: bool = False
-    local_commit_enabled: bool = False
-    publication_enabled: bool = False
-
-
-@dataclass(frozen=True)
 class TransitionContext:
     lease_identity_valid: bool
     authorized: bool
@@ -178,7 +170,6 @@ def transition(
     record: WorkItemRecord,
     request: TransitionRequest,
     context: TransitionContext,
-    policy: P1Policy = P1Policy(),
 ) -> TransitionResult:
     duplicate = _receipt_for_key(record, request.idempotency_key)
     if duplicate is not None:
@@ -205,7 +196,7 @@ def transition(
     global_stop_reason = _global_stop_block(request.target_state, context.global_stop)
     if global_stop_reason is not None:
         return _blocked(record, request, global_stop_reason)
-    stage_reason = _stage_enabled(request.target_state, policy)
+    stage_reason = _stage_enabled(request.target_state)
     if stage_reason is not None:
         return _blocked(record, request, stage_reason)
     if _terminal_blocks(record, request.target_state):
@@ -314,8 +305,13 @@ def _global_stop_block(target: WorkItemState, global_stop: GlobalStopState) -> s
         WorkItemState.LEASE_ADMITTED: GlobalStopTransitionClass.LEASE_ADMISSION,
         WorkItemState.READY: GlobalStopTransitionClass.READY,
         WorkItemState.CYCLE_STARTING: GlobalStopTransitionClass.CYCLE_START,
+        WorkItemState.WORKER_RUNNING: GlobalStopTransitionClass.CYCLE_START,
+        WorkItemState.VALIDATING: GlobalStopTransitionClass.CYCLE_START,
+        WorkItemState.AUDITING: GlobalStopTransitionClass.CYCLE_START,
         WorkItemState.REPAIR_ADMITTED: GlobalStopTransitionClass.REPAIR,
+        WorkItemState.REPAIR_RUNNING: GlobalStopTransitionClass.REPAIR,
         WorkItemState.COMMIT_ELIGIBLE: GlobalStopTransitionClass.COMMIT_ELIGIBILITY,
+        WorkItemState.LOCAL_COMMIT_COMPLETED: GlobalStopTransitionClass.COMMIT_ELIGIBILITY,
     }
     transition_class = classes.get(target)
     if transition_class is None:
@@ -326,16 +322,18 @@ def _global_stop_block(target: WorkItemState, global_stop: GlobalStopState) -> s
     return decision.reason
 
 
-def _stage_enabled(target: WorkItemState, policy: P1Policy) -> str | None:
-    if target in {WorkItemState.CYCLE_STARTING, WorkItemState.WORKER_RUNNING}:
-        if not policy.worker_execution_enabled:
-            return "stage_not_enabled"
+def _stage_enabled(target: WorkItemState) -> str | None:
+    if target in {
+        WorkItemState.CYCLE_STARTING,
+        WorkItemState.WORKER_RUNNING,
+        WorkItemState.VALIDATING,
+        WorkItemState.AUDITING,
+    }:
+        return "stage_not_enabled"
     if target in {WorkItemState.REPAIR_ADMITTED, WorkItemState.REPAIR_RUNNING}:
-        if not policy.repair_enabled:
-            return "stage_not_enabled"
+        return "stage_not_enabled"
     if target in {WorkItemState.COMMIT_ELIGIBLE, WorkItemState.LOCAL_COMMIT_COMPLETED}:
-        if not policy.local_commit_enabled:
-            return "stage_not_enabled"
+        return "stage_not_enabled"
     return None
 
 
@@ -343,6 +341,8 @@ def _requires_executable_authority(target: WorkItemState) -> bool:
     return target in {
         WorkItemState.CYCLE_STARTING,
         WorkItemState.WORKER_RUNNING,
+        WorkItemState.VALIDATING,
+        WorkItemState.AUDITING,
         WorkItemState.REPAIR_ADMITTED,
         WorkItemState.REPAIR_RUNNING,
         WorkItemState.COMMIT_ELIGIBLE,

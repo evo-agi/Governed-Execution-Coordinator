@@ -47,3 +47,16 @@ def test_docs_pin_authority_boundaries() -> None:
         "does not create durable A2 state",
     ):
         assert phrase in text
+
+
+def test_docs_pin_closed_schemas_fixed_p1_gates_and_typed_projections() -> None:
+    contract = _text(".docs/a2-p1-contract.md")
+    durable = _text(".docs/durable-state-model.md")
+    architecture = _text(".docs/architecture.md")
+    lease = _text(".docs/lease-identity-and-authorization.md")
+    assert "Unknown fields, misspelled" in lease
+    assert "before canonicalization and before digest comparison" in lease
+    assert "P1 exposes no production API" in contract
+    assert "stage_not_enabled" in durable
+    assert "Report projections are closed typed models" in architecture
+    assert "test-only fixture policy" not in contract

@@ -32,9 +32,8 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
         "GitPython",
         "git push",
         "git commit",
+        "git worktree",
         "create_pull",
-        "Bridge",
-        "Codex",
     )
     for token in forbidden:
         assert token not in source
@@ -79,3 +78,26 @@ def test_test_only_in_memory_store_lives_outside_production() -> None:
     source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
     assert "InMemoryStateStore" not in source
     assert InMemoryStateStore.__module__ == __name__
+
+
+def test_no_production_stage_enable_policy_or_provider() -> None:
+    source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
+    forbidden = (
+        "P1Policy",
+        "worker_execution_enabled",
+        "repair_enabled",
+        "local_commit_enabled",
+        "publication_enabled",
+        "allow_stage",
+        "enable_stage",
+        "os.environ",
+    )
+    for token in forbidden:
+        assert token not in source
+
+
+def test_no_arbitrary_public_payload_sanitizer_model() -> None:
+    text = _read("src/ge_nwp_coordinator/reports.py")
+    assert "assert_safe_report_payload" not in text
+    assert "FORBIDDEN_REPORT_FRAGMENTS" not in text
+    assert "payload: Any" not in text

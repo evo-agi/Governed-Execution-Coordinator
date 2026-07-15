@@ -10,11 +10,16 @@ from typing import Any, Mapping, Protocol
 
 from ge_nwp_coordinator.canonicalization import (
     canonical_sha256,
+    decode_json_object,
+    require_exact_keys,
     require_non_negative_int,
     require_object,
     require_positive_int,
+    require_safe_ref,
+    require_safe_ref_tuple,
+    require_safe_relative_path_tuple,
+    require_safe_string,
     require_string,
-    require_string_tuple,
     normalize_set_like_strings,
 )
 
@@ -22,6 +27,51 @@ LEASE_SCHEMA_ID = "governed-execution.nwp-standing-lease.v1"
 LEASE_SCHEMA_VERSION = 1
 CANONICALIZATION_ID = "governed-execution.nwp-json-canonical.v1"
 SHA256_HEX_LENGTH = 64
+LEASE_KEYS = frozenset(
+    {
+        "schema_id",
+        "schema_version",
+        "lease_id",
+        "issuer_label",
+        "issued_at",
+        "valid_from",
+        "expires_at",
+        "revocation_state",
+        "revocation_reference",
+        "subject",
+        "repo_identity",
+        "branch_policy",
+        "allowed_paths",
+        "forbidden_path_policy_identity",
+        "task_classes",
+        "risk_lanes",
+        "finite_backlog_reference",
+        "finite_backlog_digest",
+        "max_work_items",
+        "max_concurrency",
+        "max_attempts",
+        "max_repairs",
+        "compute_api_budget",
+        "wall_clock_budget_seconds",
+        "validation_requirements",
+        "audit_requirements",
+        "local_commit_permission",
+        "publication_permission",
+        "cross_repo_permission",
+        "maintenance_permission",
+        "cleanup_requirements",
+        "reporting_cadence",
+        "retention_policy",
+        "global_stop_reference",
+        "canonical_digest_metadata",
+        "authorization_mechanism",
+    }
+)
+REPO_IDENTITY_KEYS = frozenset({"component", "repo_label"})
+BRANCH_POLICY_KEYS = frozenset({"base", "mode"})
+COMPUTE_API_BUDGET_KEYS = frozenset({"api_calls", "compute_seconds"})
+CANONICAL_DIGEST_METADATA_KEYS = frozenset({"algorithm", "canonicalization", "digest"})
+AUTHORIZATION_MECHANISM_KEYS = frozenset({"kind", "descriptor"})
 
 
 class LeaseRevocationState(str, Enum):
@@ -110,80 +160,158 @@ class StandingLease:
     authorization_mechanism: Mapping[str, Any]
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "revocation_state", LeaseRevocationState(self.revocation_state))
-        object.__setattr__(self, "local_commit_permission", Permission(self.local_commit_permission))
-        object.__setattr__(self, "publication_permission", Permission(self.publication_permission))
-        object.__setattr__(self, "cross_repo_permission", Permission(self.cross_repo_permission))
-        object.__setattr__(self, "maintenance_permission", Permission(self.maintenance_permission))
-        object.__setattr__(self, "allowed_paths", normalize_set_like_strings(self.allowed_paths, "allowed_paths"))
-        object.__setattr__(self, "task_classes", normalize_set_like_strings(self.task_classes, "task_classes"))
-        object.__setattr__(self, "risk_lanes", normalize_set_like_strings(self.risk_lanes, "risk_lanes"))
+        object.__setattr__(self, "schema_id", require_safe_string(self.schema_id, "schema_id"))
+        object.__setattr__(self, "schema_version", require_positive_int(self.schema_version, "schema_version"))
+        object.__setattr__(self, "lease_id", require_safe_ref(self.lease_id, "lease_id"))
+        object.__setattr__(self, "issuer_label", require_safe_ref(self.issuer_label, "issuer_label"))
+        object.__setattr__(self, "issued_at", require_safe_string(self.issued_at, "issued_at"))
+        object.__setattr__(self, "valid_from", require_safe_string(self.valid_from, "valid_from"))
+        object.__setattr__(self, "expires_at", require_safe_string(self.expires_at, "expires_at"))
+        object.__setattr__(self, "revocation_state", _require_revocation_state(self.revocation_state))
+        if self.revocation_reference is not None:
+            object.__setattr__(
+                self,
+                "revocation_reference",
+                require_safe_ref(self.revocation_reference, "revocation_reference"),
+            )
+        object.__setattr__(self, "subject", require_safe_ref(self.subject, "subject"))
+        object.__setattr__(self, "repo_identity", _require_repo_identity(self.repo_identity))
+        object.__setattr__(self, "branch_policy", _require_branch_policy(self.branch_policy))
+        object.__setattr__(
+            self,
+            "allowed_paths",
+            normalize_set_like_strings(
+                require_safe_relative_path_tuple(self.allowed_paths, "allowed_paths", ordered=True),
+                "allowed_paths",
+            ),
+        )
+        object.__setattr__(self, "forbidden_path_policy_identity", require_safe_ref(
+            self.forbidden_path_policy_identity,
+            "forbidden_path_policy_identity",
+        ))
+        object.__setattr__(
+            self,
+            "task_classes",
+            normalize_set_like_strings(require_safe_ref_tuple(self.task_classes, "task_classes"), "task_classes"),
+        )
+        object.__setattr__(
+            self,
+            "risk_lanes",
+            normalize_set_like_strings(require_safe_ref_tuple(self.risk_lanes, "risk_lanes"), "risk_lanes"),
+        )
+        object.__setattr__(
+            self,
+            "finite_backlog_reference",
+            require_safe_ref(self.finite_backlog_reference, "finite_backlog_reference"),
+        )
+        object.__setattr__(
+            self,
+            "finite_backlog_digest",
+            require_digest(self.finite_backlog_digest, "finite_backlog_digest"),
+        )
+        object.__setattr__(self, "max_work_items", require_positive_int(self.max_work_items, "max_work_items"))
+        object.__setattr__(self, "max_concurrency", require_positive_int(self.max_concurrency, "max_concurrency"))
+        object.__setattr__(self, "max_attempts", require_positive_int(self.max_attempts, "max_attempts"))
+        object.__setattr__(self, "max_repairs", require_non_negative_int(self.max_repairs, "max_repairs"))
+        object.__setattr__(self, "compute_api_budget", _require_compute_api_budget(self.compute_api_budget))
+        object.__setattr__(
+            self,
+            "wall_clock_budget_seconds",
+            require_positive_int(self.wall_clock_budget_seconds, "wall_clock_budget_seconds"),
+        )
         object.__setattr__(
             self,
             "validation_requirements",
-            normalize_set_like_strings(self.validation_requirements, "validation_requirements"),
+            normalize_set_like_strings(
+                require_safe_ref_tuple(self.validation_requirements, "validation_requirements"),
+                "validation_requirements",
+            ),
         )
         object.__setattr__(
             self,
             "audit_requirements",
-            normalize_set_like_strings(self.audit_requirements, "audit_requirements"),
+            normalize_set_like_strings(
+                require_safe_ref_tuple(self.audit_requirements, "audit_requirements"),
+                "audit_requirements",
+            ),
         )
+        object.__setattr__(self, "local_commit_permission", _require_permission(
+            self.local_commit_permission,
+            "local_commit_permission",
+        ))
+        object.__setattr__(self, "publication_permission", _require_permission(
+            self.publication_permission,
+            "publication_permission",
+        ))
+        object.__setattr__(self, "cross_repo_permission", _require_permission(
+            self.cross_repo_permission,
+            "cross_repo_permission",
+        ))
+        object.__setattr__(self, "maintenance_permission", _require_permission(
+            self.maintenance_permission,
+            "maintenance_permission",
+        ))
         object.__setattr__(
             self,
             "cleanup_requirements",
-            normalize_set_like_strings(self.cleanup_requirements, "cleanup_requirements"),
+            normalize_set_like_strings(
+                require_safe_ref_tuple(self.cleanup_requirements, "cleanup_requirements"),
+                "cleanup_requirements",
+            ),
         )
-        object.__setattr__(self, "repo_identity", MappingProxyType(dict(self.repo_identity)))
-        object.__setattr__(self, "branch_policy", MappingProxyType(dict(self.branch_policy)))
-        object.__setattr__(self, "compute_api_budget", MappingProxyType(dict(self.compute_api_budget)))
+        object.__setattr__(self, "reporting_cadence", require_safe_ref(self.reporting_cadence, "reporting_cadence"))
+        object.__setattr__(self, "retention_policy", require_safe_ref(self.retention_policy, "retention_policy"))
+        object.__setattr__(
+            self,
+            "global_stop_reference",
+            require_safe_ref(self.global_stop_reference, "global_stop_reference"),
+        )
         object.__setattr__(
             self,
             "canonical_digest_metadata",
-            MappingProxyType(dict(self.canonical_digest_metadata)),
+            _require_digest_metadata(self.canonical_digest_metadata, require_digest_value=False),
         )
         object.__setattr__(
             self,
             "authorization_mechanism",
-            MappingProxyType(dict(self.authorization_mechanism)),
+            _require_authorization_mechanism(self.authorization_mechanism),
         )
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> "StandingLease":
-        raw = require_object(dict(payload), "lease")
+        raw = require_exact_keys(payload, "lease", LEASE_KEYS)
         schema_id = require_string(raw.get("schema_id"), "schema_id")
         if schema_id != LEASE_SCHEMA_ID:
             raise ValueError("unsupported lease schema_id")
         schema_version = require_positive_int(raw.get("schema_version"), "schema_version")
         if schema_version != LEASE_SCHEMA_VERSION:
             raise ValueError("unsupported lease schema_version")
-        revocation_state = LeaseRevocationState(
-            require_string(raw.get("revocation_state"), "revocation_state")
-        )
+        revocation_state = _require_revocation_state(raw.get("revocation_state"))
         revocation_reference = raw.get("revocation_reference")
         if revocation_reference is not None:
-            revocation_reference = require_string(revocation_reference, "revocation_reference")
+            revocation_reference = require_safe_ref(revocation_reference, "revocation_reference")
 
         return cls(
             schema_id=schema_id,
             schema_version=schema_version,
-            lease_id=require_string(raw.get("lease_id"), "lease_id"),
-            issuer_label=require_string(raw.get("issuer_label"), "issuer_label"),
-            issued_at=require_string(raw.get("issued_at"), "issued_at"),
-            valid_from=require_string(raw.get("valid_from"), "valid_from"),
-            expires_at=require_string(raw.get("expires_at"), "expires_at"),
+            lease_id=require_safe_ref(raw.get("lease_id"), "lease_id"),
+            issuer_label=require_safe_ref(raw.get("issuer_label"), "issuer_label"),
+            issued_at=require_safe_string(raw.get("issued_at"), "issued_at"),
+            valid_from=require_safe_string(raw.get("valid_from"), "valid_from"),
+            expires_at=require_safe_string(raw.get("expires_at"), "expires_at"),
             revocation_state=revocation_state,
             revocation_reference=revocation_reference,
-            subject=require_string(raw.get("subject"), "subject"),
-            repo_identity=MappingProxyType(require_object(raw.get("repo_identity"), "repo_identity")),
-            branch_policy=MappingProxyType(require_object(raw.get("branch_policy"), "branch_policy")),
-            allowed_paths=require_string_tuple(raw.get("allowed_paths"), "allowed_paths", ordered=False),
-            forbidden_path_policy_identity=require_string(
+            subject=require_safe_ref(raw.get("subject"), "subject"),
+            repo_identity=_require_repo_identity(raw.get("repo_identity")),
+            branch_policy=_require_branch_policy(raw.get("branch_policy")),
+            allowed_paths=require_safe_relative_path_tuple(raw.get("allowed_paths"), "allowed_paths", ordered=False),
+            forbidden_path_policy_identity=require_safe_ref(
                 raw.get("forbidden_path_policy_identity"),
                 "forbidden_path_policy_identity",
             ),
-            task_classes=require_string_tuple(raw.get("task_classes"), "task_classes", ordered=False),
-            risk_lanes=require_string_tuple(raw.get("risk_lanes"), "risk_lanes", ordered=False),
-            finite_backlog_reference=require_string(
+            task_classes=require_safe_ref_tuple(raw.get("task_classes"), "task_classes", ordered=False),
+            risk_lanes=require_safe_ref_tuple(raw.get("risk_lanes"), "risk_lanes", ordered=False),
+            finite_backlog_reference=require_safe_ref(
                 raw.get("finite_backlog_reference"),
                 "finite_backlog_reference",
             ),
@@ -192,48 +320,43 @@ class StandingLease:
             max_concurrency=require_positive_int(raw.get("max_concurrency"), "max_concurrency"),
             max_attempts=require_positive_int(raw.get("max_attempts"), "max_attempts"),
             max_repairs=require_non_negative_int(raw.get("max_repairs"), "max_repairs"),
-            compute_api_budget=MappingProxyType(require_object(raw.get("compute_api_budget"), "compute_api_budget")),
+            compute_api_budget=_require_compute_api_budget(raw.get("compute_api_budget")),
             wall_clock_budget_seconds=require_positive_int(
                 raw.get("wall_clock_budget_seconds"),
                 "wall_clock_budget_seconds",
             ),
-            validation_requirements=require_string_tuple(
+            validation_requirements=require_safe_ref_tuple(
                 raw.get("validation_requirements"),
                 "validation_requirements",
                 ordered=False,
             ),
-            audit_requirements=require_string_tuple(
+            audit_requirements=require_safe_ref_tuple(
                 raw.get("audit_requirements"),
                 "audit_requirements",
                 ordered=False,
             ),
-            local_commit_permission=Permission(
-                require_string(raw.get("local_commit_permission"), "local_commit_permission")
-            ),
-            publication_permission=Permission(
-                require_string(raw.get("publication_permission"), "publication_permission")
-            ),
-            cross_repo_permission=Permission(
-                require_string(raw.get("cross_repo_permission"), "cross_repo_permission")
-            ),
-            maintenance_permission=Permission(
-                require_string(raw.get("maintenance_permission"), "maintenance_permission")
-            ),
-            cleanup_requirements=require_string_tuple(
+            local_commit_permission=_require_permission(raw.get("local_commit_permission"), "local_commit_permission"),
+            publication_permission=_require_permission(raw.get("publication_permission"), "publication_permission"),
+            cross_repo_permission=_require_permission(raw.get("cross_repo_permission"), "cross_repo_permission"),
+            maintenance_permission=_require_permission(raw.get("maintenance_permission"), "maintenance_permission"),
+            cleanup_requirements=require_safe_ref_tuple(
                 raw.get("cleanup_requirements"),
                 "cleanup_requirements",
                 ordered=False,
             ),
-            reporting_cadence=require_string(raw.get("reporting_cadence"), "reporting_cadence"),
-            retention_policy=require_string(raw.get("retention_policy"), "retention_policy"),
-            global_stop_reference=require_string(raw.get("global_stop_reference"), "global_stop_reference"),
-            canonical_digest_metadata=MappingProxyType(
-                require_object(raw.get("canonical_digest_metadata"), "canonical_digest_metadata")
+            reporting_cadence=require_safe_ref(raw.get("reporting_cadence"), "reporting_cadence"),
+            retention_policy=require_safe_ref(raw.get("retention_policy"), "retention_policy"),
+            global_stop_reference=require_safe_ref(raw.get("global_stop_reference"), "global_stop_reference"),
+            canonical_digest_metadata=_require_digest_metadata(
+                raw.get("canonical_digest_metadata"),
+                require_digest_value=True,
             ),
-            authorization_mechanism=MappingProxyType(
-                require_object(raw.get("authorization_mechanism"), "authorization_mechanism")
-            ),
+            authorization_mechanism=_require_authorization_mechanism(raw.get("authorization_mechanism")),
         )
+
+    @classmethod
+    def from_json(cls, text: str) -> "StandingLease":
+        return cls.from_dict(decode_json_object(text, "lease"))
 
     def to_dict(self, *, include_digest: bool = True) -> dict[str, Any]:
         metadata = dict(self.canonical_digest_metadata)
@@ -338,11 +461,92 @@ def require_digest(value: Any, field_name: str) -> str:
     return digest
 
 
-def validate_standing_lease(payload: Mapping[str, Any]) -> LeaseIdentityValidation:
+def validate_standing_lease(payload: Mapping[str, Any] | str) -> LeaseIdentityValidation:
     try:
-        return StandingLease.from_dict(payload).validate_identity()
+        lease = StandingLease.from_json(payload) if isinstance(payload, str) else StandingLease.from_dict(payload)
+        return lease.validate_identity()
     except (ValueError, TypeError) as exc:
         return LeaseIdentityValidation(identity_valid=False, digest=None, issues=(str(exc),))
+
+
+def _require_revocation_state(value: Any) -> LeaseRevocationState:
+    raw = require_string(value, "revocation_state")
+    if raw not in {state.value for state in LeaseRevocationState}:
+        raise ValueError("invalid_field_type:revocation_state")
+    return LeaseRevocationState(raw)
+
+
+def _require_permission(value: Any, field_name: str) -> Permission:
+    raw = require_string(value, field_name)
+    if raw not in {permission.value for permission in Permission}:
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return Permission(raw)
+
+
+def _require_repo_identity(value: Any) -> Mapping[str, Any]:
+    raw = require_exact_keys(value, "repo_identity", REPO_IDENTITY_KEYS)
+    return MappingProxyType(
+        {
+            "component": require_safe_ref(raw.get("component"), "repo_identity.component"),
+            "repo_label": require_safe_ref(raw.get("repo_label"), "repo_identity.repo_label"),
+        }
+    )
+
+
+def _require_branch_policy(value: Any) -> Mapping[str, Any]:
+    raw = require_exact_keys(value, "branch_policy", BRANCH_POLICY_KEYS)
+    return MappingProxyType(
+        {
+            "base": require_safe_string(raw.get("base"), "branch_policy.base"),
+            "mode": require_safe_ref(raw.get("mode"), "branch_policy.mode"),
+        }
+    )
+
+
+def _require_compute_api_budget(value: Any) -> Mapping[str, Any]:
+    raw = require_exact_keys(value, "compute_api_budget", COMPUTE_API_BUDGET_KEYS)
+    return MappingProxyType(
+        {
+            "api_calls": require_non_negative_int(raw.get("api_calls"), "compute_api_budget.api_calls"),
+            "compute_seconds": require_non_negative_int(
+                raw.get("compute_seconds"),
+                "compute_api_budget.compute_seconds",
+            ),
+        }
+    )
+
+
+def _require_digest_metadata(value: Any, *, require_digest_value: bool) -> Mapping[str, Any]:
+    optional = () if require_digest_value else ("digest",)
+    raw = require_exact_keys(
+        value,
+        "canonical_digest_metadata",
+        CANONICAL_DIGEST_METADATA_KEYS,
+        optional_keys=optional,
+    )
+    result: dict[str, Any] = {
+        "algorithm": require_safe_ref(raw.get("algorithm"), "canonical_digest_metadata.algorithm"),
+        "canonicalization": require_safe_ref(
+            raw.get("canonicalization"),
+            "canonical_digest_metadata.canonicalization",
+        ),
+    }
+    if "digest" in raw:
+        result["digest"] = require_digest(raw.get("digest"), "canonical_digest_metadata.digest")
+    return MappingProxyType(result)
+
+
+def _require_authorization_mechanism(value: Any) -> Mapping[str, Any]:
+    raw = require_exact_keys(value, "authorization_mechanism", AUTHORIZATION_MECHANISM_KEYS)
+    kind = require_safe_ref(raw.get("kind"), "authorization_mechanism.kind")
+    if kind != "unsupported":
+        raise ValueError("invalid_field_type:authorization_mechanism.kind")
+    return MappingProxyType(
+        {
+            "kind": kind,
+            "descriptor": require_safe_ref(raw.get("descriptor"), "authorization_mechanism.descriptor"),
+        }
+    )
 
 
 def _parse_timestamp(value: str, field_name: str) -> datetime:

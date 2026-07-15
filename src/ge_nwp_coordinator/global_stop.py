@@ -33,7 +33,7 @@ class GlobalStopState:
             "schema_id": self.schema_id,
             "active": self.active,
             "stop_id": self.stop_id,
-            "reason": self.reason,
+            "status": "active" if self.active else "clear",
         }
 
 

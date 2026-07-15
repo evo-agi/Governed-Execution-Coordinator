@@ -2,7 +2,7 @@ from dataclasses import replace
 
 from ge_nwp_coordinator.global_stop import GlobalStopState
 from ge_nwp_coordinator.state_machine import (
-    P1Policy,
+    ALLOWED_PREDECESSORS,
     TransitionContext,
     TransitionRequest,
     WorkItemRecord,
@@ -62,48 +62,32 @@ def test_expected_version_mismatch_and_idempotency() -> None:
 
 
 def test_counters_budgets_terminal_and_cleanup() -> None:
-    policy = P1Policy(worker_execution_enabled=True, repair_enabled=True, local_commit_enabled=True)
-    record = _record(state=WorkItemState.READY, version=2)
-    started = transition(
-        record,
-        _request(WorkItemState.CYCLE_STARTING, 2, "start", budget_cost=3),
-        _context(executable=True),
-        policy,
-    )
-    assert started.accepted
-    assert started.record.attempt_count == 1
-    assert started.record.budget_consumed == 3
-
-    running = transition(
-        started.record,
-        _request(WorkItemState.WORKER_RUNNING, 3, "worker"),
-        _context(executable=True),
-        policy,
-    )
+    record = _record(state=WorkItemState.CYCLE_STARTING, version=2)
     failed = transition(
-        running.record,
+        record,
         _request(
             WorkItemState.FAILED,
-            4,
+            2,
             "failed",
             evidence_refs=("safe-evidence",),
             safe_failure_class="validation_failed",
+            budget_cost=3,
         ),
-        _context(executable=True),
-        policy,
+        _context(),
     )
     assert failed.accepted
+    assert failed.record.attempt_count == 0
+    assert failed.record.budget_consumed == 3
     assert failed.record.cleanup_required
 
-    after_terminal = transition(failed.record, _request(WorkItemState.READY, 5, "ready"), _context())
+    after_terminal = transition(failed.record, _request(WorkItemState.READY, 3, "ready"), _context())
     assert not after_terminal.accepted
     assert after_terminal.reason == "terminal_state"
 
     cleanup = transition(
         failed.record,
-        _request(WorkItemState.CLEANUP_PENDING, 5, "cleanup"),
+        _request(WorkItemState.CLEANUP_PENDING, 3, "cleanup"),
         _context(),
-        policy,
     )
     assert cleanup.accepted
 
@@ -112,6 +96,22 @@ def test_stage_not_enabled_for_worker_repair_and_commit() -> None:
     worker = transition(_record(WorkItemState.READY, 1), _request(WorkItemState.CYCLE_STARTING, 1), _context())
     assert not worker.accepted
     assert worker.reason == "stage_not_enabled"
+
+    validating = transition(
+        _record(WorkItemState.WORKER_RUNNING, 1),
+        _request(WorkItemState.VALIDATING, 1, "validate", evidence_refs=("safe-evidence",)),
+        _context(executable=True),
+    )
+    assert not validating.accepted
+    assert validating.reason == "stage_not_enabled"
+
+    auditing = transition(
+        _record(WorkItemState.VALIDATING, 1),
+        _request(WorkItemState.AUDITING, 1, "audit", evidence_refs=("safe-evidence",)),
+        _context(executable=True),
+    )
+    assert not auditing.accepted
+    assert auditing.reason == "stage_not_enabled"
 
     repair = transition(
         _record(WorkItemState.FAILED, 1),
@@ -130,26 +130,62 @@ def test_stage_not_enabled_for_worker_repair_and_commit() -> None:
     assert commit.reason == "stage_not_enabled"
 
 
+def test_limits_and_executable_context_do_not_enable_p1_future_stages() -> None:
+    cycle = transition(
+        replace(_record(WorkItemState.READY, 1), max_attempts=5),
+        _request(WorkItemState.CYCLE_STARTING, 1, "cycle"),
+        _context(executable=True),
+    )
+    assert not cycle.accepted
+    assert cycle.reason == "stage_not_enabled"
+
+    repair = transition(
+        replace(_record(WorkItemState.FAILED, 1), max_repairs=5),
+        _request(WorkItemState.REPAIR_ADMITTED, 1, "repair", evidence_refs=("safe-evidence",)),
+        _context(executable=True),
+    )
+    assert not repair.accepted
+    assert repair.reason == "stage_not_enabled"
+
+    commit = transition(
+        _record(WorkItemState.AUDITING, 1),
+        _request(WorkItemState.COMMIT_ELIGIBLE, 1, "commit", evidence_refs=("safe-evidence",)),
+        _context(executable=True),
+    )
+    assert not commit.accepted
+    assert commit.reason == "stage_not_enabled"
+
+
 def test_evidence_and_budget_requirements() -> None:
-    policy = P1Policy(worker_execution_enabled=True)
     record = _record(WorkItemState.WORKER_RUNNING, 3)
     missing_evidence = transition(
         record,
-        _request(WorkItemState.VALIDATING, 3, "validate"),
-        _context(executable=True),
-        policy,
+        _request(WorkItemState.FAILED, 3, "failed", safe_failure_class="validation_failed"),
+        _context(),
     )
     assert not missing_evidence.accepted
     assert missing_evidence.reason == "evidence_required"
 
     over_budget = transition(
         replace(record, budget_consumed=9),
-        _request(WorkItemState.VALIDATING, 3, "validate2", evidence_refs=("safe",), budget_cost=2),
-        _context(executable=True),
-        policy,
+        _request(
+            WorkItemState.FAILED,
+            3,
+            "failed2",
+            evidence_refs=("safe",),
+            safe_failure_class="validation_failed",
+            budget_cost=2,
+        ),
+        _context(),
     )
     assert not over_budget.accepted
     assert over_budget.reason == "budget_exhausted"
+
+
+def test_future_state_vocabulary_has_no_production_enable_policy() -> None:
+    assert WorkItemState.WORKER_RUNNING in ALLOWED_PREDECESSORS
+    assert WorkItemState.REPAIR_RUNNING in ALLOWED_PREDECESSORS
+    assert WorkItemState.LOCAL_COMMIT_COMPLETED in ALLOWED_PREDECESSORS
 
 
 def test_no_publication_states_exist() -> None:

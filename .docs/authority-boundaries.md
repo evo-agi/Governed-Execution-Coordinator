@@ -28,3 +28,8 @@ Reports, ChatGPT state, connector state, API sessions, Symphony, and adapter
 evidence do not create durable A2 state, lease authority, execution authority,
 acceptance, commit authority, or publication authority. A report or adapter
 projection does not create durable A2 state.
+
+Coordinator P1 reports are closed typed public projections. They cannot widen
+authority, cannot mutate state, and cannot carry raw private content,
+endpoints, local paths, platform identifiers, credentials, trust material, or
+execution claims.

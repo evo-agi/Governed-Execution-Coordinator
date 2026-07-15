@@ -1,4 +1,5 @@
 from dataclasses import FrozenInstanceError
+import json
 
 import pytest
 
@@ -10,6 +11,13 @@ from ge_nwp_coordinator.lease import (
     StandingLease,
     UnsupportedAuthorizationProvider,
     validate_standing_lease,
+)
+from ge_nwp_coordinator.state_machine import (
+    TransitionContext,
+    TransitionRequest,
+    WorkItemRecord,
+    WorkItemState,
+    transition,
 )
 
 
@@ -85,6 +93,12 @@ def test_malformed_limits_are_rejected() -> None:
     validation = validate_standing_lease(payload)
     assert not validation.identity_valid
 
+    payload = _lease().to_dict()
+    payload["max_work_items"] = True
+    validation = validate_standing_lease(payload)
+    assert not validation.identity_valid
+    assert validation.issues == ("max_work_items must be a non-negative integer",)
+
 
 def test_expiry_and_revocation_shape_are_validated() -> None:
     payload = _lease().to_dict()
@@ -110,6 +124,138 @@ def test_digest_is_not_authorization_or_executability() -> None:
     assert not decision.authorized
     assert not decision.executable
     assert decision.reason == "unsupported_authorization_model"
+
+
+def test_closed_world_rejects_unknown_and_misspelled_lease_fields_before_digest() -> None:
+    payload = _lease().to_dict()
+    payload["unexpected_private_value"] = "RAW_VALUE_SHOULD_NOT_LEAK"
+    validation = validate_standing_lease(payload)
+    assert not validation.identity_valid
+    assert validation.digest is None
+    assert validation.issues == ("unknown_field:lease.unexpected_private_value",)
+    assert "RAW_VALUE" not in repr(validation.issues)
+
+    payload = _lease().to_dict()
+    payload["lease_identifier"] = payload.pop("lease_id")
+    validation = validate_standing_lease(payload)
+    assert not validation.identity_valid
+    assert validation.digest is None
+    assert validation.issues == ("unknown_field:lease.lease_identifier",)
+
+
+@pytest.mark.parametrize(
+    ("field_path", "value"),
+    (
+        (("branch_policy", "target"), "trunk_dev"),
+        (("compute_api_budget", "tokens"), 1),
+        (("authorization_mechanism", "trust_root"), "not-selected"),
+    ),
+)
+def test_closed_world_rejects_unknown_nested_lease_fields(field_path: tuple[str, str], value: object) -> None:
+    payload = _lease().to_dict()
+    payload[field_path[0]][field_path[1]] = value
+    validation = validate_standing_lease(payload)
+    assert not validation.identity_valid
+    assert validation.digest is None
+    assert validation.issues == (f"unknown_field:{field_path[0]}.{field_path[1]}",)
+
+
+@pytest.mark.parametrize("field_name", ("revocation_reason", "validation_requirement", "audit_requirement"))
+def test_closed_world_rejects_unknown_flat_lease_structural_fields(field_name: str) -> None:
+    payload = _lease().to_dict()
+    payload[field_name] = "not-part-of-v1"
+    validation = validate_standing_lease(payload)
+    assert not validation.identity_valid
+    assert validation.digest is None
+    assert validation.issues == (f"unknown_field:lease.{field_name}",)
+
+
+def test_duplicate_json_object_keys_are_rejected_for_lease_inputs() -> None:
+    with pytest.raises(ValueError, match="duplicate_field:schema_id"):
+        StandingLease.from_json('{"schema_id":"a","schema_id":"b"}')
+    with pytest.raises(ValueError, match="duplicate_field:base"):
+        StandingLease.from_json('{"branch_policy":{"base":"a","base":"b"}}')
+
+
+def test_unknown_field_cannot_preserve_an_accepted_lease_identity() -> None:
+    clean = _lease().to_dict()
+    dirty = json.loads(json.dumps(clean))
+    dirty["extra_authority"] = "operator-approved"
+    assert validate_standing_lease(clean).identity_valid
+    dirty_validation = validate_standing_lease(dirty)
+    assert not dirty_validation.identity_valid
+    assert dirty_validation.digest is None
+    with pytest.raises(ValueError, match="unknown_field:lease.extra_authority"):
+        StandingLease.from_dict(dirty)
+
+
+def test_permissive_fields_do_not_authorize_or_enable_executability() -> None:
+    payload = _lease().to_dict()
+    payload["publication_permission"] = Permission.ALLOWED.value
+    payload["cross_repo_permission"] = Permission.ALLOWED.value
+    payload["maintenance_permission"] = Permission.ALLOWED.value
+    payload["local_commit_permission"] = Permission.ALLOWED.value
+    payload["max_repairs"] = 2
+    payload["max_work_items"] = 3
+    payload["max_concurrency"] = 2
+    lease = StandingLease.from_dict(payload).with_digest()
+
+    validation = lease.validate_identity()
+    decision = UnsupportedAuthorizationProvider().authorize(lease)
+    assert validation.identity_valid
+    assert decision.authorized is False
+    assert decision.executable is False
+    assert decision.reason == "unsupported_authorization_model"
+
+    context = TransitionContext(lease_identity_valid=True, authorized=True, executable=True)
+    commit = transition(
+        WorkItemRecord(
+            work_item_id="wi-1",
+            lease_id=lease.lease_id,
+            backlog_id=lease.finite_backlog_reference,
+            state=WorkItemState.AUDITING,
+            version=1,
+        ),
+        TransitionRequest(
+            WorkItemState.COMMIT_ELIGIBLE,
+            1,
+            "commit",
+            evidence_refs=("safe-evidence",),
+        ),
+        context,
+    )
+    repair = transition(
+        WorkItemRecord(
+            work_item_id="wi-1",
+            lease_id=lease.lease_id,
+            backlog_id=lease.finite_backlog_reference,
+            state=WorkItemState.FAILED,
+            version=1,
+            max_repairs=lease.max_repairs,
+        ),
+        TransitionRequest(
+            WorkItemState.REPAIR_ADMITTED,
+            1,
+            "repair",
+            evidence_refs=("safe-evidence",),
+        ),
+        context,
+    )
+    cycle = transition(
+        WorkItemRecord(
+            work_item_id="wi-1",
+            lease_id=lease.lease_id,
+            backlog_id=lease.finite_backlog_reference,
+            state=WorkItemState.READY,
+            version=1,
+            max_attempts=lease.max_attempts,
+        ),
+        TransitionRequest(WorkItemState.CYCLE_STARTING, 1, "cycle"),
+        context,
+    )
+    assert commit.reason == "stage_not_enabled"
+    assert repair.reason == "stage_not_enabled"
+    assert cycle.reason == "stage_not_enabled"
 
 
 def test_no_duplicate_set_like_values_and_immutable_contracts() -> None:

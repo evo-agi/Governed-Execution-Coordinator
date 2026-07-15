@@ -16,7 +16,6 @@ from ge_nwp_coordinator.lease import (
     validate_standing_lease,
 )
 from ge_nwp_coordinator.state_machine import (
-    P1Policy,
     TransitionContext,
     TransitionRequest,
     TransitionResult,
@@ -30,7 +29,6 @@ __all__ = [
     "FiniteBacklog",
     "LEASE_SCHEMA_ID",
     "LeaseIdentityValidation",
-    "P1Policy",
     "StandingLease",
     "TransitionContext",
     "TransitionRequest",

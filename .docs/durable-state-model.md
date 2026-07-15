@@ -35,6 +35,12 @@ expected-version checks, idempotency-key handling, lease/global-stop
 prerequisites, attempt/repair/budget counters, evidence requirements, cleanup
 implications, and terminal-state checks.
 
+P1 future worker-cycle, repair, and local-commit states are declared for
+contract shape only. They are not enableable in production P1. The transition
+engine returns `stage_not_enabled` for those stages without accepting a policy,
+configuration, environment variable, callback, or provider that can enable
+them.
+
 The state-store surface is a protocol only. Future production storage must
 provide one active authoritative writer, ownership generation, stale-writer
 fencing, split-brain prevention, transactional counters/state, crash
@@ -49,7 +55,9 @@ filesystem journal, no database, and no production persistence adapter.
 Global stop is operator-owned. The Coordinator observes and enforces it. The
 Coordinator cannot clear, weaken, replace, or reinterpret it.
 
-An active global stop blocks lease admission, ready, cycle start, retry,
-repair, and commit eligibility. Report failure cannot disable enforcement.
+An active global stop blocks lease admission, ready, cycle start,
+retry-equivalent progression, worker-cycle progression, repair,
+commit eligibility, and local-commit completion. Report failure cannot disable
+enforcement.
 
 P1 does not terminate processes or cancel workers because P1 starts no worker.
