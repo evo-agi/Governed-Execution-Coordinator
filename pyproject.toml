@@ -1,0 +1,11 @@
+[project]
+name = "ge-nwp-coordinator"
+version = "0.1.0"
+description = "A2-P1 skeleton for the NWP Coordinator"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
