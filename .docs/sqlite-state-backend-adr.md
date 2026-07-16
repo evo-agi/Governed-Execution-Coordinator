@@ -3,15 +3,17 @@
 Status: accepted architecture; B2b implements bootstrap, observational
 inspection/validation, migrations, and the common state-authority advisory
 lock for initialize/migrate administration. B2a corrects the writer-session
-authority contract.
+authority contract. B2c implements durable writer issuance and internal
+writer-session acquisition for managed SQLite databases.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
 explicit operator-local database bootstrap, observational validation, and
 migrations. B2a replaces standalone reconstructable public mutation authority
 with an opaque future `WriterSession` contract and safe writer metadata. B2b
-adds the common state-authority lock and uses it for initialize/migrate. B2b
-does not implement a production `StateStore`, acquire a writer, start a
+adds the common state-authority lock and uses it for initialize/migrate. B2c
+adds internal writer acquisition and session-local mutation-unavailable
+behavior. B2c does not implement a production `StateStore`, start a
 coordinator service, or enable executable A2 behavior.
 
 ## Decision
@@ -81,6 +83,13 @@ B1/B2b must not contain:
   global-stop current-state mutation APIs outside schema bootstrap;
 - executable authorization, scheduling, worker execution, repair, commit,
   publication, service, daemon, or deployment behavior.
+
+B2c may contain only internal writer acquisition, proof generation/digest
+verification, `writer_ownership` issuance updates, and a concrete internal
+`WriterSession` whose mutation methods fail locally. B2c must not contain a
+SQLite `StateStore`, event persistence, work-item mutation, global-stop
+mutation, reports over writer issuance, service behavior, worker execution, or
+executable A2 behavior.
 
 ## Backend Responsibility Matrix
 
@@ -180,10 +189,11 @@ credentials.
 B2b implements the lock-file creation, validation, nonblocking exclusive
 `fcntl.flock` acquisition, release, fork/exec descriptor hygiene, same-process
 exclusion, cross-process exclusion, crash release behavior, and initialize/
-migrate integration for that common lock. B2b does not implement writer
-issuance generation, proof generation or verification, `writer_ownership`
-update, concrete writer session, or mutation backend. The detailed
-writer-session contract lives in `.docs/writer-session-authority.md`.
+migrate integration for that common lock. B2c implements writer issuance
+generation, proof generation and verification, `writer_ownership` acquisition
+updates, and the internal concrete writer session. It still implements no
+mutation backend. The detailed writer-session contract lives in
+`.docs/writer-session-authority.md`.
 B2b descriptor hygiene includes immediate cleanup ownership after `os.open`,
 a parent lifecycle/fork gate for publication and pre-fork snapshot creation,
 and child cleanup that closes inherited descriptors without acquiring
@@ -293,7 +303,10 @@ posture instead of changing it. Administrative initialize remains the
 create-capable path. Administrative migrate requires managed observational
 preflight before opening read/write. B2b initialize and migrate acquire the
 same state-authority lock after observational preflight and revalidate while
-the lock is held.
+the lock is held. B2c writer acquisition requires an existing managed
+database, revalidates while holding that same lock, validates again inside
+`BEGIN IMMEDIATE`, updates only `writer_ownership`, commits, closes the
+acquisition connection, and retains the lock in the returned internal session.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that
@@ -306,7 +319,8 @@ authorization.
 
 ## Non-Goals
 
-B2b does not implement writer acquisition, writer issuance, proof generation,
-`writer_ownership` mutation, crash recovery orchestration, production read
-ports, a `StateStore` mutation backend, worker execution, scheduling,
-authorization, sandboxing, repair, local commit, publication, or deployment.
+B2c does not implement transition persistence, global-stop persistence,
+idempotency lookup, expected-version checks, crash recovery orchestration,
+production read ports, a `StateStore` mutation backend, worker execution,
+scheduling, authorization, sandboxing, repair, local commit, publication, or
+deployment.

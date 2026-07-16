@@ -1,13 +1,14 @@
 # SQLite Backend Threat Model
 
 Status: B2b bootstrap/inspection/validation/migration implementation plus the
-common state-authority lock for initialize/migrate administration. B2a defines
-writer-session authority contracts.
+common state-authority lock for initialize/migrate administration. B2c
+implements durable writer issuance and internal writer-session acquisition.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
-state-authority lock for administration; it does not claim current code has a
-production `StateStore` mutation backend.
+state-authority lock for administration. B2c implements writer issuance and an
+internal session. The current code still has no production `StateStore`
+mutation backend.
 
 ## First Backend Guarantees
 
@@ -113,14 +114,16 @@ classification, no-mutation inspection of missing/unknown/wrong-posture
 databases, migration-history/catalog equality, live-schema manifest
 validation, managed current-state invariant checks, migration rollback, the
 common state-authority lock for initialize/migrate, safe SQLite and lock error
-boundaries, and authority-boundary non-expansion. B2b does not add writer
-acquisition, writer fencing validation, mutation APIs, worker execution, or
-product read/report authority over SQLite.
+boundaries, and authority-boundary non-expansion. B2c adds writer acquisition,
+proof digest verification, session lifecycle checks, and mutation-unavailable
+failures. It does not add transition/global-stop mutation APIs, worker
+execution, or product read/report authority over SQLite.
 
-B2b adds runtime lock mitigation for administration only. Durable
-`writer_ownership` metadata remains latest issuance evidence only, and future
-mutation authority still requires a future active `WriterSession` holding a
-private proof and the common state-authority lock.
+B2c adds runtime writer issuance. Durable `writer_ownership` metadata remains
+latest issuance evidence only, and mutation authority requires an active
+internal `WriterSession` holding a private proof and the common
+state-authority lock. In B2c, mutation methods still fail before any apply
+boundary with `writer_session_mutation_unavailable`.
 
 Descriptor lifecycle threats:
 

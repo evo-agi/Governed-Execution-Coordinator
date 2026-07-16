@@ -252,6 +252,18 @@ def validate_database(location: CoordinatorStateLocation) -> DatabaseInspection:
     return inspection
 
 
+def _validate_current_managed_connection(connection: sqlite3.Connection) -> DatabaseInspection:
+    """Validate that an already-open connection is at the current managed schema."""
+
+    catalog = load_migration_catalog()
+    inspection = _inspect_open_database(connection, catalog)
+    if inspection.classification is not DatabaseClassification.MANAGED:
+        raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_HISTORY_MISSING)
+    if inspection.current_sequence != catalog.latest_sequence:
+        raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE)
+    return inspection
+
+
 def _inspect_open_database(
     connection: sqlite3.Connection,
     catalog: MigrationCatalog,

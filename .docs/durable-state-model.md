@@ -4,7 +4,9 @@ A2-P1/P1.1 defines state contracts. B1/B1.1 adds explicit operator-local
 SQLite bootstrap, observational validation, live-schema integrity checks, and
 migration infrastructure. B2a corrects the writer-session authority contract.
 B2b adds the common state-authority lock for initialize/migrate administration.
-The code still does not implement a production `StateStore` mutation backend.
+B2c adds durable writer issuance and an internal concrete SQLite
+`WriterSession`. The code still does not implement a production `StateStore`
+mutation backend.
 
 The work-item state schema id is:
 
@@ -84,19 +86,21 @@ explicitly requested local database plus observational existing-database
 inspection/validation. B1.1 managed validation checks migration-history/catalog
 equality, live-schema manifest equality, exactly one global-stop current
 singleton, and zero-or-one writer ownership row shape. B2a adds safe writer
-metadata and an opaque `WriterSession` protocol only. B2b adds shared
-state-authority lock integration for initialize/migrate. It implements no
-SQLite `StateStore`, no work-item or global-stop mutation API, no writer
-acquisition, no writer fencing validation, no product read port, and no
-production persistence adapter.
+metadata and an opaque `WriterSession` protocol. B2b adds shared
+state-authority lock integration for initialize/migrate. B2c adds internal
+writer acquisition, proof generation/verification, durable generation
+issuance, and session-local mutation-unavailable failures. It implements no
+SQLite `StateStore`, no work-item or global-stop mutation API, no transition
+or global-stop event persistence, no product read port, and no production
+persistence adapter.
 
 B0 selected SQLite, one private local database, as the future first production
 backend architecture. B1/B1.1 adds administrative database bootstrap,
 observational connection posture, migration-history/catalog equality,
 live-schema manifest checks, and schema compatibility validation. B2a adds
-writer-session contract hardening, and B2b adds the common administrative lock.
-No `StateStore` mutation backend, writer acquisition, coordinator service, or
-executable A2 capability exists in B2b.
+writer-session contract hardening, B2b adds the common administrative lock, and
+B2c adds internal writer acquisition. No `StateStore` mutation backend,
+coordinator service, or executable A2 capability exists in B2c.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

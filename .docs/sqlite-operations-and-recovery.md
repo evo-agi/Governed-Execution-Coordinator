@@ -2,7 +2,7 @@
 
 Status: B2b bootstrap/inspection/validation/migration implementation plus the
 shared state-authority advisory lock for initialize/migrate administration.
-B2a adds writer-session authority contract wording.
+B2c adds durable writer issuance and internal writer-session acquisition.
 
 ## Filesystem Posture
 
@@ -55,7 +55,8 @@ B2b implements one common state-authority advisory lock path while preserving
 the current `coordinator-state.migration.lock` filename as an implementation
 label only. The lock is acquired with nonblocking exclusive `fcntl.flock` on
 macOS and Linux, remains persistent after release, and is used by initialize
-and migrate. Lock possession alone is not writer authority.
+and migrate. B2c also retains the same lock for the entire active internal
+writer-session lifetime. Lock possession alone is not writer authority.
 
 The lock descriptor is owned by a private resource object. Explicit
 context-manager or `finally`-based close is still mandatory for production
@@ -120,6 +121,27 @@ transactions are explicit and forward-only. Migration `0001_initial` creates
 bootstrap seed, inserts its migration-history row, and commits as one
 transaction. Failed migrations roll back; reverse migrations are not a rollback
 mechanism.
+
+## Writer Issuance Operation
+
+B2c writer acquisition is an administrative/runtime authority operation for an
+existing managed database. It is not an implicit migration, product read,
+transition apply, or global-stop apply.
+
+Acquisition refuses absent, empty, unknown, drifted, or incompatible databases
+before creating a writer row. It acquires the common state-authority lock,
+revalidates managed state while holding the lock, opens the database
+create-disabled read/write, starts `BEGIN IMMEDIATE`, revalidates schema and
+history inside the transaction, reads and validates the singleton
+`writer_ownership` row, issues the next monotonic generation, stores only the
+private-proof digest, commits, closes the acquisition connection, and returns
+an internal session that retains the common lock.
+
+Close is explicit and idempotent. It marks the session closed before releasing
+resources, best-effort overwrites and drops the private proof, closes the
+common lock, and performs no SQLite update, delete, release marker, or
+generation reset. Mutation methods currently fail locally with
+`writer_session_mutation_unavailable`.
 
 ## Backup
 

@@ -78,6 +78,17 @@ without `LOCK_UN`. B2b still does not implement writer acquisition, proof
 generation or verification, `writer_ownership` updates, a concrete
 `WriterSession`, or `StateStore` mutation storage.
 
+B2c implements durable writer issuance and internal SQLite `WriterSession`
+acquisition only. It uses the B2b common lock, generates a private in-memory
+32-byte proof, persists only the domain-separated proof digest, increments the
+durable generation monotonically, closes the acquisition SQLite connection
+before returning, and retains the common lock for the session lifetime. The
+SQLite row remains latest issuance evidence only. B2c mutation methods fail
+locally with `writer_session_mutation_unavailable`; no transition/global-stop
+event persistence, work-item update, global-stop update, idempotency lookup,
+expected-version check, service loop, worker execution, repair, commit, or
+publication exists.
+
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.
@@ -87,8 +98,10 @@ weaken, or replace global stop without a typed operator decision.
 P1/P1.1 must not implement worker execution, a scheduling loop, a queue
 consumer, a daemon, repair, local commit behavior, publication, StateStore
 mutation storage, a validation sandbox, executable lease authorization,
-signing, keys, trust roots, writer-session acquisition, or a trusted-local/allow-all
-production authorization path.
+signing, keys, trust roots, public writer-credential export, or a
+trusted-local/allow-all production authorization path. B2c's internal writer
+acquisition is not a StateStore mutation backend and does not enable executable
+A2 behavior.
 
 P1 public state and report models must not include private briefs, raw prompts,
 raw logs, credentials, secrets, local absolute paths, endpoints, platform

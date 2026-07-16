@@ -36,6 +36,7 @@ MAX_WRITER_GENERATION = 9223372036854775807
 class WriterSessionFailureReason(str, Enum):
     WRITER_SESSION_CLOSED = "writer_session_closed"
     WRITER_SESSION_PROCESS_MISMATCH = "writer_session_process_mismatch"
+    WRITER_SESSION_MUTATION_UNAVAILABLE = "writer_session_mutation_unavailable"
 
 
 class WriterSessionError(RuntimeError):

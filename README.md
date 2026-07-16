@@ -30,7 +30,9 @@ SQLite bootstrap/migration infrastructure only:
   token-shaped mutation authority with an opaque future `WriterSession`
   protocol and safe non-authoritative writer metadata;
 - a B2b common state-authority advisory lock, used by SQLite initialize and
-  migrate administration for live-process exclusion only.
+  migrate administration for live-process exclusion only;
+- B2c durable writer issuance and internal SQLite `WriterSession` acquisition,
+  with private in-memory proof material and no mutation storage.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -59,9 +61,15 @@ not a timing guarantee. Lock descriptor publication and parent-side cleanup are
 serialized by one lifecycle/fork gate; the fork child handler uses the frozen
 descriptor snapshot, closes inherited descriptors without `LOCK_UN`, and does
 not acquire inherited Python locks. Lock possession alone is not writer
-authority. The runtime still provides no writer acquisition, proof generation,
-SQLite writer-row mutation, concrete `WriterSession`, `StateStore` mutation
-backend, coordinator service, worker, scheduler, authorization path, or
-executable A2 capability.
+authority.
+
+B2c acquires an internal SQLite writer session only for an existing managed
+database. It increments the durable writer generation, stores only a proof
+digest in `writer_ownership`, closes the acquisition connection before return,
+and retains the common lock for the session lifetime. The runtime still
+provides no `StateStore` mutation backend, transition/global-stop persistence,
+coordinator service, worker, scheduler, authorization path, or executable A2
+capability. B2c mutation methods fail locally with
+`writer_session_mutation_unavailable`.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

@@ -72,9 +72,10 @@ path, platform, credential, or trust material.
 B0 selects SQLite, one private local database, as the future first production
 state backend architecture. B1/B1.1 add the migration runner and local
 administrative database posture. B2b adds the common state-authority lock for
-initialize/migrate administration. The current runtime still has no production
-store, no writer acquisition, no coordinator service, and no executable A2
-capability.
+initialize/migrate administration. B2c adds durable writer issuance and
+internal writer-session acquisition. The current runtime still has no
+production `StateStore` mutation backend, no coordinator service, and no
+executable A2 capability.
 
 The selected first-backend journal posture is rollback journal DELETE mode with
 `synchronous=FULL`, `locking_mode=NORMAL`, `foreign_keys=ON`,
@@ -117,9 +118,10 @@ not auto-migrate. Initialize and migrate are explicit operator-local
 administrative mutations. B2b initialize/migrate acquire the common
 state-authority lock and revalidate while holding it. B1/B2b do not implement a
 SQLite `StateStore`, product mutation methods, database-backed product reads,
-reports over the database, writer acquisition, writer issuance,
-`writer_ownership` mutation, coordinator service behavior, worker execution,
+reports over the database, coordinator service behavior, worker execution,
 authorization, scheduling, repair, local commit, publication, or deployment.
+B2c implements writer acquisition and `writer_ownership` issuance updates
+only, not product mutations.
 Normal future runtime must not run migrations concurrently with an active
 Coordinator writer.
 
@@ -155,8 +157,8 @@ acquire the lock.
 
 The lock provides live-process exclusion only. It is not writer authority, not
 a writer credential, not durable state, and not sufficient for work-item or
-global-stop mutation. B2c remains future for durable writer issuance and
-writer-session acquisition.
+global-stop mutation. B2c combines the retained lock with durable generation
+issuance and a private in-memory proof inside an internal writer session.
 
 B2b owns a real descriptor through a private resource object. Explicit
 context-manager close remains the required release path; a one-shot finalizer
@@ -170,3 +172,18 @@ Python locks, closes inherited descriptors without `LOCK_UN`, clears only the
 child-side copied registry, and leaves parent authority untouched. Python
 continues to warn that multithreaded fork is broadly unsafe, and third-party
 forks that bypass Python at-fork hooks remain a limitation.
+
+## B2c Writer Issuance
+
+B2c implements internal SQLite writer acquisition for existing current managed
+databases. Acquisition revalidates the managed schema while holding the common
+lock, starts `BEGIN IMMEDIATE`, issues a monotonically increasing generation,
+generates independent safe writer and issuance refs, stores only the
+domain-separated private-proof digest, commits the singleton
+`writer_ownership` row, closes the acquisition SQLite connection, and returns
+an internal concrete `WriterSession` retaining the common lock.
+
+The SQLite row remains latest issuance evidence only. It is not liveness truth,
+not a credential, and not sufficient to mutate work-item or global-stop state.
+B2c mutation methods fail locally with `writer_session_mutation_unavailable`.
+B3/B4 remain future for transition and global-stop persistence.

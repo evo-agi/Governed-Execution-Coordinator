@@ -46,6 +46,7 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
     assert sqlite_importers == {
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
+        "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }
 
 
@@ -62,11 +63,13 @@ def test_state_store_and_writer_session_have_protocols_only_and_no_backend() -> 
     assert "open(" not in text
 
 
-def test_b1_sqlite_modules_do_not_define_state_store_mutations_or_writer_acquisition() -> None:
+def test_sqlite_modules_do_not_define_state_store_mutations_or_services() -> None:
     sqlite_sources = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (ROOT / "src" / "ge_nwp_coordinator").glob("sqlite_*.py")
+        if path.name != "sqlite_writer_session.py"
     )
+    writer_session_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
     forbidden = (
         "class SQLiteStateStore",
         "class SqliteStateStore",
@@ -85,6 +88,11 @@ def test_b1_sqlite_modules_do_not_define_state_store_mutations_or_writer_acquisi
     )
     for token in forbidden:
         assert token not in sqlite_sources
+    assert "def apply_transition(" in writer_session_source
+    assert "def apply_global_stop_update(" in writer_session_source
+    assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in writer_session_source
+    assert "class SQLiteStateStore" not in writer_session_source
+    assert "class SqliteStateStore" not in writer_session_source
 
 
 def test_old_aggregate_apply_and_receipt_lookup_surface_is_absent() -> None:

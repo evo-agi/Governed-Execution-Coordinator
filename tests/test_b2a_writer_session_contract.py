@@ -243,7 +243,8 @@ def test_writer_session_close_contract_is_idempotent_and_non_durable() -> None:
     assert "def close(self) -> None:" in state_store
     assert "def __enter__(self) -> Self:" in state_store
     assert "def __exit__(" in state_store
-    assert _source_without_lock().count("def close(") == 1
+    sqlite_writer_session = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
+    assert sqlite_writer_session.count("def close(") == 1
     assert _read("src/ge_nwp_coordinator/state_authority_lock.py").count("def close(") == 1
 
 
@@ -294,7 +295,7 @@ def test_writer_session_crash_releases_future_os_lock_by_process_teardown() -> N
         "| Process crash while active |",
         "OS lock releases through process/descriptor teardown.",
         "B2b implements and tests the lock primitive itself",
-        "No concrete `WriterSession` exists",
+        "B2c implements and tests an internal concrete `WriterSession`",
     ):
         assert phrase in section
 
@@ -346,9 +347,10 @@ def test_next_acquisition_increments_from_latest_durable_generation() -> None:
     assert "next acquisition reads the durable latest generation and increments it" in generation_section
 
 
-def test_generation_and_proof_specification_is_contract_only() -> None:
+def test_generation_and_proof_specification_is_implemented_in_internal_b2c_module() -> None:
     writer_doc = _read(".docs/writer-session-authority.md")
     source = _source()
+    sqlite_writer_session = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
 
     assert MAX_WRITER_GENERATION == 9223372036854775807
     assert WRITER_ISSUANCE_PROOF_DOMAIN == "governed-execution.nwp-writer-issuance-proof.v1"
@@ -356,8 +358,11 @@ def test_generation_and_proof_specification_is_contract_only() -> None:
     assert "secrets.token_bytes(32)" in writer_doc
     assert "hmac.compare_digest" in writer_doc
     assert "guaranteed memory zeroization" in writer_doc
-    assert "secrets.token_bytes" not in source
-    assert "hmac.compare_digest" not in source
+    assert "secrets.token_bytes" in sqlite_writer_session
+    assert "hmac.compare_digest" in sqlite_writer_session
+    source_without_b2c = source.replace(sqlite_writer_session, "")
+    assert "secrets.token_bytes" not in source_without_b2c
+    assert "hmac.compare_digest" not in source_without_b2c
 
 
 def test_no_sqlite_release_marker_or_writer_row_clear_contract() -> None:
@@ -383,18 +388,17 @@ def test_no_sqlite_release_marker_or_writer_row_clear_contract() -> None:
     ):
         assert fragment not in source
 
-    for fragment in (
-        "UPDATE writer_ownership",
-        "DELETE FROM writer_ownership",
-        "INSERT INTO writer_ownership",
-    ):
-        assert fragment not in sqlite_sources
+    sqlite_writer_session = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
+    assert "UPDATE writer_ownership" in sqlite_writer_session
+    assert "INSERT INTO writer_ownership" in sqlite_writer_session
+    assert "DELETE FROM writer_ownership" not in sqlite_sources
 
 
-def test_b2b_contains_no_writer_release_or_crash_runtime_implementation() -> None:
+def test_b2c_contains_no_writer_release_takeover_or_reconstruction_runtime() -> None:
     source = _source()
     source_without_lock = _source_without_lock()
     state_store = _read("src/ge_nwp_coordinator/state_store.py")
+    sqlite_writer_session = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
 
     assert "class WriterSession(Protocol)" in state_store
     for fragment in (
@@ -402,8 +406,6 @@ def test_b2b_contains_no_writer_release_or_crash_runtime_implementation() -> Non
         "class SqliteWriterSession",
         "acquire_writer",
         "release_writer",
-        "secrets.token_bytes",
-        "hmac.compare_digest",
         "ttl",
         "heartbeat",
         "expiry",
@@ -414,6 +416,8 @@ def test_b2b_contains_no_writer_release_or_crash_runtime_implementation() -> Non
         "reconstruct_writer_session",
     ):
         assert fragment not in source
+    assert "secrets.token_bytes" in sqlite_writer_session
+    assert "hmac.compare_digest" in sqlite_writer_session
     for fragment in ("fcntl.", "flock", "LOCK_EX", "LOCK_NB"):
         assert fragment not in source_without_lock
         assert fragment in _read("src/ge_nwp_coordinator/state_authority_lock.py")
@@ -446,10 +450,11 @@ def test_schema_fit_has_no_migration_0002_and_0001_is_unchanged() -> None:
         assert forbidden_field in writer_doc
 
 
-def test_b2b_implements_only_common_lock_not_writer_acquisition_or_row_updates() -> None:
+def test_b2c_implements_only_internal_writer_acquisition_not_state_store_mutations() -> None:
     source = _source()
     source_without_lock = _source_without_lock()
     sqlite_sources = _sqlite_sources()
+    sqlite_writer_session = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
 
     forbidden_source_fragments = (
         "acquire_writer",
@@ -474,18 +479,14 @@ def test_b2b_implements_only_common_lock_not_writer_acquisition_or_row_updates()
     for fragment in ("import fcntl", "flock", "LOCK_EX", "LOCK_NB"):
         assert fragment in lock_source
 
-    forbidden_sqlite_fragments = (
-        "INSERT INTO writer_ownership",
-        "UPDATE writer_ownership",
-        "DELETE FROM writer_ownership",
-        "def apply_transition(",
-        "def apply_global_stop_update(",
-    )
-    for fragment in forbidden_sqlite_fragments:
-        assert fragment not in sqlite_sources
+    assert "INSERT INTO writer_ownership" in sqlite_writer_session
+    assert "UPDATE writer_ownership" in sqlite_writer_session
+    assert "DELETE FROM writer_ownership" not in sqlite_sources
+    assert "def apply_transition(" in sqlite_writer_session
+    assert "def apply_global_stop_update(" in sqlite_writer_session
 
 
-def test_docs_pin_private_proof_and_no_b2c_behavior() -> None:
+def test_docs_pin_private_proof_and_b2c_behavior() -> None:
     writer_doc = _read(".docs/writer-session-authority.md")
 
     for phrase in (
@@ -494,10 +495,9 @@ def test_docs_pin_private_proof_and_no_b2c_behavior() -> None:
         "never logged",
         "never projected",
         "never returned by safe read APIs",
-        "does not implement proof generation or verification",
-        "does not implement `writer_ownership` updates",
-        "does not implement concrete `WriterSession`",
-        "B2b implements the common state-authority lock only",
-        "B2c remains future",
+        "B2c implements proof generation and verification",
+        "B2c updates `writer_ownership` only during writer acquisition",
+        "B2c implements an internal concrete `WriterSession`",
+        "B3/B4 remain future",
     ):
         assert phrase in writer_doc

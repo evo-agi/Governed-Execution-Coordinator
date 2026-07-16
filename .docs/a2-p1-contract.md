@@ -44,10 +44,11 @@ connection posture, packaged migrations, migration-history/catalog equality,
 live-schema manifest verification, and schema compatibility validation. B2a
 corrects writer authority to an opaque future `WriterSession` plus safe
 non-authoritative metadata. B2b adds the common state-authority lock and uses
-it for SQLite initialize/migrate administration. B2b does not change the
+it for SQLite initialize/migrate administration. B2c adds durable writer
+issuance and internal writer-session acquisition. B2c does not change the
 P1/P1.1 runtime prohibition above: there is still no production SQLite
-`StateStore`, no writer acquisition, no coordinator service, and no executable
-A2 capability.
+`StateStore` mutation backend, no coordinator service, and no executable A2
+capability.
 
 ## P1 State Gating
 

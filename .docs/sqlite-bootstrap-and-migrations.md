@@ -2,7 +2,8 @@
 
 Status: B2b implements operator-local SQLite bootstrap, observational
 inspection/validation, schema validation, the common state-authority lock, and
-initialize/migrate lock integration. B2a documents the writer-session contract.
+initialize/migrate lock integration. B2c implements durable writer issuance
+and internal SQLite `WriterSession` acquisition for managed databases.
 
 B1/B1.1 implements a secure local SQLite state-location policy, split
 read-only and administrative connection posture, packaged migration catalog,
@@ -10,11 +11,11 @@ forward-only migration runner, initial schema installation, migration-history
 catalog equality, live-schema manifest validation, managed current-state
 invariant checks, schema/application compatibility checks, and a shared
 state-authority advisory lock used by initialize/migrate administration. It
-does not
-implement `StateStore` mutation semantics, writer ownership acquisition,
-writer acquisition, work-item mutation APIs, global-stop mutation
-APIs, product reads, reports over the database, authorization, worker
-execution, scheduling, repair, local commit, publication, or service behavior.
+does not implement `StateStore` mutation semantics, work-item mutation APIs,
+global-stop mutation APIs, product reads, reports over the database,
+authorization, worker execution, scheduling, repair, local commit,
+publication, or service behavior. B2c separately implements internal writer
+ownership acquisition and writer issuance only.
 
 Inspection and validation are observational existing-database operations.
 They must not create a missing state root, create a database file, write a
@@ -22,10 +23,10 @@ SQLite header, change persistent `journal_mode`, create or delete sidecars, or
 repair/adopt unknown schema. Bootstrap and migration are explicit
 operator-local administrative operations. They are not connector, MCP,
 command-payload, backlog, lease, work-item, report, or remote-input
-operations. Normal future runtime must not execute migrations concurrently
-with an active Coordinator writer session. B2b ensures initialize and migrate
-use the same state-authority lock that future writer acquisition must hold.
-B2c owns writer acquisition and fencing. B3/B4 own transition and global-stop
+operations. Normal runtime must not execute migrations concurrently with an
+active Coordinator writer session. B2b ensures initialize and migrate use the
+same state-authority lock that B2c writer acquisition holds. B2c owns writer
+acquisition and fencing. B3/B4 own transition and global-stop
 atomic mutation.
 
 ## Responsibility Owners
@@ -273,15 +274,18 @@ finalizer close, and pre-fork snapshot creation. The at-fork child handler is
 lock-free with respect to inherited Python locks and closes inherited
 descriptors from the frozen snapshot without issuing `LOCK_UN`.
 
-Future writer acquisition must require an existing `MANAGED` database, validate
-and acquire the same lock, open the database create-disabled read/write,
-`BEGIN IMMEDIATE`, revalidate schema/history, issue the next generation and
-proof, update `writer_ownership`, commit, and retain the lock descriptor for
-the `WriterSession` lifetime. Any failure rolls back, closes the database,
-releases the lock, returns a safe failure, and creates no usable partial
-session.
+B2c writer acquisition requires an existing `MANAGED` database, validates and
+acquires the same lock, opens the database create-disabled read/write, executes
+`BEGIN IMMEDIATE`, revalidates schema/history, issues the next generation and
+proof, updates `writer_ownership`, commits, closes the acquisition connection,
+and retains the lock descriptor for the `WriterSession` lifetime. Any
+pre-commit failure rolls back, closes the database, releases the lock, returns
+a safe failure, and creates no usable partial session. A failure after commit
+but before session return may consume and skip the committed generation; it is
+never reused.
 
-B2b does not update `writer_ownership`.
+B2b does not update `writer_ownership`; B2c updates it only during writer
+acquisition and never during session close.
 
 ## Compatibility Rules
 
@@ -302,8 +306,8 @@ implicitly run migrations.
 
 B1 does not implement `StateStore.apply_transition`,
 `StateStore.apply_global_stop_update`, SQLite product reads, reports over the
-database, writer acquisition, writer issuance, proof generation,
-`writer_ownership` mutation, worker execution, Bridge invocation, Codex
-invocation, service loops, scheduler loops, recovery loops, repair, commit,
-publication, or deployment. B2b's state-authority lock is necessary exclusion
-only and is not writer authority.
+database, worker execution, Bridge invocation, Codex invocation, service loops,
+scheduler loops, recovery loops, repair, commit, publication, or deployment.
+B2b's state-authority lock is necessary exclusion only and is not writer
+authority by itself. B2c's writer acquisition does not implement transition or
+global-stop mutation storage.

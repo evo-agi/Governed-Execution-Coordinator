@@ -31,15 +31,17 @@ evidence do not create durable A2 state, lease authority, execution authority,
 acceptance, commit authority, or publication authority. A report or adapter
 projection does not create durable A2 state.
 
-Writer-session authority is mutation fencing contract shape only until a
-future backend tranche implements it. B2a removes standalone reconstructable
-public-token mutation authority: mutation authority belongs to an opaque future
-`WriterSession`, not to safe writer metadata or a durable SQLite row. P1/P1.1
-and B2b do not acquire, renew, persist, or honor a production writer session.
-Stale-writer conflicts are apply-boundary failures and never disclose
-idempotency status or return transition events. Closed-session and
-process-mismatch failures are session-local failures before the apply boundary;
-they are not durable apply conflicts.
+Writer-session authority is mutation fencing contract shape plus B2c internal
+SQLite acquisition. B2a removes standalone reconstructable public-token
+mutation authority: mutation authority belongs to an opaque backend-created
+`WriterSession`, not to safe writer metadata or a durable SQLite row. B2c
+acquires an internal session for a managed database, but its mutation methods
+fail locally with `writer_session_mutation_unavailable`; it does not persist
+transition or global-stop events. Stale-writer conflicts are future
+apply-boundary failures and never disclose idempotency status or return
+transition events. Closed-session and process-mismatch failures are
+session-local failures before the apply boundary; they are not durable apply
+conflicts.
 
 Transition events are durable receipts for future accepted or domain-rejected
 commands. Apply conflicts are not receipts and do not provide acceptance,
@@ -51,10 +53,10 @@ authority, authorization receipts, executable permission, acceptance, commit,
 publication, or product truth.
 
 B2b's state-authority lock is live-process exclusion for initialize/migrate and
-future writer acquisition. It is not writer authority, not a credential, not
-durable state, and not a substitute for future private-proof writer fencing.
+B2c writer acquisition. It is not writer authority by itself, not a credential,
+not durable state, and not a substitute for private-proof writer fencing.
 
-B2a writer-session contract objects do not create work-item authority,
+B2a/B2c writer-session contract objects do not create work-item authority,
 global-stop update authority, executable authorization, acceptance, commit,
 publication, product truth, or process liveness truth. Safe writer metadata is
 diagnostics/evidence only and cannot reconstruct a private writer credential.
