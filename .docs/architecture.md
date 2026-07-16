@@ -89,24 +89,32 @@ The B0 authority, schema, threat, and operations contracts are documented in:
 
 ## B1 SQLite Bootstrap And Migrations
 
-B1 implements only explicit operator-local SQLite bootstrap and migration
-infrastructure:
+B1/B1.1 implements only explicit operator-local SQLite bootstrap, observation,
+validation, and migration infrastructure:
 
 - fixed per-user local state-location policy using the canonical NWP
   Coordinator component name, not the repository display name;
 - owner-only filesystem preparation and validation for the state root and
   fixed database filename;
-- standard-library SQLite connection posture verification;
+- split standard-library SQLite connection posture verification for
+  observational existing-database reads, administrative initialization, and
+  managed-write migration;
 - packaged, versioned, forward-only migration catalog;
 - initial schema installation into an explicitly requested local database;
-- migration-history checksum and application-compatibility validation.
+- non-mutating absent/empty/managed/unknown classification;
+- migration-history/catalog equality and application-compatibility validation;
+- full live-schema manifest verification derived from packaged migration bytes;
+- bootstrap and generic managed current-state invariant checks.
 
-B1 does not implement a SQLite `StateStore`, product mutation methods,
-database-backed product reads, reports over the database, writer acquisition,
-advisory writer locking, coordinator service behavior, worker execution,
-authorization, scheduling, repair, local commit, publication, or deployment.
-Normal future runtime must not run migrations concurrently with an active
-Coordinator writer.
+B1.1 inspect/validate do not create missing roots or databases, do not change
+persistent journal posture, do not repair or adopt unknown databases, and do
+not auto-migrate. Initialize and migrate are explicit operator-local
+administrative mutations. B1.1 does not implement a SQLite `StateStore`,
+product mutation methods, database-backed product reads, reports over the
+database, writer acquisition, advisory writer locking, coordinator service
+behavior, worker execution, authorization, scheduling, repair, local commit,
+publication, or deployment. Normal future runtime must not run migrations
+concurrently with an active Coordinator writer.
 
 The B1 bootstrap and migration contract is documented in
 `.docs/sqlite-bootstrap-and-migrations.md`.

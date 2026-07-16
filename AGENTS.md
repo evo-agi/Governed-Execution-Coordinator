@@ -23,12 +23,16 @@ and global-stop events are contract objects only until a future backend
 tranche. Reports are projections only. They are not durable state,
 authorization, acceptance, publication, or product truth.
 
-B1 implements only secure local SQLite state-location, connection bootstrap,
-schema migration, and schema compatibility validation infrastructure. B1 may
-create or migrate an explicitly requested local operator database, but it still
-must not implement `StateStore` mutation semantics, acquire the authoritative
-Coordinator writer, create work items/events/decision receipts/global-stop
-changes through product APIs, or enable executable A2 behavior.
+B1/B1.1 implements only secure local SQLite state-location, connection
+bootstrap, observational inspection/validation, schema migration, migration
+history/catalog equality, live-schema manifest verification, and schema
+compatibility validation infrastructure. B1.1 inspect/validate must not create
+or mutate the state root, database file, journal posture, sidecars, or schema.
+B1.1 initialize/migrate are explicit operator-local administrative mutations,
+but they still must not implement `StateStore` mutation semantics, acquire the
+authoritative Coordinator writer, create work items/events/decision
+receipts/global-stop changes through product APIs, or enable executable A2
+behavior.
 
 Versioned Coordinator input schemas are closed-world in P1/P1.1. Unknown
 fields, misspelled fields, duplicate JSON object keys, and unversioned
@@ -70,9 +74,10 @@ identifiers, or trust material.
 P1 report projections must be closed typed models in `reports.py`. Do not add a
 second report-shaped helper or a generic sanitize-and-keep payload boundary.
 
-B1 SQLite bootstrap and migration errors are administrative diagnostics only.
-They must not expose raw SQL, absolute paths, database content, credentials,
-endpoints, environment, trust material, or secrets in public payloads.
+B1 SQLite bootstrap, inspection, validation, and migration errors are
+administrative diagnostics only. They must not expose raw SQL, raw DDL,
+absolute paths, database content, credentials, endpoints, environment, trust
+material, SQLite exception text, or secrets in public payloads.
 
 ## Change Rules
 

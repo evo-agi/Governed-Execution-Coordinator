@@ -1,8 +1,9 @@
 # Durable State Model
 
-A2-P1/P1.1 defines state contracts. B1 adds explicit operator-local SQLite
-bootstrap and migration infrastructure, but it still does not implement a
-production `StateStore` mutation backend.
+A2-P1/P1.1 defines state contracts. B1/B1.1 adds explicit operator-local
+SQLite bootstrap, observational validation, live-schema integrity checks, and
+migration infrastructure, but it still does not implement a production
+`StateStore` mutation backend.
 
 The work-item state schema id is:
 
@@ -74,16 +75,21 @@ ownership generation, stale-writer fencing, split-brain prevention,
 transactional counters/state, crash consistency, restart reconciliation,
 corruption detection, backup/restore, and persistent global stop.
 
-B1 implements the SQLite bootstrap and forward-only migration layer for an
-explicitly requested local database. B1 implements no SQLite `StateStore`, no
-work-item or global-stop mutation API, no writer acquisition, no writer fencing
-validation, no product read port, and no production persistence adapter.
+B1/B1.1 implements the SQLite bootstrap and forward-only migration layer for an
+explicitly requested local database plus observational existing-database
+inspection/validation. B1.1 managed validation checks migration-history/catalog
+equality, live-schema manifest equality, exactly one global-stop current
+singleton, and zero-or-one writer ownership row shape. It implements no SQLite
+`StateStore`, no work-item or global-stop mutation API, no writer acquisition,
+no writer fencing validation, no product read port, and no production
+persistence adapter.
 
 B0 selected SQLite, one private local database, as the future first production
-backend architecture. B1 adds administrative database bootstrap, connection
-posture, migration-history, and schema compatibility validation. No
+backend architecture. B1/B1.1 adds administrative database bootstrap,
+observational connection posture, migration-history/catalog equality,
+live-schema manifest checks, and schema compatibility validation. No
 `StateStore` mutation backend, writer acquisition, coordinator service, or
-executable A2 capability exists in B1.
+executable A2 capability exists in B1.1.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

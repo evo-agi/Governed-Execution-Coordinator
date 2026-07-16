@@ -1,12 +1,13 @@
 # SQLite State Backend ADR
 
-Status: accepted architecture; B1 implements bootstrap and migrations only.
+Status: accepted architecture; B1.1 implements bootstrap, observational
+inspection/validation, and migrations only.
 
 B0 selects one private local SQLite database as the first production state
-backend architecture for the future NWP Coordinator. B1 implements explicit
-operator-local database bootstrap and migrations. B1 does not implement a
-production `StateStore`, acquire a writer, start a coordinator service, or
-enable executable A2 behavior.
+backend architecture for the future NWP Coordinator. B1/B1.1 implements
+explicit operator-local database bootstrap, observational validation, and
+migrations. B1.1 does not implement a production `StateStore`, acquire a
+writer, start a coordinator service, or enable executable A2 behavior.
 
 ## Decision
 
@@ -48,16 +49,20 @@ B0 must not contain:
 
 ## B1 Scope
 
-B1 may contain:
+B1/B1.1 may contain:
 
 - production SQLite connection/bootstrap code using the Python standard
   library;
 - fixed local state-location and filesystem-permission validation;
 - packaged migration resources loaded from the installed Coordinator package;
+- observational existing-database inspection/validation that does not create or
+  mutate files or persistent journal posture;
 - forward-only migration execution for explicit administrative initialize and
   migrate operations;
-- migration-history checksum and schema/application compatibility validation;
-- schema verification for the initial migration.
+- migration-history/catalog equality and schema/application compatibility
+  validation;
+- live-schema manifest verification for the initial migration;
+- bootstrap and generic managed current-state invariant validation.
 
 B1 must not contain:
 
@@ -257,16 +262,23 @@ supported; restore is the rollback path.
 
 `PRAGMA user_version`, if used later, is only a checked convenience mirror.
 
-B1 implements the initial migration catalog and runner. Migration SQL is loaded
-only from code-owned package resources and never from arbitrary filesystem
-paths. Connection PRAGMAs are set and verified by bootstrap code and are not
-part of migration identity.
+B1/B1.1 implements the initial migration catalog and runner. Migration SQL is
+loaded only from code-owned package resources and never from arbitrary
+filesystem paths. Connection PRAGMAs are set and verified by bootstrap code and
+are not part of migration identity. Observational B1.1 inspection/validation
+uses a separate create-disabled connection path and queries persistent journal
+posture instead of changing it. Administrative initialize remains the
+create-capable path. Administrative migrate requires managed observational
+preflight before opening read/write.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
-clear `global_stop_current` singleton at version 0. It does not seed a writer,
-work items, backlogs, lease identity records, authorization receipts, decision
-receipts, transition events, global-stop events, active global stop, or
-executable authorization.
+clear `global_stop_current` singleton at version 0. B1.1 validates that
+bootstrap seed immediately after initialize, then validates later managed
+databases with generic current-state shape rules rather than forcing permanent
+version-0 clear state. The migration does not seed a writer, work items,
+backlogs, lease identity records, authorization receipts, decision receipts,
+transition events, global-stop events, active global stop, or executable
+authorization.
 
 ## Non-Goals
 

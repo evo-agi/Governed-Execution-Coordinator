@@ -1,12 +1,20 @@
 # SQLite Schema V1
 
-Status: B1 initial migration schema.
+Status: B1 initial migration schema with B1.1 live-schema validation.
 
 Migration `0001_initial` is the authoritative B1 schema installation source and
 is packaged under `ge_nwp_coordinator.sqlite_migrations`. The
 `schemas/sqlite/coordinator-state-v1.sql` file remains a non-authoritative
 fixture/snapshot for static and in-memory schema tests; it includes connection
 posture comments and PRAGMAs that are not part of migration identity.
+
+B1.1 validation derives the expected live-schema manifest from the packaged
+`0001_initial` migration bytes in a temporary in-memory database. The manifest
+accounts for user tables, views, explicit indexes, triggers, table columns,
+declared types, nullability, defaults, primary keys, foreign keys, index
+introspection, trigger bodies, and normalized schema-object definitions. A
+recorded migration checksum is not sufficient by itself; the live schema must
+match the manifest.
 
 ## Representation Authority Map
 
@@ -95,6 +103,9 @@ Not stored in the first backend:
 - append-only by schema trigger;
 - B1 migration runner inserts the authoritative row atomically with successful
   schema installation.
+- B1.1 managed validation requires migration id, sequence, checksum,
+  compatibility bounds, row ordering, and UTC `Z` timestamp shape to match the
+  packaged catalog exactly.
 
 `writer_ownership`
 
@@ -181,7 +192,19 @@ digests, singleton rows, and bounded text where practical.
 
 ## Integrity Checks
 
-Future integrity checks must:
+B1.1 integrity checks:
+
+- reject absent/empty/unknown databases as not managed;
+- reject any unrecognized user-defined table, view, explicit index, or trigger;
+- compare the full live-schema manifest against the packaged migration result;
+- verify migration-history/catalog equality;
+- verify exactly one `global_stop_current` singleton row;
+- verify global-stop active/clear field consistency without forcing all future
+  managed databases back to the bootstrap clear state;
+- verify zero or one `writer_ownership` singleton row with schema-valid shape;
+- verify append-only trigger bodies by manifest equality.
+
+Future B2/B3 integrity checks must:
 
 - verify all immutable record digests;
 - verify event-owned idempotency uniqueness;
@@ -195,6 +218,20 @@ Future integrity checks must:
 Migration `0001_initial` creates schema objects and inserts its
 `schema_migrations` row in one explicit transaction. On failure, no partial
 schema or orphan history row may remain.
+
+Immediately after B1.1 initialize, bootstrap invariants are:
+
+- exactly one canonical clear `global_stop_current` singleton;
+- version 0;
+- no global-stop event;
+- no writer ownership row;
+- no lease, backlog, decision, work-item, transition, or global-stop event rows;
+- no executable authorization state.
+
+Generic managed validation is intentionally different from bootstrap
+validation. Future B2/B3 databases may have nonzero or active global-stop
+current state when schema-valid and backed by future mutation authority; B1.1
+does not rewrite it or force it back to version 0.
 
 The migration does not seed:
 

@@ -39,6 +39,30 @@ def prepare_state_database(location: CoordinatorStateLocation) -> Path:
     return database_path
 
 
+def existing_state_database_path(location: CoordinatorStateLocation) -> Path | None:
+    """Validate an existing fixed database path without creating anything."""
+
+    if not isinstance(location, CoordinatorStateLocation):
+        raise SQLiteStateError(SQLiteStateErrorCode.UNSAFE_STATE_ROOT)
+    _reject_network_like_root(location.state_root)
+    _assert_fixed_database_path(location)
+    _reject_repository_checkout(location.state_root)
+    if location.state_root.is_symlink():
+        raise SQLiteStateError(SQLiteStateErrorCode.UNSAFE_STATE_ROOT)
+    if not location.state_root.exists():
+        return None
+    root = _validate_state_root(location.state_root)
+    database_path = _confined_database_path(root, location.database_path)
+    try:
+        metadata = os.lstat(database_path)
+    except FileNotFoundError:
+        return None
+    except OSError:
+        raise SQLiteStateError(SQLiteStateErrorCode.UNSAFE_DATABASE_FILE) from None
+    _validate_database_metadata(metadata)
+    return database_path.resolve(strict=True)
+
+
 def _assert_fixed_database_path(location: CoordinatorStateLocation) -> None:
     if location.database_path.name != COORDINATOR_DATABASE_FILENAME:
         raise SQLiteStateError(SQLiteStateErrorCode.UNSAFE_DATABASE_FILE)

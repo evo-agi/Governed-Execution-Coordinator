@@ -22,9 +22,10 @@ SQLite bootstrap/migration infrastructure only:
   backend;
 - operator-owned global-stop command/event models and enforcement checks;
 - closed, typed, non-authoritative report projections;
-- explicit operator-local SQLite database bootstrap, connection posture,
-  migration catalog, migration-history validation, and schema compatibility
-  checks.
+- explicit operator-local SQLite database bootstrap, observational database
+  inspection/validation, connection posture, migration catalog,
+  migration-history/catalog equality, live-schema manifest verification, and
+  schema compatibility checks.
 
 P1.1 models expected-version mismatch, stale writer tokens, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -42,10 +43,11 @@ The P1 runtime has no supported policy, configuration, callback, or environment
 path that enables future worker, repair, or local-commit stages.
 
 B0 selected SQLite, one private local database, as the future first production
-state backend architecture. B1 implements secure local database bootstrap and
-forward-only migrations for explicitly requested operator-local administration.
-B1 still provides no `StateStore` mutation backend, writer acquisition,
-coordinator service, worker, scheduler, authorization path, or executable A2
-capability.
+state backend architecture. B1/B1.1 implements secure local database bootstrap,
+non-mutating inspection/validation for existing databases, live-schema
+integrity checks, and forward-only migrations for explicitly requested
+operator-local administration. B1.1 still provides no `StateStore` mutation
+backend, writer acquisition, coordinator service, worker, scheduler,
+authorization path, or executable A2 capability.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

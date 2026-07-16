@@ -1,6 +1,7 @@
 # SQLite Operations And Recovery
 
-Status: B1 bootstrap/migration implementation plus future operations design.
+Status: B1.1 bootstrap/inspection/validation/migration implementation plus
+future operations design.
 
 ## Filesystem Posture
 
@@ -34,7 +35,8 @@ The practical TOCTOU boundary is owner-only containment. A `0700` parent
 prevents other-user file replacement. Same-account malicious-process resistance
 is limited and must not be overclaimed.
 
-B1 implements portable filesystem checks for bootstrap:
+B1.1 implements portable filesystem checks for bootstrap and existing-database
+inspection:
 
 - deterministic per-user state root from the canonical NWP Coordinator
   component name;
@@ -48,34 +50,51 @@ B1 implements portable filesystem checks for bootstrap:
 B1 does not implement advisory writer-lock acquisition. The migration lock path
 is exposed as policy for a future tranche only.
 
+B1.1 does not overclaim deeper filesystem confinement. Intermediate symlink
+components are constrained by resolved trusted-root checks but are not a full
+same-account malicious-process defense. Python `sqlite3` reopens by pathname.
+Broad network-filesystem detection remains portable and incomplete. Those are
+B2/B5 hardening topics, not solved B1.1 properties.
+
 ## Bootstrap And Migration Operations
 
-B1 exposes explicit offline administrative operations:
+B1.1 exposes split offline operations:
 
-- inspect/validate a managed database;
-- initialize an empty local database with migration `0001_initial`;
-- migrate a managed older supported database through packaged forward-only
-  migrations.
+- inspect an existing fixed database path observationally, returning absent,
+  empty, managed, or unknown without creating or mutating files;
+- validate an existing managed database observationally, including journal
+  posture, migration-history/catalog equality, live-schema manifest equality,
+  and managed current-state invariants;
+- initialize an absent or empty local database with migration `0001_initial`;
+- migrate an existing managed older supported database through packaged
+  forward-only migrations.
 
 Ordinary future product operations must not run migrations implicitly merely by
 opening the database.
 
-Before applying migrations, B1 classifies the database:
+Before applying migrations, B1.1 classifies the database:
 
-- empty/uninitialized: no user tables;
-- managed: `schema_migrations` exists and validates;
-- unknown/partially initialized: user tables without authoritative migration
-  history, invalid migration rows, duplicate sequences, checksum mismatch,
-  migration gaps, newer unsupported schema, incompatible bounds, or unknown
-  migration ids.
+- absent: fixed database file missing;
+- empty: existing database/placeholder with no user-defined schema objects;
+- managed: authoritative migration history equals the packaged catalog, the
+  full live schema manifest matches, and managed current-state invariants pass;
+- unknown/partially initialized: any unrecognized table, view, explicit index,
+  trigger, invalid migration history, duplicate sequence or id, checksum
+  mismatch, migration gap, newer unsupported schema, incompatible or non-equal
+  bounds, unsupported journal posture, malformed schema, or failed current-state
+  invariant.
 
 Unknown databases fail closed. B1 does not adopt, drop, repair, or rewrite
 unknown schema.
 
-Migration transactions are explicit and forward-only. Migration `0001_initial`
-creates `schema_migrations` and all schema objects, verifies the schema, inserts
-its migration-history row, and commits as one transaction. Failed migrations
-roll back; reverse migrations are not a rollback mechanism.
+Observational inspect/validate use create-disabled opening where practical and
+never issue persistent `journal_mode` changes. Wrong-posture WAL databases are
+reported as unsupported/unknown instead of being converted. Migration
+transactions are explicit and forward-only. Migration `0001_initial` creates
+`schema_migrations` and all schema objects, verifies the schema manifest and
+bootstrap seed, inserts its migration-history row, and commits as one
+transaction. Failed migrations roll back; reverse migrations are not a rollback
+mechanism.
 
 ## Backup
 
@@ -102,6 +121,8 @@ Restore requires explicit operator action. A restored database becomes
 authoritative only after:
 
 - schema migration checksum validation;
+- migration-history/catalog equality validation;
+- full live-schema manifest validation;
 - `PRAGMA integrity_check`;
 - canonical digest validation for immutable records;
 - event-owned idempotency checks;

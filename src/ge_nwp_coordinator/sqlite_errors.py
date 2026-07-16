@@ -19,6 +19,7 @@ class SQLiteStateErrorCode(str, Enum):
     DATABASE_SCHEMA_INCOMPATIBLE = "database_schema_incompatible"
     MIGRATION_FAILED = "migration_failed"
     SCHEMA_VERIFICATION_FAILED = "schema_verification_failed"
+    SCHEMA_FINGERPRINT_MISMATCH = "schema_fingerprint_mismatch"
     SQLITE_POSTURE_UNAVAILABLE = "sqlite_posture_unavailable"
 
 

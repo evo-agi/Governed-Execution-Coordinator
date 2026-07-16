@@ -192,7 +192,8 @@ def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
 
     for phrase in (
         "one private local SQLite database",
-        "B1 implements bootstrap and migrations only",
+        "B1.1 implements bootstrap, observational inspection/validation, and migrations only",
+        "live-schema manifest",
         "does not implement a production `StateStore`",
         "`journal_mode=DELETE`",
         "`synchronous=FULL`",

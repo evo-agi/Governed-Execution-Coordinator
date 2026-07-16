@@ -1,22 +1,27 @@
 # SQLite Bootstrap And Migrations
 
-Status: B1 implemented for operator-local administrative bootstrap and schema
-validation only.
+Status: B1.1 implemented for operator-local administrative bootstrap,
+observational inspection/validation, and schema validation only.
 
-B1 implements a secure local SQLite state-location policy, connection posture,
-packaged migration catalog, forward-only migration runner, initial schema
-installation, migration-history validation, and schema/application
-compatibility checks. It does not implement `StateStore` mutation semantics,
-writer ownership acquisition, advisory writer-lock acquisition, work-item
-mutation APIs, global-stop mutation APIs, product reads, reports over the
-database, authorization, worker execution, scheduling, repair, local commit,
-publication, or service behavior.
+B1/B1.1 implements a secure local SQLite state-location policy, split
+read-only and administrative connection posture, packaged migration catalog,
+forward-only migration runner, initial schema installation, migration-history
+catalog equality, live-schema manifest validation, managed current-state
+invariant checks, and schema/application compatibility checks. It does not
+implement `StateStore` mutation semantics, writer ownership acquisition,
+advisory writer-lock acquisition, work-item mutation APIs, global-stop mutation
+APIs, product reads, reports over the database, authorization, worker
+execution, scheduling, repair, local commit, publication, or service behavior.
 
-Bootstrap and migration are explicit operator-local administrative operations.
-They are not connector, MCP, command-payload, backlog, lease, work-item, report,
-or remote-input operations. Normal future runtime must not execute migrations
-concurrently with an active Coordinator writer. B2 owns writer acquisition and
-fencing. B3/B4 own transition and global-stop atomic mutation.
+Inspection and validation are observational existing-database operations.
+They must not create a missing state root, create a database file, write a
+SQLite header, change persistent `journal_mode`, create or delete sidecars, or
+repair/adopt unknown schema. Bootstrap and migration are explicit
+operator-local administrative operations. They are not connector, MCP,
+command-payload, backlog, lease, work-item, report, or remote-input
+operations. Normal future runtime must not execute migrations concurrently
+with an active Coordinator writer. B2 owns writer acquisition and fencing.
+B3/B4 own transition and global-stop atomic mutation.
 
 ## Responsibility Owners
 
@@ -28,22 +33,29 @@ The B1 SQLite bootstrap modules own:
 - state-directory creation and validation: owner-only local directories,
   symlink rejection, regular-file checks, fixed database filename, and
   confinement under the trusted root;
-- SQLite connection posture: `foreign_keys=ON`, rollback journal DELETE mode,
-  `synchronous=FULL`, `locking_mode=NORMAL`, bounded busy timeout,
-  `trusted_schema=OFF` where supported, disabled extension loading, and
-  explicit transaction control;
+- SQLite connection posture: administrative initialize applies
+  `foreign_keys=ON`, rollback journal DELETE mode, `synchronous=FULL`,
+  `locking_mode=NORMAL`, bounded busy timeout, `trusted_schema=OFF` where
+  supported, disabled extension loading, and explicit transaction control;
+  observational connections use create-disabled read-only mode where practical,
+  apply only non-persistent connection-local safety settings, and query rather
+  than set persistent journal posture;
 - migration catalog: code-owned packaged resources loaded with
   `importlib.resources`, never arbitrary filesystem migration paths;
 - migration history: `schema_migrations` rows record migration identity,
   sequence, exact checksum, application compatibility bounds, and application
-  time of successful commit;
+  time of successful commit; managed validation requires those rows to equal
+  the packaged catalog exactly, including compatibility bounds and timestamp
+  shape;
 - schema compatibility checks: old binaries refuse newer unsupported schema,
   newer binaries migrate only through explicit migration calls, incompatible
   history refuses closed, checksum mismatch refuses closed, gaps refuse closed,
-  and unknown migrations refuse closed;
-- bootstrap and migration errors: closed safe error classes that avoid raw SQL,
-  absolute paths, database content, canonical JSON, credentials, endpoints,
-  environment, exception text, and trust material;
+  unknown migrations refuse closed, and the live schema must match a
+  deterministic manifest derived from the packaged migration result;
+- bootstrap, inspection, validation, and migration errors: closed safe error
+  classes or safe classifications that avoid raw SQL, raw DDL, absolute paths,
+  database content, canonical JSON, credentials, endpoints, environment,
+  SQLite exception text, and trust material;
 - future destructive migration backup metadata: B1 defines the boundary that a
   destructive migration requires a separately verified backup receipt, but B1
   implements no backup files and no destructive migration.
@@ -92,12 +104,20 @@ library SQLite API does not provide.
 ## Connection Posture
 
 Connection posture is separate from migration DDL. Migration identity does not
-include PRAGMAs from the B0 schema fixture. B1 sets and verifies connection
-PRAGMAs through fixed code-owned statements before migration classification.
+include PRAGMAs from the B0 schema fixture. B1.1 no longer uses the same
+create-capable connection path for every operation. Observational
+inspect/validate opens only an existing file, uses create-disabled read-only
+mode where practical, applies only connection-local safety settings, and
+queries persistent journal posture. Administrative initialize is the only
+create-capable public operation. Administrative migrate uses create-disabled
+read/write mode only after observational managed preflight and revalidation.
 Values are bounded and not arbitrary SQL input.
 
 B1 uses rollback journal DELETE mode. WAL is not selected. Successful migration
-commits must not leave persistent `-wal` or `-shm` files.
+commits must not leave persistent `-wal` or `-shm` files. A WAL-mode or other
+wrong-posture database is classified safely without converting it to DELETE;
+B1.1 does not use immutable reads to claim authoritative validation while
+ignoring live WAL state.
 
 ## Migration Catalog
 
@@ -145,34 +165,69 @@ operator policy receipts and seeds no authorized or executable receipt.
 
 ## Database Classification
 
-Before migration, B1 classifies the database:
+B1.1 classifies the fixed database path:
 
-- empty/uninitialized: no user tables, eligible for migration `0001_initial`;
-- managed: `schema_migrations` exists and validates, eligible for schema
-  compatibility checks and later explicit migrations;
-- unknown/partially initialized: any user table without authoritative
-  `schema_migrations`, invalid migration history, unexpected migration rows,
-  duplicate sequence, checksum mismatch, migration gap, newer unsupported
-  schema, or incompatible application bounds.
+- absent: the fixed database file does not exist; inspection/validation do not
+  create it;
+- empty: an existing empty SQLite database or private zero-byte placeholder
+  with no user-defined schema objects and no migration history;
+- managed: authoritative migration history exactly matches the packaged
+  catalog, the full live schema manifest matches the packaged migration
+  result, and managed current-state invariants pass;
+- unknown/partially initialized: any unrecognized user-defined schema object,
+  views or triggers without authoritative migration history, explicit indexes
+  not in the expected manifest, invalid migration history, unexpected
+  migration rows, duplicate sequence or id, checksum mismatch, migration gap,
+  newer unsupported schema, incompatible or non-equal application bounds,
+  unsupported journal posture, malformed schema, or failed managed invariant.
 
 Unknown databases fail closed. B1 does not guess, adopt, drop, repair, or
 rewrite tables.
 
+User-defined schema accounting covers tables, views, explicit indexes, and
+triggers from `sqlite_schema`. B1.1 ignores only SQLite internal `sqlite_%`
+objects and autoindexes that are accounted for through table/index
+introspection. A view-only database is unknown, not empty.
+
+## Schema Manifest
+
+B1.1 derives an expected live-schema manifest by creating a temporary in-memory
+SQLite database from the exact packaged migration bytes under the current
+runtime and extracting a deterministic allowlisted representation. The manifest
+includes user schema objects, normalized object definitions, table columns,
+declared types, nullability, defaults, primary keys, foreign keys, index lists,
+index columns/order/uniqueness, views, triggers, and object relationships.
+
+The live managed database must match that manifest. The stored migration SQL
+checksum proves only which migration resource was recorded; it is not treated
+as proof that the live schema still matches that resource.
+
 ## Transaction Model
+
+Initialize execution order is:
+
+1. Observationally classify the fixed path.
+2. Refuse unknown or partial databases without mutation.
+3. Securely prepare and open the local database only for absent/empty paths, or
+   return idempotently for an already valid current managed database.
+4. Apply and verify administrative connection posture.
+5. Begin an explicit SQLite transaction.
+6. Execute only packaged migration SQL.
+7. Verify the live schema manifest and bootstrap invariants.
+8. Insert the migration-history row with checksum and compatibility bounds.
+9. Commit.
+10. Revalidate migration history, schema manifest, and managed invariants.
 
 Migration execution order is:
 
-1. Securely prepare and open the local database.
-2. Apply and verify connection posture.
-3. Classify empty, managed, or unknown.
-4. Validate existing migration history.
-5. Select the exact next packaged migration.
-6. Begin an explicit SQLite transaction.
-7. Execute only packaged migration SQL.
-8. Verify required schema objects and constraints.
-9. Insert the migration-history row with checksum and compatibility bounds.
-10. Commit.
-11. Revalidate migration history and schema.
+1. Observationally require an existing managed database.
+2. Refuse absent, empty, unknown, wrong-posture, partial, or drifted databases
+   without mutation.
+3. Open create-disabled read/write only when a migration is actually required.
+4. Begin an explicit SQLite transaction and revalidate history/schema inside
+   the transaction.
+5. Execute only packaged forward migrations.
+6. Verify schema, history, and managed invariants before commit.
 
 On failure, B1 rolls back. There must be no partial schema without history and
 no history row without schema. Failed migrations return safe closed error

@@ -37,11 +37,13 @@ It does not implement worker execution or any of the following:
 - push, pull request, merge, publication, or deployment.
 
 B0 added architecture documents, a non-production SQLite schema fixture, and
-static/in-memory schema tests for a future first backend. B1 adds explicit
-operator-local SQLite bootstrap, connection posture, packaged migrations, and
-schema compatibility validation. B1 does not change the P1/P1.1 runtime
-prohibition above: there is still no production SQLite `StateStore`, no
-writer acquisition, no coordinator service, and no executable A2 capability.
+static/in-memory schema tests for a future first backend. B1/B1.1 adds explicit
+operator-local SQLite bootstrap, observational inspection/validation,
+connection posture, packaged migrations, migration-history/catalog equality,
+live-schema manifest verification, and schema compatibility validation. B1.1
+does not change the P1/P1.1 runtime prohibition above: there is still no
+production SQLite `StateStore`, no writer acquisition, no coordinator service,
+and no executable A2 capability.
 
 ## P1 State Gating
 
