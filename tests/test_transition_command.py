@@ -4,7 +4,7 @@ import pytest
 
 from ge_nwp_coordinator.canonicalization import canonical_sha256
 from ge_nwp_coordinator.state_machine import TransitionCommand, WorkItemState
-from ge_nwp_coordinator.state_store import StateWriterToken
+from ge_nwp_coordinator.state_store import SafeWriterMetadata
 
 
 def _command(**kwargs: object) -> TransitionCommand:
@@ -189,10 +189,20 @@ def test_transition_command_digest_covers_semantic_fields_and_excludes_itself() 
     assert base.compute_digest() == base.canonical_command_digest
 
 
-def test_writer_token_is_not_part_of_transition_command_identity() -> None:
+def test_safe_writer_metadata_is_not_part_of_transition_command_identity() -> None:
     command = _command()
-    writer = StateWriterToken(writer_ref="writer-main", generation=1, issued_ref="writer-issued-1")
-    other_writer = StateWriterToken(writer_ref="writer-other", generation=2, issued_ref="writer-issued-2")
+    writer = SafeWriterMetadata(
+        writer_ref="writer-main",
+        generation=1,
+        issued_ref="writer-issued-1",
+        acquired_at="2026-07-16T00:00:00Z",
+    )
+    other_writer = SafeWriterMetadata(
+        writer_ref="writer-other",
+        generation=2,
+        issued_ref="writer-issued-2",
+        acquired_at="2026-07-16T00:00:00Z",
+    )
     payload = command.canonical_identity_payload()
     assert writer.writer_ref not in payload.values()
     assert other_writer.writer_ref not in payload.values()

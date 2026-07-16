@@ -11,7 +11,7 @@ from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorC
 
 COORDINATOR_STATE_COMPONENT = "nwp-coordinator"
 COORDINATOR_DATABASE_FILENAME = "coordinator-state.sqlite"
-COORDINATOR_ADMIN_LOCK_FILENAME = "coordinator-state.migration.lock"
+COORDINATOR_STATE_AUTHORITY_LOCK_FILENAME = "coordinator-state.migration.lock"
 COORDINATOR_BACKUP_DIRECTORY = "backups"
 
 
@@ -21,7 +21,7 @@ class CoordinatorStateLocation:
 
     state_root: Path
     database_path: Path
-    migration_lock_path: Path
+    state_authority_lock_path: Path
     backup_directory_path: Path
 
     @classmethod
@@ -34,9 +34,9 @@ class CoordinatorStateLocation:
         return cls(
             state_root=root,
             database_path=_fixed_child(root, COORDINATOR_DATABASE_FILENAME, SQLiteStateErrorCode.UNSAFE_DATABASE_FILE),
-            migration_lock_path=_fixed_child(
+            state_authority_lock_path=_fixed_child(
                 root,
-                COORDINATOR_ADMIN_LOCK_FILENAME,
+                COORDINATOR_STATE_AUTHORITY_LOCK_FILENAME,
                 SQLiteStateErrorCode.UNSAFE_STATE_ROOT,
             ),
             backup_directory_path=_fixed_child(root, COORDINATOR_BACKUP_DIRECTORY, SQLiteStateErrorCode.UNSAFE_STATE_ROOT),

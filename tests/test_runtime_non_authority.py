@@ -49,11 +49,14 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
     }
 
 
-def test_state_store_has_protocol_only_and_no_backend() -> None:
+def test_state_store_and_writer_session_have_protocols_only_and_no_backend() -> None:
     text = _read("src/ge_nwp_coordinator/state_store.py")
     assert "class StateStore(Protocol)" in text
+    assert "class WriterSession(Protocol)" in text
     assert "def apply_transition(" in text
     assert "def apply_global_stop_update(" in text
+    assert "StateWriterToken" not in text
+    assert "def current_writer" not in text
     assert "sqlite" not in text.lower()
     assert "journal" not in text.lower()
     assert "open(" not in text

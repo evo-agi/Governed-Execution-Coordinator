@@ -15,8 +15,10 @@ from ge_nwp_coordinator.state_machine import (
 )
 from ge_nwp_coordinator.state_store import (
     CommittedTransition,
-    StateWriterToken,
+    SafeWriterMetadata,
     TransitionConflict,
+    WriterSessionError,
+    WriterSessionFailureReason,
 )
 
 
@@ -26,23 +28,60 @@ class _IdempotencyEntry:
     committed: CommittedTransition
 
 
-class _FakeAtomicTransitionStore:
-    def __init__(self, record: WorkItemRecord, writer: StateWriterToken) -> None:
+class _FakeAtomicTransitionSession:
+    def __init__(self, record: WorkItemRecord, metadata: SafeWriterMetadata) -> None:
         self.current = {record.work_item_id: record}
-        self.writer = writer
+        self._metadata = metadata
+        self._active = True
+        self._process_mismatch = False
+        self._stale = False
         self.events = []
         self.idempotency = {}
         self.crash_before_commit = False
+        self.store_calls = 0
+
+    @property
+    def metadata(self) -> SafeWriterMetadata:
+        return self._metadata
+
+    @property
+    def active(self) -> bool:
+        return self._active
+
+    def invalidate_writer(self) -> None:
+        self._stale = True
+
+    def simulate_process_mismatch(self) -> None:
+        self._process_mismatch = True
+
+    def close(self) -> None:
+        self._active = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
 
     def apply_transition(
         self,
-        writer_token: StateWriterToken,
         command: TransitionCommand,
         context: TransitionContext,
     ) -> CommittedTransition | TransitionConflict:
-        if writer_token != self.writer:
-            return TransitionConflict("stale_writer_token")
+        if self._process_mismatch:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH)
+        if not self._active:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        return self._apply_store_boundary(command, context)
 
+    def _apply_store_boundary(
+        self,
+        command: TransitionCommand,
+        context: TransitionContext,
+    ) -> CommittedTransition | TransitionConflict:
+        self.store_calls += 1
+        if self._stale:
+            return TransitionConflict("stale_writer_token")
         entry = self.idempotency.get(command.idempotency_key)
         if entry is not None:
             if entry.command_digest == command.canonical_command_digest:
@@ -69,8 +108,13 @@ class _FakeAtomicTransitionStore:
         return committed
 
 
-def _writer(generation: int = 1) -> StateWriterToken:
-    return StateWriterToken(writer_ref="writer-main", generation=generation, issued_ref=f"writer-issued-{generation}")
+def _metadata(generation: int = 1) -> SafeWriterMetadata:
+    return SafeWriterMetadata(
+        writer_ref="writer-main",
+        generation=generation,
+        issued_ref=f"writer-issued-{generation}",
+        acquired_at="2026-07-16T00:00:00Z",
+    )
 
 
 def _identity(*, valid: bool = True) -> LeaseIdentityValidation:
@@ -140,41 +184,43 @@ def _command(
 
 
 def test_stale_writer_precedes_idempotency_and_discloses_nothing() -> None:
-    writer = _writer()
+    metadata = _metadata()
     record = _record()
     context = _context()
     command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context, key="same")
-    store = _FakeAtomicTransitionStore(record, writer)
+    session = _FakeAtomicTransitionSession(record, metadata)
 
-    first = store.apply_transition(writer, command, context)
+    first = session.apply_transition(command, context)
     assert isinstance(first, CommittedTransition)
+    session.invalidate_writer()
 
-    stale = store.apply_transition(_writer(generation=2), command, context)
+    stale = session.apply_transition(command, context)
     assert isinstance(stale, TransitionConflict)
     assert stale.conflict_class == "stale_writer_token"
-    assert len(store.events) == 1
+    assert len(session.events) == 1
+    assert session.store_calls == 2
 
 
 def test_expected_version_conflict_has_no_event_or_evaluation_side_effect() -> None:
     record = _record(version=3)
     context = _context()
-    store = _FakeAtomicTransitionStore(record, _writer())
+    session = _FakeAtomicTransitionSession(record, _metadata())
     command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context, expected_version=2)
 
-    outcome = store.apply_transition(_writer(), command, context)
+    outcome = session.apply_transition(command, context)
     assert isinstance(outcome, TransitionConflict)
     assert outcome.conflict_class == "expected_version_conflict"
-    assert store.current[record.work_item_id] == record
-    assert store.events == []
+    assert session.current[record.work_item_id] == record
+    assert session.events == []
 
 
 def test_idempotency_conflict_has_no_event() -> None:
-    writer = _writer()
+    metadata = _metadata()
     record = _record()
     context = _context()
-    store = _FakeAtomicTransitionStore(record, writer)
+    session = _FakeAtomicTransitionSession(record, metadata)
     first_command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context, key="same")
-    first = store.apply_transition(writer, first_command, context)
+    first = session.apply_transition(first_command, context)
     assert isinstance(first, CommittedTransition)
 
     conflicting = _command(
@@ -184,69 +230,153 @@ def test_idempotency_conflict_has_no_event() -> None:
         key="same",
         expected_version=first.record.version,
     )
-    outcome = store.apply_transition(writer, conflicting, context)
+    outcome = session.apply_transition(conflicting, context)
     assert isinstance(outcome, TransitionConflict)
     assert outcome.conflict_class == "idempotency_key_reuse_conflict"
-    assert len(store.events) == 1
+    assert len(session.events) == 1
 
 
 def test_domain_rejection_commits_one_event_and_unchanged_state() -> None:
-    writer = _writer()
+    metadata = _metadata()
     record = _record()
     context = _context()
-    store = _FakeAtomicTransitionStore(record, writer)
+    session = _FakeAtomicTransitionSession(record, metadata)
     command = _command(WorkItemState.READY, record=record, context=context)
 
-    outcome = store.apply_transition(writer, command, context)
+    outcome = session.apply_transition(command, context)
     assert isinstance(outcome, CommittedTransition)
     assert not outcome.replayed
     assert outcome.record == record
     assert outcome.event.reason == "invalid_predecessor"
     assert outcome.event.outcome.value == "domain_rejected"
-    assert store.events == [outcome.event]
+    assert session.events == [outcome.event]
 
 
 def test_accepted_transition_exact_replay_preserves_event_without_duplicate() -> None:
-    writer = _writer()
+    metadata = _metadata()
     record = _record()
     context = _context()
-    store = _FakeAtomicTransitionStore(record, writer)
+    session = _FakeAtomicTransitionSession(record, metadata)
     command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
 
-    first = store.apply_transition(writer, command, context)
-    replay = store.apply_transition(writer, command, context)
+    first = session.apply_transition(command, context)
+    replay = session.apply_transition(command, context)
     assert isinstance(first, CommittedTransition)
     assert isinstance(replay, CommittedTransition)
     assert first.event == replay.event
     assert first.record == replay.record
     assert replay.replayed
-    assert len(store.events) == 1
+    assert len(session.events) == 1
     assert not hasattr(first, "result_class")
 
 
 def test_crash_before_commit_leaves_neither_state_nor_event() -> None:
-    writer = _writer()
+    metadata = _metadata()
     record = _record()
     context = _context()
-    store = _FakeAtomicTransitionStore(record, writer)
-    store.crash_before_commit = True
+    session = _FakeAtomicTransitionSession(record, metadata)
+    session.crash_before_commit = True
     command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
 
     with pytest.raises(RuntimeError, match="simulated-crash-before-commit"):
-        store.apply_transition(writer, command, context)
-    assert store.current[record.work_item_id] == record
-    assert store.events == []
-    assert store.idempotency == {}
+        session.apply_transition(command, context)
+    assert session.current[record.work_item_id] == record
+    assert session.events == []
+    assert session.idempotency == {}
 
 
 def test_malformed_address_is_pre_apply_invalid_and_no_event() -> None:
-    writer = _writer()
+    metadata = _metadata()
     record = _record()
     context = _context()
-    store = _FakeAtomicTransitionStore(record, writer)
+    session = _FakeAtomicTransitionSession(record, metadata)
     command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context, work_item_id="wi-2")
 
-    outcome = store.apply_transition(writer, command, context)
+    outcome = session.apply_transition(command, context)
     assert isinstance(outcome, TransitionConflict)
     assert outcome.conflict_class == "work_item_not_found"
-    assert store.events == []
+    assert session.events == []
+
+
+def test_closed_writer_session_fails_with_session_closed() -> None:
+    record = _record()
+    context = _context()
+    command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
+    session = _FakeAtomicTransitionSession(record, _metadata())
+
+    with session as active:
+        assert active.active
+    assert not session.active
+
+    with pytest.raises(WriterSessionError) as exc_info:
+        session.apply_transition(command, context)
+    assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+    assert session.events == []
+    assert session.idempotency == {}
+
+
+def test_closed_writer_session_does_not_return_stale_writer_conflict() -> None:
+    record = _record()
+    context = _context()
+    command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
+    session = _FakeAtomicTransitionSession(record, _metadata())
+    session.close()
+
+    with pytest.raises(WriterSessionError) as exc_info:
+        session.apply_transition(command, context)
+    assert exc_info.value.reason.value == "writer_session_closed"
+    assert exc_info.value.reason.value != "stale_writer_token"
+
+
+def test_closed_writer_session_never_calls_transition_store() -> None:
+    record = _record()
+    context = _context()
+    command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
+    session = _FakeAtomicTransitionSession(record, _metadata())
+    session.close()
+
+    with pytest.raises(WriterSessionError):
+        session.apply_transition(command, context)
+    assert session.store_calls == 0
+    assert session.current[record.work_item_id] == record
+    assert session.events == []
+
+
+def test_closed_writer_session_produces_no_event() -> None:
+    record = _record()
+    context = _context()
+    command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
+    session = _FakeAtomicTransitionSession(record, _metadata())
+    session.close()
+
+    with pytest.raises(WriterSessionError):
+        session.apply_transition(command, context)
+    assert session.events == []
+
+
+def test_process_mismatch_is_session_failure_before_apply() -> None:
+    record = _record()
+    context = _context()
+    command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
+    session = _FakeAtomicTransitionSession(record, _metadata())
+    session.simulate_process_mismatch()
+
+    with pytest.raises(WriterSessionError) as exc_info:
+        session.apply_transition(command, context)
+    assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH
+    assert session.store_calls == 0
+    assert session.events == []
+
+
+def test_active_session_stale_fencing_remains_apply_conflict() -> None:
+    record = _record()
+    context = _context()
+    command = _command(WorkItemState.LEASE_ADMITTED, record=record, context=context)
+    session = _FakeAtomicTransitionSession(record, _metadata())
+    session.invalidate_writer()
+
+    outcome = session.apply_transition(command, context)
+    assert isinstance(outcome, TransitionConflict)
+    assert outcome.conflict_class == "stale_writer_token"
+    assert session.store_calls == 1
+    assert session.events == []

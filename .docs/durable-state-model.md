@@ -2,8 +2,8 @@
 
 A2-P1/P1.1 defines state contracts. B1/B1.1 adds explicit operator-local
 SQLite bootstrap, observational validation, live-schema integrity checks, and
-migration infrastructure, but it still does not implement a production
-`StateStore` mutation backend.
+migration infrastructure. B2a corrects the writer-session authority contract.
+The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
 
@@ -52,7 +52,8 @@ them.
 
 ## P1.1 Atomic Apply Contract
 
-The P1.1 store surface is a protocol only. The atomic apply boundary owns:
+The P1.1/B2a store and writer-session surfaces are protocols only. Future
+mutation authority is session-bound. The atomic apply boundary owns:
 
 - writer fencing;
 - internal idempotency lookup;
@@ -63,14 +64,16 @@ The P1.1 store surface is a protocol only. The atomic apply boundary owns:
 - exact replay.
 
 Expected-version mismatch is an apply conflict and creates no transition event.
-Stale writers, idempotency key reuse with a different command digest, and
-authoritative not-found cases are also apply conflicts with no event.
+Stale writer sessions, idempotency key reuse with a different command digest,
+and authoritative not-found cases are also apply conflicts with no event.
+Closed writer sessions and writer-session process mismatches are session-local
+failures before the atomic store boundary, not apply conflicts.
 
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. There is no separate result reason or receipt object
 that can disagree with the event reason.
 
-Future production storage must provide one active authoritative writer,
+Future production storage must provide one active authoritative writer session,
 ownership generation, stale-writer fencing, split-brain prevention,
 transactional counters/state, crash consistency, restart reconciliation,
 corruption detection, backup/restore, and persistent global stop.
@@ -79,7 +82,8 @@ B1/B1.1 implements the SQLite bootstrap and forward-only migration layer for an
 explicitly requested local database plus observational existing-database
 inspection/validation. B1.1 managed validation checks migration-history/catalog
 equality, live-schema manifest equality, exactly one global-stop current
-singleton, and zero-or-one writer ownership row shape. It implements no SQLite
+singleton, and zero-or-one writer ownership row shape. B2a adds safe writer
+metadata and an opaque `WriterSession` protocol only. It implements no SQLite
 `StateStore`, no work-item or global-stop mutation API, no writer acquisition,
 no writer fencing validation, no product read port, and no production
 persistence adapter.
@@ -87,9 +91,10 @@ persistence adapter.
 B0 selected SQLite, one private local database, as the future first production
 backend architecture. B1/B1.1 adds administrative database bootstrap,
 observational connection posture, migration-history/catalog equality,
-live-schema manifest checks, and schema compatibility validation. No
-`StateStore` mutation backend, writer acquisition, coordinator service, or
-executable A2 capability exists in B1.1.
+live-schema manifest checks, and schema compatibility validation. B2a adds
+writer-session contract hardening only. No `StateStore` mutation backend,
+writer acquisition, coordinator service, or executable A2 capability exists in
+B2a.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

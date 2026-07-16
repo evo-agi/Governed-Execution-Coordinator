@@ -1,7 +1,8 @@
 # SQLite Operations And Recovery
 
 Status: B1.1 bootstrap/inspection/validation/migration implementation plus
-future operations design.
+future operations design. B2a adds writer-session authority contract wording
+only.
 
 ## Filesystem Posture
 
@@ -47,8 +48,10 @@ inspection:
 - symlink and non-regular database rejection;
 - safe closed errors without raw paths.
 
-B1 does not implement advisory writer-lock acquisition. The migration lock path
-is exposed as policy for a future tranche only.
+B1 does not implement advisory writer-lock acquisition. B2a renames the future
+concept to one common state-authority lock path while preserving the current
+`coordinator-state.migration.lock` filename as an implementation label only.
+B2a still does not create or acquire the lock.
 
 B1.1 does not overclaim deeper filesystem confinement. Intermediate symlink
 components are constrained by resolved trusted-root checks but are not a full
@@ -153,3 +156,8 @@ Read connections cannot mutate. Reads must not expose an unfenced idempotency
 oracle. Raw database rows and canonical JSON are not public reports. Bridge,
 Control Plane, Execution Substrate, Maintenance Agent, and Infrastructure
 Manager receive no database handle.
+
+There is no B2a latest-writer read API. A future administrative observer may
+read safe durable writer issuance metadata, but such a read would not prove
+liveness, would not return proof or proof digest, and would not authorize
+mutation.

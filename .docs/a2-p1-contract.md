@@ -15,8 +15,9 @@ It implements:
   always blocks with `unsupported_authorization_model`;
 - finite backlog parsing and canonical identity;
 - immutable work-item records and a pure state transition evaluator;
+- a state-store protocol only for read-side P1.1 storage shape;
 - P1.1 transition commands, transition events, apply conflicts, committed
-  outcomes, and a state-store protocol only;
+  outcomes, read-side state-store protocol, and writer-session protocol only;
 - global-stop command/event models and pure enforcement checks;
 - closed typed report projections.
 
@@ -40,10 +41,11 @@ B0 added architecture documents, a non-production SQLite schema fixture, and
 static/in-memory schema tests for a future first backend. B1/B1.1 adds explicit
 operator-local SQLite bootstrap, observational inspection/validation,
 connection posture, packaged migrations, migration-history/catalog equality,
-live-schema manifest verification, and schema compatibility validation. B1.1
-does not change the P1/P1.1 runtime prohibition above: there is still no
-production SQLite `StateStore`, no writer acquisition, no coordinator service,
-and no executable A2 capability.
+live-schema manifest verification, and schema compatibility validation. B2a
+corrects writer authority to an opaque future `WriterSession` plus safe
+non-authoritative metadata. B2a does not change the P1/P1.1 runtime
+prohibition above: there is still no production SQLite `StateStore`, no writer
+acquisition, no coordinator service, and no executable A2 capability.
 
 ## P1 State Gating
 
@@ -70,8 +72,8 @@ domain-rejected events. Expected-version comparison, writer fencing,
 idempotency lookup, authoritative state loading, atomic state/event persistence,
 and exact replay belong to the atomic store boundary.
 
-Apply conflicts have no event. They include stale writer token, idempotency key
-reuse with a different command digest, expected-version conflict, and
+Apply conflicts have no event. They include stale writer session, idempotency
+key reuse with a different command digest, expected-version conflict, and
 authoritative work-item not found. Exact replay returns the original committed
 state/event with `replayed=true` and creates no new event or counter effect.
 

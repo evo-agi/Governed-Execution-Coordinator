@@ -114,6 +114,8 @@ Not stored in the first backend:
 - mutable only through future writer acquisition;
 - stores writer ref, generation, issued ref, and issuance nonce digest;
 - raw issuance values are not stored.
+- records latest durable fencing issuance only;
+- does not prove a live writer session or authorize mutation.
 
 `lease_identity_records`
 
@@ -212,6 +214,11 @@ Future B2/B3 integrity checks must:
 - verify current-state versions against accepted events where applicable;
 - verify domain-rejected events do not mutate current state;
 - report divergence instead of repairing automatically.
+
+B2a requires no schema change. It does not add active/released status, release
+timestamp, process id, lock inode, platform metadata, heartbeat, expiry,
+takeover state, or liveness flag to SQLite because those are session/process
+facts, not durable authority.
 
 ## B1 Initialization Guarantees
 

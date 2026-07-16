@@ -32,9 +32,12 @@ from ge_nwp_coordinator.state_store import (
     CommittedGlobalStopUpdate,
     CommittedTransition,
     GlobalStopConflict,
+    SafeWriterMetadata,
     StateStore,
-    StateWriterToken,
     TransitionConflict,
+    WriterSessionError,
+    WriterSessionFailureReason,
+    WriterSession,
 )
 
 __all__ = [
@@ -46,8 +49,8 @@ __all__ = [
     "GlobalStopConflict",
     "LEASE_SCHEMA_ID",
     "LeaseIdentityValidation",
+    "SafeWriterMetadata",
     "StateStore",
-    "StateWriterToken",
     "StandingLease",
     "TransitionCommand",
     "TransitionContext",
@@ -56,6 +59,9 @@ __all__ = [
     "TransitionEvent",
     "TransitionEventOutcome",
     "UnsupportedAuthorizationProvider",
+    "WriterSessionError",
+    "WriterSessionFailureReason",
+    "WriterSession",
     "WorkItem",
     "WorkItemRecord",
     "WorkItemState",

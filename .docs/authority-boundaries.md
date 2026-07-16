@@ -31,10 +31,15 @@ evidence do not create durable A2 state, lease authority, execution authority,
 acceptance, commit authority, or publication authority. A report or adapter
 projection does not create durable A2 state.
 
-State-writer tokens are mutation fencing contract objects only. P1/P1.1 does
-not acquire, renew, persist, or honor a production writer token. Stale-writer
-conflicts are apply-boundary failures and never disclose idempotency status or
-return transition events.
+Writer-session authority is mutation fencing contract shape only until a
+future backend tranche implements it. B2a removes standalone reconstructable
+public-token mutation authority: mutation authority belongs to an opaque future
+`WriterSession`, not to safe writer metadata or a durable SQLite row. P1/P1.1
+and B2a do not acquire, renew, persist, or honor a production writer session.
+Stale-writer conflicts are apply-boundary failures and never disclose
+idempotency status or return transition events. Closed-session and
+process-mismatch failures are session-local failures before the apply boundary;
+they are not durable apply conflicts.
 
 Transition events are durable receipts for future accepted or domain-rejected
 commands. Apply conflicts are not receipts and do not provide acceptance,
@@ -44,6 +49,11 @@ B1 SQLite bootstrap and migration operations are operator-local administrative
 schema operations. They do not create work-item authority, global-stop update
 authority, authorization receipts, executable permission, acceptance, commit,
 publication, or product truth.
+
+B2a writer-session contract objects do not create work-item authority,
+global-stop update authority, executable authorization, acceptance, commit,
+publication, product truth, or process liveness truth. Safe writer metadata is
+diagnostics/evidence only and cannot reconstruct a private writer credential.
 
 Coordinator P1 reports are closed typed public projections. They cannot widen
 authority, cannot mutate state, and cannot carry raw private content,

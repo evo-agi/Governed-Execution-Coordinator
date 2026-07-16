@@ -1,17 +1,19 @@
-"""Atomic state-store port for the P1.1 command/event contract.
+"""Atomic state-store and writer-session ports for the P1.1 event contract.
 
-A2-P1.1 intentionally provides no production implementation. Future stores must
-fence every mutation, resolve idempotency internally, load authoritative state,
-compare expected versions, invoke the pure evaluator, and atomically persist the
-state plus one immutable event.
+A2-P1.1 intentionally provides no production implementation. B2a corrects the
+writer authority surface to an opaque writer-session protocol only. Future
+sessions must be created by the backend after successful writer acquisition;
+Protocol conformance by itself is not authority.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from enum import Enum
+from types import TracebackType
+from typing import Protocol, Self
 
-from ge_nwp_coordinator.canonicalization import require_bool, require_non_negative_int, require_string
+from ge_nwp_coordinator.canonicalization import require_bool, require_positive_int, require_string
 from ge_nwp_coordinator.global_stop import (
     GlobalStopCommand,
     GlobalStopEvent,
@@ -26,26 +28,51 @@ from ge_nwp_coordinator.state_machine import (
     WorkItemRecord,
 )
 
-STATE_WRITER_TOKEN_SCHEMA_ID = "governed-execution.nwp-state-writer-token.v1"
+SAFE_WRITER_METADATA_SCHEMA_ID = "governed-execution.nwp-safe-writer-metadata.v1"
+WRITER_ISSUANCE_PROOF_DOMAIN = "governed-execution.nwp-writer-issuance-proof.v1"
+MAX_WRITER_GENERATION = 9223372036854775807
+
+
+class WriterSessionFailureReason(str, Enum):
+    WRITER_SESSION_CLOSED = "writer_session_closed"
+    WRITER_SESSION_PROCESS_MISMATCH = "writer_session_process_mismatch"
+
+
+class WriterSessionError(RuntimeError):
+    """Safe session-local failure raised before any atomic apply boundary."""
+
+    def __init__(self, reason: WriterSessionFailureReason | str) -> None:
+        normalized = WriterSessionFailureReason(reason)
+        self.reason = normalized
+        super().__init__(normalized.value)
 
 
 @dataclass(frozen=True)
-class StateWriterToken:
+class SafeWriterMetadata:
+    """Safe writer issuance metadata, not live mutation authority."""
+
     writer_ref: str
     generation: int
     issued_ref: str
-    schema_id: str = STATE_WRITER_TOKEN_SCHEMA_ID
+    acquired_at: str
+    schema_id: str = SAFE_WRITER_METADATA_SCHEMA_ID
 
     def __post_init__(self) -> None:
-        if require_string(self.schema_id, "state_writer_token.schema_id") != STATE_WRITER_TOKEN_SCHEMA_ID:
-            raise ValueError("invalid_field_type:state_writer_token.schema_id")
-        object.__setattr__(self, "writer_ref", require_contract_ref(self.writer_ref, "state_writer_token.writer_ref"))
+        if require_string(self.schema_id, "safe_writer_metadata.schema_id") != SAFE_WRITER_METADATA_SCHEMA_ID:
+            raise ValueError("invalid_field_type:safe_writer_metadata.schema_id")
+        object.__setattr__(self, "writer_ref", require_contract_ref(self.writer_ref, "safe_writer_metadata.writer_ref"))
         object.__setattr__(
             self,
             "generation",
-            require_non_negative_int(self.generation, "state_writer_token.generation"),
+            require_positive_int(self.generation, "safe_writer_metadata.generation"),
         )
-        object.__setattr__(self, "issued_ref", require_contract_ref(self.issued_ref, "state_writer_token.issued_ref"))
+        if self.generation > MAX_WRITER_GENERATION:
+            raise ValueError("invalid_field_value:safe_writer_metadata.generation")
+        object.__setattr__(self, "issued_ref", require_contract_ref(self.issued_ref, "safe_writer_metadata.issued_ref"))
+        acquired_at = require_string(self.acquired_at, "safe_writer_metadata.acquired_at")
+        if not 20 <= len(acquired_at) <= 64:
+            raise ValueError("invalid_field_value:safe_writer_metadata.acquired_at")
+        object.__setattr__(self, "acquired_at", acquired_at)
 
 
 @dataclass(frozen=True)
@@ -106,30 +133,58 @@ TransitionApplyOutcome = CommittedTransition | TransitionConflict
 GlobalStopApplyOutcome = CommittedGlobalStopUpdate | GlobalStopConflict
 
 
-class WriterOwnershipStore(Protocol):
-    def current_writer(self) -> StateWriterToken | None:
-        """Return the current authoritative writer token, if one exists."""
+class WriterSession(Protocol):
+    """Opaque future mutation capability created only by writer acquisition."""
+
+    @property
+    def metadata(self) -> SafeWriterMetadata:
+        """Return safe non-authoritative metadata for diagnostics."""
+        ...
+
+    @property
+    def active(self) -> bool:
+        """Return whether this session is active in this process."""
+        ...
+
+    def apply_transition(
+        self,
+        transition_command: TransitionCommand,
+        typed_context: TransitionContext,
+    ) -> TransitionApplyOutcome:
+        """Apply a transition after session-local lifecycle checks."""
+        ...
+
+    def apply_global_stop_update(
+        self,
+        global_stop_command: GlobalStopCommand,
+        typed_operator_decision: GlobalStopOperatorDecision,
+    ) -> GlobalStopApplyOutcome:
+        """Apply a global-stop update after session-local lifecycle checks."""
+        ...
+
+    def close(self) -> None:
+        """Idempotently invalidate the session and release future resources."""
+        ...
+
+    def __enter__(self) -> Self:
+        """Return the active writer session as a context manager."""
+        ...
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        """Close the session when leaving a context manager."""
+        ...
 
 
 class StateStore(Protocol):
     def read_current(self, work_item_id: str) -> WorkItemRecord | None:
         """Read the current record for a work item."""
-
-    def apply_transition(
-        self,
-        writer_token: StateWriterToken,
-        transition_command: TransitionCommand,
-        typed_context: TransitionContext,
-    ) -> TransitionApplyOutcome:
-        """Atomically apply a transition command or return an apply conflict."""
+        ...
 
     def read_global_stop(self) -> GlobalStopState:
         """Read the authoritative global-stop state."""
-
-    def apply_global_stop_update(
-        self,
-        writer_token: StateWriterToken,
-        global_stop_command: GlobalStopCommand,
-        typed_operator_decision: GlobalStopOperatorDecision,
-    ) -> GlobalStopApplyOutcome:
-        """Atomically apply a global-stop command or return an apply conflict."""
+        ...

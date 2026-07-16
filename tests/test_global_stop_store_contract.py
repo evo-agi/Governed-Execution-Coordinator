@@ -12,7 +12,9 @@ from ge_nwp_coordinator.global_stop import (
 from ge_nwp_coordinator.state_store import (
     CommittedGlobalStopUpdate,
     GlobalStopConflict,
-    StateWriterToken,
+    SafeWriterMetadata,
+    WriterSessionError,
+    WriterSessionFailureReason,
 )
 
 
@@ -22,20 +24,58 @@ class _StopIdempotencyEntry:
     committed: CommittedGlobalStopUpdate
 
 
-class _FakeAtomicGlobalStopStore:
-    def __init__(self, state: GlobalStopState, writer: StateWriterToken) -> None:
+class _FakeAtomicGlobalStopSession:
+    def __init__(self, state: GlobalStopState, metadata: SafeWriterMetadata) -> None:
         self.state = state
-        self.writer = writer
+        self._metadata = metadata
+        self._active = True
+        self._process_mismatch = False
+        self._stale = False
         self.events = []
         self.idempotency = {}
+        self.store_calls = 0
+
+    @property
+    def metadata(self) -> SafeWriterMetadata:
+        return self._metadata
+
+    @property
+    def active(self) -> bool:
+        return self._active
+
+    def invalidate_writer(self) -> None:
+        self._stale = True
+
+    def simulate_process_mismatch(self) -> None:
+        self._process_mismatch = True
+
+    def close(self) -> None:
+        self._active = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
 
     def apply_global_stop_update(
         self,
-        writer_token: StateWriterToken,
         command: GlobalStopCommand,
         decision: GlobalStopOperatorDecision,
     ) -> CommittedGlobalStopUpdate | GlobalStopConflict:
-        if writer_token != self.writer:
+        if self._process_mismatch:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH)
+        if not self._active:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        return self._apply_store_boundary(command, decision)
+
+    def _apply_store_boundary(
+        self,
+        command: GlobalStopCommand,
+        decision: GlobalStopOperatorDecision,
+    ) -> CommittedGlobalStopUpdate | GlobalStopConflict:
+        self.store_calls += 1
+        if self._stale:
             return GlobalStopConflict("stale_writer_token")
         entry = self.idempotency.get(command.idempotency_key)
         if entry is not None:
@@ -55,8 +95,13 @@ class _FakeAtomicGlobalStopStore:
         return committed
 
 
-def _writer(generation: int = 1) -> StateWriterToken:
-    return StateWriterToken(writer_ref="writer-main", generation=generation, issued_ref=f"writer-issued-{generation}")
+def _metadata(generation: int = 1) -> SafeWriterMetadata:
+    return SafeWriterMetadata(
+        writer_ref="writer-main",
+        generation=generation,
+        issued_ref=f"writer-issued-{generation}",
+        acquired_at="2026-07-16T00:00:00Z",
+    )
 
 
 def _decision(*, authorized: bool = True, decision_ref: str = "operator-decision-1") -> GlobalStopOperatorDecision:
@@ -87,67 +132,141 @@ def _activate(
 
 
 def test_global_stop_stale_writer_precedes_idempotency() -> None:
-    writer = _writer()
-    store = _FakeAtomicGlobalStopStore(GlobalStopState(), writer)
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
     command = _activate()
-    first = store.apply_global_stop_update(writer, command, _decision())
+    first = session.apply_global_stop_update(command, _decision())
     assert isinstance(first, CommittedGlobalStopUpdate)
+    session.invalidate_writer()
 
-    stale = store.apply_global_stop_update(_writer(2), command, _decision())
+    stale = session.apply_global_stop_update(command, _decision())
     assert isinstance(stale, GlobalStopConflict)
     assert stale.conflict_class == "stale_writer_token"
-    assert len(store.events) == 1
+    assert len(session.events) == 1
+    assert session.store_calls == 2
 
 
 def test_global_stop_expected_version_conflict_has_no_event() -> None:
-    store = _FakeAtomicGlobalStopStore(GlobalStopState(version=3, active=False), _writer())
-    outcome = store.apply_global_stop_update(_writer(), _activate(expected_version=2), _decision())
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(version=3, active=False), _metadata())
+    outcome = session.apply_global_stop_update(_activate(expected_version=2), _decision())
     assert isinstance(outcome, GlobalStopConflict)
     assert outcome.conflict_class == "expected_version_conflict"
-    assert store.events == []
-    assert store.state.version == 3
+    assert session.events == []
+    assert session.state.version == 3
 
 
 def test_global_stop_domain_rejection_commits_event_and_unchanged_state() -> None:
     state = GlobalStopState()
-    store = _FakeAtomicGlobalStopStore(state, _writer())
-    outcome = store.apply_global_stop_update(_writer(), _activate(), _decision(authorized=False))
+    session = _FakeAtomicGlobalStopSession(state, _metadata())
+    outcome = session.apply_global_stop_update(_activate(), _decision(authorized=False))
     assert isinstance(outcome, CommittedGlobalStopUpdate)
     assert outcome.state == state
     assert outcome.event.outcome.value == "domain_rejected"
     assert outcome.event.reason == "operator_authorization_required"
-    assert store.events == [outcome.event]
+    assert session.events == [outcome.event]
 
 
 def test_global_stop_exact_replay_preserves_original_event() -> None:
-    store = _FakeAtomicGlobalStopStore(GlobalStopState(), _writer())
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
     command = _activate()
-    first = store.apply_global_stop_update(_writer(), command, _decision())
-    replay = store.apply_global_stop_update(_writer(), command, _decision())
+    first = session.apply_global_stop_update(command, _decision())
+    replay = session.apply_global_stop_update(command, _decision())
     assert isinstance(first, CommittedGlobalStopUpdate)
     assert isinstance(replay, CommittedGlobalStopUpdate)
     assert replay.replayed
     assert replay.event == first.event
     assert replay.state == first.state
-    assert len(store.events) == 1
+    assert len(session.events) == 1
     assert not hasattr(first, "result_class")
 
 
 def test_global_stop_idempotency_conflict_has_no_event() -> None:
-    store = _FakeAtomicGlobalStopStore(GlobalStopState(), _writer())
-    first = store.apply_global_stop_update(_writer(), _activate(key="same"), _decision())
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
+    first = session.apply_global_stop_update(_activate(key="same"), _decision())
     assert isinstance(first, CommittedGlobalStopUpdate)
-    conflict = store.apply_global_stop_update(
-        _writer(),
+    conflict = session.apply_global_stop_update(
         _activate(key="same", expected_version=first.state.version, stop_id="stop-2"),
         _decision(),
     )
     assert isinstance(conflict, GlobalStopConflict)
     assert conflict.conflict_class == "idempotency_key_reuse_conflict"
-    assert len(store.events) == 1
+    assert len(session.events) == 1
 
 
-def test_writer_token_is_excluded_from_global_stop_command_digest() -> None:
+def test_safe_writer_metadata_is_excluded_from_global_stop_command_digest() -> None:
     command = _activate()
-    assert _writer().writer_ref not in command.canonical_identity_payload()
-    assert _writer(2).writer_ref not in command.canonical_identity_payload()
+    assert _metadata().writer_ref not in command.canonical_identity_payload()
+    assert _metadata(2).writer_ref not in command.canonical_identity_payload()
+
+
+def test_closed_writer_session_fails_with_session_closed_for_global_stop_update() -> None:
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
+    command = _activate()
+
+    with session as active:
+        assert active.active
+    assert not session.active
+
+    try:
+        session.apply_global_stop_update(command, _decision())
+    except WriterSessionError as exc:
+        assert exc.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+    else:  # pragma: no cover - defensive assertion for the contract test
+        raise AssertionError("closed writer session did not fail locally")
+    assert session.events == []
+
+
+def test_closed_writer_session_does_not_return_stale_writer_conflict_for_global_stop_update() -> None:
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
+    command = _activate()
+    session.close()
+
+    try:
+        session.apply_global_stop_update(command, _decision())
+    except WriterSessionError as exc:
+        assert exc.reason.value == "writer_session_closed"
+        assert exc.reason.value != "stale_writer_token"
+    else:  # pragma: no cover - defensive assertion for the contract test
+        raise AssertionError("closed writer session did not fail locally")
+
+
+def test_closed_writer_session_never_calls_global_stop_store() -> None:
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
+    command = _activate()
+    session.close()
+
+    try:
+        session.apply_global_stop_update(command, _decision())
+    except WriterSessionError:
+        pass
+    else:  # pragma: no cover - defensive assertion for the contract test
+        raise AssertionError("closed writer session did not fail locally")
+    assert session.store_calls == 0
+    assert session.events == []
+    assert session.idempotency == {}
+
+
+def test_process_mismatch_is_session_failure_before_global_stop_apply() -> None:
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
+    command = _activate()
+    session.simulate_process_mismatch()
+
+    try:
+        session.apply_global_stop_update(command, _decision())
+    except WriterSessionError as exc:
+        assert exc.reason is WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH
+    else:  # pragma: no cover - defensive assertion for the contract test
+        raise AssertionError("process mismatch did not fail locally")
+    assert session.store_calls == 0
+    assert session.events == []
+
+
+def test_active_session_stale_fencing_remains_global_stop_apply_conflict() -> None:
+    session = _FakeAtomicGlobalStopSession(GlobalStopState(), _metadata())
+    command = _activate()
+    session.invalidate_writer()
+
+    outcome = session.apply_global_stop_update(command, _decision())
+    assert isinstance(outcome, GlobalStopConflict)
+    assert outcome.conflict_class == "stale_writer_token"
+    assert session.store_calls == 1
+    assert session.events == []

@@ -25,9 +25,12 @@ SQLite bootstrap/migration infrastructure only:
 - explicit operator-local SQLite database bootstrap, observational database
   inspection/validation, connection posture, migration catalog,
   migration-history/catalog equality, live-schema manifest verification, and
-  schema compatibility checks.
+  schema compatibility checks;
+- a B2a writer-session authority contract that replaces reconstructable public
+  token-shaped mutation authority with an opaque future `WriterSession`
+  protocol and safe non-authoritative writer metadata.
 
-P1.1 models expected-version mismatch, stale writer tokens, idempotency key
+P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
 Domain rejections, such as invalid predecessors, global stop, budget failure,
 missing evidence, and invariant P1 `stage_not_enabled`, commit exactly one
@@ -46,8 +49,10 @@ B0 selected SQLite, one private local database, as the future first production
 state backend architecture. B1/B1.1 implements secure local database bootstrap,
 non-mutating inspection/validation for existing databases, live-schema
 integrity checks, and forward-only migrations for explicitly requested
-operator-local administration. B1.1 still provides no `StateStore` mutation
-backend, writer acquisition, coordinator service, worker, scheduler,
-authorization path, or executable A2 capability.
+operator-local administration. B2a corrects the writer-session contract only.
+The runtime still provides no OS lock acquisition, writer acquisition, proof
+generation, SQLite writer-row mutation, `StateStore` mutation backend,
+coordinator service, worker, scheduler, authorization path, or executable A2
+capability.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

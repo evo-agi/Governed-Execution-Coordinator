@@ -18,10 +18,10 @@ Operator/repo policy owns lease issuance and global stop. The coordinator
 cannot self-authorize, cannot mint authorization, and cannot treat a valid
 digest as execution permission.
 
-Transition commands, transition events, writer tokens, global-stop commands,
-and global-stop events are contract objects only until a future backend
-tranche. Reports are projections only. They are not durable state,
-authorization, acceptance, publication, or product truth.
+Transition commands, transition events, writer-session contracts,
+global-stop commands, and global-stop events are contract objects only until a
+future backend tranche. Reports are projections only. They are not durable
+state, authorization, acceptance, publication, or product truth.
 
 B1/B1.1 implements only secure local SQLite state-location, connection
 bootstrap, observational inspection/validation, schema migration, migration
@@ -51,9 +51,20 @@ state loading, expected-version comparison, evaluator invocation, exact replay,
 and atomic state/event persistence belong to the atomic store boundary.
 
 Apply conflicts never carry transition events. Exact replay requires a valid
-current writer plus the same idempotency key and the same canonical command
-digest. Same key with a different digest conflicts. Stale writers receive only
-`stale_writer_token` and no replay, key-existence, or conflict detail.
+active writer session plus the same idempotency key and the same canonical
+command digest. Same key with a different digest conflicts. Stale writers
+receive only `stale_writer_token` and no replay, key-existence, or conflict
+detail.
+
+Closed writer sessions and writer-session process mismatches fail locally before
+the apply boundary; they are not `stale_writer_token` apply conflicts.
+
+B2a corrects the writer authority contract only. Mutation authority is an
+opaque future `WriterSession`, not a reconstructable public token. Safe writer
+metadata is diagnostics/evidence only and carries no proof, proof digest, lock
+path, process id, or liveness claim. B2a still does not implement advisory
+locking, writer acquisition, proof generation or verification,
+`writer_ownership` updates, or `StateStore` mutation storage.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
@@ -64,7 +75,7 @@ weaken, or replace global stop without a typed operator decision.
 P1/P1.1 must not implement worker execution, a scheduling loop, a queue
 consumer, a daemon, repair, local commit behavior, publication, StateStore
 mutation storage, a validation sandbox, executable lease authorization,
-signing, keys, trust roots, writer-token acquisition, or a trusted-local/allow-all
+signing, keys, trust roots, writer-session acquisition, or a trusted-local/allow-all
 production authorization path.
 
 P1 public state and report models must not include private briefs, raw prompts,

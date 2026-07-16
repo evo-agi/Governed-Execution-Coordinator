@@ -1,7 +1,8 @@
 # SQLite Backend Threat Model
 
 Status: B1.1 bootstrap/inspection/validation/migration implementation plus
-future backend threat model.
+future backend threat model. B2a defines writer-session authority contracts
+only.
 
 This threat model applies to the first SQLite backend architecture. B1
 implements only bootstrap and migrations; it does not claim current code has a
@@ -12,7 +13,7 @@ production `StateStore` mutation backend.
 Stale local coordinator process:
 
 - fenced by OS advisory lock for live exclusion plus durable generation and
-  issuance proof on every mutation;
+  issuance proof held inside an active writer session on every mutation;
 - stale writer receives only `stale_writer_token` before idempotency detail.
 
 Two coordinator processes:
@@ -111,6 +112,11 @@ validation, managed current-state invariant checks, migration rollback, safe
 SQLite error boundaries, and authority-boundary non-expansion. B1.1 does not
 add writer acquisition, writer fencing validation, mutation APIs, worker
 execution, or product read/report authority over SQLite.
+
+B2a adds no runtime mitigation. It records that durable `writer_ownership`
+metadata is latest issuance evidence only and that mutation authority requires
+a future active `WriterSession` holding a private proof and the common
+state-authority lock.
 
 Failed backup or restore:
 

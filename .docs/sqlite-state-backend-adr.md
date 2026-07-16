@@ -1,13 +1,16 @@
 # SQLite State Backend ADR
 
 Status: accepted architecture; B1.1 implements bootstrap, observational
-inspection/validation, and migrations only.
+inspection/validation, and migrations only. B2a corrects the writer-session
+authority contract only.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
 explicit operator-local database bootstrap, observational validation, and
-migrations. B1.1 does not implement a production `StateStore`, acquire a
-writer, start a coordinator service, or enable executable A2 behavior.
+migrations. B2a replaces standalone reconstructable public mutation authority
+with an opaque future `WriterSession` contract and safe writer metadata. B2a does
+not implement a production `StateStore`, acquire a writer, start a coordinator
+service, or enable executable A2 behavior.
 
 ## Decision
 
@@ -88,6 +91,7 @@ Coordinator transition service:
 
 SQLite `StateStore` transaction:
 
+- is entered only through a backend-created active `WriterSession`;
 - validates writer ownership before idempotency disclosure;
 - performs internal idempotency lookup from event rows;
 - loads authoritative current work-item or global-stop state;
@@ -149,23 +153,32 @@ Changing it later requires an operations and recovery audit.
 
 The first local writer model is:
 
-- a private lock file in the same secured state directory;
+- one common state-authority lock file in the same secured state directory;
 - an exclusive OS advisory lock for live-process exclusion;
 - a durable singleton `writer_ownership` row;
 - monotonically increasing generation;
-- a random opaque 256-bit issuance value compatible with the
-  `StateWriterToken` grammar;
-- only an issuance digest stored in the database where practical;
+- independently generated safe writer and issuance refs;
+- a private random opaque 256-bit issuance proof held only in an active
+  `WriterSession`;
+- only a domain-separated issuance proof digest stored in the database;
 - every mutation compares writer ref, generation, and issuance proof;
 - new acquisition increments generation atomically;
 - process crash releases the OS lock;
 - no TTL, heartbeat, or automatic failover in the first backend;
 - hung-writer recovery requires explicit operator action.
 
-The OS lock is live-process exclusion. The durable generation and issuance proof
-are fencing authority. Neither is sufficient alone. A process-local mutex is
-not sufficient. Workers, Bridge, reports, readers, and adapters never receive
-writer tokens.
+The OS lock is live-process exclusion. The durable generation and private
+issuance proof are fencing authority. Neither is sufficient alone. The durable
+row is latest issuance evidence, not liveness truth. Safe writer metadata is
+not a credential. A process-local mutex is not sufficient. Workers, Bridge,
+reports, readers, and adapters never receive writer sessions or private writer
+credentials.
+
+B2a defines this contract only. It implements no `fcntl`/`flock`, lock-file
+creation or acquisition, writer issuance generation, proof generation or
+verification, `writer_ownership` update, migration lock integration, concrete
+writer session, or mutation backend. The detailed writer-session contract lives
+in `.docs/writer-session-authority.md`.
 
 ## Event-Owned Idempotency
 
@@ -188,7 +201,7 @@ only for replaying the original command outcome.
 Transition mutation transaction:
 
 1. `BEGIN IMMEDIATE`.
-2. Verify writer generation and issuance proof.
+2. Verify the active writer session, writer generation, and issuance proof.
 3. Look up `transition_events` by `(work_item_id, idempotency_key)`.
 4. If command digest matches, return stored event and replay snapshot.
 5. If command digest differs, return `idempotency_key_reuse_conflict`.
@@ -207,13 +220,13 @@ Transition mutation transaction:
 16. Commit.
 17. Return the committed event and resulting record.
 
-Exact replay happens after writer fencing and idempotency match, before changed
-decision or global-stop context is re-evaluated.
+Exact replay happens after writer-session fencing and idempotency match, before
+changed decision or global-stop context is re-evaluated.
 
 Global-stop mutation transaction:
 
 1. `BEGIN IMMEDIATE`.
-2. Verify writer generation and issuance proof.
+2. Verify the active writer session, writer generation, and issuance proof.
 3. Look up `global_stop_events` by idempotency key.
 4. If command digest matches, return stored event and replay snapshot.
 5. If command digest differs, return `idempotency_key_reuse_conflict`.

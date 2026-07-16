@@ -19,7 +19,7 @@ must verify their external JSON-array/Python-list shape before element
 validation, normalization, canonicalization, or digest verification. Malformed
 array-like input must not be canonicalized into an accepted command identity.
 
-The atomic apply boundary owns writer fencing, internal idempotency lookup,
+The atomic apply boundary owns writer-session fencing, internal idempotency lookup,
 authoritative current-state loading, expected-version comparison, pure
 evaluator invocation, atomic state/event persistence, and exact replay.
 
@@ -43,7 +43,7 @@ Result: local safe validation failure, no event, and no store apply.
 
 ### 2. Apply Conflict
 
-Examples include stale or wrong writer token, idempotency key reuse with a
+Examples include stale or wrong writer session, idempotency key reuse with a
 different command digest, expected-version conflict, and work item not found at
 the authoritative store boundary.
 
@@ -68,8 +68,8 @@ persisted atomically.
 
 ### 5. Exact Replay
 
-Preconditions: valid current writer, same idempotency key, and same canonical
-command digest.
+Preconditions: valid active writer session, same idempotency key, and same
+canonical command digest.
 
 Result: original committed state and event with `replayed=true`. No new event,
 counter change, budget effect, or state mutation occurs.
@@ -81,6 +81,6 @@ counter change, budget effect, or state mutation occurs.
 - Apply conflicts never carry events.
 - Durable domain rejections always carry events.
 - Caller code never provides proposed state or proposed event.
-- Writer tokens are apply authority only and are not part of command identity.
+- Writer sessions are apply authority only and are not part of command identity.
 - State version and event identity are not conflated.
 - Global-stop updates use the same command/event/conflict/outcome algebra.

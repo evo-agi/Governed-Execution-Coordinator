@@ -53,7 +53,6 @@ APPLY_CONFLICT_REASONS = frozenset(
     {
         "stale_writer_token",
         "split_brain_writer",
-        "writer_token_required",
         "idempotency_key_reuse_conflict",
         "expected_version_conflict",
         "work_item_not_found",

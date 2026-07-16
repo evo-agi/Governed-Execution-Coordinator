@@ -1,7 +1,8 @@
 # SQLite Bootstrap And Migrations
 
 Status: B1.1 implemented for operator-local administrative bootstrap,
-observational inspection/validation, and schema validation only.
+observational inspection/validation, and schema validation only. B2a documents
+the future common state-authority lock and writer-session contract only.
 
 B1/B1.1 implements a secure local SQLite state-location policy, split
 read-only and administrative connection posture, packaged migration catalog,
@@ -20,8 +21,9 @@ repair/adopt unknown schema. Bootstrap and migration are explicit
 operator-local administrative operations. They are not connector, MCP,
 command-payload, backlog, lease, work-item, report, or remote-input
 operations. Normal future runtime must not execute migrations concurrently
-with an active Coordinator writer. B2 owns writer acquisition and fencing.
-B3/B4 own transition and global-stop atomic mutation.
+with an active Coordinator writer session. B2 owns writer acquisition and
+fencing. B2a defines the session contract only. B3/B4 own transition and
+global-stop atomic mutation.
 
 ## Responsibility Owners
 
@@ -76,8 +78,13 @@ The B1 policy exposes only:
 
 - state root;
 - fixed database file path;
-- migration/administrative lock path reserved for later use;
+- state-authority lock path reserved for later use;
 - backup directory path reserved for future backup receipts.
+
+The reserved lock filename remains `coordinator-state.migration.lock` for
+implementation compatibility, but that filename is not durable schema identity
+and is not the authority concept. The future lock domain is the single common
+state-authority lock domain.
 
 The first fixed database filename is `coordinator-state.sqlite`. Alternate
 database filenames and path traversal are rejected. The state root must be
@@ -204,7 +211,7 @@ as proof that the live schema still matches that resource.
 
 ## Transaction Model
 
-Initialize execution order is:
+Current B1.1 initialize execution order, before B2b lock integration, is:
 
 1. Observationally classify the fixed path.
 2. Refuse unknown or partial databases without mutation.
@@ -218,7 +225,7 @@ Initialize execution order is:
 9. Commit.
 10. Revalidate migration history, schema manifest, and managed invariants.
 
-Migration execution order is:
+Current B1.1 migration execution order, before B2b lock integration, is:
 
 1. Observationally require an existing managed database.
 2. Refuse absent, empty, unknown, wrong-posture, partial, or drifted databases
@@ -232,6 +239,20 @@ Migration execution order is:
 On failure, B1 rolls back. There must be no partial schema without history and
 no history row without schema. Failed migrations return safe closed error
 classes.
+
+Future B2b/B2d initialize and migrate must first validate or prepare the root
+and fixed state-authority lock file, acquire the common exclusive
+state-authority lock, then run the B1.1 classification/revalidation and
+administrative mutation flow. Future writer acquisition must require an
+existing `MANAGED` database, validate and acquire the same lock, open the
+database create-disabled read/write, `BEGIN IMMEDIATE`, revalidate
+schema/history, issue the next generation and proof, update
+`writer_ownership`, commit, and retain the lock descriptor for the
+`WriterSession` lifetime. Any failure rolls back, closes the database, releases
+the lock, returns a safe failure, and creates no usable partial session.
+
+B2a does not create, open, or acquire that lock and does not update
+`writer_ownership`.
 
 ## Compatibility Rules
 

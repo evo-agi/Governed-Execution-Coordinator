@@ -33,9 +33,9 @@ def test_prepare_creates_private_root_and_database_file(tmp_path: Path) -> None:
     assert database_path.is_file()
     assert _mode(location.state_root) == 0o700
     assert _mode(database_path) == 0o600
-    assert location.migration_lock_path.name == "coordinator-state.migration.lock"
+    assert location.state_authority_lock_path.name == "coordinator-state.migration.lock"
     assert location.backup_directory_path.name == "backups"
-    assert not location.migration_lock_path.exists()
+    assert not location.state_authority_lock_path.exists()
     assert not location.backup_directory_path.exists()
 
 
@@ -114,7 +114,7 @@ def test_rejects_traversal_or_alternate_database_filename(tmp_path: Path) -> Non
     location = CoordinatorStateLocation(
         state_root=root,
         database_path=root.parent / COORDINATOR_DATABASE_FILENAME,
-        migration_lock_path=root / "coordinator-state.migration.lock",
+        state_authority_lock_path=root / "coordinator-state.migration.lock",
         backup_directory_path=root / "backups",
     )
 

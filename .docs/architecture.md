@@ -10,7 +10,7 @@ Repository naming must not affect schema, authority, or durable identifiers.
 
 A2-P1/P1.1 establishes a local Coordinator skeleton for future A2 coding-work
 state. It contains domain models, deterministic identity contracts, a pure
-state transition evaluator, command/event state-store contracts, and
+state transition evaluator, command/event and writer-session contracts, and
 non-authoritative report projections.
 
 P1 versioned inputs are closed-world contracts. Unknown keys, duplicate JSON
@@ -55,10 +55,12 @@ The P1.1 transition flow is:
 `TransitionCommand + typed context + authoritative current state -> evaluator
 -> TransitionEvent`
 
-A future atomic store boundary performs fencing, idempotency, current-state
-load, expected-version comparison, evaluator invocation, and atomic
-state/event persistence. Proposed state and events are not supplied by callers.
-Expected-version mismatch is an apply conflict with no event.
+A future active writer session performs mutation through the atomic store
+boundary. That boundary performs fencing, idempotency, current-state load,
+expected-version comparison, evaluator invocation, and atomic state/event
+persistence. Proposed state and events are not supplied by callers.
+Expected-version mismatch is an apply conflict with no event. Safe writer
+metadata is evidence only and cannot authorize mutation.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -80,12 +82,14 @@ The selected first-backend journal posture is rollback journal DELETE mode with
 current reader-concurrency requirement justifies its extra `-wal` and `-shm`
 filesystem surface.
 
-The B0 authority, schema, threat, and operations contracts are documented in:
+The B0/B2a authority, schema, threat, and operations contracts are documented
+in:
 
 - `.docs/sqlite-state-backend-adr.md`;
 - `.docs/sqlite-schema-v1.md`;
 - `.docs/sqlite-threat-model.md`;
-- `.docs/sqlite-operations-and-recovery.md`.
+- `.docs/sqlite-operations-and-recovery.md`;
+- `.docs/writer-session-authority.md`.
 
 ## B1 SQLite Bootstrap And Migrations
 
@@ -118,3 +122,21 @@ concurrently with an active Coordinator writer.
 
 The B1 bootstrap and migration contract is documented in
 `.docs/sqlite-bootstrap-and-migrations.md`.
+
+## B2a Writer-Session Contract
+
+B2a corrects the writer authority contract before implementation:
+
+- standalone reconstructable public writer tokens are not mutation authority;
+- `WriterSession` is the opaque future live mutation capability;
+- safe writer metadata contains only non-secret issuance evidence and no proof,
+  proof digest, lock path, process id, or liveness claim;
+- no `current_writer()` read surface exists;
+- one common future state-authority advisory lock covers initialize, migrate,
+  writer acquisition, and the full active writer-session lifetime.
+
+B2a does not implement OS locking, lock-file creation, writer acquisition,
+proof generation or verification, SQLite `writer_ownership` updates, migration
+lock integration, a concrete writer session, a `StateStore` mutation backend,
+product reads, reports over SQLite, worker execution, scheduling, repair,
+local commit, publication, deployment, or executable authorization.
