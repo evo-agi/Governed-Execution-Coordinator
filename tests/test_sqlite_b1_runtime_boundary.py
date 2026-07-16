@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+from pathlib import Path
+import tomllib
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _production_source() -> str:
+    return "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
+
+
+def _production_source_except_state_store() -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src").rglob("*.py")
+        if path.name != "state_store.py"
+    )
+
+
+def test_no_sqlite_state_store_or_product_mutation_backend() -> None:
+    source = _production_source_except_state_store()
+    assert "class StateStore(Protocol)" in (ROOT / "src/ge_nwp_coordinator/state_store.py").read_text(encoding="utf-8")
+    forbidden = (
+        "class SQLiteStateStore",
+        "class SqliteStateStore",
+        "implements StateStore",
+        "def read_current(self",
+        "def apply_transition(self",
+        "def read_global_stop(self",
+        "def apply_global_stop_update(self",
+    )
+    for token in forbidden:
+        assert token not in source
+
+
+def test_no_writer_acquisition_locking_worker_scheduler_or_service_surface() -> None:
+    source = _production_source()
+    forbidden = (
+        "fcntl",
+        "msvcrt",
+        "acquire_writer",
+        "writer_lock",
+        "LOCK_EX",
+        "CoordinatorService",
+        "Scheduler",
+        "QueueConsumer",
+        "while True",
+        "subprocess",
+        "socket",
+        "requests",
+        "urllib",
+        "argparse",
+        "click",
+    )
+    for token in forbidden:
+        assert token not in source
+
+
+def test_no_cli_mcp_bridge_codex_or_network_execution_surface() -> None:
+    source = _production_source().lower()
+    forbidden = (
+        "bridge a1",
+        "invoke_bridge",
+        "invoke_codex",
+        "codex worker",
+        "mcp",
+        "entry_points",
+        "scripts",
+        "http.client",
+    )
+    for token in forbidden:
+        assert token not in source
+
+
+def test_migration_resources_are_declared_as_package_data() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    package_data = pyproject["tool"]["setuptools"]["package-data"]
+    assert package_data["ge_nwp_coordinator.sqlite_migrations"] == ["*.sql"]

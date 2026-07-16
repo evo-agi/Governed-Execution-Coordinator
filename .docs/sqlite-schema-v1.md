@@ -1,10 +1,12 @@
 # SQLite Schema V1
 
-Status: B0 non-production schema fixture.
+Status: B1 initial migration schema.
 
-The provisional schema fixture is `schemas/sqlite/coordinator-state-v1.sql`.
-It is not a migration and must not be executed against a persistent file during
-B0. Tests may execute it only against an in-memory SQLite database.
+Migration `0001_initial` is the authoritative B1 schema installation source and
+is packaged under `ge_nwp_coordinator.sqlite_migrations`. The
+`schemas/sqlite/coordinator-state-v1.sql` file remains a non-authoritative
+fixture/snapshot for static and in-memory schema tests; it includes connection
+posture comments and PRAGMAs that are not part of migration identity.
 
 ## Representation Authority Map
 
@@ -91,7 +93,8 @@ Not stored in the first backend:
 - authority: normalized migration id, sequence, checksum, and compatibility
   bounds;
 - append-only by schema trigger;
-- B0 fixture row only, no runner.
+- B1 migration runner inserts the authoritative row atomically with successful
+  schema installation.
 
 `writer_ownership`
 
@@ -158,6 +161,9 @@ Not stored in the first backend:
 - primary key: singleton `singleton_id=1`;
 - authority: normalized columns;
 - mutable current-state table.
+- B1 migration `0001_initial` seeds exactly one canonical clear row at version
+  0 with no operator decision reference. This is not a global-stop event and
+  not operator authorization.
 
 `global_stop_events`
 
@@ -183,3 +189,26 @@ Future integrity checks must:
 - verify current-state versions against accepted events where applicable;
 - verify domain-rejected events do not mutate current state;
 - report divergence instead of repairing automatically.
+
+## B1 Initialization Guarantees
+
+Migration `0001_initial` creates schema objects and inserts its
+`schema_migrations` row in one explicit transaction. On failure, no partial
+schema or orphan history row may remain.
+
+The migration does not seed:
+
+- `writer_ownership`;
+- `lease_identity_records`;
+- `authorization_decision_receipts`;
+- `admitted_backlogs`;
+- `dependency_decision_receipts`;
+- `global_stop_operator_decision_receipts`;
+- `work_items`;
+- `transition_events`;
+- `global_stop_events`.
+
+The migration also does not seed executable authorization. The reserved
+`operator_policy` authorization vocabulary remains schema vocabulary only until
+a future authorization tranche defines and implements an accepted insertion and
+verification path.

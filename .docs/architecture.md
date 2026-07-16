@@ -18,9 +18,10 @@ object keys, misspelled keys, and unversioned extension bags fail before
 canonicalization or digest verification.
 
 P1/P1.1 is not an executable coordinator slice. It has no worker invocation path,
-no scheduler, no daemon, no queue consumer, no production store, no sandbox,
-no repair executor, no local commit behavior, and no publication behavior.
-It also has no production future-stage enablement policy or configuration.
+no scheduler, no daemon, no queue consumer, no `StateStore` mutation backend,
+no sandbox, no repair executor, no local commit behavior, and no publication
+behavior. It also has no production future-stage enablement policy or
+configuration.
 
 ## Authorities
 
@@ -85,3 +86,27 @@ The B0 authority, schema, threat, and operations contracts are documented in:
 - `.docs/sqlite-schema-v1.md`;
 - `.docs/sqlite-threat-model.md`;
 - `.docs/sqlite-operations-and-recovery.md`.
+
+## B1 SQLite Bootstrap And Migrations
+
+B1 implements only explicit operator-local SQLite bootstrap and migration
+infrastructure:
+
+- fixed per-user local state-location policy using the canonical NWP
+  Coordinator component name, not the repository display name;
+- owner-only filesystem preparation and validation for the state root and
+  fixed database filename;
+- standard-library SQLite connection posture verification;
+- packaged, versioned, forward-only migration catalog;
+- initial schema installation into an explicitly requested local database;
+- migration-history checksum and application-compatibility validation.
+
+B1 does not implement a SQLite `StateStore`, product mutation methods,
+database-backed product reads, reports over the database, writer acquisition,
+advisory writer locking, coordinator service behavior, worker execution,
+authorization, scheduling, repair, local commit, publication, or deployment.
+Normal future runtime must not run migrations concurrently with an active
+Coordinator writer.
+
+The B1 bootstrap and migration contract is documented in
+`.docs/sqlite-bootstrap-and-migrations.md`.

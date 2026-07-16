@@ -23,9 +23,12 @@ and global-stop events are contract objects only until a future backend
 tranche. Reports are projections only. They are not durable state,
 authorization, acceptance, publication, or product truth.
 
-B0 may select and document a future backend architecture and non-production
-schema fixture, but it must not implement production storage, create database
-files, run migrations, acquire writers, or enable executable A2 behavior.
+B1 implements only secure local SQLite state-location, connection bootstrap,
+schema migration, and schema compatibility validation infrastructure. B1 may
+create or migrate an explicitly requested local operator database, but it still
+must not implement `StateStore` mutation semantics, acquire the authoritative
+Coordinator writer, create work items/events/decision receipts/global-stop
+changes through product APIs, or enable executable A2 behavior.
 
 Versioned Coordinator input schemas are closed-world in P1/P1.1. Unknown
 fields, misspelled fields, duplicate JSON object keys, and unversioned
@@ -55,10 +58,10 @@ weaken, or replace global stop without a typed operator decision.
 ## P1 Prohibitions
 
 P1/P1.1 must not implement worker execution, a scheduling loop, a queue
-consumer, a daemon, repair, local commit behavior, publication, production
-storage, a validation sandbox, executable lease authorization, signing, keys,
-trust roots, writer-token acquisition, or a trusted-local/allow-all production
-authorization path.
+consumer, a daemon, repair, local commit behavior, publication, StateStore
+mutation storage, a validation sandbox, executable lease authorization,
+signing, keys, trust roots, writer-token acquisition, or a trusted-local/allow-all
+production authorization path.
 
 P1 public state and report models must not include private briefs, raw prompts,
 raw logs, credentials, secrets, local absolute paths, endpoints, platform
@@ -66,6 +69,10 @@ identifiers, or trust material.
 
 P1 report projections must be closed typed models in `reports.py`. Do not add a
 second report-shaped helper or a generic sanitize-and-keep payload boundary.
+
+B1 SQLite bootstrap and migration errors are administrative diagnostics only.
+They must not expose raw SQL, absolute paths, database content, credentials,
+endpoints, environment, trust material, or secrets in public payloads.
 
 ## Change Rules
 

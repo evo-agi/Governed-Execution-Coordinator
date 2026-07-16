@@ -1,11 +1,12 @@
 # SQLite State Backend ADR
 
-Status: accepted for a future backend tranche, B0 docs/schema/static only.
+Status: accepted architecture; B1 implements bootstrap and migrations only.
 
 B0 selects one private local SQLite database as the first production state
-backend architecture for the future NWP Coordinator. B0 does not implement a
-production `StateStore`, create a database file, execute migrations, acquire a
-writer, start a coordinator service, or enable executable A2 behavior.
+backend architecture for the future NWP Coordinator. B1 implements explicit
+operator-local database bootstrap and migrations. B1 does not implement a
+production `StateStore`, acquire a writer, start a coordinator service, or
+enable executable A2 behavior.
 
 ## Decision
 
@@ -44,6 +45,31 @@ B0 must not contain:
 - writer acquisition;
 - a coordinator loop, worker, scheduler, daemon, queue, repair, sandbox,
   local commit, publication, or deployment behavior.
+
+## B1 Scope
+
+B1 may contain:
+
+- production SQLite connection/bootstrap code using the Python standard
+  library;
+- fixed local state-location and filesystem-permission validation;
+- packaged migration resources loaded from the installed Coordinator package;
+- forward-only migration execution for explicit administrative initialize and
+  migrate operations;
+- migration-history checksum and schema/application compatibility validation;
+- schema verification for the initial migration.
+
+B1 must not contain:
+
+- a SQLite `StateStore` implementation;
+- `StateStore.apply_transition` or `StateStore.apply_global_stop_update`
+  implementation;
+- writer acquisition or advisory writer-lock acquisition;
+- product reads or report generation over the database;
+- work-item, decision receipt, transition event, global-stop event, or
+  global-stop current-state mutation APIs outside schema bootstrap;
+- executable authorization, scheduling, worker execution, repair, commit,
+  publication, service, daemon, or deployment behavior.
 
 ## Backend Responsibility Matrix
 
@@ -231,11 +257,20 @@ supported; restore is the rollback path.
 
 `PRAGMA user_version`, if used later, is only a checked convenience mirror.
 
-No migration code is implemented in B0.
+B1 implements the initial migration catalog and runner. Migration SQL is loaded
+only from code-owned package resources and never from arbitrary filesystem
+paths. Connection PRAGMAs are set and verified by bootstrap code and are not
+part of migration identity.
+
+Migration `0001_initial` creates the first schema and seeds only a canonical
+clear `global_stop_current` singleton at version 0. It does not seed a writer,
+work items, backlogs, lease identity records, authorization receipts, decision
+receipts, transition events, global-stop events, active global stop, or
+executable authorization.
 
 ## Non-Goals
 
-B0 does not implement a database connection, migration runner, writer
-acquisition, lock acquisition, crash recovery code, production read ports,
-worker execution, scheduling, authorization, sandboxing, repair, local commit,
+B1 does not implement writer acquisition, lock acquisition, crash recovery
+orchestration, production read ports, a `StateStore` mutation backend, worker
+execution, scheduling, authorization, sandboxing, repair, local commit,
 publication, or deployment.

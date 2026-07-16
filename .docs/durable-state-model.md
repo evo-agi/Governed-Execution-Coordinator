@@ -1,6 +1,8 @@
 # Durable State Model
 
-A2-P1/P1.1 defines state contracts but does not persist them in production.
+A2-P1/P1.1 defines state contracts. B1 adds explicit operator-local SQLite
+bootstrap and migration infrastructure, but it still does not implement a
+production `StateStore` mutation backend.
 
 The work-item state schema id is:
 
@@ -69,18 +71,19 @@ that can disagree with the event reason.
 
 Future production storage must provide one active authoritative writer,
 ownership generation, stale-writer fencing, split-brain prevention,
-transactional counters/state, crash consistency, migrations, restart
-reconciliation, corruption detection, backup/restore, and persistent global
-stop.
+transactional counters/state, crash consistency, restart reconciliation,
+corruption detection, backup/restore, and persistent global stop.
 
-P1/P1.1 selects no production state backend. It implements no SQLite store, no
-filesystem journal, no database, and no production persistence adapter.
+B1 implements the SQLite bootstrap and forward-only migration layer for an
+explicitly requested local database. B1 implements no SQLite `StateStore`, no
+work-item or global-stop mutation API, no writer acquisition, no writer fencing
+validation, no product read port, and no production persistence adapter.
 
-B0 selects SQLite, one private local database, as the future first production
-backend architecture, but B0 does not implement that backend. The B0 artifacts
-are docs, a non-production SQL schema fixture, and static/in-memory schema
-tests only. No database file, migration runner, writer acquisition, coordinator
-service, or executable A2 capability exists in B0.
+B0 selected SQLite, one private local database, as the future first production
+backend architecture. B1 adds administrative database bootstrap, connection
+posture, migration-history, and schema compatibility validation. No
+`StateStore` mutation backend, writer acquisition, coordinator service, or
+executable A2 capability exists in B1.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state
@@ -88,8 +91,9 @@ tables own current state. Replay snapshots are authoritative only for exact
 replay of the original command, never for later current-state truth.
 
 The first journal posture is rollback journal DELETE mode with
-`synchronous=FULL` and `BEGIN IMMEDIATE`. WAL remains a future option only after
-a focused operations/recovery audit.
+`synchronous=FULL` and explicit transactions. Future mutation transactions use
+`BEGIN IMMEDIATE`; B1 migration transactions also begin explicitly. WAL remains
+a future option only after a focused operations/recovery audit.
 
 ## Global Stop
 

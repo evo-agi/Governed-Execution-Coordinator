@@ -40,6 +40,11 @@ Transition events are durable receipts for future accepted or domain-rejected
 commands. Apply conflicts are not receipts and do not provide acceptance,
 authorization, publication, or product truth.
 
+B1 SQLite bootstrap and migration operations are operator-local administrative
+schema operations. They do not create work-item authority, global-stop update
+authority, authorization receipts, executable permission, acceptance, commit,
+publication, or product truth.
+
 Coordinator P1 reports are closed typed public projections. They cannot widen
 authority, cannot mutate state, and cannot carry raw private content,
 endpoints, local paths, platform identifiers, credentials, trust material, or

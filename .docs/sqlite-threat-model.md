@@ -1,9 +1,10 @@
 # SQLite Backend Threat Model
 
-Status: B0 design only.
+Status: B1 bootstrap/migration implementation plus future backend threat model.
 
-This threat model applies to the future first SQLite backend. It does not claim
-that current P1.1 code has production persistence.
+This threat model applies to the first SQLite backend architecture. B1
+implements only bootstrap and migrations; it does not claim current code has a
+production `StateStore` mutation backend.
 
 ## First Backend Guarantees
 
@@ -100,6 +101,12 @@ Failed migration:
 - interrupted migration rolls back;
 - old binary/new schema refuses;
 - restore, not reverse migration, is rollback.
+
+B1 adds concrete coverage for bootstrap filesystem threats, connection posture,
+empty/managed/unknown database classification, migration-history checksum
+validation, migration rollback, and authority-boundary non-expansion. B1 does
+not add writer acquisition, writer fencing validation, mutation APIs, worker
+execution, or product read/report authority over SQLite.
 
 Failed backup or restore:
 

@@ -1,9 +1,10 @@
 """A2-P1 NWP Coordinator skeleton.
 
 The package exposes offline parsing, canonicalization, pure state transition,
-atomic store-port contracts, global-stop, and report projection primitives only.
-It intentionally provides no worker runner, background runner, storage backend,
-network client, or CLI entrypoint.
+atomic store-port contracts, global-stop, report projection primitives, and B1
+SQLite bootstrap/migration infrastructure only. It intentionally provides no
+worker runner, background runner, StateStore mutation backend, network client,
+or CLI entrypoint.
 """
 
 from ge_nwp_coordinator.backlog import FiniteBacklog, WorkItem

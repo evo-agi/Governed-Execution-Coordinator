@@ -9,3 +9,6 @@ dependencies = []
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+"ge_nwp_coordinator.sqlite_migrations" = ["*.sql"]

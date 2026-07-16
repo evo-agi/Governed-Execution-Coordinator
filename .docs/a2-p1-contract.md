@@ -26,8 +26,8 @@ It does not implement worker execution or any of the following:
 - subprocess or shell execution;
 - network clients;
 - scheduler, daemon, queue consumer, or background loop;
-- production storage, SQLite, filesystem journal, in-memory production store,
-  or database;
+- `StateStore` mutation storage, filesystem journal, in-memory production
+  store, product database reads, or product database writes;
 - executable lease authorization;
 - signing, keys, certificates, trust roots, or custody;
 - validation sandboxing;
@@ -36,11 +36,12 @@ It does not implement worker execution or any of the following:
 - local commit behavior;
 - push, pull request, merge, publication, or deployment.
 
-B0 adds architecture documents, a non-production SQLite schema fixture, and
-static/in-memory schema tests for a future first backend. B0 does not change the
-P1/P1.1 runtime prohibition above: there is still no production SQLite store,
-no database file, no migration runner, no writer acquisition, no coordinator
-service, and no executable A2 capability.
+B0 added architecture documents, a non-production SQLite schema fixture, and
+static/in-memory schema tests for a future first backend. B1 adds explicit
+operator-local SQLite bootstrap, connection posture, packaged migrations, and
+schema compatibility validation. B1 does not change the P1/P1.1 runtime
+prohibition above: there is still no production SQLite `StateStore`, no
+writer acquisition, no coordinator service, and no executable A2 capability.
 
 ## P1 State Gating
 

@@ -16,7 +16,8 @@ def test_standard_library_only_runtime_dependencies() -> None:
 
 
 def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
-    source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
+    source_files = list((ROOT / "src").rglob("*.py"))
+    source = "\n".join(path.read_text(encoding="utf-8") for path in source_files)
     forbidden = (
         "import subprocess",
         "from subprocess",
@@ -24,7 +25,6 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
         "import requests",
         "import urllib",
         "import http.client",
-        "import sqlite3",
         "import shelve",
         "import multiprocessing",
         "import threading",
@@ -38,6 +38,16 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
     for token in forbidden:
         assert token not in source
 
+    sqlite_importers = {
+        path.relative_to(ROOT).as_posix()
+        for path in source_files
+        if "import sqlite3" in path.read_text(encoding="utf-8")
+    }
+    assert sqlite_importers == {
+        "src/ge_nwp_coordinator/sqlite_connection.py",
+        "src/ge_nwp_coordinator/sqlite_migration.py",
+    }
+
 
 def test_state_store_has_protocol_only_and_no_backend() -> None:
     text = _read("src/ge_nwp_coordinator/state_store.py")
@@ -47,6 +57,31 @@ def test_state_store_has_protocol_only_and_no_backend() -> None:
     assert "sqlite" not in text.lower()
     assert "journal" not in text.lower()
     assert "open(" not in text
+
+
+def test_b1_sqlite_modules_do_not_define_state_store_mutations_or_writer_acquisition() -> None:
+    sqlite_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src" / "ge_nwp_coordinator").glob("sqlite_*.py")
+    )
+    forbidden = (
+        "class SQLiteStateStore",
+        "class SqliteStateStore",
+        "def apply_transition(",
+        "def apply_global_stop_update(",
+        "fcntl",
+        "msvcrt",
+        "LOCK_EX",
+        "writer_token",
+        "current_writer",
+        "Worker",
+        "CoordinatorService",
+        "while True",
+        "subprocess",
+        "socket",
+    )
+    for token in forbidden:
+        assert token not in sqlite_sources
 
 
 def test_old_aggregate_apply_and_receipt_lookup_surface_is_absent() -> None:

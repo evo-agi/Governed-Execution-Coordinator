@@ -181,18 +181,19 @@ def _insert_global_stop_event(
     )
 
 
-def test_b0_docs_pin_sqlite_selection_and_non_implementation_scope() -> None:
+def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
     adr = _read(".docs/sqlite-state-backend-adr.md")
     schema_doc = _read(".docs/sqlite-schema-v1.md")
     threat = _read(".docs/sqlite-threat-model.md")
     operations = _read(".docs/sqlite-operations-and-recovery.md")
-    combined = "\n".join((adr, schema_doc, threat, operations))
+    bootstrap = _read(".docs/sqlite-bootstrap-and-migrations.md")
+    combined = "\n".join((adr, schema_doc, threat, operations, bootstrap))
     normalized = " ".join(combined.split())
 
     for phrase in (
         "one private local SQLite database",
-        "B0 docs/schema/static only",
-        "does not implement a production `StateStore`, create a database file",
+        "B1 implements bootstrap and migrations only",
+        "does not implement a production `StateStore`",
         "`journal_mode=DELETE`",
         "`synchronous=FULL`",
         "`BEGIN IMMEDIATE`",
@@ -360,22 +361,15 @@ def test_schema_fixture_declares_rollback_journal_posture_without_strict_tables(
     assert "STRICT" not in schema
 
 
-def test_b0_static_scan_keeps_sqlite_out_of_production_runtime() -> None:
+def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() -> None:
     source_files = list((ROOT / "src").rglob("*.py"))
     source = "\n".join(path.read_text(encoding="utf-8") for path in source_files)
 
     forbidden_runtime_fragments = (
-        "import sqlite3",
-        "sqlite3.connect",
-        "BEGIN IMMEDIATE",
-        "journal_mode",
         "fcntl",
         "msvcrt",
-        "MigrationRunner",
-        "run_migration",
-        "apply_migration",
-        "class SQLite",
-        "class Sqlite",
+        "class SQLiteStateStore",
+        "class SqliteStateStore",
         "CoordinatorService",
         "while True",
         "subprocess",
@@ -385,6 +379,16 @@ def test_b0_static_scan_keeps_sqlite_out_of_production_runtime() -> None:
     )
     for fragment in forbidden_runtime_fragments:
         assert fragment not in source
+
+    sqlite_importers = {
+        path.relative_to(ROOT).as_posix()
+        for path in source_files
+        if "import sqlite3" in path.read_text(encoding="utf-8")
+    }
+    assert sqlite_importers == {
+        "src/ge_nwp_coordinator/sqlite_connection.py",
+        "src/ge_nwp_coordinator/sqlite_migration.py",
+    }
 
     state_store = _read("src/ge_nwp_coordinator/state_store.py")
     assert "class StateStore(Protocol)" in state_store
