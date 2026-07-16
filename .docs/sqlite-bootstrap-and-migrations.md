@@ -1,16 +1,18 @@
 # SQLite Bootstrap And Migrations
 
-Status: B1.1 implemented for operator-local administrative bootstrap,
-observational inspection/validation, and schema validation only. B2a documents
-the future common state-authority lock and writer-session contract only.
+Status: B2b implements operator-local SQLite bootstrap, observational
+inspection/validation, schema validation, the common state-authority lock, and
+initialize/migrate lock integration. B2a documents the writer-session contract.
 
 B1/B1.1 implements a secure local SQLite state-location policy, split
 read-only and administrative connection posture, packaged migration catalog,
 forward-only migration runner, initial schema installation, migration-history
 catalog equality, live-schema manifest validation, managed current-state
-invariant checks, and schema/application compatibility checks. It does not
+invariant checks, schema/application compatibility checks, and a shared
+state-authority advisory lock used by initialize/migrate administration. It
+does not
 implement `StateStore` mutation semantics, writer ownership acquisition,
-advisory writer-lock acquisition, work-item mutation APIs, global-stop mutation
+writer acquisition, work-item mutation APIs, global-stop mutation
 APIs, product reads, reports over the database, authorization, worker
 execution, scheduling, repair, local commit, publication, or service behavior.
 
@@ -21,9 +23,10 @@ repair/adopt unknown schema. Bootstrap and migration are explicit
 operator-local administrative operations. They are not connector, MCP,
 command-payload, backlog, lease, work-item, report, or remote-input
 operations. Normal future runtime must not execute migrations concurrently
-with an active Coordinator writer session. B2 owns writer acquisition and
-fencing. B2a defines the session contract only. B3/B4 own transition and
-global-stop atomic mutation.
+with an active Coordinator writer session. B2b ensures initialize and migrate
+use the same state-authority lock that future writer acquisition must hold.
+B2c owns writer acquisition and fencing. B3/B4 own transition and global-stop
+atomic mutation.
 
 ## Responsibility Owners
 
@@ -78,13 +81,13 @@ The B1 policy exposes only:
 
 - state root;
 - fixed database file path;
-- state-authority lock path reserved for later use;
+- fixed state-authority lock path;
 - backup directory path reserved for future backup receipts.
 
-The reserved lock filename remains `coordinator-state.migration.lock` for
-implementation compatibility, but that filename is not durable schema identity
-and is not the authority concept. The future lock domain is the single common
-state-authority lock domain.
+The lock filename remains `coordinator-state.migration.lock` for implementation
+compatibility, but that filename is not durable schema identity and is not the
+authority concept. The lock domain is the single common state-authority lock
+domain.
 
 The first fixed database filename is `coordinator-state.sqlite`. Alternate
 database filenames and path traversal are rejected. The state root must be
@@ -100,7 +103,11 @@ permissions. Child paths are resolved and confined to the trusted root.
 
 The database file is created with mode `0600` when absent. Existing database
 paths must be regular files, not symlinks, directories, FIFOs, sockets, or
-devices, and must reject group/other permissions. Public errors never echo raw
+devices, and must reject group/other permissions. The B2b state-authority lock
+file is created at the fixed path with mode `0600`, validated as a regular
+non-symlink file, rejected when group/other-accessible, rejected when hardlinked
+where link count is safely testable, acquired with a nonblocking exclusive
+advisory lock, and left in place after release. Public errors never echo raw
 paths.
 
 Python `sqlite3` opens the database by pathname. The owner-only parent
@@ -211,48 +218,70 @@ as proof that the live schema still matches that resource.
 
 ## Transaction Model
 
-Current B1.1 initialize execution order, before B2b lock integration, is:
+B2b initialize execution order is:
 
 1. Observationally classify the fixed path.
-2. Refuse unknown or partial databases without mutation.
-3. Securely prepare and open the local database only for absent/empty paths, or
-   return idempotently for an already valid current managed database.
-4. Apply and verify administrative connection posture.
-5. Begin an explicit SQLite transaction.
-6. Execute only packaged migration SQL.
-7. Verify the live schema manifest and bootstrap invariants.
-8. Insert the migration-history row with checksum and compatibility bounds.
-9. Commit.
-10. Revalidate migration history, schema manifest, and managed invariants.
+2. Refuse unknown or partial databases without creating the lock file or
+   mutating database posture.
+3. For absent, empty, or managed databases, securely prepare the state root and
+   fixed state-authority lock file.
+4. Acquire the common exclusive state-authority lock.
+5. Re-run observational classification while the lock is held.
+6. Refuse if the database changed to unknown.
+7. For an already valid current managed database, return idempotently while
+   still holding and then releasing the lock.
+8. Otherwise open the local database, apply and verify administrative
+   connection posture, begin an explicit SQLite transaction, execute only
+   packaged migration SQL, verify the live schema manifest and bootstrap
+   invariants, insert the migration-history row with checksum and compatibility
+   bounds, and commit.
+9. Revalidate migration history, schema manifest, and managed invariants.
+10. Close SQLite and release the lock.
 
-Current B1.1 migration execution order, before B2b lock integration, is:
+B2b migration execution order is:
 
 1. Observationally require an existing managed database.
 2. Refuse absent, empty, unknown, wrong-posture, partial, or drifted databases
-   without mutation.
-3. Open create-disabled read/write only when a migration is actually required.
-4. Begin an explicit SQLite transaction and revalidate history/schema inside
-   the transaction.
-5. Execute only packaged forward migrations.
-6. Verify schema, history, and managed invariants before commit.
+   without creating or acquiring the lock.
+3. Prepare and acquire the same fixed state-authority lock.
+4. Revalidate managed classification, schema, and migration history while the
+   lock is held.
+5. Open create-disabled read/write.
+6. Begin an explicit `BEGIN IMMEDIATE` SQLite transaction.
+7. Revalidate history/schema again inside the transaction.
+8. Execute only packaged forward migrations when any exist.
+9. Verify schema, history, and managed invariants before commit.
+10. Commit or roll back, close SQLite, and release the lock.
 
-On failure, B1 rolls back. There must be no partial schema without history and
-no history row without schema. Failed migrations return safe closed error
-classes.
+On failure, B2b rolls back any active SQLite transaction and releases the lock.
+There must be no partial schema without history and no history row without
+schema. Failed migrations return safe closed error classes. A no-op
+current-schema initialize or migrate still acquires the common lock and
+revalidates, preventing a race with a future writer session.
 
-Future B2b/B2d initialize and migrate must first validate or prepare the root
-and fixed state-authority lock file, acquire the common exclusive
-state-authority lock, then run the B1.1 classification/revalidation and
-administrative mutation flow. Future writer acquisition must require an
-existing `MANAGED` database, validate and acquire the same lock, open the
-database create-disabled read/write, `BEGIN IMMEDIATE`, revalidate
-schema/history, issue the next generation and proof, update
-`writer_ownership`, commit, and retain the lock descriptor for the
-`WriterSession` lifetime. Any failure rolls back, closes the database, releases
-the lock, returns a safe failure, and creates no usable partial session.
+B2b administrative call sites use structured context-manager closure for the
+state-authority lock. The descriptor has a private resource owner and a
+one-shot finalizer fallback for abandoned lock objects, but finalization is not
+a release-timing guarantee and is not a substitute for explicit close. Lock
+cleanup never unlinks the persistent lock file, never touches SQLite after the
+administrative connection is closed, and never changes `writer_ownership`.
+Every state-authority lock descriptor is immediately owned by a cleanup scope
+after `os.open`; failed root or lock-file validation closes the descriptor
+before returning a safe error. The parent lifecycle/fork gate covers opening,
+validation, `flock`, registry insertion, finalizer publication, explicit or
+finalizer close, and pre-fork snapshot creation. The at-fork child handler is
+lock-free with respect to inherited Python locks and closes inherited
+descriptors from the frozen snapshot without issuing `LOCK_UN`.
 
-B2a does not create, open, or acquire that lock and does not update
-`writer_ownership`.
+Future writer acquisition must require an existing `MANAGED` database, validate
+and acquire the same lock, open the database create-disabled read/write,
+`BEGIN IMMEDIATE`, revalidate schema/history, issue the next generation and
+proof, update `writer_ownership`, commit, and retain the lock descriptor for
+the `WriterSession` lifetime. Any failure rolls back, closes the database,
+releases the lock, returns a safe failure, and creates no usable partial
+session.
+
+B2b does not update `writer_ownership`.
 
 ## Compatibility Rules
 
@@ -273,6 +302,8 @@ implicitly run migrations.
 
 B1 does not implement `StateStore.apply_transition`,
 `StateStore.apply_global_stop_update`, SQLite product reads, reports over the
-database, writer acquisition, advisory lock acquisition, worker execution,
-Bridge invocation, Codex invocation, service loops, scheduler loops, recovery
-loops, repair, commit, publication, or deployment.
+database, writer acquisition, writer issuance, proof generation,
+`writer_ownership` mutation, worker execution, Bridge invocation, Codex
+invocation, service loops, scheduler loops, recovery loops, repair, commit,
+publication, or deployment. B2b's state-authority lock is necessary exclusion
+only and is not writer authority.

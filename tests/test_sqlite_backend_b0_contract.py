@@ -192,7 +192,7 @@ def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
 
     for phrase in (
         "one private local SQLite database",
-        "B1.1 implements bootstrap, observational inspection/validation, and migrations only",
+        "B2b implements bootstrap, observational inspection/validation, migrations, and the common state-authority advisory lock",
         "live-schema manifest",
         "does not implement a production `StateStore`",
         "`journal_mode=DELETE`",
@@ -365,9 +365,14 @@ def test_schema_fixture_declares_rollback_journal_posture_without_strict_tables(
 def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() -> None:
     source_files = list((ROOT / "src").rglob("*.py"))
     source = "\n".join(path.read_text(encoding="utf-8") for path in source_files)
+    source_without_lock = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in source_files
+        if path.name != "state_authority_lock.py"
+    )
+    lock_source = _read("src/ge_nwp_coordinator/state_authority_lock.py")
 
     forbidden_runtime_fragments = (
-        "fcntl",
         "msvcrt",
         "class SQLiteStateStore",
         "class SqliteStateStore",
@@ -380,6 +385,9 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
     )
     for fragment in forbidden_runtime_fragments:
         assert fragment not in source
+    for fragment in ("fcntl", "LOCK_EX", "LOCK_NB"):
+        assert fragment not in source_without_lock
+        assert fragment in lock_source
 
     sqlite_importers = {
         path.relative_to(ROOT).as_posix()

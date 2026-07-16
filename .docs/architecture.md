@@ -70,10 +70,11 @@ path, platform, credential, or trust material.
 ## B0 SQLite Backend Selection
 
 B0 selects SQLite, one private local database, as the future first production
-state backend architecture. This is a documentation, schema-fixture, and static
-test tranche only. The current runtime still has no production store, no
-database file, no migration runner, no writer acquisition, no coordinator
-service, and no executable A2 capability.
+state backend architecture. B1/B1.1 add the migration runner and local
+administrative database posture. B2b adds the common state-authority lock for
+initialize/migrate administration. The current runtime still has no production
+store, no writer acquisition, no coordinator service, and no executable A2
+capability.
 
 The selected first-backend journal posture is rollback journal DELETE mode with
 `synchronous=FULL`, `locking_mode=NORMAL`, `foreign_keys=ON`,
@@ -113,12 +114,14 @@ validation, and migration infrastructure:
 B1.1 inspect/validate do not create missing roots or databases, do not change
 persistent journal posture, do not repair or adopt unknown databases, and do
 not auto-migrate. Initialize and migrate are explicit operator-local
-administrative mutations. B1.1 does not implement a SQLite `StateStore`,
-product mutation methods, database-backed product reads, reports over the
-database, writer acquisition, advisory writer locking, coordinator service
-behavior, worker execution, authorization, scheduling, repair, local commit,
-publication, or deployment. Normal future runtime must not run migrations
-concurrently with an active Coordinator writer.
+administrative mutations. B2b initialize/migrate acquire the common
+state-authority lock and revalidate while holding it. B1/B2b do not implement a
+SQLite `StateStore`, product mutation methods, database-backed product reads,
+reports over the database, writer acquisition, writer issuance,
+`writer_ownership` mutation, coordinator service behavior, worker execution,
+authorization, scheduling, repair, local commit, publication, or deployment.
+Normal future runtime must not run migrations concurrently with an active
+Coordinator writer.
 
 The B1 bootstrap and migration contract is documented in
 `.docs/sqlite-bootstrap-and-migrations.md`.
@@ -135,8 +138,35 @@ B2a corrects the writer authority contract before implementation:
 - one common future state-authority advisory lock covers initialize, migrate,
   writer acquisition, and the full active writer-session lifetime.
 
-B2a does not implement OS locking, lock-file creation, writer acquisition,
-proof generation or verification, SQLite `writer_ownership` updates, migration
-lock integration, a concrete writer session, a `StateStore` mutation backend,
-product reads, reports over SQLite, worker execution, scheduling, repair,
-local commit, publication, deployment, or executable authorization.
+B2a does not implement writer acquisition, proof generation or verification,
+SQLite `writer_ownership` updates, a concrete writer session, a `StateStore`
+mutation backend, product reads, reports over SQLite, worker execution,
+scheduling, repair, local commit, publication, deployment, or executable
+authorization.
+
+## B2b State-Authority Lock
+
+B2b implements one common state-authority advisory lock for macOS and Linux.
+The fixed persistent lock file remains named `coordinator-state.migration.lock`
+on disk for compatibility, but the authority concept is the state-authority
+lock. Initialize and migrate use that lock, including no-op current-schema
+administration. Inspect and validate remain observational and do not create or
+acquire the lock.
+
+The lock provides live-process exclusion only. It is not writer authority, not
+a writer credential, not durable state, and not sufficient for work-item or
+global-stop mutation. B2c remains future for durable writer issuance and
+writer-session acquisition.
+
+B2b owns a real descriptor through a private resource object. Explicit
+context-manager close remains the required release path; a one-shot finalizer
+is only a fallback for abandoned lock objects and does not provide timing or
+authority evidence. Every opened descriptor is immediately owned by a cleanup
+scope until it is explicitly transferred. A parent-side lifecycle/fork gate
+serializes descriptor opening, validation, `flock`, registry insertion,
+finalizer publication, parent close, and pre-fork snapshot creation. Fork child
+cleanup uses the frozen raw-descriptor snapshot, does not acquire inherited
+Python locks, closes inherited descriptors without `LOCK_UN`, clears only the
+child-side copied registry, and leaves parent authority untouched. Python
+continues to warn that multithreaded fork is broadly unsafe, and third-party
+forks that bypass Python at-fork hooks remain a limitation.

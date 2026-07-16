@@ -1,16 +1,18 @@
 # SQLite State Backend ADR
 
-Status: accepted architecture; B1.1 implements bootstrap, observational
-inspection/validation, and migrations only. B2a corrects the writer-session
-authority contract only.
+Status: accepted architecture; B2b implements bootstrap, observational
+inspection/validation, migrations, and the common state-authority advisory
+lock for initialize/migrate administration. B2a corrects the writer-session
+authority contract.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
 explicit operator-local database bootstrap, observational validation, and
 migrations. B2a replaces standalone reconstructable public mutation authority
-with an opaque future `WriterSession` contract and safe writer metadata. B2a does
-not implement a production `StateStore`, acquire a writer, start a coordinator
-service, or enable executable A2 behavior.
+with an opaque future `WriterSession` contract and safe writer metadata. B2b
+adds the common state-authority lock and uses it for initialize/migrate. B2b
+does not implement a production `StateStore`, acquire a writer, start a
+coordinator service, or enable executable A2 behavior.
 
 ## Decision
 
@@ -67,12 +69,13 @@ B1/B1.1 may contain:
 - live-schema manifest verification for the initial migration;
 - bootstrap and generic managed current-state invariant validation.
 
-B1 must not contain:
+B1/B2b must not contain:
 
 - a SQLite `StateStore` implementation;
 - `StateStore.apply_transition` or `StateStore.apply_global_stop_update`
   implementation;
-- writer acquisition or advisory writer-lock acquisition;
+- writer acquisition, writer issuance, proof generation, or
+  `writer_ownership` mutation;
 - product reads or report generation over the database;
 - work-item, decision receipt, transition event, global-stop event, or
   global-stop current-state mutation APIs outside schema bootstrap;
@@ -174,11 +177,17 @@ not a credential. A process-local mutex is not sufficient. Workers, Bridge,
 reports, readers, and adapters never receive writer sessions or private writer
 credentials.
 
-B2a defines this contract only. It implements no `fcntl`/`flock`, lock-file
-creation or acquisition, writer issuance generation, proof generation or
-verification, `writer_ownership` update, migration lock integration, concrete
-writer session, or mutation backend. The detailed writer-session contract lives
-in `.docs/writer-session-authority.md`.
+B2b implements the lock-file creation, validation, nonblocking exclusive
+`fcntl.flock` acquisition, release, fork/exec descriptor hygiene, same-process
+exclusion, cross-process exclusion, crash release behavior, and initialize/
+migrate integration for that common lock. B2b does not implement writer
+issuance generation, proof generation or verification, `writer_ownership`
+update, concrete writer session, or mutation backend. The detailed
+writer-session contract lives in `.docs/writer-session-authority.md`.
+B2b descriptor hygiene includes immediate cleanup ownership after `os.open`,
+a parent lifecycle/fork gate for publication and pre-fork snapshot creation,
+and child cleanup that closes inherited descriptors without acquiring
+inherited Python locks or issuing `LOCK_UN`.
 
 ## Event-Owned Idempotency
 
@@ -282,7 +291,9 @@ are not part of migration identity. Observational B1.1 inspection/validation
 uses a separate create-disabled connection path and queries persistent journal
 posture instead of changing it. Administrative initialize remains the
 create-capable path. Administrative migrate requires managed observational
-preflight before opening read/write.
+preflight before opening read/write. B2b initialize and migrate acquire the
+same state-authority lock after observational preflight and revalidate while
+the lock is held.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that
@@ -295,7 +306,7 @@ authorization.
 
 ## Non-Goals
 
-B1 does not implement writer acquisition, lock acquisition, crash recovery
-orchestration, production read ports, a `StateStore` mutation backend, worker
-execution, scheduling, authorization, sandboxing, repair, local commit,
-publication, or deployment.
+B2b does not implement writer acquisition, writer issuance, proof generation,
+`writer_ownership` mutation, crash recovery orchestration, production read
+ports, a `StateStore` mutation backend, worker execution, scheduling,
+authorization, sandboxing, repair, local commit, publication, or deployment.

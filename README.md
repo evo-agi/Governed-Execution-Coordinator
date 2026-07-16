@@ -28,7 +28,9 @@ SQLite bootstrap/migration infrastructure only:
   schema compatibility checks;
 - a B2a writer-session authority contract that replaces reconstructable public
   token-shaped mutation authority with an opaque future `WriterSession`
-  protocol and safe non-authoritative writer metadata.
+  protocol and safe non-authoritative writer metadata;
+- a B2b common state-authority advisory lock, used by SQLite initialize and
+  migrate administration for live-process exclusion only.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -49,10 +51,17 @@ B0 selected SQLite, one private local database, as the future first production
 state backend architecture. B1/B1.1 implements secure local database bootstrap,
 non-mutating inspection/validation for existing databases, live-schema
 integrity checks, and forward-only migrations for explicitly requested
-operator-local administration. B2a corrects the writer-session contract only.
-The runtime still provides no OS lock acquisition, writer acquisition, proof
-generation, SQLite writer-row mutation, `StateStore` mutation backend,
-coordinator service, worker, scheduler, authorization path, or executable A2
-capability.
+operator-local administration. B2a corrects the writer-session contract, and
+B2b adds the shared state-authority advisory lock plus initialize/migrate
+integration. B2b uses explicit close/context-manager release with a
+finalizer-backed cleanup fallback for abandoned lock objects; finalization is
+not a timing guarantee. Lock descriptor publication and parent-side cleanup are
+serialized by one lifecycle/fork gate; the fork child handler uses the frozen
+descriptor snapshot, closes inherited descriptors without `LOCK_UN`, and does
+not acquire inherited Python locks. Lock possession alone is not writer
+authority. The runtime still provides no writer acquisition, proof generation,
+SQLite writer-row mutation, concrete `WriterSession`, `StateStore` mutation
+backend, coordinator service, worker, scheduler, authorization path, or
+executable A2 capability.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

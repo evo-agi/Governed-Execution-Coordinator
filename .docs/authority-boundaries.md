@@ -35,7 +35,7 @@ Writer-session authority is mutation fencing contract shape only until a
 future backend tranche implements it. B2a removes standalone reconstructable
 public-token mutation authority: mutation authority belongs to an opaque future
 `WriterSession`, not to safe writer metadata or a durable SQLite row. P1/P1.1
-and B2a do not acquire, renew, persist, or honor a production writer session.
+and B2b do not acquire, renew, persist, or honor a production writer session.
 Stale-writer conflicts are apply-boundary failures and never disclose
 idempotency status or return transition events. Closed-session and
 process-mismatch failures are session-local failures before the apply boundary;
@@ -49,6 +49,10 @@ B1 SQLite bootstrap and migration operations are operator-local administrative
 schema operations. They do not create work-item authority, global-stop update
 authority, authorization receipts, executable permission, acceptance, commit,
 publication, or product truth.
+
+B2b's state-authority lock is live-process exclusion for initialize/migrate and
+future writer acquisition. It is not writer authority, not a credential, not
+durable state, and not a substitute for future private-proof writer fencing.
 
 B2a writer-session contract objects do not create work-item authority,
 global-stop update authority, executable authorization, acceptance, commit,

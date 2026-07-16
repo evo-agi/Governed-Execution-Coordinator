@@ -1,11 +1,12 @@
 # SQLite Backend Threat Model
 
-Status: B1.1 bootstrap/inspection/validation/migration implementation plus
-future backend threat model. B2a defines writer-session authority contracts
-only.
+Status: B2b bootstrap/inspection/validation/migration implementation plus the
+common state-authority lock for initialize/migrate administration. B2a defines
+writer-session authority contracts.
 
-This threat model applies to the first SQLite backend architecture. B1
-implements only bootstrap and migrations; it does not claim current code has a
+This threat model applies to the first SQLite backend architecture. B2b
+implements bootstrap, migrations, observational validation, and the shared
+state-authority lock for administration; it does not claim current code has a
 production `StateStore` mutation backend.
 
 ## First Backend Guarantees
@@ -64,6 +65,8 @@ Malicious or accidental file replacement:
 
 - first backend uses a secured state directory with owner-only permissions;
 - startup rejects symlink and non-regular database paths;
+- B2b rejects symlink, non-regular, group/other-accessible, and hardlinked
+  state-authority lock files where safely testable;
 - same-account malicious-process resistance is limited and must not be
   overclaimed.
 
@@ -104,19 +107,40 @@ Failed migration:
 - old binary/new schema refuses;
 - restore, not reverse migration, is rollback.
 
-B1.1 adds concrete coverage for bootstrap filesystem threats, split
+B1.1/B2b add concrete coverage for bootstrap filesystem threats, split
 observational/admin connection posture, absent/empty/managed/unknown database
 classification, no-mutation inspection of missing/unknown/wrong-posture
 databases, migration-history/catalog equality, live-schema manifest
-validation, managed current-state invariant checks, migration rollback, safe
-SQLite error boundaries, and authority-boundary non-expansion. B1.1 does not
-add writer acquisition, writer fencing validation, mutation APIs, worker
-execution, or product read/report authority over SQLite.
+validation, managed current-state invariant checks, migration rollback, the
+common state-authority lock for initialize/migrate, safe SQLite and lock error
+boundaries, and authority-boundary non-expansion. B2b does not add writer
+acquisition, writer fencing validation, mutation APIs, worker execution, or
+product read/report authority over SQLite.
 
-B2a adds no runtime mitigation. It records that durable `writer_ownership`
-metadata is latest issuance evidence only and that mutation authority requires
-a future active `WriterSession` holding a private proof and the common
-state-authority lock.
+B2b adds runtime lock mitigation for administration only. Durable
+`writer_ownership` metadata remains latest issuance evidence only, and future
+mutation authority still requires a future active `WriterSession` holding a
+private proof and the common state-authority lock.
+
+Descriptor lifecycle threats:
+
+- explicit close remains the required operational release path;
+- a private descriptor resource and one-shot finalizer provide fallback cleanup
+  if a lock object is abandoned;
+- finalizer timing is not deterministic and is not authority evidence;
+- descriptor open results are immediately owned by cleanup scopes, and
+  validation failures close before returning safe errors;
+- a parent lifecycle/fork gate freezes a descriptor snapshot before fork;
+- child fork cleanup does not acquire inherited Python locks, closes inherited
+  descriptors from that snapshot, and does not explicitly unlock parent
+  authority;
+- finalizer cleanup is quiet and must not emit paths, descriptors, process ids,
+  inodes, raw OS errors, or authority reports.
+
+The fork handling prevents this module's tracked descriptors from prolonging
+authority in Python-managed forks. It does not make arbitrary multithreaded
+fork safe, and third-party forks that bypass Python at-fork hooks remain an
+accepted limitation; process-identity checks fail closed on later use.
 
 Failed backup or restore:
 

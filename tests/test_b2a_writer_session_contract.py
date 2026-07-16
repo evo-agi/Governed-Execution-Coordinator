@@ -29,6 +29,14 @@ def _source() -> str:
     return "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
 
 
+def _source_without_lock() -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src").rglob("*.py")
+        if path.name != "state_authority_lock.py"
+    )
+
+
 def _sqlite_sources() -> str:
     return "\n".join(
         path.read_text(encoding="utf-8")
@@ -235,7 +243,8 @@ def test_writer_session_close_contract_is_idempotent_and_non_durable() -> None:
     assert "def close(self) -> None:" in state_store
     assert "def __enter__(self) -> Self:" in state_store
     assert "def __exit__(" in state_store
-    assert _source().count("def close(") == 1
+    assert _source_without_lock().count("def close(") == 1
+    assert _read("src/ge_nwp_coordinator/state_authority_lock.py").count("def close(") == 1
 
 
 def test_writer_session_close_leaves_latest_issuance_evidence() -> None:
@@ -281,11 +290,11 @@ def test_writer_session_crash_releases_future_os_lock_by_process_teardown() -> N
 
     for phrase in (
         "| Process crash after lock acquisition but before SQLite transaction |",
-        "Future OS lock releases on process death through process/descriptor teardown.",
+        "OS lock releases on process death through process/descriptor teardown.",
         "| Process crash while active |",
-        "Future OS lock releases through process/descriptor teardown.",
-        "design/static contract only",
-        "No OS lock behavior has been implemented or live-proven",
+        "OS lock releases through process/descriptor teardown.",
+        "B2b implements and tests the lock primitive itself",
+        "No concrete `WriterSession` exists",
     ):
         assert phrase in section
 
@@ -382,8 +391,9 @@ def test_no_sqlite_release_marker_or_writer_row_clear_contract() -> None:
         assert fragment not in sqlite_sources
 
 
-def test_b2a_contains_no_release_or_crash_runtime_implementation() -> None:
+def test_b2b_contains_no_writer_release_or_crash_runtime_implementation() -> None:
     source = _source()
+    source_without_lock = _source_without_lock()
     state_store = _read("src/ge_nwp_coordinator/state_store.py")
 
     assert "class WriterSession(Protocol)" in state_store
@@ -392,10 +402,6 @@ def test_b2a_contains_no_release_or_crash_runtime_implementation() -> None:
         "class SqliteWriterSession",
         "acquire_writer",
         "release_writer",
-        "fcntl.",
-        "flock",
-        "LOCK_EX",
-        "LOCK_NB",
         "secrets.token_bytes",
         "hmac.compare_digest",
         "ttl",
@@ -408,6 +414,9 @@ def test_b2a_contains_no_release_or_crash_runtime_implementation() -> None:
         "reconstruct_writer_session",
     ):
         assert fragment not in source
+    for fragment in ("fcntl.", "flock", "LOCK_EX", "LOCK_NB"):
+        assert fragment not in source_without_lock
+        assert fragment in _read("src/ge_nwp_coordinator/state_authority_lock.py")
 
 
 def test_fork_exec_and_thread_requirements_are_documented_without_overclaim() -> None:
@@ -437,16 +446,12 @@ def test_schema_fit_has_no_migration_0002_and_0001_is_unchanged() -> None:
         assert forbidden_field in writer_doc
 
 
-def test_b2a_does_not_implement_locks_acquisition_or_writer_row_updates() -> None:
+def test_b2b_implements_only_common_lock_not_writer_acquisition_or_row_updates() -> None:
     source = _source()
+    source_without_lock = _source_without_lock()
     sqlite_sources = _sqlite_sources()
 
     forbidden_source_fragments = (
-        "import fcntl",
-        "fcntl.",
-        "flock",
-        "LOCK_EX",
-        "LOCK_NB",
         "acquire_writer",
         "class SQLiteStateStore",
         "class SqliteStateStore",
@@ -463,6 +468,11 @@ def test_b2a_does_not_implement_locks_acquisition_or_writer_row_updates() -> Non
     )
     for fragment in forbidden_source_fragments:
         assert fragment not in source
+    for fragment in ("import fcntl", "fcntl.", "flock", "LOCK_EX", "LOCK_NB"):
+        assert fragment not in source_without_lock
+    lock_source = _read("src/ge_nwp_coordinator/state_authority_lock.py")
+    for fragment in ("import fcntl", "flock", "LOCK_EX", "LOCK_NB"):
+        assert fragment in lock_source
 
     forbidden_sqlite_fragments = (
         "INSERT INTO writer_ownership",
@@ -475,7 +485,7 @@ def test_b2a_does_not_implement_locks_acquisition_or_writer_row_updates() -> Non
         assert fragment not in sqlite_sources
 
 
-def test_docs_pin_private_proof_and_no_b2b_b2c_behavior() -> None:
+def test_docs_pin_private_proof_and_no_b2c_behavior() -> None:
     writer_doc = _read(".docs/writer-session-authority.md")
 
     for phrase in (
@@ -485,8 +495,9 @@ def test_docs_pin_private_proof_and_no_b2b_b2c_behavior() -> None:
         "never projected",
         "never returned by safe read APIs",
         "does not implement proof generation or verification",
-        "does not implement `fcntl` or `flock`",
         "does not implement `writer_ownership` updates",
         "does not implement concrete `WriterSession`",
+        "B2b implements the common state-authority lock only",
+        "B2c remains future",
     ):
         assert phrase in writer_doc

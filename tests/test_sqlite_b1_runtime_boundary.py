@@ -35,14 +35,18 @@ def test_no_sqlite_state_store_or_product_mutation_backend() -> None:
         assert token not in source
 
 
-def test_no_writer_acquisition_locking_worker_scheduler_or_service_surface() -> None:
+def test_no_writer_acquisition_worker_scheduler_or_service_surface() -> None:
     source = _production_source()
+    source_without_lock = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src").rglob("*.py")
+        if path.name != "state_authority_lock.py"
+    )
+    lock_source = (ROOT / "src/ge_nwp_coordinator/state_authority_lock.py").read_text(encoding="utf-8")
     forbidden = (
-        "fcntl",
         "msvcrt",
         "acquire_writer",
         "writer_lock",
-        "LOCK_EX",
         "CoordinatorService",
         "Scheduler",
         "QueueConsumer",
@@ -56,6 +60,9 @@ def test_no_writer_acquisition_locking_worker_scheduler_or_service_surface() -> 
     )
     for token in forbidden:
         assert token not in source
+    for token in ("fcntl", "LOCK_EX", "LOCK_NB"):
+        assert token not in source_without_lock
+        assert token in lock_source
 
 
 def test_no_cli_mcp_bridge_codex_or_network_execution_surface() -> None:

@@ -215,7 +215,7 @@ Future B2/B3 integrity checks must:
 - verify domain-rejected events do not mutate current state;
 - report divergence instead of repairing automatically.
 
-B2a requires no schema change. It does not add active/released status, release
+B2b requires no schema change. It does not add active/released status, release
 timestamp, process id, lock inode, platform metadata, heartbeat, expiry,
 takeover state, or liveness flag to SQLite because those are session/process
 facts, not durable authority.

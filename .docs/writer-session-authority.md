@@ -1,17 +1,20 @@
 # Writer Session Authority
 
-Status: B2a contract correction only. No OS lock, writer acquisition,
-proof generation, SQLite writer-row update, concrete writer session,
-`StateStore` mutation backend, worker, service, scheduler, executable
-authorization, repair, commit, publication, or deployment behavior exists in
-B2a.
+Status: B2b shared state-authority lock implementation plus B2a writer-session
+authority contract. B2b implements the common advisory lock and integrates it
+with SQLite initialize/migrate administration. No writer acquisition, proof
+generation, SQLite writer-row update, concrete writer session, `StateStore`
+mutation backend, worker, service, scheduler, executable authorization,
+repair, commit, publication, or deployment behavior exists in B2b.
 
 ## Purpose
 
-B2a settles the writer-authority vocabulary before implementation. A durable
-SQLite row must never be enough to reconstruct mutation authority. Future
-mutation authority is an opaque live `WriterSession` created only by successful
-writer acquisition while the common state-authority lock is held.
+B2a settles the writer-authority vocabulary before implementation. B2b adds
+the shared state-authority advisory lock that administration and future writer
+acquisition must use. A durable SQLite row must never be enough to reconstruct
+mutation authority. Future mutation authority is an opaque live `WriterSession`
+created only by successful writer acquisition while the common state-authority
+lock is held.
 
 Python `Protocol` conformance is not authority. A caller cannot manufacture
 mutation authority by creating an object with matching methods. The future
@@ -141,8 +144,9 @@ credential would also fail future fencing.
 
 ## Common State-Authority Lock
 
-The first backend uses one common state-authority advisory lock. The same
-future exclusive lock covers:
+The first backend uses one common state-authority advisory lock. B2b implements
+that lock for macOS and Linux with standard-library `fcntl.flock` using
+`LOCK_EX | LOCK_NB`. The same exclusive lock domain covers:
 
 - initialize;
 - migrate;
@@ -150,14 +154,43 @@ future exclusive lock covers:
 - the entire active `WriterSession` lifetime.
 
 There are not separate migration and writer lock domains. Inspection and
-validation remain observational and do not acquire writer authority.
+validation remain observational and do not create or acquire the lock.
 
-The current on-disk filename is `coordinator-state.migration.lock`. B2a keeps
+The current on-disk filename is `coordinator-state.migration.lock`. B2b keeps
 that filename for implementation compatibility, but the filename is an
 implementation label, not durable schema identity and not the authority
 concept. The code-owned path concept is the state-authority lock path.
 
-B2a does not create, open, or acquire the lock.
+B2b creates a persistent owner-only lock file at the fixed
+`CoordinatorStateLocation.state_authority_lock_path`, validates it as a regular
+non-symlink file with mode `0600`, acquires it nonblocking, and never unlinks
+it during normal release. The state root must remain a secure local directory
+with mode `0700`.
+
+B2b uses a private descriptor-resource owner for the raw lock descriptor,
+acquiring process identity, lifecycle state, and process-local registry
+identity. The public lock wrapper is not the sole descriptor lifecycle record.
+The wrapper registers a one-shot `weakref.finalize` cleanup callback against
+the private resource. Explicit `close()` invokes the same one-shot cleanup path;
+later garbage collection cannot close a different file that reused the old
+descriptor number. The finalizer is a best-effort safety backstop for abandoned
+objects, not an operational release protocol and not a cross-implementation
+timing guarantee. The finalizer is disabled at interpreter shutdown; normal
+process teardown releases descriptors there without depending on Python module
+shutdown order.
+
+Every opened state-authority lock descriptor is immediately owned by a cleanup
+scope until it is transferred to the private descriptor resource. The parent
+lifecycle/fork gate serializes descriptor opening, validation, nonblocking
+`flock`, registry insertion, finalizer publication, explicit/finalizer close,
+and pre-fork snapshot creation. If any validation or publication step fails,
+the descriptor is closed, any acquired lock is released by descriptor closure,
+and the same-process registry is cleared before a safe error is returned.
+
+Lock possession alone is not writer authority. It is live-process exclusion
+only. B2b does not issue writer generation, does not generate or verify a
+private proof, does not change `writer_ownership`, and does not create a
+concrete `WriterSession`.
 
 ## Session Lifecycle
 
@@ -168,28 +201,32 @@ The session lifecycle is:
 - closing;
 - closed.
 
-An active session is required for future mutation. The detailed close and
-crash matrix below is a B2a design/static contract only. No OS lock behavior
-has been implemented or live-proven, no concrete `WriterSession` exists, and
-no writer has been acquired.
+An active session is required for future mutation. B2b implements and tests the
+lock primitive itself, including acquired/active/closing/closed lifecycle,
+idempotent close, same-process duplicate rejection, cross-process exclusion,
+descriptor cleanup, and finalizer-backed abandoned-object cleanup. No concrete
+`WriterSession` exists, and no writer has been acquired.
 
 ## Graceful Close And Process Crash
 
-B2a pins release and crash semantics as a design/static contract only.
-No OS lock behavior has been implemented or live-proven.
-No concrete `WriterSession` exists, no writer has been acquired, and B2b-B2e
-remain future. The database row remains latest issuance evidence after close
-and does not claim liveness.
+B2b pins and implements the lock-level release and crash behavior.
+B2b implements and tests the lock primitive itself.
+The writer-session rows in this matrix remain future because no concrete
+`WriterSession` exists, no writer has been acquired, and B2c-B2e remain
+future. The database row remains latest issuance evidence after close and does
+not claim liveness.
+The database row remains latest issuance evidence after close; the row remains latest issuance evidence only.
+No concrete `WriterSession` exists.
 
 | Circumstance | OS advisory lock outcome | SQLite transaction outcome | Durable `writer_ownership` row outcome | Session/credential outcome | Generation reuse rule | Next acquisition behavior |
 | --- | --- | --- | --- | --- | --- | --- |
-| Deliberate close | Future lock descriptor is closed after in-memory invalidation. | Close opens no new SQLite transaction. | No SQLite `writer_ownership` `UPDATE`, `DELETE`, or release-marker write occurs; the latest durable issuance row remains unchanged. | Session is marked closed/inactive before resource release; later operations fail with `writer_session_closed`; close is idempotent; future DB and lock resources are closed; private-proof references are dropped; a mutable proof buffer may receive best-effort overwrite; no guaranteed Python/CPython memory zeroization is claimed. | Graceful close does not decrement, clear, reset, release, or reuse the durable generation. | A later writer must acquire normally and increment from the latest durable generation. |
-| Process crash before lock acquisition | No future OS lock has been acquired. | No issuance transaction exists. | No durable issuance effect. | No session or credential exists. | No generation is consumed. | Next acquisition starts from the latest durable generation already present. |
-| Process crash after lock acquisition but before SQLite transaction | Future OS lock releases on process death through process/descriptor teardown. | No issuance transaction exists. | No durable issuance effect. | No returned session or usable credential exists. | No generation is consumed. | Next acquisition starts from the latest durable generation already present. |
-| Process crash during uncommitted issuance transaction | Future OS lock releases on process death. | SQLite rolls back the uncommitted issuance transaction. | No committed writer row change survives. | No returned session or usable credential exists. | No committed generation exists to reuse. | Next acquisition reads the unchanged durable generation and increments from it. |
-| Process crash after issuance commit but before session return | Future OS lock releases on process death. | The issuance transaction is already committed. | The committed durable generation remains latest issuance evidence only. | No session is reconstructed from the durable row; the private credential dies with the process. | The committed generation may be skipped but is never reused. | Next acquisition reads the committed durable generation and increments it. |
-| Process crash while active | Future OS lock releases through process/descriptor teardown. | Any unrelated uncommitted SQLite transaction rolls back under normal SQLite rules. | No graceful-close update occurs; the row remains latest issuance evidence only. | Session and private credential die with the process. | The active committed generation is never reused. | Subsequent acquisition increments from the durable generation. |
-| Process crash during graceful close | Process death eventually releases the future descriptor. | No SQLite release-marker transaction is required. | The durable issuance row remains unchanged. | Any surviving in-memory session state is unusable because the process died. | The committed generation is never reused. | Future acquisition increments from the durable generation. |
+| Deliberate close | Lock descriptor is closed after in-memory invalidation. | Close opens no new SQLite transaction. | No SQLite `writer_ownership` `UPDATE`, `DELETE`, or release-marker write occurs; the latest durable issuance row remains unchanged. | Session is marked closed/inactive before resource release; later operations fail with `writer_session_closed`; close is idempotent; future DB and lock resources are closed; private-proof references are dropped; a mutable proof buffer may receive best-effort overwrite; no guaranteed Python/CPython memory zeroization is claimed. | Graceful close does not decrement, clear, reset, release, or reuse the durable generation. | A later writer must acquire normally and increment from the latest durable generation. |
+| Process crash before lock acquisition | No OS lock has been acquired. | No issuance transaction exists. | No durable issuance effect. | No session or credential exists. | No generation is consumed. | Next acquisition starts from the latest durable generation already present. |
+| Process crash after lock acquisition but before SQLite transaction | OS lock releases on process death through process/descriptor teardown. | No issuance transaction exists. | No durable issuance effect. | No returned session or usable credential exists. | No generation is consumed. | Next acquisition starts from the latest durable generation already present. |
+| Process crash during uncommitted issuance transaction | OS lock releases on process death. | SQLite rolls back the uncommitted issuance transaction. | No committed writer row change survives. | No returned session or usable credential exists. | No committed generation exists to reuse. | Next acquisition reads the unchanged durable generation and increments from it. |
+| Process crash after issuance commit but before session return | OS lock releases on process death. | The issuance transaction is already committed. | The committed durable generation remains latest issuance evidence only. | No session is reconstructed from the durable row; the private credential dies with the process. | The committed generation may be skipped but is never reused. | Next acquisition reads the committed durable generation and increments it. |
+| Process crash while active | OS lock releases through process/descriptor teardown. | Any unrelated uncommitted SQLite transaction rolls back under normal SQLite rules. | No graceful-close update occurs; the row remains latest issuance evidence only. | Session and private credential die with the process. | The active committed generation is never reused. | Subsequent acquisition increments from the durable generation. |
+| Process crash during graceful close | Process death eventually releases the descriptor. | No SQLite release-marker transaction is required. | The durable issuance row remains unchanged. | Any surviving in-memory session state is unusable because the process died. | The committed generation is never reused. | Future acquisition increments from the durable generation. |
 
 Process crash releases the OS lock through process and descriptor teardown.
 Committed generations may be skipped after a crash, but a generation is never
@@ -205,10 +242,11 @@ No guaranteed memory zeroization is claimed.
 
 ## Process, Fork, And Thread Rules
 
-Future implementation requirements:
+B2b lock primitive requirements, and future concrete writer-session
+requirements:
 
 - store the acquiring process id in the session;
-- check the current process id on every session operation;
+- check the current process id on every lock/session operation;
 - reject use in a forked child;
 - mark the lock descriptor non-inheritable across exec;
 - use `os.register_at_fork` where supported to invalidate child-side session
@@ -221,6 +259,19 @@ Future implementation requirements:
   keyed by the canonical state-authority lock identity.
 
 `FD_CLOEXEC` alone does not solve fork inheritance.
+
+B2b implements descriptor non-inheritance, process identity checks, duplicate
+same-process lock rejection, and an at-fork child handler for inherited lock
+resources. The parent at-fork preparation freezes a descriptor snapshot while
+holding the lifecycle/fork gate. The child handler does not acquire inherited
+Python locks, marks child-copy resources closed with invalid descriptor
+sentinels, closes inherited descriptors from the snapshot without issuing an
+explicit `LOCK_UN`, clears only the child-side copied registry, installs a
+fresh child-local lifecycle gate, and leaves the parent's authority untouched.
+Fork-after-acquisition remains prohibited and is not a takeover or failover
+mechanism. Python's general warning about multithreaded fork still applies,
+and third-party forks that bypass Python at-fork hooks remain outside the B2b
+guarantee; process-identity checks fail closed on later use.
 
 ## Generation And Proof Specification
 
@@ -262,20 +313,43 @@ single NUL byte, `writer_ref`, a single NUL byte, decimal `generation`, a
 single NUL byte, `issued_ref`, a single NUL byte, and the raw 32-byte proof.
 Verification compares digests with `hmac.compare_digest`.
 
-B2a specifies this contract only. B2a does not implement proof generation or
-verification.
-B2a does not implement proof generation or verification.
+B2b still specifies this proof contract only. B2b does not implement proof
+generation or verification.
+B2b does not implement proof generation or verification.
 
 ## Migration And Writer Exclusion
 
-Future initialize/migrate ordering:
+B2b initialize ordering:
 
-1. validate or prepare the root and lock file;
-2. acquire the common state-authority lock;
-3. classify and revalidate the database;
-4. initialize or migrate;
-5. close the database;
-6. release the lock.
+1. observational preflight classification;
+2. fail on `UNKNOWN` before lock-file creation or database mutation;
+3. for `ABSENT`, `EMPTY`, or `MANAGED`, prepare the secure root and fixed
+   state-authority lock file;
+4. acquire the common state-authority lock;
+5. re-run observational classification while the lock is held;
+6. refuse if the state changed to `UNKNOWN`;
+7. run the existing initialize flow, including current-schema no-op handling;
+8. close SQLite;
+9. release the lock.
+
+B2b migrate ordering:
+
+1. observationally require an existing managed database;
+2. refuse `ABSENT`, `EMPTY`, `UNKNOWN`, wrong-posture, or drifted databases
+   before lock-file creation or lock acquisition;
+3. prepare and acquire the same fixed state-authority lock;
+4. revalidate classification, schema, and migration history while the lock is
+   held;
+5. open create-disabled read/write;
+6. `BEGIN IMMEDIATE`;
+7. revalidate again inside the transaction;
+8. apply packaged forward migrations if any exist;
+9. commit or roll back;
+10. close SQLite;
+11. release the lock.
+
+A no-op current-schema initialize or migrate still acquires the common lock and
+revalidates so it cannot race a future writer session.
 
 Future writer acquisition ordering:
 
@@ -295,12 +369,17 @@ failure, and produces no usable partial session.
 
 ## Safe Failure Taxonomy
 
-Future B2 closed failure classes:
+B2b lock failure classes:
 
 - `unsupported_platform`;
 - `unsafe_authority_lock`;
-- `writer_lock_busy`;
-- `writer_acquisition_failed`;
+- `state_authority_lock_busy`;
+- `state_authority_lock_failed`;
+- `state_authority_lock_closed`;
+- `state_authority_lock_process_mismatch`.
+
+Future writer-acquisition failure classes may add:
+
 - `database_not_managed`;
 - `writer_generation_exhausted`;
 - `writer_state_malformed`;
@@ -316,26 +395,24 @@ proof, proof digest, partial comparison result, or database content.
 ## Schema Fit
 
 Migration `0001_initial` is sufficient for the first writer-session model.
-B2a requires no migration 0002. SQLite does not store active/released status,
+B2b requires no migration 0002. SQLite does not store active/released status,
 release timestamp, process id, lock inode, platform metadata, heartbeat,
 expiry, takeover state, or liveness flag. Those are session/process facts, not
 durable authority.
 
 ## Non-Goals
 
-B2a does not implement `fcntl` or `flock`, does not implement
-`writer_ownership` updates, and does not implement concrete `WriterSession`.
-B2a does not implement `writer_ownership` updates.
+B2b implements the common state-authority lock only. B2c remains future. B2b
+does not implement `writer_ownership` updates and does not implement concrete
+`WriterSession`. B2b does not implement concrete `WriterSession`.
+B2b does not implement `writer_ownership` updates.
 
-B2a does not implement:
+B2b does not implement:
 
-- `fcntl` or `flock`;
-- lock-file creation, opening, validation, or acquisition;
 - writer acquisition, renewal, release, generation, or fencing checks;
 - private proof generation or verification;
 - SQLite `writer_ownership` updates;
 - concrete `WriterSession`;
-- migration lock integration;
 - transition or global-stop mutation storage;
 - product database reads;
 - reports over SQLite;

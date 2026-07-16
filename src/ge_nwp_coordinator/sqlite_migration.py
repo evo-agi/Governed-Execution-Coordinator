@@ -19,6 +19,7 @@ from ge_nwp_coordinator.sqlite_connection import (
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_security import existing_state_database_path
+from ge_nwp_coordinator.state_authority_lock import acquire_state_authority_lock
 
 CURRENT_APPLICATION_SCHEMA = 1
 MIGRATION_PACKAGE = "ge_nwp_coordinator.sqlite_migrations"
@@ -174,27 +175,32 @@ def initialize_database(location: CoordinatorStateLocation) -> DatabaseInspectio
 
     catalog = load_migration_catalog()
     preflight = inspect_database(location)
-    if preflight.classification is DatabaseClassification.MANAGED:
-        if preflight.current_sequence != catalog.latest_sequence:
-            raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE)
-        return preflight
     if preflight.classification is DatabaseClassification.UNKNOWN:
         _raise_inspection_failure(preflight)
 
-    connection = open_sqlite_connection(location)
-    try:
-        classification = _classify_open_database(connection, catalog, verify_managed=False)
-        if classification is DatabaseClassification.EMPTY:
-            migration = _required_migration(catalog, 1)
-            _apply_migration(connection, migration)
-        elif classification is not DatabaseClassification.MANAGED:
-            raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_NOT_EMPTY_UNMANAGED)
-        inspection = _inspect_open_database(connection, catalog)
-        if inspection.current_sequence != catalog.latest_sequence:
-            raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE)
-        return inspection
-    finally:
-        connection.close()
+    with acquire_state_authority_lock(location):
+        locked = inspect_database(location)
+        if locked.classification is DatabaseClassification.UNKNOWN:
+            _raise_inspection_failure(locked)
+        if locked.classification is DatabaseClassification.MANAGED:
+            if locked.current_sequence != catalog.latest_sequence:
+                raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE)
+            return locked
+
+        connection = open_sqlite_connection(location)
+        try:
+            classification = _classify_open_database(connection, catalog, verify_managed=False)
+            if classification is DatabaseClassification.EMPTY:
+                migration = _required_migration(catalog, 1)
+                _apply_migration(connection, migration)
+            elif classification is not DatabaseClassification.MANAGED:
+                raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_NOT_EMPTY_UNMANAGED)
+            inspection = _inspect_open_database(connection, catalog)
+            if inspection.current_sequence != catalog.latest_sequence:
+                raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE)
+            return inspection
+        finally:
+            connection.close()
 
 
 def migrate_database(location: CoordinatorStateLocation) -> DatabaseInspection:
@@ -206,30 +212,35 @@ def migrate_database(location: CoordinatorStateLocation) -> DatabaseInspection:
         raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_HISTORY_MISSING)
     if preflight.classification is DatabaseClassification.UNKNOWN:
         _raise_inspection_failure(preflight)
-    if preflight.current_sequence == catalog.latest_sequence:
-        return preflight
 
-    connection = open_existing_sqlite_connection(location, read_only=False)
-    try:
-        connection.execute("BEGIN IMMEDIATE")
+    with acquire_state_authority_lock(location):
+        locked = inspect_database(location)
+        if locked.classification in {DatabaseClassification.ABSENT, DatabaseClassification.EMPTY}:
+            raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_HISTORY_MISSING)
+        if locked.classification is DatabaseClassification.UNKNOWN:
+            _raise_inspection_failure(locked)
+
+        connection = open_existing_sqlite_connection(location, read_only=False)
         try:
-            inspection = _inspect_open_database(connection, catalog)
-            while inspection.current_sequence < catalog.latest_sequence:
-                migration = _required_migration(catalog, inspection.current_sequence + 1)
-                _apply_migration_in_transaction(connection, migration, fresh_install=False)
+            connection.execute("BEGIN IMMEDIATE")
+            try:
                 inspection = _inspect_open_database(connection, catalog)
-            connection.execute("COMMIT")
-            return inspection
-        except Exception:
-            _rollback(connection)
+                while inspection.current_sequence < catalog.latest_sequence:
+                    migration = _required_migration(catalog, inspection.current_sequence + 1)
+                    _apply_migration_in_transaction(connection, migration, fresh_install=False)
+                    inspection = _inspect_open_database(connection, catalog)
+                connection.execute("COMMIT")
+                return inspection
+            except Exception:
+                _rollback(connection)
+                raise
+        except SQLiteStateError:
             raise
-    except SQLiteStateError:
-        raise
-    except sqlite3.Error:
-        _rollback(connection)
-        raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_FAILED) from None
-    finally:
-        connection.close()
+        except sqlite3.Error:
+            _rollback(connection)
+            raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_FAILED) from None
+        finally:
+            connection.close()
 
 
 def validate_database(location: CoordinatorStateLocation) -> DatabaseInspection:

@@ -1,8 +1,8 @@
 # SQLite Operations And Recovery
 
-Status: B1.1 bootstrap/inspection/validation/migration implementation plus
-future operations design. B2a adds writer-session authority contract wording
-only.
+Status: B2b bootstrap/inspection/validation/migration implementation plus the
+shared state-authority advisory lock for initialize/migrate administration.
+B2a adds writer-session authority contract wording.
 
 ## Filesystem Posture
 
@@ -36,8 +36,8 @@ The practical TOCTOU boundary is owner-only containment. A `0700` parent
 prevents other-user file replacement. Same-account malicious-process resistance
 is limited and must not be overclaimed.
 
-B1.1 implements portable filesystem checks for bootstrap and existing-database
-inspection:
+B1.1/B2b implement portable filesystem checks for bootstrap,
+existing-database inspection, and the state-authority lock:
 
 - deterministic per-user state root from the canonical NWP Coordinator
   component name;
@@ -45,19 +45,35 @@ inspection:
 - fixed `coordinator-state.sqlite` database filename;
 - state root mode `0700`;
 - database mode `0600`;
+- fixed state-authority lock file mode `0600`;
 - symlink and non-regular database rejection;
+- symlink, non-regular, group/other-accessible, and hardlinked lock-file
+  rejection where safely testable;
 - safe closed errors without raw paths.
 
-B1 does not implement advisory writer-lock acquisition. B2a renames the future
-concept to one common state-authority lock path while preserving the current
-`coordinator-state.migration.lock` filename as an implementation label only.
-B2a still does not create or acquire the lock.
+B2b implements one common state-authority advisory lock path while preserving
+the current `coordinator-state.migration.lock` filename as an implementation
+label only. The lock is acquired with nonblocking exclusive `fcntl.flock` on
+macOS and Linux, remains persistent after release, and is used by initialize
+and migrate. Lock possession alone is not writer authority.
 
-B1.1 does not overclaim deeper filesystem confinement. Intermediate symlink
+The lock descriptor is owned by a private resource object. Explicit
+context-manager or `finally`-based close is still mandatory for production
+callers. A one-shot `weakref.finalize` backstop performs quiet best-effort
+cleanup for abandoned lock objects without logging or emitting evidence, but
+it is not a deterministic release-timing mechanism. At-fork child cleanup
+uses a descriptor snapshot frozen under the parent lifecycle/fork gate, does
+not acquire inherited Python locks, and closes inherited descriptors without
+explicitly unlocking parent authority. Every `os.open` result in the B2b lock
+path is immediately owned by a cleanup scope until it is transferred to the
+private resource. Python's broad multithreaded-fork warning and third-party
+forks that bypass Python at-fork hooks remain accepted limitations.
+
+B2b does not overclaim deeper filesystem confinement. Intermediate symlink
 components are constrained by resolved trusted-root checks but are not a full
 same-account malicious-process defense. Python `sqlite3` reopens by pathname.
 Broad network-filesystem detection remains portable and incomplete. Those are
-B2/B5 hardening topics, not solved B1.1 properties.
+B5 hardening topics, not solved B2b properties.
 
 ## Bootstrap And Migration Operations
 
@@ -71,6 +87,12 @@ B1.1 exposes split offline operations:
 - initialize an absent or empty local database with migration `0001_initial`;
 - migrate an existing managed older supported database through packaged
   forward-only migrations.
+
+Initialize and migrate acquire the common state-authority lock after
+observational preflight and revalidate while holding the lock. A no-op
+current-schema initialize or migrate still acquires and releases the lock.
+Inspect and validate remain observational and do not create the state root,
+database, or lock file.
 
 Ordinary future product operations must not run migrations implicitly merely by
 opening the database.

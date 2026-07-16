@@ -62,9 +62,21 @@ the apply boundary; they are not `stale_writer_token` apply conflicts.
 B2a corrects the writer authority contract only. Mutation authority is an
 opaque future `WriterSession`, not a reconstructable public token. Safe writer
 metadata is diagnostics/evidence only and carries no proof, proof digest, lock
-path, process id, or liveness claim. B2a still does not implement advisory
-locking, writer acquisition, proof generation or verification,
-`writer_ownership` updates, or `StateStore` mutation storage.
+path, process id, or liveness claim.
+
+B2b implements the common state-authority advisory lock and integrates it with
+SQLite initialize/migrate administration. That lock is necessary live-process
+exclusion only; it is not writer authority, not a `WriterSession`, not durable
+state, not a credential, and not sufficient to mutate work-item or global-stop
+state. Because B2b owns a real descriptor, it includes finalizer-backed
+fallback cleanup, but explicit context-manager or `finally`-based close remains
+the required operational path. Descriptor opening, validation, acquisition,
+registry insertion, finalizer installation, and parent close are serialized by
+one lifecycle/fork gate; fork child cleanup uses a frozen descriptor snapshot,
+does not acquire inherited Python locks, and closes inherited descriptors
+without `LOCK_UN`. B2b still does not implement writer acquisition, proof
+generation or verification, `writer_ownership` updates, a concrete
+`WriterSession`, or `StateStore` mutation storage.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
