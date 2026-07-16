@@ -36,4 +36,10 @@ push, open pull requests, or contact live product routes.
 The P1 runtime has no supported policy, configuration, callback, or environment
 path that enables future worker, repair, or local-commit stages.
 
+B0 selects SQLite, one private local database, as the future first production
+state backend architecture. B0 is docs/schema/static only: it adds a
+non-production schema fixture and tests, but still provides no production
+backend, database file, migration runner, writer acquisition, coordinator
+service, worker, scheduler, authorization path, or executable A2 capability.
+
 See `.docs/` for the authority boundary and A2-P1 contract.

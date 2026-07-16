@@ -36,6 +36,12 @@ It does not implement worker execution or any of the following:
 - local commit behavior;
 - push, pull request, merge, publication, or deployment.
 
+B0 adds architecture documents, a non-production SQLite schema fixture, and
+static/in-memory schema tests for a future first backend. B0 does not change the
+P1/P1.1 runtime prohibition above: there is still no production SQLite store,
+no database file, no migration runner, no writer acquisition, no coordinator
+service, and no executable A2 capability.
+
 ## P1 State Gating
 
 The state vocabulary includes future executable stages so that the contract can

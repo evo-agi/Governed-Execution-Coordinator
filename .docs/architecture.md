@@ -63,3 +63,25 @@ Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
 they are not generic sanitized payloads and do not carry private, endpoint,
 path, platform, credential, or trust material.
+
+## B0 SQLite Backend Selection
+
+B0 selects SQLite, one private local database, as the future first production
+state backend architecture. This is a documentation, schema-fixture, and static
+test tranche only. The current runtime still has no production store, no
+database file, no migration runner, no writer acquisition, no coordinator
+service, and no executable A2 capability.
+
+The selected first-backend journal posture is rollback journal DELETE mode with
+`synchronous=FULL`, `locking_mode=NORMAL`, `foreign_keys=ON`,
+`trusted_schema=OFF` where supported, bounded `busy_timeout`, and
+`BEGIN IMMEDIATE` mutation transactions. WAL is reserved for a later audit if a
+current reader-concurrency requirement justifies its extra `-wal` and `-shm`
+filesystem surface.
+
+The B0 authority, schema, threat, and operations contracts are documented in:
+
+- `.docs/sqlite-state-backend-adr.md`;
+- `.docs/sqlite-schema-v1.md`;
+- `.docs/sqlite-threat-model.md`;
+- `.docs/sqlite-operations-and-recovery.md`.

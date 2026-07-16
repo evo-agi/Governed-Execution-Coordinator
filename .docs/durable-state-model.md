@@ -76,6 +76,21 @@ stop.
 P1/P1.1 selects no production state backend. It implements no SQLite store, no
 filesystem journal, no database, and no production persistence adapter.
 
+B0 selects SQLite, one private local database, as the future first production
+backend architecture, but B0 does not implement that backend. The B0 artifacts
+are docs, a non-production SQL schema fixture, and static/in-memory schema
+tests only. No database file, migration runner, writer acquisition, coordinator
+service, or executable A2 capability exists in B0.
+
+The future SQLite backend must preserve the P1.1 command/event/apply-conflict
+algebra. Event rows own idempotency and exact replay snapshots. Current-state
+tables own current state. Replay snapshots are authoritative only for exact
+replay of the original command, never for later current-state truth.
+
+The first journal posture is rollback journal DELETE mode with
+`synchronous=FULL` and `BEGIN IMMEDIATE`. WAL remains a future option only after
+a focused operations/recovery audit.
+
 ## Global Stop
 
 Global stop is operator-owned. The Coordinator observes and enforces it. The

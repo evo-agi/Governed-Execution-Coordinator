@@ -23,6 +23,10 @@ and global-stop events are contract objects only until a future backend
 tranche. Reports are projections only. They are not durable state,
 authorization, acceptance, publication, or product truth.
 
+B0 may select and document a future backend architecture and non-production
+schema fixture, but it must not implement production storage, create database
+files, run migrations, acquire writers, or enable executable A2 behavior.
+
 Versioned Coordinator input schemas are closed-world in P1/P1.1. Unknown
 fields, misspelled fields, duplicate JSON object keys, and unversioned
 extension or metadata bags must fail before canonicalization or digest
