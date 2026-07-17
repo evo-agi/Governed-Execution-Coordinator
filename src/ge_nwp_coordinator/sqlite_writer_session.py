@@ -8,21 +8,19 @@ atomic apply boundary.
 from __future__ import annotations
 
 from _thread import allocate_lock
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 import hashlib
 import hmac
 import os
-import re
 import secrets
 import sqlite3
+from threading import Condition, Lock, get_ident
 from types import TracebackType
 from typing import Any, Self
 import weakref
 
 from ge_nwp_coordinator.global_stop import GlobalStopCommand, GlobalStopOperatorDecision
-from ge_nwp_coordinator.models import require_contract_ref
 from ge_nwp_coordinator.sqlite_connection import open_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
@@ -30,6 +28,14 @@ from ge_nwp_coordinator.sqlite_migration import (
     DatabaseClassification,
     inspect_database,
     _validate_current_managed_connection,
+)
+from ge_nwp_coordinator.sqlite_writer_state import (
+    _DurableWriterIssuance,
+    _parse_writer_ownership_rows as _parse_writer_ownership_rows_or_raise,
+    _require_generation,
+    _require_issued_ref,
+    _require_sha256_digest,
+    _require_writer_ref,
 )
 from ge_nwp_coordinator.state_authority_lock import StateAuthorityLock, acquire_state_authority_lock
 from ge_nwp_coordinator.state_machine import TransitionCommand, TransitionContext
@@ -46,10 +52,10 @@ from ge_nwp_coordinator.state_store import (
 
 _ACTIVE = "active"
 _CLOSING = "closing"
+_CLEANING = "cleaning"
 _CLOSED = "closed"
+_FORK_INVALID = "fork_invalid"
 _PROOF_BYTES = 32
-_SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
-_RFC3339_UTC_Z_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SESSION_GATE = allocate_lock()
 _ACTIVE_SESSION_RESOURCES: dict[int, "_WriterSessionResource"] = {}
 _AT_FORK_SNAPSHOT: tuple["_WriterSessionResource", ...] = ()
@@ -71,26 +77,6 @@ class SQLiteWriterAcquisitionError(RuntimeError):
         normalized = SQLiteWriterAcquisitionFailureReason(reason)
         self.reason = normalized
         super().__init__(normalized.value)
-
-
-@dataclass(frozen=True, repr=False)
-class _DurableWriterIssuance:
-    writer_ref: str
-    generation: int
-    issued_ref: str
-    issuance_nonce_digest: str
-    acquired_at: str
-
-    def metadata(self) -> SafeWriterMetadata:
-        return SafeWriterMetadata(
-            writer_ref=self.writer_ref,
-            generation=self.generation,
-            issued_ref=self.issued_ref,
-            acquired_at=self.acquired_at,
-        )
-
-    def __repr__(self) -> str:
-        return "<_DurableWriterIssuance>"
 
 
 class _PrivateWriterCredential:
@@ -149,7 +135,11 @@ class _WriterSessionResource:
         self._metadata = metadata
         self._owner_pid = os.getpid()
         self._state = _ACTIVE
-        self._mutex = allocate_lock()
+        self._lifecycle_epoch = 1
+        self._next_operation_id = 1
+        self._active_operations: dict[int, int] = {}
+        self._deferred_cleanup_requested = False
+        self._reset_lifecycle_synchronization()
         self._registry_key = id(self)
 
     @property
@@ -160,23 +150,26 @@ class _WriterSessionResource:
         if self._owner_pid != os.getpid():
             self.cleanup_from_foreign_process()
             return False
-        self._mutex.acquire()
-        try:
+        with self._condition:
             active = self._state == _ACTIVE and self._credential is not None and self._authority_lock is not None
-        finally:
-            self._mutex.release()
+            authority_lock = self._authority_lock
         if not active:
             return False
-        lock = self._authority_lock
-        return bool(lock is not None and lock.active)
+        if authority_lock is None or not authority_lock.active:
+            self.close_from_owner()
+            return False
+        return True
 
-    def require_usable_for_mutation(self) -> None:
-        self._require_owner_process()
-        self._require_active_lifecycle()
+    def require_usable_for_mutation(self, session: "_SQLiteWriterSession") -> None:
+        with self.operation_guard(session):
+            pass
 
     def require_active_for_context(self) -> None:
         self._require_owner_process()
         self._require_active_lifecycle()
+
+    def operation_guard(self, session: "_SQLiteWriterSession") -> "_WriterSessionOperationLease":
+        return self._begin_operation(session)
 
     def close_from_owner(self) -> None:
         if self._owner_pid != os.getpid():
@@ -188,25 +181,30 @@ class _WriterSessionResource:
         if self._owner_pid != os.getpid():
             self.cleanup_from_foreign_process()
             return
-        self._cleanup_release_lock(release_lock=True)
+        self._cleanup_release_lock_nonblocking(release_lock=True)
 
     def cleanup_from_foreign_process(self) -> None:
-        self._mutex.acquire()
-        try:
-            self._state = _CLOSED
-            self._owner_pid = -1
-            credential = self._credential
-            self._credential = None
-            self._authority_lock = None
-        finally:
-            self._mutex.release()
+        self._replace_lifecycle_synchronization_after_fork()
+        self._state = _FORK_INVALID
+        self._owner_pid = -1
+        self._lifecycle_epoch += 1
+        self._next_operation_id = 1
+        self._active_operations = {}
+        self._deferred_cleanup_requested = False
+        credential = self._credential
+        self._credential = None
+        self._authority_lock = None
         if credential is not None:
             credential.overwrite_and_drop()
-        _remove_active_session_resource(self)
 
     def mark_closed_after_fork(self) -> None:
-        self._state = _CLOSED
+        self._replace_lifecycle_synchronization_after_fork()
+        self._state = _FORK_INVALID
         self._owner_pid = -1
+        self._lifecycle_epoch += 1
+        self._next_operation_id = 1
+        self._active_operations = {}
+        self._deferred_cleanup_requested = False
         credential = self._credential
         self._credential = None
         self._authority_lock = None
@@ -219,36 +217,236 @@ class _WriterSessionResource:
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH)
 
     def _require_active_lifecycle(self) -> None:
-        self._mutex.acquire()
-        try:
+        with self._condition:
             active = self._state == _ACTIVE and self._credential is not None and self._authority_lock is not None
-        finally:
-            self._mutex.release()
+            authority_lock = self._authority_lock
         if not active:
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
-        lock = self._authority_lock
-        if lock is None or not lock.active:
+        if authority_lock is None or not authority_lock.active:
             self.close_from_owner()
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
 
     def _cleanup_release_lock(self, *, release_lock: bool) -> None:
-        self._mutex.acquire()
-        try:
-            if self._state == _CLOSED and self._credential is None and self._authority_lock is None:
+        claimed: tuple[_PrivateWriterCredential | None, StateAuthorityLock | None] | None = None
+        while claimed is None:
+            with self._condition:
+                if self._state in {_CLOSED, _FORK_INVALID}:
+                    return
+                if self._current_thread_owns_operation_locked():
+                    raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSE_DURING_OPERATION)
+                if self._state == _ACTIVE:
+                    self._state = _CLOSING
+                    self._condition.notify_all()
+                if self._state == _CLOSING:
+                    if self._active_operations:
+                        self._condition.wait()
+                        continue
+                    claimed = self._claim_cleanup_locked()
+                elif self._state == _CLEANING:
+                    self._condition.wait()
+        credential, authority_lock = claimed
+        self._complete_claimed_cleanup(
+            credential=credential,
+            authority_lock=authority_lock,
+            release_lock=release_lock,
+        )
+
+    def _cleanup_release_lock_nonblocking(self, *, release_lock: bool) -> None:
+        with self._condition:
+            if self._state in {_CLOSED, _FORK_INVALID, _CLEANING}:
                 return
-            self._state = _CLOSING
-            credential = self._credential
-            authority_lock = self._authority_lock
-            self._credential = None
-            self._authority_lock = None
-            self._state = _CLOSED
-        finally:
-            self._mutex.release()
+            if self._state == _ACTIVE:
+                self._state = _CLOSING
+                self._condition.notify_all()
+            if self._active_operations:
+                self._deferred_cleanup_requested = True
+                self._condition.notify_all()
+                return
+            claimed = self._claim_cleanup_locked()
+            if claimed is None:
+                return
+        credential, authority_lock = claimed
+        self._complete_claimed_cleanup(
+            credential=credential,
+            authority_lock=authority_lock,
+            release_lock=release_lock,
+        )
+
+    def _claim_cleanup_locked(
+        self,
+    ) -> tuple[_PrivateWriterCredential | None, StateAuthorityLock | None] | None:
+        if self._state != _CLOSING or self._active_operations:
+            return None
+        credential = self._credential
+        authority_lock = self._authority_lock
+        self._credential = None
+        self._authority_lock = None
+        self._deferred_cleanup_requested = False
+        self._state = _CLEANING
+        self._condition.notify_all()
+        return credential, authority_lock
+
+    def _complete_claimed_cleanup(
+        self,
+        *,
+        credential: _PrivateWriterCredential | None,
+        authority_lock: StateAuthorityLock | None,
+        release_lock: bool,
+    ) -> None:
         if credential is not None:
             credential.overwrite_and_drop()
         if release_lock and authority_lock is not None:
             authority_lock.close()
         _remove_active_session_resource(self)
+        with self._condition:
+            if self._state == _CLEANING:
+                self._state = _CLOSED
+                self._condition.notify_all()
+
+    def _begin_operation(self, session: "_SQLiteWriterSession") -> "_WriterSessionOperationLease":
+        self._require_owner_process()
+        owner_pid = os.getpid()
+        owner_thread = get_ident()
+        with self._condition:
+            if self._state != _ACTIVE or self._credential is None or self._authority_lock is None:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            credential = self._credential
+            authority_lock = self._authority_lock
+            operation_id = self._next_operation_id
+            self._next_operation_id += 1
+            lifecycle_epoch = self._lifecycle_epoch
+            self._active_operations[operation_id] = owner_thread
+        lease = _WriterSessionOperationLease(
+            resource=self,
+            session=session,
+            credential=credential,
+            authority_lock=authority_lock,
+            operation_id=operation_id,
+            owner_pid=owner_pid,
+            lifecycle_epoch=lifecycle_epoch,
+            owner_thread=owner_thread,
+        )
+        if not authority_lock.active:
+            lease._close()
+            self.close_from_owner()
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        return lease
+
+    def _finish_operation(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        lifecycle_epoch: int,
+    ) -> tuple[_PrivateWriterCredential | None, StateAuthorityLock | None] | None:
+        if owner_pid != os.getpid() or self._owner_pid != owner_pid:
+            return None
+        with self._condition:
+            if lifecycle_epoch != self._lifecycle_epoch:
+                return None
+            if self._active_operations.pop(operation_id, None) is None:
+                return None
+            if not self._active_operations:
+                self._condition.notify_all()
+                if self._state == _CLOSING:
+                    return self._claim_cleanup_locked()
+            return None
+
+    def _current_thread_owns_operation_locked(self) -> bool:
+        owner_thread = get_ident()
+        return any(thread == owner_thread for thread in self._active_operations.values())
+
+    def _reset_lifecycle_synchronization(self) -> None:
+        self._lifecycle_lock = Lock()
+        self._condition = Condition(self._lifecycle_lock)
+
+    def _replace_lifecycle_synchronization_after_fork(self) -> None:
+        self._reset_lifecycle_synchronization()
+
+
+class _WriterSessionOperationLease:
+    """Private operation lease that keeps session resources attached until exit."""
+
+    __slots__ = (
+        "_resource",
+        "_session",
+        "_credential",
+        "_authority_lock",
+        "_operation_id",
+        "_owner_pid",
+        "_lifecycle_epoch",
+        "_owner_thread",
+        "_closed",
+        "_finalizer",
+        "__weakref__",
+    )
+
+    def __init__(
+        self,
+        *,
+        resource: _WriterSessionResource,
+        session: "_SQLiteWriterSession",
+        credential: _PrivateWriterCredential,
+        authority_lock: StateAuthorityLock,
+        operation_id: int,
+        owner_pid: int,
+        lifecycle_epoch: int,
+        owner_thread: int,
+    ) -> None:
+        self._resource = resource
+        self._session: _SQLiteWriterSession | None = session
+        self._credential = credential
+        self._authority_lock = authority_lock
+        self._operation_id = operation_id
+        self._owner_pid = owner_pid
+        self._lifecycle_epoch = lifecycle_epoch
+        self._owner_thread = owner_thread
+        self._closed = False
+        self._finalizer = _FINALIZER_FACTORY(
+            self,
+            _finalize_writer_session_operation,
+            resource,
+            operation_id,
+            owner_pid,
+            lifecycle_epoch,
+        )
+        self._finalizer.atexit = False
+
+    def __repr__(self) -> str:
+        return "<_WriterSessionOperationLease>"
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self._close()
+
+    def _close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        if self._finalizer.alive:
+            self._finalizer.detach()
+        claimed = self._resource._finish_operation(
+            operation_id=self._operation_id,
+            owner_pid=self._owner_pid,
+            lifecycle_epoch=self._lifecycle_epoch,
+        )
+        self._session = None
+        self._credential = None
+        self._authority_lock = None
+        if claimed is not None:
+            credential, authority_lock = claimed
+            self._resource._complete_claimed_cleanup(
+                credential=credential,
+                authority_lock=authority_lock,
+                release_lock=True,
+            )
 
 
 class _SQLiteWriterSession(WriterSession):
@@ -277,20 +475,21 @@ class _SQLiteWriterSession(WriterSession):
         transition_command: TransitionCommand,
         typed_context: TransitionContext,
     ) -> TransitionApplyOutcome:
-        self._resource.require_usable_for_mutation()
-        raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)
+        with self._resource.operation_guard(self):
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)
 
     def apply_global_stop_update(
         self,
         global_stop_command: GlobalStopCommand,
         typed_operator_decision: GlobalStopOperatorDecision,
     ) -> GlobalStopApplyOutcome:
-        self._resource.require_usable_for_mutation()
-        raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)
+        with self._resource.operation_guard(self):
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)
 
     def close(self) -> None:
+        self._resource.close_from_owner()
         if self._finalizer.alive:
-            self._finalizer()
+            self._finalizer.detach()
 
     def __enter__(self) -> Self:
         self._resource.require_active_for_context()
@@ -461,29 +660,8 @@ def _read_durable_writer_issuance(connection: sqlite3.Connection) -> _DurableWri
 
 
 def _parse_writer_ownership_rows(rows: Any) -> _DurableWriterIssuance | None:
-    if not isinstance(rows, list | tuple):
-        raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_STATE_MALFORMED)
-    if len(rows) > 1:
-        raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_STATE_MALFORMED)
-    if not rows:
-        return None
     try:
-        row = tuple(rows[0])
-    except TypeError:
-        raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_STATE_MALFORMED) from None
-    if len(row) != 6:
-        raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_STATE_MALFORMED)
-    singleton_id, writer_ref, generation, issued_ref, issuance_nonce_digest, acquired_at = row
-    try:
-        if singleton_id != 1 or isinstance(singleton_id, bool):
-            raise ValueError("malformed singleton")
-        return _DurableWriterIssuance(
-            writer_ref=_require_writer_ref(writer_ref),
-            generation=_require_generation(generation),
-            issued_ref=_require_issued_ref(issued_ref),
-            issuance_nonce_digest=_require_sha256_digest(issuance_nonce_digest),
-            acquired_at=_require_utc_timestamp(acquired_at),
-        )
+        return _parse_writer_ownership_rows_or_raise(rows)
     except ValueError:
         raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_STATE_MALFORMED) from None
 
@@ -603,36 +781,6 @@ def _verify_issuance_proof_digest(
     return hmac.compare_digest(actual, expected)
 
 
-def _require_writer_ref(value: Any) -> str:
-    return require_contract_ref(value, "writer_ref")
-
-
-def _require_issued_ref(value: Any) -> str:
-    return require_contract_ref(value, "issued_ref")
-
-
-def _require_generation(value: Any) -> int:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1 or value > MAX_WRITER_GENERATION:
-        raise ValueError("invalid writer generation")
-    return value
-
-
-def _require_sha256_digest(value: Any) -> str:
-    if not isinstance(value, str) or _SHA256_HEX_RE.fullmatch(value) is None:
-        raise ValueError("invalid writer input")
-    return value
-
-
-def _require_utc_timestamp(value: Any) -> str:
-    if not isinstance(value, str) or _RFC3339_UTC_Z_RE.fullmatch(value) is None:
-        raise ValueError("invalid writer timestamp")
-    try:
-        datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
-    except ValueError:
-        raise ValueError("invalid writer timestamp") from None
-    return value
-
-
 def _require_proof(proof: Any) -> None:
     if not isinstance(proof, bytes | bytearray) or len(proof) != _PROOF_BYTES:
         raise ValueError("invalid writer input")
@@ -716,6 +864,29 @@ def _at_fork_child() -> None:
 def _finalize_writer_session_resource(resource: _WriterSessionResource) -> None:
     try:
         resource.cleanup_from_finalizer()
+    except Exception:
+        pass
+
+
+def _finalize_writer_session_operation(
+    resource: _WriterSessionResource,
+    operation_id: int,
+    owner_pid: int,
+    lifecycle_epoch: int,
+) -> None:
+    try:
+        claimed = resource._finish_operation(
+            operation_id=operation_id,
+            owner_pid=owner_pid,
+            lifecycle_epoch=lifecycle_epoch,
+        )
+        if claimed is not None:
+            credential, authority_lock = claimed
+            resource._complete_claimed_cleanup(
+                credential=credential,
+                authority_lock=authority_lock,
+                release_lock=True,
+            )
     except Exception:
         pass
 

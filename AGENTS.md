@@ -83,11 +83,22 @@ acquisition only. It uses the B2b common lock, generates a private in-memory
 32-byte proof, persists only the domain-separated proof digest, increments the
 durable generation monotonically, closes the acquisition SQLite connection
 before returning, and retains the common lock for the session lifetime. The
-SQLite row remains latest issuance evidence only. B2c mutation methods fail
-locally with `writer_session_mutation_unavailable`; no transition/global-stop
-event persistence, work-item update, global-stop update, idempotency lookup,
+SQLite row remains latest issuance evidence only. B2 hardening rejects present
+generation-zero writer rows as malformed managed state, replaces inherited
+child-side session synchronization after fork, and adds a private
+operation-identity guard so copied child leases no-op, explicit cross-thread
+close waits for active operations, same-thread close fails locally with
+`writer_session_close_during_operation`, operation leases retain the concrete
+session wrapper, closing and cleaning are distinct, exactly one cleanup owner
+releases proof/lock resources, closed is published only after cleanup
+completion, and nonblocking finalizer cleanup may defer proof/lock release until
+the last active operation exits. B2c mutation methods enter that guard and fail
+locally with
+`writer_session_mutation_unavailable`; no transition/global-stop event
+persistence, work-item update, global-stop update, idempotency lookup,
 expected-version check, service loop, worker execution, repair, commit, or
-publication exists.
+publication exists. B2 still requires a fresh standalone re-audit before B3
+begins.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,

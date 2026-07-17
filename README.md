@@ -66,10 +66,20 @@ authority.
 B2c acquires an internal SQLite writer session only for an existing managed
 database. It increments the durable writer generation, stores only a proof
 digest in `writer_ownership`, closes the acquisition connection before return,
-and retains the common lock for the session lifetime. The runtime still
-provides no `StateStore` mutation backend, transition/global-stop persistence,
-coordinator service, worker, scheduler, authorization path, or executable A2
-capability. B2c mutation methods fail locally with
-`writer_session_mutation_unavailable`.
+and retains the common lock for the session lifetime. B2 hardening rejects
+present generation-zero writer rows as malformed managed state, replaces
+child-side inherited session synchronization after fork, and adds a private
+operation-identity guard. Copied child leases no-op safely, same-thread close
+fails locally with `writer_session_close_during_operation`, cross-thread close
+waits for active operations, operation leases retain the concrete session
+wrapper, closing and cleaning are distinct, closed is published only after
+proof/lock cleanup completes, and fallback finalization is nonblocking with
+deferred proof/lock cleanup by the last operation. Concurrent explicit close
+callers wait for closed. The runtime still provides no `StateStore` mutation
+backend, transition/global-stop persistence, coordinator service, worker,
+scheduler, authorization path, or executable A2 capability. B2c mutation
+methods enter that guard and fail locally with
+`writer_session_mutation_unavailable`. B2 still requires a fresh standalone
+re-audit before B3 begins.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

@@ -135,12 +135,17 @@ create-disabled read/write, starts `BEGIN IMMEDIATE`, revalidates schema and
 history inside the transaction, reads and validates the singleton
 `writer_ownership` row, issues the next monotonic generation, stores only the
 private-proof digest, commits, closes the acquisition connection, and returns
-an internal session that retains the common lock.
+an internal session that retains the common lock. A missing writer row is valid
+before first acquisition; a present generation `0` row is malformed managed
+writer state.
 
-Close is explicit and idempotent. It marks the session closed before releasing
-resources, best-effort overwrites and drops the private proof, closes the
-common lock, and performs no SQLite update, delete, release marker, or
-generation reset. Mutation methods currently fail locally with
+Close is explicit and idempotent after completion. It marks the session closing
+before releasing resources, waits for any private operation guard to exit,
+lets exactly one cleanup owner enter cleaning, best-effort overwrites and drops
+the private proof, closes the common lock, then publishes closed. Concurrent
+explicit close callers wait for closed. Close performs no SQLite update, delete,
+release marker, or generation reset. Mutation methods currently enter the
+private guard and then fail locally with
 `writer_session_mutation_unavailable`.
 
 ## Backup

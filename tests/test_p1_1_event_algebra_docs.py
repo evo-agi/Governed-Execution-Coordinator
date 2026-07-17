@@ -22,12 +22,14 @@ def test_event_algebra_doc_pins_single_responsibility_owners() -> None:
 def test_event_algebra_doc_pins_failure_taxonomy_and_expected_version() -> None:
     text = _doc()
     for phrase in (
-        "Pre-Apply Invalid Command",
-        "Apply Conflict",
+        "Local / Pre-Store Invalid",
+        "Transactional Validation Conflict",
+        "Other Apply Conflicts",
         "Durable Domain Rejection",
         "Committed Acceptance",
         "Exact Replay",
         "Expected-version mismatch is an apply conflict",
+        "`validation_failed` is not a catch-all",
         "The event is the receipt",
         "Caller code never provides proposed state or proposed event",
         "External versioned inputs are exact-shape and non-coercing",

@@ -1,4 +1,4 @@
-"""SQLite connection posture for B1 bootstrap and migrations."""
+"""Internal SQLite connection posture helpers for B1 administration."""
 
 from __future__ import annotations
 
@@ -28,11 +28,13 @@ class SQLiteConnectionPosture:
     explicit_transaction_control: bool
 
 
-def open_sqlite_connection(
+def _open_sqlite_connection(
     location: CoordinatorStateLocation,
     *,
     busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
 ) -> sqlite3.Connection:
+    """Create/open the fixed database for explicit initialize only."""
+
     database_path = prepare_state_database(location)
     connection = _connect_path(str(database_path), busy_timeout_ms=busy_timeout_ms)
     try:
@@ -218,7 +220,6 @@ def _verify_posture(posture: SQLiteConnectionPosture, expected_busy_timeout_ms: 
     if not posture.extension_loading_disabled or not posture.explicit_transaction_control:
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
 
-
 def _verify_nonpersistent_posture(posture: SQLiteConnectionPosture, expected_busy_timeout_ms: int) -> None:
     if not posture.foreign_keys:
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
@@ -228,7 +229,3 @@ def _verify_nonpersistent_posture(posture: SQLiteConnectionPosture, expected_bus
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
     if not posture.extension_loading_disabled or not posture.explicit_transaction_control:
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
-
-
-def database_path_for_connection(location: CoordinatorStateLocation):
-    return prepare_state_database(location)

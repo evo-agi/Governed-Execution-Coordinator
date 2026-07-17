@@ -15,7 +15,7 @@ does not implement `StateStore` mutation semantics, work-item mutation APIs,
 global-stop mutation APIs, product reads, reports over the database,
 authorization, worker execution, scheduling, repair, local commit,
 publication, or service behavior. B2c separately implements internal writer
-ownership acquisition and writer issuance only.
+ownership acquisition, writer issuance, and private operation guarding only.
 
 Inspection and validation are observational existing-database operations.
 They must not create a missing state root, create a database file, write a
@@ -124,7 +124,9 @@ create-capable connection path for every operation. Observational
 inspect/validate opens only an existing file, uses create-disabled read-only
 mode where practical, applies only connection-local safety settings, and
 queries persistent journal posture. Administrative initialize is the only
-create-capable public operation. Administrative migrate uses create-disabled
+create-capable public operation. The create-capable connection helper is an
+internal administrative implementation surface used by initialize only; it is
+not a supported authority API. Administrative migrate uses create-disabled
 read/write mode only after observational managed preflight and revalidation.
 Values are bounded and not arbitrary SQL input.
 
@@ -188,7 +190,9 @@ B1.1 classifies the fixed database path:
   with no user-defined schema objects and no migration history;
 - managed: authoritative migration history exactly matches the packaged
   catalog, the full live schema manifest matches the packaged migration
-  result, and managed current-state invariants pass;
+  result, and managed current-state invariants pass. For `writer_ownership`,
+  no row is valid before first acquisition; a present row is valid only when
+  generation is an exact integer in `1..9223372036854775807`;
 - unknown/partially initialized: any unrecognized user-defined schema object,
   views or triggers without authoritative migration history, explicit indexes
   not in the expected manifest, invalid migration history, unexpected
@@ -284,6 +288,11 @@ a safe failure, and creates no usable partial session. A failure after commit
 but before session return may consume and skip the committed generation; it is
 never reused.
 
+B2c validates writer-row semantics with the same internal parser used by B1.1
+managed validation. A present generation `0`, negative, bool-like, or overflow
+row is malformed managed writer state even though migration `0001_initial`
+remains unchanged and still permits zero at the SQL check layer.
+
 B2b does not update `writer_ownership`; B2c updates it only during writer
 acquisition and never during session close.
 
@@ -309,5 +318,6 @@ B1 does not implement `StateStore.apply_transition`,
 database, worker execution, Bridge invocation, Codex invocation, service loops,
 scheduler loops, recovery loops, repair, commit, publication, or deployment.
 B2b's state-authority lock is necessary exclusion only and is not writer
-authority by itself. B2c's writer acquisition does not implement transition or
-global-stop mutation storage.
+authority by itself. B2c's writer acquisition and private operation guard do
+not implement transition or global-stop mutation storage. B2 still requires a
+fresh standalone re-audit before B3 begins.

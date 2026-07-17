@@ -12,8 +12,9 @@ explicit operator-local database bootstrap, observational validation, and
 migrations. B2a replaces standalone reconstructable public mutation authority
 with an opaque future `WriterSession` contract and safe writer metadata. B2b
 adds the common state-authority lock and uses it for initialize/migrate. B2c
-adds internal writer acquisition and session-local mutation-unavailable
-behavior. B2c does not implement a production `StateStore`, start a
+adds internal writer acquisition, a private operation guard, and
+session-local mutation-unavailable behavior. B2c does not implement a
+production `StateStore`, start a
 coordinator service, or enable executable A2 behavior.
 
 ## Decision
@@ -85,11 +86,11 @@ B1/B2b must not contain:
   publication, service, daemon, or deployment behavior.
 
 B2c may contain only internal writer acquisition, proof generation/digest
-verification, `writer_ownership` issuance updates, and a concrete internal
-`WriterSession` whose mutation methods fail locally. B2c must not contain a
-SQLite `StateStore`, event persistence, work-item mutation, global-stop
-mutation, reports over writer issuance, service behavior, worker execution, or
-executable A2 behavior.
+verification, `writer_ownership` issuance updates, private operation guarding,
+and a concrete internal `WriterSession` whose mutation methods fail locally.
+B2c must not contain a SQLite `StateStore`, event persistence, work-item
+mutation, global-stop mutation, reports over writer issuance, service
+behavior, worker execution, or executable A2 behavior.
 
 ## Backend Responsibility Matrix
 
@@ -182,9 +183,10 @@ The first local writer model is:
 The OS lock is live-process exclusion. The durable generation and private
 issuance proof are fencing authority. Neither is sufficient alone. The durable
 row is latest issuance evidence, not liveness truth. Safe writer metadata is
-not a credential. A process-local mutex is not sufficient. Workers, Bridge,
-reports, readers, and adapters never receive writer sessions or private writer
-credentials.
+not a credential. Process-local lifecycle synchronization and the private
+operation guard are necessary session controls but are not sufficient
+authority. Workers, Bridge, reports, readers, and adapters never receive writer
+sessions or private writer credentials.
 
 B2b implements the lock-file creation, validation, nonblocking exclusive
 `fcntl.flock` acquisition, release, fork/exec descriptor hygiene, same-process
@@ -230,8 +232,10 @@ Transition mutation transaction:
 9. Load lease identity, authorization, and dependency decision receipts.
 10. Require command and typed context to match persisted receipts, or rehydrate
     context exclusively from persisted receipts.
-11. If references or digests do not match authoritative records, return a
-    validation apply conflict with no event.
+11. If locally valid typed references or digests do not match authoritative
+    persisted records, return a `validation_failed` apply conflict with no
+    event. Parser, model-construction, session-lifecycle, and
+    mutation-unavailable failures do not reach this step.
 12. Invoke the pure evaluator with no external I/O.
 13. Insert exactly one transition event and replay snapshot.
 14. On acceptance, update `work_items`.
@@ -252,7 +256,9 @@ Global-stop mutation transaction:
 6. Load authoritative `global_stop_current`.
 7. Compare command expected version.
 8. Load the operator decision receipt.
-9. Verify command and typed operator decision against the persisted receipt.
+9. Verify command and typed operator decision against the persisted receipt;
+   mismatch is a `validation_failed` apply conflict, not a parser/session
+   failure.
 10. Invoke the pure global-stop evaluator with no external I/O.
 11. Insert exactly one global-stop event and replay snapshot.
 12. On acceptance, update `global_stop_current`.
@@ -307,6 +313,11 @@ the lock is held. B2c writer acquisition requires an existing managed
 database, revalidates while holding that same lock, validates again inside
 `BEGIN IMMEDIATE`, updates only `writer_ownership`, commits, closes the
 acquisition connection, and retains the lock in the returned internal session.
+B1.1 and B2c treat a missing writer row as the valid pre-first-acquisition
+state and a present generation `0` row as malformed managed writer state. B2c
+mutation-unavailable methods enter and exit the private operation guard so
+future B3/B4 transactions can retain proof and advisory-lock authority across
+the full operation. No B3/B4 persistence exists.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that

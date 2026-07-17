@@ -185,5 +185,16 @@ an internal concrete `WriterSession` retaining the common lock.
 
 The SQLite row remains latest issuance evidence only. It is not liveness truth,
 not a credential, and not sufficient to mutate work-item or global-stop state.
-B2c mutation methods fail locally with `writer_session_mutation_unavailable`.
-B3/B4 remain future for transition and global-stop persistence.
+B2 hardening adds generation-zero semantic rejection, child-side replacement
+of inherited session synchronization after fork, and a private
+operation-identity guard. Copied child leases no-op safely after fork;
+same-thread close fails locally with
+`writer_session_close_during_operation`; cross-thread close waits for active
+operations; operation leases retain the concrete session wrapper; and
+closing and cleaning are distinct so exactly one cleanup owner releases proof
+and advisory-lock resources before closed is published. Nonblocking fallback
+finalization may defer proof/lock cleanup until the last active operation exits,
+and concurrent explicit close callers wait for closed. B2c mutation methods
+enter that guard and fail locally with `writer_session_mutation_unavailable`.
+B3/B4 remain future for transition and global-stop persistence, and B2 still
+requires a fresh standalone re-audit before B3 begins.

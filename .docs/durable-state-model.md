@@ -68,9 +68,15 @@ mutation authority is session-bound. The atomic apply boundary owns:
 
 Expected-version mismatch is an apply conflict and creates no transition event.
 Stale writer sessions, idempotency key reuse with a different command digest,
-and authoritative not-found cases are also apply conflicts with no event.
+transactional validation failures, and authoritative not-found cases are also
+apply conflicts with no event.
 Closed writer sessions and writer-session process mismatches are session-local
 failures before the atomic store boundary, not apply conflicts.
+`validation_failed` is reserved for a future fenced SQLite transaction that has
+accepted locally valid typed inputs but discovers their persisted decision,
+global-stop, dependency, current-record, or addressing bindings do not match
+authoritative records. Parser failures, closed sessions, forked sessions, and
+B2c mutation-unavailable failures are local/pre-store invalid outcomes.
 
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. There is no separate result reason or receipt object
@@ -85,14 +91,24 @@ B1/B1.1 implements the SQLite bootstrap and forward-only migration layer for an
 explicitly requested local database plus observational existing-database
 inspection/validation. B1.1 managed validation checks migration-history/catalog
 equality, live-schema manifest equality, exactly one global-stop current
-singleton, and zero-or-one writer ownership row shape. B2a adds safe writer
+singleton, and zero-or-one writer ownership row semantics. A missing writer row
+is valid before first acquisition; a present writer row must have generation at
+least `1`. B2a adds safe writer
 metadata and an opaque `WriterSession` protocol. B2b adds shared
 state-authority lock integration for initialize/migrate. B2c adds internal
 writer acquisition, proof generation/verification, durable generation
-issuance, and session-local mutation-unavailable failures. It implements no
-SQLite `StateStore`, no work-item or global-stop mutation API, no transition
-or global-stop event persistence, no product read port, and no production
-persistence adapter.
+issuance, a private full-operation guard for future apply transactions, and
+session-local mutation-unavailable failures. The guard uses private operation
+identities and a lifecycle epoch, makes copied child leases no-op safely,
+rejects same-thread close with `writer_session_close_during_operation`, lets
+cross-thread close wait for active operations, retains the concrete session
+wrapper through each lease, and distinguishes closing from cleaning so exactly
+one cleanup owner releases proof/lock resources before closed is published.
+Nonblocking finalizer cleanup may defer proof/lock release until the last
+operation exits, and concurrent explicit close callers wait for closed before
+returning. It implements no SQLite `StateStore`, no work-item or global-stop
+mutation API, no transition or global-stop event persistence, no product read
+port, and no production persistence adapter.
 
 B0 selected SQLite, one private local database, as the future first production
 backend architecture. B1/B1.1 adds administrative database bootstrap,

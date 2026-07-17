@@ -14,11 +14,12 @@ from typing import Any, Iterable
 from ge_nwp_coordinator.sqlite_connection import (
     apply_observational_connection_posture,
     open_existing_sqlite_connection,
-    open_sqlite_connection,
+    _open_sqlite_connection,
 )
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_security import existing_state_database_path
+from ge_nwp_coordinator.sqlite_writer_state import _parse_writer_ownership_rows
 from ge_nwp_coordinator.state_authority_lock import acquire_state_authority_lock
 
 CURRENT_APPLICATION_SCHEMA = 1
@@ -187,7 +188,7 @@ def initialize_database(location: CoordinatorStateLocation) -> DatabaseInspectio
                 raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE)
             return locked
 
-        connection = open_sqlite_connection(location)
+        connection = _open_sqlite_connection(location)
         try:
             classification = _classify_open_database(connection, catalog, verify_managed=False)
             if classification is DatabaseClassification.EMPTY:
@@ -679,18 +680,10 @@ def _verify_writer_ownership_shape(connection: sqlite3.Connection) -> None:
         ).fetchall()
     except sqlite3.Error:
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
-    if len(rows) > 1:
+    try:
+        _parse_writer_ownership_rows(rows)
+    except ValueError:
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
-    if not rows:
-        return
-    singleton_id, writer_ref, generation, issued_ref, issuance_nonce_digest, acquired_at = rows[0]
-    if singleton_id != 1:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
-    if not (_bounded_text(writer_ref) and _is_non_negative_int(generation) and _bounded_text(issued_ref)):
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
-    if not _is_sha256_hex(issuance_nonce_digest):
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
-    _verify_timestamp(acquired_at, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
 
 
 def _verify_foreign_key_posture(connection: sqlite3.Connection) -> None:
@@ -754,8 +747,6 @@ def _is_non_negative_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
-def _is_sha256_hex(value: Any) -> bool:
-    return isinstance(value, str) and len(value) == 64 and value == value.lower() and all(c in "0123456789abcdef" for c in value)
 
 
 def _utc_now() -> str:

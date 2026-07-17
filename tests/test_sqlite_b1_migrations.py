@@ -8,7 +8,7 @@ import stat
 
 import pytest
 
-from ge_nwp_coordinator.sqlite_connection import open_sqlite_connection
+from ge_nwp_coordinator.sqlite_connection import _open_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import (
@@ -132,7 +132,7 @@ def _database_from_migration(
 ) -> CoordinatorStateLocation:
     location = _location(tmp_path)
     migration = load_migration_catalog().migrations[0]
-    connection = open_sqlite_connection(location)
+    connection = _open_sqlite_connection(location)
     try:
         connection.execute("BEGIN IMMEDIATE")
         for statement in _migration_statements(migration.sql_text):
@@ -460,7 +460,7 @@ def test_failing_migration_rolls_back_schema_and_history(tmp_path: Path) -> None
         description="bad migration for rollback test",
     )
 
-    connection = open_sqlite_connection(location)
+    connection = _open_sqlite_connection(location)
     try:
         with pytest.raises(SQLiteStateError, match="schema_verification_failed"):
             _apply_migration(connection, bad)
@@ -590,6 +590,26 @@ def test_writer_ownership_cardinality_and_shape_are_checked(tmp_path: Path) -> N
     )
 
     assert validate_database(location).classification is DatabaseClassification.MANAGED
+
+
+def test_writer_ownership_generation_semantics_are_checked_above_schema(tmp_path: Path) -> None:
+    for generation in (0, -1, "9223372036854775808"):
+        location = _location(tmp_path / f"generation-{generation}")
+        initialize_database(location)
+        _direct_execute(
+            location,
+            "PRAGMA ignore_check_constraints = ON",
+            f"""
+            INSERT INTO writer_ownership
+                (singleton_id, writer_ref, generation, issued_ref, issuance_nonce_digest, acquired_at)
+            VALUES
+                (1, 'writer-main', {generation!r}, 'issued-1',
+                 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+                 '2026-07-16T00:00:00Z')
+            """,
+        )
+
+        _assert_unknown(validate_database(location), "schema_verification_failed")
 
 
 def test_no_report_or_private_payload_tables_are_created(tmp_path: Path) -> None:

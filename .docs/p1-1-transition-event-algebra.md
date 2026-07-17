@@ -33,15 +33,29 @@ work, accept work, publish work, or become transition inputs.
 
 ## Failure Taxonomy
 
-### 1. Pre-Apply Invalid Command
+### 1. Local / Pre-Store Invalid
 
-Examples include malformed schema or digest, unsafe identifiers or references,
-wrong work-item addressing, broken decision binding, and cross-lease decision
-mismatch.
+Examples include malformed external mappings, invalid canonical digests,
+unsafe typed refs, impossible typed object construction, closed writer
+sessions, writer-session process mismatch, and B2c mutation-unavailable
+calls.
 
-Result: local safe validation failure, no event, and no store apply.
+Result: local safe validation failure, no event, no `StateStore` call, no
+SQLite apply, and no apply conflict. `validation_failed` is not a catch-all for
+parser, model-construction, session-lifecycle, or mutation-unavailable
+failures.
 
-### 2. Apply Conflict
+### 2. Transactional Validation Conflict
+
+Examples include locally valid typed commands or contexts whose persisted
+lease, authorization, dependency, global-stop, current-record, or addressing
+bindings do not match authoritative records inside the fenced SQLite atomic
+boundary.
+
+Result: `ApplyConflict` with `validation_failed`, no `TransitionEvent`, and no
+domain evaluation when the authoritative binding prerequisite failed.
+
+### 3. Other Apply Conflicts
 
 Examples include stale or wrong writer session, idempotency key reuse with a
 different command digest, expected-version conflict, and work item not found at
@@ -52,7 +66,7 @@ Result: `ApplyConflict`, no `TransitionEvent`.
 Expected-version mismatch is an apply conflict. It is not a domain rejection
 and creates no domain event.
 
-### 3. Durable Domain Rejection
+### 4. Durable Domain Rejection
 
 Examples include invalid predecessor, unsupported or blocked authorization,
 global stop, P1 `stage_not_enabled`, dependency failure, budget failure, and
@@ -61,12 +75,12 @@ missing required evidence.
 Result: `TransitionEvent` with `outcome=domain_rejected`. Current state remains
 unchanged, and the unchanged current state plus event are persisted atomically.
 
-### 4. Committed Acceptance
+### 5. Committed Acceptance
 
 Result: `TransitionEvent` with `outcome=accepted`. Next state and event are
 persisted atomically.
 
-### 5. Exact Replay
+### 6. Exact Replay
 
 Preconditions: valid active writer session, same idempotency key, and same
 canonical command digest.

@@ -86,6 +86,8 @@ def test_state_store_has_no_mutation_methods_and_writer_session_owns_them() -> N
 def test_writer_session_failure_reason_contract_is_safe_and_exported() -> None:
     assert WriterSessionFailureReason.WRITER_SESSION_CLOSED.value == "writer_session_closed"
     assert WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH.value == "writer_session_process_mismatch"
+    assert WriterSessionFailureReason.WRITER_SESSION_CLOSE_DURING_OPERATION.value == "writer_session_close_during_operation"
+    assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE.value == "writer_session_mutation_unavailable"
 
     error = WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
     assert error.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
@@ -100,7 +102,9 @@ def test_writer_session_failure_reason_contract_is_safe_and_exported() -> None:
 def test_writer_session_failure_reasons_are_not_apply_conflict_reasons() -> None:
     assert "writer_session_closed" not in APPLY_CONFLICT_REASONS
     assert "writer_session_process_mismatch" not in APPLY_CONFLICT_REASONS
+    assert "writer_session_close_during_operation" not in APPLY_CONFLICT_REASONS
     assert "writer_session_required" not in APPLY_CONFLICT_REASONS
+    assert "writer_session_mutation_unavailable" not in APPLY_CONFLICT_REASONS
     assert "stale_writer_token" in APPLY_CONFLICT_REASONS
 
 
@@ -109,6 +113,8 @@ def test_apply_conflict_reasons_exclude_writer_session_closed() -> None:
         TransitionConflict("writer_session_closed")
     with pytest.raises(ValueError, match="invalid_field_type:conflict_class"):
         TransitionConflict("writer_session_process_mismatch")
+    with pytest.raises(ValueError, match="invalid_field_type:conflict_class"):
+        TransitionConflict("writer_session_close_during_operation")
 
 
 def test_safe_writer_metadata_is_non_authoritative_and_non_secret() -> None:
@@ -170,6 +176,7 @@ def test_docs_pin_session_apply_domain_failure_layers() -> None:
         "WriterSession lifecycle failure",
         "writer_session_closed",
         "writer_session_process_mismatch",
+        "writer_session_close_during_operation",
         "Before any `StateStore` or atomic apply call",
         "No event, no apply conflict, no SQLite access, no idempotency disclosure",
         "Atomic apply conflict",
@@ -189,8 +196,10 @@ def test_docs_pin_session_failure_precedence_before_apply_boundary() -> None:
         "Validate acquiring-process identity.",
         "writer_session_process_mismatch",
         "No store call.",
-        "Validate session lifecycle.",
+        "Validate session lifecycle and enter the private operation guard.",
         "writer_session_closed",
+        "writer_session_close_during_operation",
+        "private operation guard is entered and exited",
         "Delegate to the fenced SQLite apply boundary.",
         "stale proof or generation returns `stale_writer_token`",
         "A closed session must not be reclassified as stale",
@@ -231,10 +240,11 @@ def test_writer_session_close_contract_is_idempotent_and_non_durable() -> None:
 
     assert "| Deliberate close |" in section
     for phrase in (
-        "marked closed/inactive before resource release",
-        "later operations fail with `writer_session_closed`",
-        "close is idempotent",
-        "future DB and lock resources are closed",
+        "exactly one cleanup owner enters cleaning",
+        "Successful explicit close returns only after closed means proof cleanup",
+        "advisory-lock close, and registry cleanup are complete",
+        "Later operations fail with `writer_session_closed`",
+        "close is idempotent after closed",
         "private-proof references are dropped",
         "No SQLite `writer_ownership` `UPDATE`, `DELETE`, or release-marker write occurs",
     ):
@@ -430,7 +440,8 @@ def test_fork_exec_and_thread_requirements_are_documented_without_overclaim() ->
         "reject use in a forked child",
         "mark the lock descriptor non-inheritable across exec",
         "os.register_at_fork",
-        "process-local mutex",
+        "process-local lifecycle synchronization",
+        "private operation-identity registry",
         "reject duplicate active sessions",
         "`FD_CLOEXEC` alone does not solve fork inheritance.",
     ):

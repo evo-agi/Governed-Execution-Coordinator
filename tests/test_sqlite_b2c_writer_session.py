@@ -6,7 +6,11 @@ import inspect
 import multiprocessing as mp
 import os
 from pathlib import Path
+import select
+import signal
 import sqlite3
+import threading
+import time
 import weakref
 
 import pytest
@@ -58,6 +62,10 @@ def _writer_generation(location: CoordinatorStateLocation) -> int:
     return int(rows[0][2])
 
 
+def _operation_count(resource) -> int:
+    return len(resource._active_operations)
+
+
 def _insert_writer_row(
     location: CoordinatorStateLocation,
     *,
@@ -91,6 +99,85 @@ def _insert_malformed_writer_row_ignoring_checks(location: CoordinatorStateLocat
             (digest,),
         )
         connection.commit()
+
+
+def _insert_writer_row_ignoring_checks(
+    location: CoordinatorStateLocation,
+    *,
+    generation: object,
+    writer_ref: str = "writer-existing",
+    issued_ref: str = "issuance-existing",
+    digest: str = "a" * 64,
+    acquired_at: str = "2026-07-16T00:00:00Z",
+) -> None:
+    with sqlite3.connect(location.database_path) as connection:
+        connection.execute("PRAGMA ignore_check_constraints = ON")
+        connection.execute(
+            """
+            INSERT INTO writer_ownership
+                (singleton_id, writer_ref, generation, issued_ref, issuance_nonce_digest, acquired_at)
+            VALUES (1, ?, ?, ?, ?, ?)
+            """,
+            (writer_ref, generation, issued_ref, digest, acquired_at),
+        )
+        connection.commit()
+
+
+def _wait_for_child_result(pid: int, read_fd: int, *, timeout: float = 3.0) -> str:
+    os.set_blocking(read_fd, False)
+    deadline = time.monotonic() + timeout
+    chunks: list[bytes] = []
+    while time.monotonic() < deadline:
+        ready, _, _ = select.select([read_fd], [], [], 0.05)
+        if ready:
+            try:
+                chunk = os.read(read_fd, 4096)
+            except BlockingIOError:
+                chunk = b""
+            if chunk:
+                chunks.append(chunk)
+        waited_pid, status = os.waitpid(pid, os.WNOHANG)
+        if waited_pid:
+            assert status == 0
+            return b"".join(chunks).decode("ascii")
+    os.kill(pid, signal.SIGKILL)
+    os.waitpid(pid, 0)
+    pytest.fail("child did not finish before timeout")
+
+
+def _read_pipe_message(read_fd: int, *, timeout: float = 3.0) -> str:
+    os.set_blocking(read_fd, False)
+    deadline = time.monotonic() + timeout
+    chunks: list[bytes] = []
+    while time.monotonic() < deadline:
+        ready, _, _ = select.select([read_fd], [], [], 0.05)
+        if ready:
+            try:
+                chunk = os.read(read_fd, 4096)
+            except BlockingIOError:
+                chunk = b""
+            if chunk:
+                chunks.append(chunk)
+                return b"".join(chunks).decode("ascii")
+    pytest.fail("child did not write before timeout")
+
+
+def _hold_condition(resource, held: threading.Event, release: threading.Event) -> None:
+    resource._condition.acquire()
+    try:
+        held.set()
+        assert release.wait(10)
+    finally:
+        resource._condition.release()
+
+
+def _wait_for_event(event: threading.Event, *, timeout: float = 2.0) -> None:
+    assert event.wait(timeout)
+
+
+def _join_thread(thread: threading.Thread, *, timeout: float = 2.0) -> None:
+    thread.join(timeout)
+    assert not thread.is_alive()
 
 
 def _attempt_writer_acquisition(root: str, sender) -> None:
@@ -187,7 +274,9 @@ def test_generation_zero_malformed_row_and_max_generation_fail_closed(tmp_path: 
     zero_location = _location(tmp_path / "zero")
     initialize_database(zero_location)
     _insert_writer_row(zero_location, generation=0)
-    assert validate_database(zero_location).classification is DatabaseClassification.MANAGED
+    zero_inspection = validate_database(zero_location)
+    assert zero_inspection.classification is DatabaseClassification.UNKNOWN
+    assert zero_inspection.reason == "schema_verification_failed"
 
     with pytest.raises(SQLiteWriterAcquisitionError) as zero_error:
         acquire_sqlite_writer_session(zero_location)
@@ -200,6 +289,43 @@ def test_generation_zero_malformed_row_and_max_generation_fail_closed(tmp_path: 
         acquire_sqlite_writer_session(max_location)
     assert max_error.value.reason is SQLiteWriterAcquisitionFailureReason.WRITER_GENERATION_EXHAUSTED
     assert _writer_generation(max_location) == MAX_WRITER_GENERATION
+
+
+def test_writer_generation_semantics_match_between_validation_and_acquisition(tmp_path: Path) -> None:
+    absent_row_location = _location(tmp_path / "absent-row")
+    initialize_database(absent_row_location)
+    assert validate_database(absent_row_location).classification is DatabaseClassification.MANAGED
+    first = acquire_sqlite_writer_session(absent_row_location)
+    assert first.metadata.generation == 1
+    first.close()
+
+    generation_one_location = _location(tmp_path / "generation-one")
+    initialize_database(generation_one_location)
+    _insert_writer_row(generation_one_location, generation=1)
+    assert validate_database(generation_one_location).classification is DatabaseClassification.MANAGED
+    second = acquire_sqlite_writer_session(generation_one_location)
+    assert second.metadata.generation == 2
+    second.close()
+
+    max_location = _location(tmp_path / "maximum")
+    initialize_database(max_location)
+    _insert_writer_row(max_location, generation=MAX_WRITER_GENERATION)
+    assert validate_database(max_location).classification is DatabaseClassification.MANAGED
+    with pytest.raises(SQLiteWriterAcquisitionError) as max_error:
+        acquire_sqlite_writer_session(max_location)
+    assert max_error.value.reason is SQLiteWriterAcquisitionFailureReason.WRITER_GENERATION_EXHAUSTED
+
+    malformed_generations = (0, -1, str(MAX_WRITER_GENERATION + 1))
+    for index, generation in enumerate(malformed_generations):
+        location = _location(tmp_path / f"malformed-{index}")
+        initialize_database(location)
+        _insert_writer_row_ignoring_checks(location, generation=generation)
+        inspection = validate_database(location)
+        assert inspection.classification is DatabaseClassification.UNKNOWN
+        assert inspection.reason == "schema_verification_failed"
+        with pytest.raises(SQLiteWriterAcquisitionError) as exc_info:
+            acquire_sqlite_writer_session(location)
+        assert exc_info.value.reason is SQLiteWriterAcquisitionFailureReason.WRITER_STATE_MALFORMED
 
 
 def test_malformed_digest_row_uses_writer_state_malformed_reason(tmp_path: Path) -> None:
@@ -216,9 +342,11 @@ def test_writer_row_parser_rejects_malformed_singleton_shapes() -> None:
     valid_digest = "b" * 64
     valid_time = "2026-07-16T00:00:00Z"
     malformed_rows = (
+        [(1, "writer-a", 0, "issuance-a", valid_digest, valid_time)],
         [(1, "writer-a", True, "issuance-a", valid_digest, valid_time)],
         [(2, "writer-a", 1, "issuance-a", valid_digest, valid_time)],
         [(1, "writer-a", -1, "issuance-a", valid_digest, valid_time)],
+        [(1, "writer-a", MAX_WRITER_GENERATION + 1, "issuance-a", valid_digest, valid_time)],
         [(1, "writer-a", 1, "issuance-a", "B" * 64, valid_time)],
         [(1, "writer-a", 1, "issuance-a", valid_digest, "not-a-time")],
         [(1, "writer-a", 1, "issuance-a", valid_digest, valid_time, "extra")],
@@ -493,6 +621,7 @@ def test_session_lifecycle_context_manager_and_mutation_unavailable_boundary(
     with pytest.raises(WriterSessionError) as closed_mutation:
         active.apply_transition(None, None)  # type: ignore[arg-type]
     assert closed_mutation.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+    assert _operation_count(active._resource) == 0
 
 
 def test_process_mismatch_fails_locally_without_private_detail(
@@ -509,6 +638,450 @@ def test_process_mismatch_fails_locally_without_private_detail(
         session.apply_transition(None, None)  # type: ignore[arg-type]
     assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH
     assert str(owner_pid) not in str(exc_info.value)
+    assert _operation_count(session._resource) == 0
+
+
+def test_foreign_process_cleanup_replaces_locked_session_synchronization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    old_condition = resource._condition
+    old_condition.acquire()
+    owner_pid = os.getpid()
+    results: list[str] = []
+
+    def call_active_with_foreign_pid() -> None:
+        try:
+            results.append(str(session.active))
+        except BaseException as exc:  # noqa: BLE001 - test must surface unexpected safe class
+            results.append(exc.__class__.__name__)
+
+    try:
+        monkeypatch.setattr(writer_module.os, "getpid", lambda: owner_pid + 1)
+        thread = threading.Thread(target=call_active_with_foreign_pid)
+        thread.start()
+        thread.join(1)
+        assert not thread.is_alive()
+        assert results == ["False"]
+        assert resource._condition is not old_condition
+        assert resource._state == writer_module._FORK_INVALID
+        assert _operation_count(resource) == 0
+    finally:
+        old_condition.release()
+
+
+def test_nested_operation_leases_are_independent_identities(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+
+    first = resource.operation_guard(session)
+    second = resource.operation_guard(session)
+    assert _operation_count(resource) == 2
+
+    first._close()
+    first._close()
+    assert _operation_count(resource) == 1
+    assert session.active is True
+
+    second._close()
+    assert _operation_count(resource) == 0
+    session.close()
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_same_thread_close_during_operation_fails_without_releasing_authority(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    proof = resource._credential._proof
+    lease = resource.operation_guard(session)
+
+    with pytest.raises(WriterSessionError) as exc_info:
+        session.close()
+    assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSE_DURING_OPERATION
+    assert resource._state == writer_module._ACTIVE
+    assert _operation_count(resource) == 1
+    assert resource._credential is not None
+    assert resource._authority_lock is not None
+    assert set(proof) != {0}
+    assert _run_writer_attempt(location) == "state_authority_lock_busy"
+
+    lease._close()
+    session.close()
+    assert resource._state == writer_module._CLOSED
+    assert set(proof) == {0}
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_operation_guard_close_waits_and_retains_authority_until_exit(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    proof = resource._credential._proof
+    lease = resource.operation_guard(session)
+    assert _operation_count(resource) == 1
+
+    close_finished = threading.Event()
+
+    def close_session() -> None:
+        session.close()
+        close_finished.set()
+
+    closer = threading.Thread(target=close_session)
+    closer.start()
+    deadline = time.monotonic() + 2.0
+    while time.monotonic() < deadline:
+        with resource._condition:
+            if resource._state == writer_module._CLOSING:
+                break
+        time.sleep(0.01)
+    assert resource._state == writer_module._CLOSING
+    assert not close_finished.is_set()
+    assert session.active is False
+    assert resource._credential is not None
+    assert resource._authority_lock is not None
+    assert set(proof) != {0}
+    assert _run_writer_attempt(location) == "state_authority_lock_busy"
+
+    with pytest.raises(WriterSessionError) as closing_error:
+        session.apply_transition(None, None)  # type: ignore[arg-type]
+    assert closing_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+    assert _operation_count(resource) == 1
+
+    lease._close()
+    closer.join(2)
+    assert close_finished.is_set()
+    assert _operation_count(resource) == 0
+    assert resource._state == writer_module._CLOSED
+    assert resource._credential is None
+    assert resource._authority_lock is None
+    assert set(proof) == {0}
+    session.close()
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_concurrent_close_waits_until_authoritative_cleanup_completes(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    authority_lock = resource._authority_lock
+    original_close = authority_lock.close
+    cleanup_started = threading.Event()
+    release_cleanup = threading.Event()
+    cleanup_done = threading.Event()
+    first_done = threading.Event()
+    second_done = threading.Event()
+    close_call_count = 0
+    close_call_lock = threading.Lock()
+
+    def slow_authority_close() -> None:
+        nonlocal close_call_count
+        with close_call_lock:
+            close_call_count += 1
+        cleanup_started.set()
+        _wait_for_event(release_cleanup, timeout=5.0)
+        try:
+            original_close()
+        finally:
+            cleanup_done.set()
+
+    authority_lock.close = slow_authority_close
+
+    first = threading.Thread(target=lambda: (session.close(), first_done.set()))
+    first.start()
+    _wait_for_event(cleanup_started)
+    assert resource._state == writer_module._CLEANING
+
+    second = threading.Thread(target=lambda: (session.close(), second_done.set()))
+    second.start()
+    second_returned_before_cleanup = second_done.wait(0.25)
+    assert second_returned_before_cleanup is False
+    assert cleanup_done.is_set() is False
+    assert resource._state == writer_module._CLEANING
+    with pytest.raises(StateAuthorityLockError) as busy_error:
+        acquire_state_authority_lock(location)
+    assert busy_error.value.reason is StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY
+
+    release_cleanup.set()
+    _join_thread(first)
+    _join_thread(second)
+    assert first_done.is_set()
+    assert second_done.is_set()
+    assert cleanup_done.is_set()
+    assert resource._state == writer_module._CLOSED
+    assert close_call_count == 1
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_many_concurrent_close_callers_share_one_cleanup(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    authority_lock = resource._authority_lock
+    original_close = authority_lock.close
+    start = threading.Barrier(6)
+    close_call_count = 0
+    close_call_lock = threading.Lock()
+    errors: list[BaseException] = []
+
+    def counted_authority_close() -> None:
+        nonlocal close_call_count
+        with close_call_lock:
+            close_call_count += 1
+        time.sleep(0.05)
+        original_close()
+
+    authority_lock.close = counted_authority_close
+
+    def close_session() -> None:
+        try:
+            start.wait(2)
+            session.close()
+        except BaseException as exc:  # noqa: BLE001 - test collects thread failures
+            errors.append(exc)
+
+    threads = [threading.Thread(target=close_session) for _index in range(5)]
+    for thread in threads:
+        thread.start()
+    start.wait(2)
+    for thread in threads:
+        _join_thread(thread)
+
+    assert errors == []
+    assert resource._state == writer_module._CLOSED
+    assert close_call_count == 1
+    session.close()
+    assert close_call_count == 1
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_finalizer_defers_cleanup_for_active_operation_without_waiting(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    proof = resource._credential._proof
+    lease = resource.operation_guard(session)
+
+    writer_module._finalize_writer_session_resource(resource)
+    assert resource._state == writer_module._CLOSING
+    assert resource._deferred_cleanup_requested is True
+    assert resource._credential is not None
+    assert resource._authority_lock is not None
+    assert set(proof) != {0}
+    assert _run_writer_attempt(location) == "state_authority_lock_busy"
+
+    lease._close()
+    assert resource._state == writer_module._CLOSED
+    assert resource._credential is None
+    assert resource._authority_lock is None
+    assert set(proof) == {0}
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_close_waits_for_last_operation_owned_deferred_cleanup(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    lease = resource.operation_guard(session)
+    authority_lock = resource._authority_lock
+    original_close = authority_lock.close
+    cleanup_started = threading.Event()
+    release_cleanup = threading.Event()
+    cleanup_done = threading.Event()
+    close_done = threading.Event()
+    lease_done = threading.Event()
+    close_call_count = 0
+
+    def slow_authority_close() -> None:
+        nonlocal close_call_count
+        close_call_count += 1
+        cleanup_started.set()
+        _wait_for_event(release_cleanup, timeout=5.0)
+        original_close()
+        cleanup_done.set()
+
+    authority_lock.close = slow_authority_close
+
+    writer_module._finalize_writer_session_resource(resource)
+    assert resource._state == writer_module._CLOSING
+    assert resource._deferred_cleanup_requested is True
+
+    closer = threading.Thread(target=lambda: (session.close(), close_done.set()))
+    closer.start()
+    time.sleep(0.05)
+    assert close_done.is_set() is False
+
+    releaser = threading.Thread(target=lambda: (lease._close(), lease_done.set()))
+    releaser.start()
+    _wait_for_event(cleanup_started)
+    assert resource._state == writer_module._CLEANING
+    assert close_done.is_set() is False
+    with pytest.raises(StateAuthorityLockError) as busy_error:
+        acquire_state_authority_lock(location)
+    assert busy_error.value.reason is StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY
+
+    release_cleanup.set()
+    _join_thread(releaser)
+    _join_thread(closer)
+    assert lease_done.is_set()
+    assert close_done.is_set()
+    assert cleanup_done.is_set()
+    assert close_call_count == 1
+    assert resource._state == writer_module._CLOSED
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_close_waits_when_resource_finalizer_owns_cleanup(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    authority_lock = resource._authority_lock
+    original_close = authority_lock.close
+    cleanup_started = threading.Event()
+    release_cleanup = threading.Event()
+    finalizer_done = threading.Event()
+    close_done = threading.Event()
+    close_call_count = 0
+
+    def slow_authority_close() -> None:
+        nonlocal close_call_count
+        close_call_count += 1
+        cleanup_started.set()
+        _wait_for_event(release_cleanup, timeout=5.0)
+        original_close()
+
+    authority_lock.close = slow_authority_close
+
+    finalizer_thread = threading.Thread(
+        target=lambda: (writer_module._finalize_writer_session_resource(resource), finalizer_done.set())
+    )
+    finalizer_thread.start()
+    _wait_for_event(cleanup_started)
+    assert resource._state == writer_module._CLEANING
+
+    closer = threading.Thread(target=lambda: (session.close(), close_done.set()))
+    closer.start()
+    assert close_done.wait(0.25) is False
+    with pytest.raises(StateAuthorityLockError) as busy_error:
+        acquire_state_authority_lock(location)
+    assert busy_error.value.reason is StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY
+
+    release_cleanup.set()
+    _join_thread(finalizer_thread)
+    _join_thread(closer)
+    assert finalizer_done.is_set()
+    assert close_done.is_set()
+    assert close_call_count == 1
+    assert resource._state == writer_module._CLOSED
+    session.close()
+    assert close_call_count == 1
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_operation_lease_retains_wrapper_and_authority_until_exit(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    proof = resource._credential._proof
+    lease = resource.operation_guard(session)
+    session_ref = weakref.ref(session)
+
+    session = None
+    gc.collect()
+    assert session_ref() is not None
+    assert _operation_count(resource) == 1
+    assert resource._state == writer_module._ACTIVE
+    assert resource._credential is not None
+    assert resource._authority_lock is not None
+    assert set(proof) != {0}
+    assert _run_writer_attempt(location) == "state_authority_lock_busy"
+
+    lease._close()
+    lease = None
+    gc.collect()
+    assert _operation_count(resource) == 0
+    assert resource._state == writer_module._CLOSED
+    assert resource._credential is None
+    assert resource._authority_lock is None
+    assert set(proof) == {0}
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_abandoned_operation_lease_and_wrapper_cleanup_converges(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    proof = resource._credential._proof
+    lease = resource.operation_guard(session)
+    session_ref = weakref.ref(session)
+    lease_ref = weakref.ref(lease)
+
+    session = None
+    lease = None
+    gc.collect()
+
+    assert session_ref() is None
+    assert lease_ref() is None
+    assert _operation_count(resource) == 0
+    assert resource._state == writer_module._CLOSED
+    assert resource._credential is None
+    assert resource._authority_lock is None
+    assert set(proof) == {0}
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_mutation_unavailable_methods_enter_and_exit_operation_guard(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    entered = 0
+    exited = 0
+    original_guard = resource.operation_guard
+
+    class TrackingGuard:
+        def __init__(self, owner_session):
+            self._lease = original_guard(owner_session)
+
+        def __enter__(self):
+            nonlocal entered
+            entered += 1
+            return self._lease.__enter__()
+
+        def __exit__(self, exc_type, exc, traceback):
+            nonlocal exited
+            exited += 1
+            return self._lease.__exit__(exc_type, exc, traceback)
+
+    monkeypatch.setattr(resource, "operation_guard", TrackingGuard)
+    with pytest.raises(WriterSessionError) as transition_error:
+        session.apply_transition(None, None)  # type: ignore[arg-type]
+    assert transition_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+    with pytest.raises(WriterSessionError) as global_stop_error:
+        session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
+    assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+    assert entered == 2
+    assert exited == 2
+    assert _operation_count(resource) == 0
+    session.close()
 
 
 def test_fork_child_session_is_invalidated_and_parent_remains_active(tmp_path: Path) -> None:
@@ -545,6 +1118,170 @@ def test_fork_child_session_is_invalidated_and_parent_remains_active(tmp_path: P
     assert _run_writer_attempt(location) == "state_authority_lock_busy"
     session.close()
     assert _run_writer_attempt(location) == "acquired:2"
+
+
+def test_fork_child_operation_with_inherited_locked_session_sync_does_not_hang(tmp_path: Path) -> None:
+    if not hasattr(os, "fork"):
+        pytest.skip("fork is not available")
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    lease = resource.operation_guard(session)
+    old_condition = resource._condition
+    copied_epoch = lease._lifecycle_epoch
+    held = threading.Event()
+    release = threading.Event()
+    holder = threading.Thread(target=_hold_condition, args=(resource, held, release), daemon=True)
+    holder.start()
+    assert held.wait(2)
+
+    read_fd, write_fd = os.pipe()
+    child_pid = os.fork()
+    if child_pid == 0:
+        os.close(read_fd)
+        try:
+            try:
+                session.apply_transition(None, None)  # type: ignore[arg-type]
+            except WriterSessionError as exc:
+                reason = exc.reason.value
+            else:
+                reason = "unexpected-active"
+            fresh_sync = session._resource._condition is not old_condition
+            active_count = _operation_count(session._resource)
+            stale_lease = copied_epoch != session._resource._lifecycle_epoch
+            proof_state = "cleared" if session._resource._credential is None else "kept"
+            os.write(write_fd, f"{reason}:{fresh_sync}:{active_count}:{stale_lease}:{proof_state}".encode("ascii"))
+        finally:
+            os.close(write_fd)
+            os._exit(0)
+
+    os.close(write_fd)
+    try:
+        child_result = _wait_for_child_result(child_pid, read_fd)
+    finally:
+        os.close(read_fd)
+        release.set()
+        holder.join(2)
+    assert child_result == "writer_session_process_mismatch:True:0:True:cleared"
+    assert resource._condition is old_condition
+    assert _operation_count(resource) == 1
+    assert session.active is True
+    lease._close()
+    session.close()
+
+
+def test_fork_child_copied_operation_lease_exit_and_finalizer_are_noops(tmp_path: Path) -> None:
+    if not hasattr(os, "fork"):
+        pytest.skip("fork is not available")
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    exit_lease = resource.operation_guard(session)
+    finalizer_lease = resource.operation_guard(session)
+    exit_epoch = exit_lease._lifecycle_epoch
+    finalizer_epoch = finalizer_lease._lifecycle_epoch
+
+    read_fd, write_fd = os.pipe()
+    child_pid = os.fork()
+    if child_pid == 0:
+        os.close(read_fd)
+        try:
+            try:
+                exit_lease._close()
+                exit_lease._close()
+                exit_result = "exit-ok"
+            except BaseException as exc:  # noqa: BLE001 - raw lifecycle errors must fail the test
+                exit_result = f"exit-{exc.__class__.__name__}"
+            try:
+                finalizer_lease = None
+                gc.collect()
+                finalizer_result = "finalizer-ok"
+            except BaseException as exc:  # noqa: BLE001
+                finalizer_result = f"finalizer-{exc.__class__.__name__}"
+            try:
+                session.apply_transition(None, None)  # type: ignore[arg-type]
+            except WriterSessionError as exc:
+                session_result = exc.reason.value
+            else:
+                session_result = "unexpected-active"
+            active_count = _operation_count(session._resource)
+            stale_epochs = (
+                exit_epoch != session._resource._lifecycle_epoch
+                and finalizer_epoch != session._resource._lifecycle_epoch
+            )
+            os.write(
+                write_fd,
+                f"{exit_result}:{finalizer_result}:{session_result}:{active_count}:{stale_epochs}".encode("ascii"),
+            )
+        finally:
+            os.close(write_fd)
+            os._exit(0)
+
+    os.close(write_fd)
+    try:
+        child_result = _wait_for_child_result(child_pid, read_fd)
+    finally:
+        os.close(read_fd)
+    assert child_result == "exit-ok:finalizer-ok:writer_session_process_mismatch:0:True"
+    assert _operation_count(resource) == 2
+    assert session.active is True
+    exit_lease._close()
+    finalizer_lease._close()
+    assert _operation_count(resource) == 0
+    session.close()
+
+
+def test_fork_child_finalizer_with_inherited_locked_session_sync_does_not_hang_or_prolong_lock(tmp_path: Path) -> None:
+    if not hasattr(os, "fork"):
+        pytest.skip("fork is not available")
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    old_condition = resource._condition
+    held = threading.Event()
+    release_holder = threading.Event()
+    holder = threading.Thread(target=_hold_condition, args=(resource, held, release_holder), daemon=True)
+    holder.start()
+    assert held.wait(2)
+
+    result_read, result_write = os.pipe()
+    release_child_read, release_child_write = os.pipe()
+    child_pid = os.fork()
+    if child_pid == 0:
+        os.close(result_read)
+        os.close(release_child_write)
+        try:
+            session.close()
+            fresh_sync = session._resource._condition is not old_condition
+            active_count = _operation_count(session._resource)
+            os.write(result_write, f"closed:{fresh_sync}:{active_count}".encode("ascii"))
+            os.read(release_child_read, 1)
+        finally:
+            os.close(result_write)
+            os.close(release_child_read)
+            os._exit(0)
+
+    os.close(result_write)
+    os.close(release_child_read)
+    try:
+        child_result = _read_pipe_message(result_read)
+    finally:
+        os.close(result_read)
+        release_holder.set()
+        holder.join(2)
+    assert child_result == "closed:True:0"
+    assert session.active is True
+    assert _run_writer_attempt(location) == "state_authority_lock_busy"
+    session.close()
+    assert _run_writer_attempt(location) == "acquired:2"
+    os.write(release_child_write, b"x")
+    os.close(release_child_write)
+    waited_pid, status = os.waitpid(child_pid, 0)
+    assert waited_pid == child_pid
+    assert status == 0
 
 
 def test_fork_child_does_not_prolong_lock_after_parent_close(tmp_path: Path) -> None:
@@ -599,8 +1336,12 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
     assert "acquire_sqlite_writer_session" not in package_exports
     assert "SQLiteWriterAcquisitionError" not in package_exports
     assert "_SQLiteWriterSession" not in package_exports
+    assert "_WriterSessionOperationLease" not in package_exports
+    assert "_PrivateWriterCredential" not in package_exports
     assert not hasattr(ge_nwp_coordinator, "acquire_sqlite_writer_session")
     assert not hasattr(ge_nwp_coordinator, "_SQLiteWriterSession")
+    assert not hasattr(ge_nwp_coordinator, "_WriterSessionOperationLease")
+    assert not hasattr(ge_nwp_coordinator, "_PrivateWriterCredential")
 
     source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
     for forbidden in (
@@ -609,6 +1350,7 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
         "get_writer_credential",
         "get_writer_proof",
         "get_writer_digest",
+        "get_operation_guard",
         "class SQLiteStateStore",
         "class SqliteStateStore",
         "INSERT INTO transition_events",
@@ -629,3 +1371,22 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
     assert migrations == ["0001_initial.sql"]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
+
+
+def test_operation_guard_credential_and_proof_are_not_public_projection_surfaces(tmp_path: Path) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    lease = session._resource.operation_guard(session)
+    try:
+        serialized = repr((session.metadata, lease, session._resource._credential)).lower()
+        assert "proof" not in repr(session.metadata).lower()
+        assert "digest" not in repr(session.metadata).lower()
+        assert "proof" not in serialized
+        assert "digest" not in serialized
+        assert not hasattr(lease, "to_dict")
+        assert not hasattr(lease, "metadata")
+        assert not hasattr(session._resource._credential, "to_dict")
+    finally:
+        lease._close()
+        session.close()

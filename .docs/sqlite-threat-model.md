@@ -122,8 +122,16 @@ execution, or product read/report authority over SQLite.
 B2c adds runtime writer issuance. Durable `writer_ownership` metadata remains
 latest issuance evidence only, and mutation authority requires an active
 internal `WriterSession` holding a private proof and the common
-state-authority lock. In B2c, mutation methods still fail before any apply
-boundary with `writer_session_mutation_unavailable`.
+state-authority lock. In B2c, mutation methods enter a private operation guard
+and still fail before any apply boundary with
+`writer_session_mutation_unavailable`. The guard prevents close from releasing
+the proof or advisory lock while a future operation is active. Operation
+leases carry private operation identity and lifecycle epoch, retain the
+concrete session wrapper, and no-op safely when a copied child lease exits
+after fork. Same-thread close fails locally with
+`writer_session_close_during_operation`; cross-thread and concurrent close
+callers wait until proof cleanup, advisory-lock close, and registry cleanup have
+completed.
 
 Descriptor lifecycle threats:
 
@@ -137,6 +145,16 @@ Descriptor lifecycle threats:
 - child fork cleanup does not acquire inherited Python locks, closes inherited
   descriptors from that snapshot, and does not explicitly unlock parent
   authority;
+- B2c child session invalidation replaces inherited per-session
+  synchronization with fresh child-local synchronization, increments the
+  child-side lifecycle epoch, clears the child operation registry, clears the
+  copied proof, and fails later child session use with
+  `writer_session_process_mismatch`;
+- B2c session fallback finalization is nonblocking: it may mark cleanup
+  deferred while operations remain active, and the last operation may become
+  the single cleanup owner. Closing and cleaning are distinct; closed is
+  published only after proof/lock cleanup and active-session registry cleanup
+  complete;
 - finalizer cleanup is quiet and must not emit paths, descriptors, process ids,
   inodes, raw OS errors, or authority reports.
 

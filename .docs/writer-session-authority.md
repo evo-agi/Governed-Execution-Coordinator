@@ -4,10 +4,11 @@ Status: B2c durable writer issuance and internal writer-session acquisition.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
-updates, and an internal concrete `WriterSession`. B2c implements an internal concrete `WriterSession`.
-No `StateStore` mutation backend, transition persistence, global-stop
+updates, and an internal concrete `WriterSession`. No `StateStore` mutation
+backend, transition persistence, global-stop
 persistence, worker, service, scheduler, executable authorization, repair,
 commit, publication, or deployment behavior exists.
+B2c implements an internal concrete `WriterSession`.
 
 ## Purpose
 
@@ -58,8 +59,9 @@ public errors, reports, metadata, equality, hashing, or repr output.
 
 `WriterSession` is the opaque live mutation capability. In B2c the concrete
 SQLite session is internal. It owns the advisory-lock object, owns the private
-credential, is bound to the acquiring process, and has an active/closing/closed
-lifecycle. Mutation methods exist on the session surface but fail locally with
+credential, is bound to the acquiring process, and has an
+active/closing/cleaning/closed lifecycle. Mutation methods exist on the session
+surface but fail locally with
 `writer_session_mutation_unavailable` until B3/B4 implement storage.
 
 ### SafeWriterMetadata
@@ -80,7 +82,7 @@ mutation.
 The SQLite `writer_ownership` row records the latest durable fencing issuance.
 It is not current-process truth. It is not lock ownership truth. It is not an active-session registry.
 Absence or presence of a row does not prove whether a lock is held. Safe metadata cannot reconstruct authority.
-Safe metadata cannot reconstruct authority; no B2a observer API claims liveness.
+no B2a observer API claims liveness.
 B2c still adds no latest-writer or current-writer read surface.
 
 ## Public Contract
@@ -99,16 +101,20 @@ test-only under temporary roots.
 
 | Layer | Owner | Examples | Boundary | Result semantics |
 | --- | --- | --- | --- | --- |
-| WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
-| Atomic apply conflict | Future fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found` | Requires a session that passed local lifecycle checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
+| WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_close_during_operation`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
+| Atomic apply conflict | Future fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found`, `validation_failed` | Requires a session that passed local lifecycle checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
 | Domain result | Pure evaluator reached through the atomic boundary | accepted event or domain-rejected event | Reached only after session and apply checks pass | Exactly one accepted or domain-rejected event is the durable receipt. |
 
-`writer_session_closed`, `writer_session_process_mismatch`, and
+`writer_session_closed`, `writer_session_process_mismatch`,
+`writer_session_close_during_operation`, and
 `writer_session_mutation_unavailable` are safe session-local failure reasons.
 They are not `TransitionConflict` or `GlobalStopConflict` classes and must not
 be added to apply-conflict reason sets. `stale_writer_token` remains a fenced
 atomic-apply conflict for an otherwise active session whose durable writer
 generation or issuance proof is rejected.
+`validation_failed` is reserved for locally valid typed command/context values
+whose authoritative persisted bindings fail inside the fenced atomic boundary.
+It is not a parser, session-lifecycle, or mutation-unavailable catch-all.
 
 Writer-acquisition failures use a separate closed vocabulary:
 
@@ -128,15 +134,21 @@ Future `WriterSession` mutation calls use this order:
    If the current process identity differs, fail locally with
    `writer_session_process_mismatch`. No store call.
 
-2. Validate session lifecycle.
+2. Validate session lifecycle and enter the private operation guard.
 
    If the session is closing, closed, or inactive, fail locally with
    `writer_session_closed`. No store call.
 
+   If the same thread attempts to close the session while it owns an active
+   operation, fail locally with `writer_session_close_during_operation`. The
+   session remains active, the operation remains registered, and no store call
+   occurs.
+
 3. In B2c, fail locally with `writer_session_mutation_unavailable`.
 
    No store call, SQLite apply call, event, apply conflict, or durable mutation
-   occurs.
+   occurs. The private operation guard is entered and exited around this local
+   failure to pin future B3/B4 close-versus-apply ordering.
 
 4. Delegate to the fenced SQLite apply boundary.
 
@@ -193,7 +205,9 @@ B2c writer acquisition order is:
 6. Execute `BEGIN IMMEDIATE`.
 7. Revalidate schema and migration history inside the transaction using the
    B1.1 managed-connection helper.
-8. Read and strictly validate the `writer_ownership` singleton row.
+8. Read and strictly validate the `writer_ownership` singleton row. A missing
+   row is the valid pre-first-acquisition state; a present row must use an
+   exact integer generation in `1..9223372036854775807`.
 9. Calculate the next generation.
 10. Generate independent `writer_ref`, `issued_ref`, and raw 32-byte proof.
 11. Store only the domain-separated proof digest.
@@ -214,28 +228,63 @@ The session lifecycle is:
 - acquired;
 - active;
 - closing;
-- closed.
+- cleaning;
+- closed;
+- fork-invalid in a child copy.
 
 B2c implements and tests an internal concrete `WriterSession`. The session
 retains the B2b state-authority lock for its lifetime, holds the private
 credential, exposes only safe metadata, and closes the acquisition SQLite
 connection before returning to the caller.
 
-Mutation methods in B2c first validate process identity, then active lifecycle,
-then fail locally with `writer_session_mutation_unavailable`. They do not open
-SQLite, do not call a `StateStore` apply method, do not inspect idempotency, do
-not emit an event, and do not mutate state.
+Mutation methods in B2c first validate process identity, then enter a private
+operation guard, then fail locally with `writer_session_mutation_unavailable`.
+They do not open SQLite, do not call a `StateStore` apply method, do not
+inspect idempotency, do not emit an event, and do not mutate state.
+
+The private operation guard uses process-local lifecycle synchronization and a
+private operation-identity registry, not a count-only authority truth. Each
+operation lease captures an operation identity, the current lifecycle epoch,
+the acquiring process identity, and the owning thread identity. The lease also
+retains a strong reference to the concrete session wrapper so wrapper
+finalization cannot release proof or lock authority while the operation is
+active. Nested operations are allowed as independent private operation
+identities.
+
+Operation entry rejects foreign, fork-invalid, closing, cleaning, or closed
+sessions before recording an operation identity. Explicit close transitions
+active sessions to closing, rejects new operations, and waits for operations
+owned by other threads to leave. When operations drain, exactly one cleanup
+owner transitions closing to cleaning, detaches proof and lock resources, clears
+the proof, releases the common lock, removes the active-session registry entry,
+then publishes closed. Cleaning means that authoritative cleanup is in progress
+outside the lifecycle critical section; closed means proof cleanup, advisory-lock
+close, and registry cleanup have completed. Concurrent explicit close callers
+that observe closing or cleaning wait until closed before returning.
+Same-thread close during an active operation fails promptly with
+`writer_session_close_during_operation`, does not transition the session to
+closing, and does not clear proof or release the common lock. Close remains
+idempotent after closed and performs no SQLite writer-row update.
+
+Fallback finalization is nonblocking. If the session wrapper or resource
+finalizer runs while operations remain active, it marks closing, requests
+deferred cleanup, and returns without waiting. If no operation is active, the
+finalizer may become the single cleanup owner, transition to cleaning, and
+publish closed after cleanup completes. If finalization observes cleaning, it
+returns quietly without waiting or duplicating cleanup. The last parent-process
+operation lease release may also become the single cleanup owner when closing
+has been requested and the operation registry becomes empty. Finalizers are
+safety fallback only, not a structured release path or authority signal.
 
 ## Graceful Close And Process Crash
 
 B2b implements and tests the lock primitive itself. B2c implements and tests an internal concrete `WriterSession`.
 The database row remains latest issuance evidence after close and the row
-remains latest issuance evidence only. database row remains latest issuance
-evidence after close.
+remains latest issuance evidence only.
 
 | Circumstance | OS advisory lock outcome | SQLite transaction outcome | Durable `writer_ownership` row outcome | Session/credential outcome | Generation reuse rule | Next acquisition behavior |
 | --- | --- | --- | --- | --- | --- | --- |
-| Deliberate close | Lock descriptor is closed after in-memory invalidation. | Close opens no new SQLite transaction. | No SQLite `writer_ownership` `UPDATE`, `DELETE`, or release-marker write occurs; the latest durable issuance row remains unchanged. | Session is marked closed/inactive before resource release; later operations fail with `writer_session_closed`; close is idempotent; future DB and lock resources are closed; private-proof references are dropped; a mutable proof buffer may receive best-effort overwrite; no guaranteed Python/CPython memory zeroization is claimed. | Graceful close does not decrement, clear, reset, release, or reuse the durable generation. | A later writer must acquire normally and increment from the latest durable generation. |
+| Deliberate close | Lock descriptor is closed before the session publishes `closed`. | Close opens no new SQLite transaction. | No SQLite `writer_ownership` `UPDATE`, `DELETE`, or release-marker write occurs; the latest durable issuance row remains unchanged. | Session first becomes closing and rejects new operations, then exactly one cleanup owner enters cleaning and releases resources. Successful explicit close returns only after closed means proof cleanup, advisory-lock close, and registry cleanup are complete. Later operations fail with `writer_session_closed`; close is idempotent after closed; private-proof references are dropped; a mutable proof buffer may receive best-effort overwrite; no guaranteed Python/CPython memory zeroization is claimed. Same-thread close during an active operation fails first with `writer_session_close_during_operation` and keeps authority held until that operation exits. | Graceful close does not decrement, clear, reset, release, or reuse the durable generation. | A later writer must acquire normally and increment from the latest durable generation. |
 | Process crash before lock acquisition | No OS lock has been acquired. | No issuance transaction exists. | No durable issuance effect. | No session or credential exists. | No generation is consumed. | Next acquisition starts from the latest durable generation already present. |
 | Process crash after lock acquisition but before SQLite transaction | OS lock releases on process death through process/descriptor teardown. | No issuance transaction exists. | No durable issuance effect. | No returned session or usable credential exists. | No generation is consumed. | Next acquisition starts from the latest durable generation already present. |
 | Process crash during uncommitted issuance transaction | OS lock releases on process death. | SQLite rolls back the uncommitted issuance transaction. | No committed writer row change survives. | No returned session or usable credential exists. | No committed generation exists to reuse. | Next acquisition reads the unchanged durable generation and increments from it. |
@@ -268,25 +317,40 @@ B2b lock primitive requirements and B2c concrete writer-session requirements:
 - close inherited lock descriptors in the B2b child handler where safe so the
   child cannot prolong parent authority;
 - prohibit fork-after-acquisition as an authority transfer;
-- protect session lifecycle and mutation calls with a process-local mutex;
+- protect session lifecycle and mutation calls with process-local lifecycle
+  synchronization and a private operation-identity registry;
 - reject duplicate active sessions through the common lock and keep any
   process-local registry non-authoritative.
 
 `FD_CLOEXEC` alone does not solve fork inheritance.
 
 B2c child-side session cleanup clears copied active-session registry state,
-marks inherited session resources closed, best-effort overwrites and drops the
-private proof in the child, and does not issue `LOCK_UN`. B2b remains
-responsible for inherited lock-descriptor closure. Parent authority remains
-unchanged. Python's general warning about multithreaded fork still applies,
-and third-party forks that bypass Python at-fork hooks remain outside the B2c
-guarantee; process-identity checks fail closed on later use.
+marks inherited session resources fork-invalid and inactive, increments the
+child-side lifecycle epoch, clears the child operation registry, replaces every
+per-session synchronization primitive with a fresh child-local primitive,
+best-effort overwrites and drops the private proof in the child, and does not
+issue `LOCK_UN`. B2b remains responsible for inherited lock-descriptor
+closure. Parent authority remains unchanged. Later child operations fail
+promptly with `writer_session_process_mismatch` before SQLite or
+apply-conflict logic. A copied operation lease whose captured process identity
+or lifecycle epoch no longer matches is a child-side no-op on exit or
+finalization: it does not mutate the operation registry, does not underflow
+operation state, does not clean proof or lock resources, does not touch
+SQLite, and does not expose a raw lifecycle error.
+Python's general warning about multithreaded fork still applies, and
+third-party forks that bypass Python at-fork hooks remain outside the B2c
+guarantee; process-identity checks fail closed on later use without acquiring a
+potentially inherited per-session synchronization primitive.
 
 ## Generation And Proof Specification
 
 Generation rules:
 
 - first generation is `1`;
+- no `writer_ownership` row is the only valid pre-first-acquisition state;
+- a present row with generation `0`, a negative value, a bool-like value, or an
+  overflow value is semantically malformed even though migration `0001_initial`
+  remains frozen;
 - committed generations are monotonically increasing;
 - committed generations are never decremented;
 - committed generations are never reused;
@@ -335,7 +399,15 @@ Migration `0001_initial` is sufficient for the first writer-session model and
 requires no migration 0002. SQLite does not store active/released status,
 release timestamp, process id, lock inode, platform metadata, heartbeat,
 expiry, takeover state, or liveness flag. Those are session/process facts, not
-durable authority.
+durable authority. The generation-zero rejection is a managed-state semantic
+invariant layered above the frozen schema; it does not require migration 0002.
+
+Immutable writer-issuance history remains a future evidence enhancement for
+incident analysis or reporting. The latest-issuance singleton is sufficient for
+current B2 fencing and recovery and is not a B3 prerequisite.
+
+B2 hardening still requires a fresh standalone architecture re-audit before B3
+transition persistence begins.
 
 ## Non-Goals
 
