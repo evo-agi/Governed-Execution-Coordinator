@@ -8,6 +8,8 @@ writer-session acquisition for managed SQLite databases. B3a implements
 canonical persistence and provenance contracts only. B3b2a implements private
 non-executing capability-protocol and immutable query-contract prerequisites
 only. B3b2b implements private SELECT readers with no production integration.
+B3c0a pins transition authority, ordering, fencing, and failure precedence as a
+contract/static prerequisite only.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -23,7 +25,9 @@ transition mutation runtime. B3b2a adds no executing reader, production read
 port, transition mutation, or transaction ownership. B3b2b adds executing
 private SELECT readers only; they are not production read ports and add no
 concrete transaction capability, transition mutation, fixture program, or
-transaction ownership.
+transaction ownership. B3c0a adds no concrete transaction capability,
+transaction controller, writer-fencing SELECT, fixture, context assembly,
+evaluator integration, or mutation.
 
 ## Decision
 
@@ -117,8 +121,8 @@ SQLite transition transaction:
 - validates writer ownership before idempotency disclosure;
 - performs internal idempotency lookup from event rows;
 - loads authoritative current work-item or global-stop state;
-- loads or verifies persisted decision receipts;
 - compares expected version;
+- loads or verifies persisted decision receipts in the B3c0a-pinned order;
 - invokes the pure evaluator with no external I/O;
 - writes one event, the replay snapshot, and any current-state change
   atomically;
@@ -230,54 +234,72 @@ only for replaying the original command outcome.
 
 Transition mutation transaction:
 
-1. Enter the active `WriterSession` operation guard.
-2. `BEGIN IMMEDIATE`.
-3. Verify writer generation and private issuance proof.
-4. Look up `transition_events` by `(work_item_id, idempotency_key)`.
-5. If command digest matches, return stored event and replay snapshot.
-6. If command digest differs, return `idempotency_key_reuse_conflict`.
-7. Load authoritative `work_items`.
-8. Compare command expected version.
-9. Load authoritative `global_stop_current`.
-10. Load lease identity, authorization, and dependency decision receipts.
-11. Derive `LeaseRuntimeDecision` from the canonical lease and one transaction
-    UTC timestamp.
-12. Reconstruct `TransitionContext` exclusively from persisted receipts and
-    transaction-derived lease runtime status.
-13. Require command refs and version to match the reconstructed context.
-14. If locally valid typed references or digests do not match authoritative
-    persisted records, return a `validation_failed` apply conflict with no
-    event. Parser, model-construction, session-lifecycle, and
-    mutation-unavailable failures do not reach this step.
-15. Invoke the pure evaluator with no external I/O.
-16. Insert exactly one transition event and replay snapshot.
-17. On acceptance, update `work_items`.
-18. On domain rejection, leave `work_items` unchanged.
-19. Commit.
-20. Return the committed event and resulting record.
+B3c0a is the source of truth for the exact future transition apply order. The
+summary order is:
+
+1. acquire the operation lease; acquisition performs owner-process and
+   active-session validation and returns only after the retained authority lock
+   is confirmed active;
+2. perform exact `TransitionCommand` checks and bounded persisted-slice local
+   checks;
+3. acquire the shared per-session mutation slot;
+4. open one existing managed read/write connection;
+5. execute `BEGIN IMMEDIATE`;
+6. validate managed schema/posture inside the transaction;
+7. load and parse `writer_ownership`;
+8. verify writer generation, refs, and private issuance proof;
+9. create the nominal capability only after fencing;
+10. look up `transition_events` by event-owned idempotency;
+11. replay exact command digests or return idempotency conflict before changed
+    context is read;
+12. load authoritative `work_items`;
+13. compare command expected version;
+14. load context rows in B3c0a order: lease identity, admitted backlog,
+    authorization, READY dependency only when required, then
+    `global_stop_current`;
+15. apply all cross-record binding and authorization-support checks;
+16. capture one transaction UTC timestamp only after successful binding;
+17. derive `LeaseRuntimeDecision`;
+18. Reconstruct `TransitionContext` exclusively from persisted receipts and
+    transaction-derived lease runtime status;
+19. invoke the pure evaluator with no external I/O exactly once;
+20. allocate event sequence;
+21. insert exactly one transition event and replay snapshot;
+22. on acceptance, compare-and-set update `work_items`;
+23. on domain rejection, leave `work_items` unchanged;
+24. invalidate the capability before commit or rollback;
+25. commit or roll back, close the connection, and return only after transaction
+    resolution.
 
 Exact replay happens after writer-session fencing and idempotency match, before
 changed decision or global-stop context is re-evaluated.
+No timestamp is generated for replay, idempotency conflict, work-item not found,
+expected-version conflict, or validation conflict.
 
-Global-stop mutation transaction:
+Global-stop mutation transaction remains future and unimplemented. It shares the
+same pre-SQLite authority prefix as transition mutation:
 
-1. `BEGIN IMMEDIATE`.
-2. Verify the active writer session, writer generation, and issuance proof.
-3. Look up `global_stop_events` by idempotency key.
-4. If command digest matches, return stored event and replay snapshot.
-5. If command digest differs, return `idempotency_key_reuse_conflict`.
-6. Load authoritative `global_stop_current`.
-7. Compare command expected version.
-8. Load the operator decision receipt.
-9. Verify command and typed operator decision against the persisted receipt;
-   mismatch is a `validation_failed` apply conflict, not a parser/session
-   failure.
-10. Invoke the pure global-stop evaluator with no external I/O.
-11. Insert exactly one global-stop event and replay snapshot.
-12. On acceptance, update `global_stop_current`.
-13. On domain rejection, leave `global_stop_current` unchanged.
-14. Commit.
-15. Return the committed event and resulting global-stop state.
+1. acquire the operation lease; acquisition performs owner-process and active-session validation and returns only after the retained authority lock is confirmed active;
+2. perform existing future global-stop typed command/operator-decision local checks;
+3. acquire the shared per-session mutation slot;
+4. open one existing managed read/write connection;
+5. execute `BEGIN IMMEDIATE`;
+6. validate managed schema/posture inside the transaction;
+7. load and parse `writer_ownership`;
+8. verify writer fencing;
+9. look up `global_stop_events` by idempotency key;
+10. if command digest matches, return stored event and replay snapshot;
+11. if command digest differs, return `idempotency_key_reuse_conflict`;
+12. load authoritative `global_stop_current`;
+13. compare command expected version;
+14. load the operator decision receipt;
+15. verify command and typed operator decision against the persisted receipt;
+16. invoke the pure global-stop evaluator with no external I/O;
+17. insert exactly one global-stop event and replay snapshot;
+18. on acceptance, update `global_stop_current`;
+19. on domain rejection, leave `global_stop_current` unchanged;
+20. resolve commit, rollback, and close using the B3c0a transaction precedence;
+21. return the committed event and resulting global-stop state only after resolution.
 
 ## Context Provenance
 
@@ -336,8 +358,10 @@ future B3/B4 transactions can retain proof and advisory-lock authority across
 the full operation. B3b2a's private capability protocol and B3b2b's private
 reader execution do not prove that guard, transaction identity, or writer
 fencing by themselves; future B3c must create one concrete opaque epoch only
-after the B3c-owned operation-guard, `BEGIN IMMEDIATE`, and fencing gates, and
-must invalidate it before commit or rollback. No B3/B4 persistence exists.
+after operation-lease acquisition, mutation-specific local checks, shared
+mutation-slot acquisition, `BEGIN IMMEDIATE`, managed validation, and fencing
+gates, and must invalidate it before commit or rollback. No B3/B4 persistence
+exists.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that

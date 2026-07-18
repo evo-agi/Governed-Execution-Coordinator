@@ -75,15 +75,18 @@ not provide a constructor, factory, raw-connection wrapper, transaction epoch
 implementation, connection posture probe, or production object that can be
 instantiated as transaction-bound read authority.
 
-Future B3c must create any concrete capability only after B3c has entered the B2
-operation guard, executed `BEGIN IMMEDIATE`, and completed writer fencing gates
-required by final apply ordering. The concrete B3c capability must bind exactly
-one opaque transaction epoch, never change that epoch, invalidate before commit
-or rollback, reject use after transaction end, reject use after another
-transaction starts on the same connection, reject process/thread mismatch,
-expose no connection property, open/close/commit/roll back nothing through the
-reader interface, expose no transaction identifier publicly, and raise only safe
-closed internal errors.
+Future B3c must create any concrete capability only after B3c has acquired the
+B2 operation lease, completed mutation-specific local checks, acquired the shared
+per-session mutation slot, opened an existing managed read/write connection,
+executed `BEGIN IMMEDIATE`, revalidated managed schema/posture inside the
+transaction, and completed writer fencing gates required by final apply ordering.
+The concrete B3c capability must be nominal, not trusted by Protocol conformance,
+bind exactly one opaque transaction epoch, never change that epoch, invalidate
+before commit or rollback, reject use after transaction end, reject use after
+another transaction starts on the same connection, reject process/thread
+mismatch, expose no connection property, open/close/commit/roll back nothing
+through the reader interface, expose no transaction identifier publicly, and
+raise only safe closed internal errors.
 
 `connection.in_transaction` is not transaction identity. It proves only that a
 connection currently reports an active transaction. It does not prove continuity
@@ -117,8 +120,12 @@ before borrowing the capability or executing SQL. Malformed refs fail locally
 without SQLite access and without echoing the rejected value.
 
 All six readers borrow the connection through `_borrow_connection_for_select()`
-only. Safe `_TransitionReadCapabilityError` reasons are preserved unchanged. A
-returned object that is not a `sqlite3.Connection` is rejected as
+only. Safe `_TransitionReadCapabilityError` reasons are preserved unchanged. Any
+other ordinary exception from the capability borrow is sanitized to
+`transition_read_capability_unavailable` after the raw exception has left active
+exception context, with no retained raw cause, context, note, capability detail,
+connection repr, transaction epoch, path, proof, digest, row, SQL parameter, or
+secret. A returned object that is not a `sqlite3.Connection` is rejected as
 `transition_read_capability_unavailable`. B3b2b performs no runtime Protocol
 checking, process/thread/epoch checks, connection posture mutation, transaction
 start/end, connection open, or connection close.
@@ -150,12 +157,14 @@ formatted traceback output.
 
 ## Future Boundary
 
-B3c will own concrete capability creation, transaction-generation and
-invalidation semantics, reader ordering, missing-row apply-conflict
-classification, cross-record authority binding, lease runtime derivation,
-transaction timestamp, `TransitionContext` construction, evaluator invocation,
-idempotency/replay, expected-version checks, event sequencing, and mutation
-outcome.
+B3c0a now pins the future concrete capability owner, transaction-generation and
+invalidation semantics, one-mutation-per-session policy, writer fencing,
+current/expected/context ordering, missing-row apply-conflict classification,
+cross-record authority binding, transaction timestamp point, rollback/commit/
+close precedence, and event-ref/sequence collision posture. Later B3c stages
+remain future for implementing reader ordering, lease runtime derivation,
+`TransitionContext` construction, evaluator invocation, idempotency/replay,
+expected-version checks, event sequencing, and mutation outcome.
 
 B3b2a/B3b2b must remain absent from package-root exports, public `StateStore`,
 CLI, MCP, connectors, reports, examples, and related repositories. The public

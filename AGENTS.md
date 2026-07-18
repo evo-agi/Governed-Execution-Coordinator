@@ -153,8 +153,9 @@ B3b2a query specs. They validate lookup refs before borrowing, borrow only via
 the private `_TransitionReadCapability` protocol, execute parameterized
 `SELECT ... LIMIT 2`, call `fetchmany(2)`, enforce bounded cardinality, require
 exact built-in tuple rows, build one private mapping, delegate to B3b1 row
-adapters, classify SQLite SELECT failures safely, and close cursors without
-owning the connection. Tests execute them through a clearly test-only
+adapters, classify SQLite SELECT failures safely, sanitize unknown capability
+borrow exceptions to the closed unavailable capability error, and close cursors
+without owning the connection. Tests execute them through a clearly test-only
 capability and in-memory database setup. No production caller, concrete
 capability, transaction ownership, writer fencing, idempotency/replay,
 cross-record assembly, missing-row apply-conflict construction, mutation,
@@ -164,6 +165,20 @@ B3c remains responsible for a nominal transaction capability with the B2
 operation guard, `BEGIN IMMEDIATE`, writer fencing, one opaque epoch,
 invalidation before commit/rollback, context assembly, evaluation, and atomic
 mutation.
+
+B3c0a pins only future transition mutation authority, ordering, fencing,
+externally atomic operation-lease acquisition semantics, credential boundary,
+shared transition/global-stop pre-SQLite mutation prefix,
+one-mutation-per-session, capability-error, timestamp, transaction-resolution,
+event-ref collision, and sequence-collision contracts in
+`.docs/b3c0a-transition-authority-and-order.md`. It adds no concrete
+capability, transaction controller, writer-fencing SELECT, event/replay row
+adapter, idempotency reader, event-sequence SQL, coherent fixture, context
+assembler, evaluator integration, transition/global-stop mutation, admission,
+authorization verifier, worker behavior, public SQLite API, related-repo
+integration, or migration 0002. Future concurrent mutation attempts are reserved
+as the local `writer_session_mutation_in_progress` session failure; B2c still
+raises `writer_session_mutation_unavailable`.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,

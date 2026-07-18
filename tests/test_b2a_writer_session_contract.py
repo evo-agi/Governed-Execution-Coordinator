@@ -87,6 +87,7 @@ def test_writer_session_failure_reason_contract_is_safe_and_exported() -> None:
     assert WriterSessionFailureReason.WRITER_SESSION_CLOSED.value == "writer_session_closed"
     assert WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH.value == "writer_session_process_mismatch"
     assert WriterSessionFailureReason.WRITER_SESSION_CLOSE_DURING_OPERATION.value == "writer_session_close_during_operation"
+    assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_IN_PROGRESS.value == "writer_session_mutation_in_progress"
     assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE.value == "writer_session_mutation_unavailable"
 
     error = WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
@@ -104,6 +105,7 @@ def test_writer_session_failure_reasons_are_not_apply_conflict_reasons() -> None
     assert "writer_session_process_mismatch" not in APPLY_CONFLICT_REASONS
     assert "writer_session_close_during_operation" not in APPLY_CONFLICT_REASONS
     assert "writer_session_required" not in APPLY_CONFLICT_REASONS
+    assert "writer_session_mutation_in_progress" not in APPLY_CONFLICT_REASONS
     assert "writer_session_mutation_unavailable" not in APPLY_CONFLICT_REASONS
     assert "stale_writer_token" in APPLY_CONFLICT_REASONS
 
@@ -115,6 +117,8 @@ def test_apply_conflict_reasons_exclude_writer_session_closed() -> None:
         TransitionConflict("writer_session_process_mismatch")
     with pytest.raises(ValueError, match="invalid_field_type:conflict_class"):
         TransitionConflict("writer_session_close_during_operation")
+    with pytest.raises(ValueError, match="invalid_field_type:conflict_class"):
+        TransitionConflict("writer_session_mutation_in_progress")
 
 
 def test_safe_writer_metadata_is_non_authoritative_and_non_secret() -> None:
@@ -191,20 +195,28 @@ def test_docs_pin_session_apply_domain_failure_layers() -> None:
 def test_docs_pin_session_failure_precedence_before_apply_boundary() -> None:
     writer_doc = _read(".docs/writer-session-authority.md")
     section = _markdown_section(writer_doc, "Failure Precedence")
+    normalized = " ".join(section.split())
 
     for phrase in (
-        "Validate acquiring-process identity.",
+        "Acquire `_WriterSessionOperationLease`.",
+        "Acquisition performs owner-process and active-session validation",
+        "returns a lease only after the retained authority lock is confirmed active",
+        "Any provisional operation registration is synchronously unwound",
+        "If acquisition fails, no operation lease is exposed",
+        "no mutation slot is attempted",
+        "no SQLite connection opens",
         "writer_session_process_mismatch",
         "No store call.",
-        "Validate session lifecycle and enter the private operation guard.",
         "writer_session_closed",
         "writer_session_close_during_operation",
         "private operation guard is entered and exited",
-        "Delegate to the fenced SQLite apply boundary.",
+        "perform mutation-specific local command-shape checks",
+        "acquire the shared per-session mutation slot",
+        "Open one existing managed read/write connection",
         "stale proof or generation returns `stale_writer_token`",
         "A closed session must not be reclassified as stale",
     ):
-        assert phrase in section
+        assert phrase in normalized
 
 
 def test_common_lock_topology_is_documented_once() -> None:

@@ -30,6 +30,7 @@ from ge_nwp_coordinator.sqlite_writer_session import (
     acquire_sqlite_writer_session,
 )
 from ge_nwp_coordinator.state_authority_lock import (
+    StateAuthorityLock,
     StateAuthorityLockError,
     StateAuthorityLockErrorReason,
     acquire_state_authority_lock,
@@ -639,6 +640,77 @@ def test_process_mismatch_fails_locally_without_private_detail(
     assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH
     assert str(owner_pid) not in str(exc_info.value)
     assert _operation_count(session._resource) == 0
+
+
+@pytest.mark.parametrize("mutation_method_name", ("apply_transition", "apply_global_stop_update"))
+def test_inactive_retained_lock_mutation_method_unwinds_registration_and_closes_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation_method_name: str,
+) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    prior_generation = session.metadata.generation
+    resource = session._resource
+    registry_key = resource._registry_key
+    proof = resource._credential._proof
+    retained_lock = resource._authority_lock
+    assert retained_lock is not None
+    assert isinstance(retained_lock, StateAuthorityLock)
+    assert retained_lock is resource._authority_lock
+
+    sqlite_open_calls = 0
+
+    def fail_if_sqlite_opens(*args, **kwargs):
+        nonlocal sqlite_open_calls
+        sqlite_open_calls += 1
+        raise AssertionError("mutation path opened SQLite")
+
+    with monkeypatch.context() as mutation_guard:
+        mutation_guard.setattr(writer_module, "open_existing_sqlite_connection", fail_if_sqlite_opens)
+        retained_lock.close()
+        assert retained_lock.active is False
+
+        result: dict[str, object | None] = {"returned": None, "error": None}
+
+        def invoke_mutation_method() -> None:
+            try:
+                if mutation_method_name == "apply_transition":
+                    result["returned"] = session.apply_transition(None)  # type: ignore[arg-type]
+                else:
+                    result["returned"] = session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
+            except BaseException as exc:  # noqa: BLE001 - test must capture thread failures
+                result["error"] = exc
+
+        mutation_thread = threading.Thread(target=invoke_mutation_method)
+        mutation_thread.start()
+        _join_thread(mutation_thread)
+
+        error = result["error"]
+        assert isinstance(error, WriterSessionError)
+        assert error.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+        assert error.reason is not WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert result["returned"] is None
+        assert _operation_count(resource) == 0
+        assert session.active is False
+        assert resource._state == writer_module._CLOSED
+        assert resource._credential is None
+        assert resource._authority_lock is None
+        assert set(proof) == {0}
+        assert retained_lock.active is False
+        assert sqlite_open_calls == 0
+        assert registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
+
+    next_session = acquire_sqlite_writer_session(location)
+    try:
+        later_registry_key = next_session._resource._registry_key
+        assert next_session.metadata.generation == prior_generation + 1
+        assert next_session.metadata.writer_ref.startswith("writer-")
+        assert next_session.metadata.issued_ref.startswith("issuance-")
+    finally:
+        next_session.close()
+    assert later_registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
 
 
 def test_foreign_process_cleanup_replaces_locked_session_synchronization(

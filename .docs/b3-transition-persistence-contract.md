@@ -1,8 +1,8 @@
 # B3 Transition Persistence Contract
 
 Status: B3a contract-only prerequisites, B3b/B3b1 reader prerequisites, B3b2a
-private capability-protocol/query contracts, and B3b2b private SELECT readers
-with no production integration.
+private capability-protocol/query contracts, B3b2b private SELECT readers with
+no production integration, and B3c0a transition-authority/order contract pins.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -49,6 +49,16 @@ connections as reader authority, integrate with
 own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it before
 commit or rollback, and reject old epochs after transaction end or restart on
 the same connection.
+
+B3c0a freezes the future transition mutation authority and ordering contract in
+`.docs/b3c0a-transition-authority-and-order.md`. It pins nominal capability
+ownership, operation-guard lifetime, one-mutation-per-session policy,
+writer-fencing order and taxonomy, safe capability-exception handling, exact
+apply ordering, timestamp capture, capability invalidation, resolution
+precedence, and event-ref/sequence collision posture. It still adds no concrete
+capability, transaction controller, writer-fencing SELECT, event/replay row
+contract, idempotency reader, event-sequence SQL, fixture, context assembler,
+evaluator integration, or mutation.
 
 ## Public Shape
 
@@ -241,27 +251,35 @@ timestamps, and one valid `GlobalStopState`.
 
 ## Future Transaction Reconstruction
 
-Inside the future fenced transition transaction, B3 must:
+Inside the future fenced transition transaction, B3 follows the exact B3c0a
+order. It first acquires the operation lease. Acquisition performs owner-process
+and active-session validation and returns a lease only after the retained
+authority lock is confirmed active. Any provisional operation registration is
+synchronously unwound before a failure is returned. B3 then validates local
+transition command shape, acquires the shared transition/global-stop mutation
+slot, opens the managed read/write connection, executes `BEGIN IMMEDIATE`,
+validates managed schema/posture, and fences the writer before idempotency
+disclosure. After writer fencing and idempotency miss, it loads current
+`WorkItemRecord`, classifies absence as `work_item_not_found`, compares expected
+version, and only then loads context rows in this order:
 
-1. load current `WorkItemRecord`;
-2. load the canonical lease through `lease_identity_records`;
-3. revalidate lease identity and row/index equality;
-4. load the admitted backlog and validate literal canonical `FiniteBacklog`
-   JSON, schema id/version, content digest, indexed/canonical equality, exact
-   lease/backlog/work-item bindings, exactly one matching current work item,
-   backlog size within `StandingLease.max_work_items`, exact attempt/repair
-   limit copies, zero scalar current-state budget fields, and static
-   multidimensional budget policy;
-5. load authorization receipt and verify canonical digest/index equality;
-6. require authorization lease ref and lease-identity decision ref to match;
-7. classify unsupported current authorization models as validation conflicts;
-8. load dependency receipt only for READY commands and verify work-item binding;
-9. require every non-READY command dependency ref to be null before apply;
-10. load `global_stop_current`;
-11. derive `LeaseRuntimeDecision` using one transaction UTC timestamp;
-12. construct `TransitionContext` internally;
-13. require command refs/version to match reconstructed context before the
-    pure evaluator can produce an event.
+1. the canonical lease through `lease_identity_records`;
+2. the admitted backlog;
+3. the authorization receipt;
+4. the READY dependency receipt only when required;
+5. `global_stop_current`.
+
+The assembler then validates literal canonical `FiniteBacklog` JSON, schema
+id/version, content digest, indexed/canonical equality, exact lease/backlog/work
+item bindings, exactly one matching current work item, backlog size within
+`StandingLease.max_work_items`, exact attempt/repair limit copies, zero scalar
+current-state budget fields, static multidimensional budget policy,
+authorization lease ref and lease-identity decision binding, unsupported
+authorization model handling, READY dependency work-item binding, non-READY null
+dependency refs, and command refs/version against authoritative state. Only
+after successful binding does B3 capture the single transaction timestamp,
+derive `LeaseRuntimeDecision`, construct `TransitionContext`, and invoke the
+pure evaluator exactly once.
 
 B3b2b implements only the private per-table SELECT readers that can load the
 six individual rows when explicitly invoked by tests. Future B3c still owns
@@ -297,8 +315,11 @@ Future transition event sequence allocation is:
 Sequence is operational ordering metadata. It is not event identity, event
 digest, or replay digest.
 
-Future apply uses one transaction UTC timestamp for event `created_at`, accepted
-work-item `updated_at`, and lease runtime derivation. It is exact
+Future apply captures no new timestamp for exact replay, idempotency conflict,
+work-item not found, expected-version conflict, or validation conflict. After
+all prerequisite rows are loaded and cross-bound successfully, it uses one
+transaction UTC timestamp for event `created_at`, accepted work-item
+`updated_at`, and lease runtime derivation. It is exact
 `YYYY-MM-DDTHH:MM:SSZ`. Future `transition_events.created_at` must equal
 `TransitionEvent.lease_runtime.evaluated_at`: the SQL column is derived
 transaction metadata, while the same semantic timestamp is integrity-bound
@@ -335,6 +356,14 @@ whether the previous attempt committed.
 B3b2b maps every other SQLite SELECT failure, including closed connections,
 busy/locked/I/O/full/interrupted, and missing or unknown result codes, to
 `mutation_failed`; it never produces `commit_outcome_unknown`.
+
+B3c0a pins transaction-resolution precedence: rollback failure supersedes a
+planned replay, apply conflict, or other definite result with `mutation_failed`;
+commit attempt failure returns `commit_outcome_unknown` and fabricates no result;
+successful commit remains committed if connection close later fails; and an
+event-ref or event-sequence uniqueness collision after idempotency miss is
+`database_integrity_failure` with no identity or sequence regeneration outside
+the transaction.
 
 ## Admission Boundary And First Proof
 

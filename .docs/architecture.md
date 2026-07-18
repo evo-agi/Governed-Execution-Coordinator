@@ -97,15 +97,28 @@ unreachable from production callers. The readers validate lookup refs before
 borrowing, borrow only through `_TransitionReadCapability`, execute the
 parameterized specs, call `fetchmany(2)`, enforce zero/one/multiple
 cardinality, require exact built-in tuples, build private mappings, delegate to
-B3b1 row adapters, classify SQLite SELECT errors safely, and close cursors.
-Tests execute them with a tests-only capability and in-memory tables. B3b2b does
-not add a concrete capability, public read port, fixture program, cross-record
-assembly, admission, authorization verification, transaction ownership, or
-mutation. `connection.in_transaction` is not transaction identity. Future B3c
-must own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it
-before commit or rollback, reject old epochs after transaction end or restart on
-the same connection, and perform writer fencing, idempotency/replay,
-expected-version, context assembly, evaluator invocation, and mutation outcome.
+B3b1 row adapters, classify SQLite SELECT errors safely, sanitize unknown
+capability borrow exceptions, and close cursors. Tests execute them with a
+tests-only capability and in-memory tables. B3b2b does not add a concrete
+capability, public read port, fixture program, cross-record assembly, admission,
+authorization verification, transaction ownership, or mutation.
+`connection.in_transaction` is not transaction identity.
+
+B3c0a freezes the future transition mutation authority and ordering contract in
+`.docs/b3c0a-transition-authority-and-order.md`. Future B3c must own one
+nominal private capability and one opaque epoch per `BEGIN IMMEDIATE`
+transaction, create that capability only inside `_SQLiteWriterSession` transition
+apply while one operation lease is active and after writer fencing, treat
+operation-lease acquisition as the externally atomic lifecycle/process and
+retained-lock gate, share the transition/global-stop pre-SQLite mutation prefix
+and one mutation slot, invalidate the capability before commit or rollback,
+reject old epochs after
+transaction end or restart, fence before idempotency, read current state and
+expected version before context rows, capture the transaction timestamp only
+after authoritative row binding, and preserve the pinned rollback/commit/close
+precedence. B3c0a does not implement the concrete
+capability, writer-fencing SELECT, idempotency/replay, event sequence SQL,
+context assembly, evaluator invocation, fixtures, or mutation outcome.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -252,6 +265,9 @@ scheduler, service, CLI, MCP, connector, repair, commit, publication, migration
 0002, or executable A2 behavior. B3b1 adds only pure full-row envelope adapters
 for already-fetched rows. B3b2a adds private capability-protocol and query-spec
 contracts. B3b2b adds private SELECT readers with tests-only execution and no
-production call sites; B3c concrete transaction capability and atomic
-transition apply, exact replay, and fault injection remain future. B4 remains
-future for global-stop persistence.
+production call sites. B3c0a adds contract/static pins only for the future
+transition authority boundary and adds no transaction controller, concrete
+capability, reader integration, context assembly, exact replay runtime, or
+mutation. B3c concrete transaction capability and atomic transition apply, exact
+replay, and fault injection remain future. B4 remains future for global-stop
+persistence.

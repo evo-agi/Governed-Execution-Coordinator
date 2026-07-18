@@ -55,9 +55,18 @@ SQLite bootstrap/migration infrastructure only:
   tests-only capability and in-memory tables, with lookup validation,
   parameterized `SELECT ... LIMIT 2`, `fetchmany(2)`, strict tuple-to-private
   mapping conversion, B3b1 adapter delegation, safe SQLite SELECT-error
-  classification, and cursor cleanup, but no production caller, concrete
-  transaction capability, public read API, fixture program, context assembly,
-  admission, authorization implementation, or mutation behavior.
+  classification, capability-exception sanitation, and cursor cleanup, but no
+  production caller, concrete transaction capability, public read API, fixture
+  program, context assembly, admission, authorization implementation, or
+  mutation behavior.
+- B3c0a contract/static prerequisite closure for the future transition mutation
+  authority boundary, pinning nominal capability ownership, operation-guard and
+  credential boundaries, one-mutation-per-session policy, writer-fencing
+  classifications, exact apply order, context ordering, timestamp point,
+  capability invalidation, transaction-resolution precedence, and collision
+  posture, with no concrete capability, controller, fencing SELECT,
+  idempotency/replay reader, context assembler, evaluator integration, fixture,
+  transition mutation, global-stop mutation, or migration 0002.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -156,10 +165,19 @@ singleton reader raises a safe integrity failure if the mandatory singleton is
 absent. SQLite SELECT failures are reduced to safe
 `SQLiteMutationStoreError` classes with no raw exception text, SQL, parameters,
 rows, canonical JSON, paths, connection reprs, proofs, digests, or secrets
-retained. Tests use a tests-only structural capability; that does not prove
-production transaction authority. B3c remains future for the nominal concrete
-capability, transaction epoch, B2 operation guard, `BEGIN IMMEDIATE`, writer
-fencing, missing-row classification, assembly, evaluation, idempotency/replay,
-expected-version checks, and mutation.
+retained. Unknown exceptions from a capability borrow are also reduced to the
+safe private unavailable capability error before any raw exception context can
+escape. Tests use a tests-only structural capability; that does not prove
+production transaction authority. B3c0a now freezes the future nominal concrete
+capability owner, externally atomic operation-lease acquisition semantics, the
+shared transition/global-stop pre-SQLite mutation prefix and mutation slot,
+`BEGIN IMMEDIATE` and writer fencing order, one opaque transaction epoch,
+invalidation before commit or rollback, missing-row classifications,
+current/expected/context ordering, timestamp point, idempotency/replay
+placement, evaluator placement, sequence and event collision posture, and
+rollback/commit/close precedence. B3c remains
+future for implementing the concrete capability, transaction controller,
+fencing SELECT, idempotency/replay, context assembly, evaluation, fixtures, and
+mutation.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

@@ -8,7 +8,9 @@ updates, and an internal concrete `WriterSession`. No `StateStore` mutation
 backend, transition persistence, global-stop
 persistence, worker, service, scheduler, executable authorization, repair,
 commit, publication, or deployment behavior exists.
-B2c implements an internal concrete `WriterSession`.
+B2c implements an internal concrete `WriterSession`. B3c0a adds
+contract/static pins for future mutation authority, including a
+one-mutation-per-session policy, but no mutation implementation.
 
 ## Purpose
 
@@ -63,6 +65,9 @@ credential, is bound to the acquiring process, and has an
 active/closing/cleaning/closed lifecycle. Mutation methods exist on the session
 surface but fail locally with
 `writer_session_mutation_unavailable` until B3/B4 implement storage.
+B3c0a reserves `writer_session_mutation_in_progress` as a future local failure
+for a second concurrent mutation transaction on the same session; B2c does not
+implement that slot yet.
 
 ### SafeWriterMetadata
 
@@ -109,17 +114,23 @@ possession, or B2 operation guard ownership. Future B3c must create one
 concrete opaque epoch only after those gates, invalidate it before commit or
 rollback, and reject old epochs after transaction end or restart on the same
 connection.
+B3c0a additionally pins that the concrete capability is nominal, is created only
+inside `_SQLiteWriterSession.apply_transition()`, and receives no credential,
+proof, proof digest, authority lock, lock descriptor, writer metadata as
+authority, process/thread identity, or transaction epoch through a public
+surface.
 
 ## Failure Layer Taxonomy
 
 | Layer | Owner | Examples | Boundary | Result semantics |
 | --- | --- | --- | --- | --- |
-| WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_close_during_operation`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
+| WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_close_during_operation`, `writer_session_mutation_in_progress`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
 | Atomic apply conflict | Future fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found`, `validation_failed` | Requires a session that passed local lifecycle checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
 | Domain result | Pure evaluator reached through the atomic boundary | accepted event or domain-rejected event | Reached only after session and apply checks pass | Exactly one accepted or domain-rejected event is the durable receipt. |
 
 `writer_session_closed`, `writer_session_process_mismatch`,
-`writer_session_close_during_operation`, and
+`writer_session_close_during_operation`,
+`writer_session_mutation_in_progress`, and
 `writer_session_mutation_unavailable` are safe session-local failure reasons.
 They are not `TransitionConflict` or `GlobalStopConflict` classes and must not
 be added to apply-conflict reason sets. `stale_writer_token` remains a fenced
@@ -142,32 +153,59 @@ A common lock conflict may surface as `state_authority_lock_busy`.
 
 Future `WriterSession` mutation calls use this order:
 
-1. Validate acquiring-process identity.
+1. Acquire `_WriterSessionOperationLease`.
 
-   If the current process identity differs, fail locally with
-   `writer_session_process_mismatch`. No store call.
-
-2. Validate session lifecycle and enter the private operation guard.
-
-   If the session is closing, closed, or inactive, fail locally with
-   `writer_session_closed`. No store call.
+   Acquisition performs owner-process and active-session validation and returns a
+   lease only after the retained authority lock is confirmed active. Any
+   provisional operation registration is synchronously unwound before a failure
+   is returned. If acquisition fails, no operation lease is exposed, no mutation
+   slot is attempted, no SQLite connection opens, and closed/process-mismatched
+   sessions fail locally with the existing `writer_session_closed` or
+   `writer_session_process_mismatch` `WriterSessionError` reason. No store call.
 
    If the same thread attempts to close the session while it owns an active
    operation, fail locally with `writer_session_close_during_operation`. The
    session remains active, the operation remains registered, and no store call
    occurs.
 
-3. In B2c, fail locally with `writer_session_mutation_unavailable`.
+2. In B2c, fail locally with `writer_session_mutation_unavailable`.
 
    No store call, SQLite apply call, event, apply conflict, or durable mutation
    occurs. The private operation guard is entered and exited around this local
    failure to pin future B3/B4 close-versus-apply ordering.
 
-4. Delegate to the fenced SQLite apply boundary.
+3. In future B3/B4, perform mutation-specific local command-shape checks.
+
+   Transition checks include exact `TransitionCommand` type/digest,
+   non-READY dependency ref null, and zero budget cost. Global-stop checks retain
+   the future typed command/operator-decision local checks without widening B4
+   semantics.
+
+4. In future B3/B4, acquire the shared per-session mutation slot.
+
+   If another mutation transaction is active on the same session, fail locally
+   with `writer_session_mutation_in_progress`. No SQLite connection opens, no
+   SQLite busy/locked error leaks, no event is created, and no apply conflict is
+   returned.
+
+   The slot is session-owned and shared by transition and global-stop mutation.
+   It is retained through database open, `BEGIN IMMEDIATE`, managed validation,
+   writer fencing, idempotency, reads, binding, timestamp/runtime/context
+   construction, evaluation, writes, capability invalidation, commit or rollback
+   attempt, transaction-outcome classification, and connection-close attempt. It
+   is released only after the connection-close attempt completes and before the
+   outer operation lease exits. It is released on every setup, read, evaluate,
+   write, rollback, commit-uncertainty, and committed-success close-failure path.
+   A second mutation cannot begin while the first is committing, rolling back,
+   classifying outcome, or closing the connection.
+
+5. Open one existing managed read/write connection, execute `BEGIN IMMEDIATE`,
+   and validate managed schema/posture inside the transaction.
 
    This remains future B3/B4 behavior.
 
-5. At the apply boundary, validate writer generation and issuance proof.
+6. Load and parse the durable writer row, then validate writer generation, refs,
+   and issuance proof.
 
    A stale proof or generation returns `stale_writer_token`. Only after writer
    fencing succeeds may the store evaluate idempotency, expected version, and
@@ -254,6 +292,12 @@ Mutation methods in B2c first validate process identity, then enter a private
 operation guard, then fail locally with `writer_session_mutation_unavailable`.
 They do not open SQLite, do not call a `StateStore` apply method, do not
 inspect idempotency, do not emit an event, and do not mutate state.
+B3c0a pins a future private mutation slot layered inside this session boundary:
+at most one transition or global-stop mutation transaction may be active per
+session, and a second concurrent mutation attempt fails locally with
+`writer_session_mutation_in_progress` before SQLite. The slot is retained until
+after transaction resolution and connection-close attempt, then released before
+the outer operation lease exits.
 
 The private operation guard uses process-local lifecycle synchronization and a
 private operation-identity registry, not a count-only authority truth. Each
@@ -263,6 +307,9 @@ retains a strong reference to the concrete session wrapper so wrapper
 finalization cannot release proof or lock authority while the operation is
 active. Nested operations are allowed as independent private operation
 identities.
+That generic operation registry is not the future mutation slot. B3c0a keeps
+lifecycle operation identities separate from the stricter
+one-mutation-per-session rule.
 
 Operation entry rejects foreign, fork-invalid, closing, cleaning, or closed
 sessions before recording an operation identity. Explicit close transitions
@@ -423,6 +470,8 @@ B3a corrects `WriterSession.apply_transition` to accept only
 `TransitionCommand`. The concrete B2c SQLite session still enters its private
 operation guard and raises `writer_session_mutation_unavailable`; no transition
 persistence begins in B3a.
+B3c0a preserves that runtime behavior while reserving
+`writer_session_mutation_in_progress` for future B3/B4 concurrency checks.
 
 ## Non-Goals
 

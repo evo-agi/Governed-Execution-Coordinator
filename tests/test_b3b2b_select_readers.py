@@ -67,6 +67,7 @@ PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 READ_SCOPE_PATH = PACKAGE_DIR / "sqlite_transition_read_scope.py"
 CANONICAL_TIMESTAMP = "2026-07-14T00:00:03Z"
 PRIVATE_SQLITE_SENTINEL = "PRIVATE-SQLITE-SENTINEL-DO-NOT-LEAK-314159"
+PRIVATE_CAPABILITY_SENTINEL = "PRIVATE-CAPABILITY-SENTINEL-DO-NOT-LEAK-271828"
 
 
 class _RecordingConnection(sqlite3.Connection):
@@ -176,6 +177,16 @@ class _TestsOnlyTransitionReadCapability:
 class _WrongConnectionCapability:
     def _borrow_connection_for_select(self) -> object:
         return object()
+
+
+class _UnknownExceptionCapability:
+    def _borrow_connection_for_select(self) -> sqlite3.Connection:
+        try:
+            raise ValueError(PRIVATE_CAPABILITY_SENTINEL)
+        except ValueError as cause:
+            error = RuntimeError(PRIVATE_CAPABILITY_SENTINEL)
+            error.add_note(PRIVATE_CAPABILITY_SENTINEL)
+            raise error from cause
 
 
 @dataclass(frozen=True)
@@ -514,6 +525,32 @@ def _assert_raises_sqlite_mutation_error(call: Callable[[], object], error_class
     return exc_info.value
 
 
+def _render_exception_graph(exc: BaseException) -> str:
+    rendered: list[str] = []
+    pending = [exc]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        rendered.extend(
+            (
+                type(current).__name__,
+                str(current),
+                repr(current),
+                repr(current.args),
+                repr(getattr(current, "__notes__", None)),
+                "".join(traceback.format_exception(type(current), current, current.__traceback__)),
+            )
+        )
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
+    return "\n".join(rendered)
+
+
 def _sqlite_error_code(name: str, fallback: int) -> int:
     code = getattr(sqlite3, name, fallback)
     assert type(code) is int
@@ -692,6 +729,32 @@ def test_capability_errors_are_preserved_and_wrong_return_type_is_safe() -> None
         assert str(wrong_type.value) == "transition_read_capability_unavailable"
     finally:
         connection.close()
+
+
+def test_unknown_capability_exception_is_sanitized_outside_raw_exception_context() -> None:
+    capability = _UnknownExceptionCapability()
+
+    with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+        _read_current_work_item(capability, "wi-1")
+
+    exc = exc_info.value
+    assert exc.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
+    assert str(exc) == "transition_read_capability_unavailable"
+    assert exc.args == ("transition_read_capability_unavailable",)
+    assert exc.__cause__ is None
+    assert exc.__context__ is None
+    assert getattr(exc, "__notes__", None) is None
+
+    rendered = _render_exception_graph(exc)
+    for forbidden in (
+        PRIVATE_CAPABILITY_SENTINEL,
+        "_UnknownExceptionCapability",
+        "RuntimeError",
+        "ValueError",
+        "Connection",
+        ":memory:",
+    ):
+        assert forbidden not in rendered
 
 
 def test_test_only_old_transaction_fake_rejects_after_new_generation_starts() -> None:

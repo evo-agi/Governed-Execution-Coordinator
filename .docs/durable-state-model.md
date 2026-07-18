@@ -8,7 +8,8 @@ B2c adds durable writer issuance and an internal concrete SQLite
 `WriterSession`. B3a adds canonical persistence and provenance contracts only.
 B3b2a adds private capability-protocol and query-contract prerequisites.
 B3b2b adds private SELECT readers over those specs with no production
-integration.
+integration. B3c0a adds contract/static pins for future transition authority,
+ordering, fencing, and failure precedence only.
 The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
@@ -126,11 +127,11 @@ B3b2b implements six private SELECT readers over those specs. They validate
 lookup refs before borrowing, borrow only through `_TransitionReadCapability`,
 bind the lookup as one parameter, call `fetchmany(2)`, classify row cardinality,
 require exact built-in tuple rows, map tuples to private dictionaries, delegate
-to B3b1 row adapters, classify SQLite SELECT failures safely, and close cursors
-without closing the connection. Optional readers return `None` on absence; the
-mandatory `global_stop_current` singleton raises `database_integrity_failure`
-when absent. Tests execute the readers through a tests-only capability and
-in-memory tables.
+to B3b1 row adapters, classify SQLite SELECT failures safely, sanitize unknown
+capability borrow exceptions, and close cursors without closing the connection.
+Optional readers return `None` on absence; the mandatory `global_stop_current`
+singleton raises `database_integrity_failure` when absent. Tests execute the
+readers through a tests-only capability and in-memory tables.
 
 B3b2b does not provide a concrete production capability, accept raw SQLite
 connections as authority, own or close the connection, begin or end a
@@ -141,6 +142,17 @@ own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it before
 commit or rollback, reject old epochs after transaction end or restart on the
 same connection, and own writer fencing, idempotency/replay, expected-version,
 reader ordering, cross-record assembly, evaluation, and mutation.
+
+B3c0a is the source of truth for future transition authority and ordering. It
+pins nominal capability ownership, operation-guard lifetime, the private
+credential boundary, operation-lease acquisition as the externally atomic
+lifecycle/process and retained-lock gate, one shared transition/global-stop
+mutation slot per `WriterSession`, the pre-SQLite mutation prefix, writer
+fencing before idempotency, current-state and expected-version checks before
+context rows, context row order, timestamp capture after authoritative binding,
+capability invalidation before commit or rollback, rollback/commit/close
+precedence, and event-ref/sequence collision posture.
+B3c0a implements none of those runtime steps.
 
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. It carries the complete `LeaseRuntimeDecision`
@@ -185,10 +197,10 @@ B2c adds internal writer acquisition, B3a adds non-mutating canonical
 contracts, B3b prerequisite contracts add pure/model reader prerequisites, and
 B3b1 adds pure internal row-to-envelope adapters only. B3b2a adds private
 capability-protocol and query-spec contracts. B3b2b adds private SELECT readers
-that are not called by production source. No `StateStore` mutation backend,
-integrated production typed SQLite reader, concrete transaction capability, test
-database fixture insertion helper, coordinator service, or executable A2
-capability exists in this slice.
+that are not called by production source. B3c0a adds contract/static pins only.
+No `StateStore` mutation backend, integrated production typed SQLite reader,
+concrete transaction capability, test database fixture insertion helper,
+coordinator service, or executable A2 capability exists in this slice.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

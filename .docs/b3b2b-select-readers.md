@@ -49,13 +49,17 @@ is not authority. The B3b2b helper calls only
 `sqlite3.Connection`; a wrong returned type fails safely with
 `transition_read_capability_unavailable`. Safe capability-expired,
 process-mismatch, and thread-mismatch errors raised by a future B3c capability
-are preserved unchanged.
+are preserved unchanged. Any other ordinary exception raised while borrowing is
+converted to `transition_read_capability_unavailable` after the raw exception has
+left active exception context, so raw exception text, capability details, notes,
+causes, contexts, and traceback content do not survive on the safe error.
 
 Production integration waits for B3c to implement and audit a nominal concrete
-capability that owns the B2 `WriterSession` operation guard, `BEGIN IMMEDIATE`,
-writer fencing, the raw connection, one opaque transaction epoch, invalidation
-before commit or rollback, and permanent rejection after transaction end or
-restart.
+capability that follows the B3c0a shared prefix: B2 operation-lease acquisition,
+mutation-specific local checks, shared per-session mutation slot, managed
+read/write connection open, `BEGIN IMMEDIATE`, managed validation, writer
+fencing, one opaque transaction epoch, invalidation before commit or rollback,
+and permanent rejection after transaction end or restart.
 
 ## Missing Rows
 
@@ -85,9 +89,9 @@ errors, including closed connections, busy/locked/I/O/full/interrupted, and
 missing or unknown codes, map to `mutation_failed`.
 
 `commit_outcome_unknown` is never produced by B3b2b. Raw SQLite exception text,
-SQL, parameters, rows, canonical JSON, paths, connection reprs, credentials,
-proofs, digests, and secrets are not retained in public errors, exception
-chains, internal detail, or formatted traceback output.
+SQL, parameters, rows, canonical JSON, paths, connection reprs, transaction
+epochs, credentials, proofs, digests, and secrets are not retained in public
+errors, exception chains, internal detail, or formatted traceback output.
 
 ## Tests
 

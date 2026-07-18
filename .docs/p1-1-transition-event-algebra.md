@@ -26,6 +26,14 @@ authoritative context reconstruction, pure evaluator invocation, atomic
 state/event persistence, and exact replay. `WriterSession.apply_transition`
 accepts only `TransitionCommand`; caller-supplied `TransitionContext` is not
 authority.
+B3c0a pins the exact future transition apply order: operation-lease acquisition
+with lifecycle/process checks included, command and bounded persisted-slice
+local checks, shared per-session mutation slot, connection open,
+`BEGIN IMMEDIATE`, managed-schema validation, writer fencing, idempotency,
+current work-item load, expected-version comparison, context rows, binding
+checks, transaction timestamp, lease runtime, context construction, one evaluator
+invocation, event sequence, event/replay insert, accepted-state CAS, capability
+invalidation, commit or rollback, connection close, and result return.
 
 The pure evaluator owns domain rules: target-state support, invariant P1 stage
 availability, typed lease identity/runtime and authorization decision effects,
@@ -42,7 +50,8 @@ work, accept work, publish work, or become transition inputs.
 Examples include malformed external mappings, invalid canonical digests,
 unsafe typed refs, impossible typed object construction, closed writer
 sessions, writer-session process mismatch, and B2c mutation-unavailable
-calls.
+calls. Future concurrent mutation-slot contention is also session-local and
+fails as `writer_session_mutation_in_progress`.
 
 Result: local safe validation failure, no event, no `StateStore` call, no
 SQLite apply, and no apply conflict. `validation_failed` is not a catch-all for

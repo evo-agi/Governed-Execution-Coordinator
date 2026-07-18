@@ -91,14 +91,17 @@ class _TransitionReadCapability(Protocol):
     """Private future-B3c transaction capability protocol.
 
     This protocol is not public authority and has no concrete B3b2a
-    implementation. Future B3c must create any implementation only after the B2
-    operation guard is active, after `BEGIN IMMEDIATE`, and after writer fencing
-    required by final apply ordering. A concrete implementation must bind one
-    opaque transaction epoch, invalidate before commit or rollback, never change
-    or disclose that epoch, reject use after transaction end or restart on the
-    same connection, reject process/thread mismatch, expose no connection
-    property, and open, close, commit, or roll back nothing through this reader
-    interface. `connection.in_transaction` is not transaction identity.
+    implementation. Future B3c must create any implementation only after the
+    B3c0a shared prefix has acquired the B2 operation lease, completed
+    mutation-specific local checks, acquired the shared mutation slot, opened a
+    managed read/write connection, executed `BEGIN IMMEDIATE`, validated managed
+    schema/posture, and completed writer fencing required by final apply
+    ordering. A concrete implementation must bind one opaque transaction epoch,
+    invalidate before commit or rollback, never change or disclose that epoch,
+    reject use after transaction end or restart on the same connection, reject
+    process/thread mismatch, expose no connection property, and open, close,
+    commit, or roll back nothing through this reader interface.
+    `connection.in_transaction` is not transaction identity.
     """
 
     def _borrow_connection_for_select(self) -> sqlite3.Connection:
@@ -300,13 +303,24 @@ def _read_global_stop_current(
 
 
 def _borrow_sqlite_connection_for_select(capability: _TransitionReadCapability) -> sqlite3.Connection:
-    try:
-        connection = capability._borrow_connection_for_select()
-    except _TransitionReadCapabilityError:
-        raise
+    borrowed = _borrow_connection_or_capability_error(capability)
+    if isinstance(borrowed, _TransitionReadCapabilityError):
+        raise borrowed
+    connection = borrowed
     if not isinstance(connection, sqlite3.Connection):
         raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
     return connection
+
+
+def _borrow_connection_or_capability_error(
+    capability: _TransitionReadCapability,
+) -> sqlite3.Connection | _TransitionReadCapabilityError:
+    try:
+        return capability._borrow_connection_for_select()
+    except _TransitionReadCapabilityError:
+        raise
+    except Exception:
+        return _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
 
 
 def _read_one_select_row(

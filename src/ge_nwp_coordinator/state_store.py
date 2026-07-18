@@ -36,6 +36,7 @@ class WriterSessionFailureReason(str, Enum):
     WRITER_SESSION_CLOSED = "writer_session_closed"
     WRITER_SESSION_PROCESS_MISMATCH = "writer_session_process_mismatch"
     WRITER_SESSION_CLOSE_DURING_OPERATION = "writer_session_close_during_operation"
+    WRITER_SESSION_MUTATION_IN_PROGRESS = "writer_session_mutation_in_progress"
     WRITER_SESSION_MUTATION_UNAVAILABLE = "writer_session_mutation_unavailable"
 
 
