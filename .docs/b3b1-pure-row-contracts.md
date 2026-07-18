@@ -92,7 +92,7 @@ B3b1 does not invoke `validate_b3_work_item_authority_binding` from the single
 work-item row adapter. Lease/backlog/work-item authority binding, exact
 lease-copied attempt and repair limits, zero scalar current-state budget fields,
 and static multidimensional budget policy remain in the separate binding helper
-that B3b2/B3c assembly must call after the relevant rows are loaded.
+that future B3b2b/B3c assembly must call after the relevant rows are loaded.
 
 ## Admitted Backlog Rows
 
@@ -112,7 +112,7 @@ equality, and checks row/model equality for backlog id, lease ref, schema id,
 schema version, and content digest.
 
 It does not validate cross-record lease/backlog/work-item authority by itself.
-Future B3b2/B3c assembly remains responsible for calling
+Future B3b2b/B3c assembly remains responsible for calling
 `validate_b3_work_item_authority_binding(...)` with the loaded lease, backlog,
 and current work-item record.
 
@@ -148,6 +148,13 @@ authorization verifier, `TransitionContext` loader, idempotency/replay runtime,
 event sequence allocation, expected-version runtime, B3c transition apply, or
 B4 global-stop mutation.
 
+B3b2a has since added ordered row-column tuples, immutable SELECT specification
+data, and a private future-B3c transaction capability protocol. It still
+performs no SELECT, row cardinality, tuple-to-mapping conversion, B3b1 adapter
+invocation, not-found classification, fixture insertion, transition-context
+assembly, idempotency/replay lookup, expected-version check, concrete
+transaction authority, mutation, or public export.
+
 The row contracts are absent from `ge_nwp_coordinator.__all__`, CLI, MCP,
 connectors, reports, and examples. They must not expose raw mappings,
 canonical JSON, private assignment refs, path policy, branch policy, row values,
@@ -161,4 +168,4 @@ related-repo cleanliness is closeout and audit evidence, not a Coordinator unit-
 contract. Workspace-level integration tests, if added later, require a
 separately owned harness outside this B3b1 contract.
 
-B3b2 remains future.
+B3b2b executing readers remain future.

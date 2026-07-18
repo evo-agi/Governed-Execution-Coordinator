@@ -693,7 +693,8 @@ def test_b3b1_docs_pin_pure_row_scope_and_timestamp_posture() -> None:
         "related-repo cleanliness is closeout and audit evidence",
         "retained exception chains or tracebacks",
         "safe field-class failures",
-        "B3b2 remains future",
+        "B3b2a has since added ordered row-column tuples",
+        "B3b2b executing readers remain future",
     ):
         assert phrase in normalized
 

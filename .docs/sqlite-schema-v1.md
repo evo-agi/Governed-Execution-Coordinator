@@ -335,6 +335,15 @@ required only if a later accepted contract needs additional durable facts, such
 as mutable current lease status, production admission authority, or
 multidimensional dynamic budget consumption not representable by schema 0001.
 
+B3b2a uses schema 0001 without changing it. The ordered row-column tuples match
+the schema-0001 columns selected for future internal readers, and the immutable
+query specs are parameterized one-table `SELECT ... WHERE ... = ? LIMIT 2`
+contract data only. B3b2a also defines only a private future-B3c transaction
+capability protocol; it adds no concrete transaction authority and no durable
+transaction-epoch field. It does not execute SQL, read event or history tables,
+inspect idempotency/replay state, seed rows, mutate current-state tables, or
+require migration 0002.
+
 ## B1 Initialization Guarantees
 
 Migration `0001_initial` creates schema objects and inserts its

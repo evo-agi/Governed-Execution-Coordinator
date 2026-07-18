@@ -7,6 +7,11 @@ operational timestamp envelopes only. No typed SQLite reader implementation
 exists in this tranche. No test database fixture insertion helper exists in
 this tranche.
 
+B3b2a is a later implementation slice. It adds private non-executing
+capability-protocol and immutable query-spec contracts only; it does not change
+this B3b prerequisite tranche into an executing reader, concrete transaction
+authority, or fixture implementation.
+
 This tranche pins the authority contracts required before B3b typed SQLite
 readers and test-only authoritative fixtures can be implemented. No typed SQLite
 reader implementation exists in this tranche. No test database fixture insertion

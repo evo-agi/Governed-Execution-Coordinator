@@ -1,6 +1,7 @@
 # B3 Transition Persistence Contract
 
-Status: B3a contract-only prerequisites with B3b reader prerequisite pins.
+Status: B3a contract-only prerequisites, B3b/B3b1 reader prerequisites, and
+B3b2a private capability-protocol/query contracts.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -23,6 +24,20 @@ not implement SQLite `SELECT` statements, connection ownership, row cardinality,
 not-found classification, a combined transition-input loader, test database
 fixture insertion, transition/global-stop mutation, idempotency/replay,
 event-sequence allocation, expected-version checks, or migration 0002.
+
+B3b2a implements only immutable SELECT specifications and a private
+future-B3c transaction capability protocol. It defines ordered row-column tuples
+as the source of truth for the six B3b1 row shapes and derives existing key sets
+from those tuples. It does not execute SELECT, create cursors, fetch rows, map
+tuples, call B3b1 adapters, classify row cardinality or not-found, load
+transition context, inspect idempotency/replay/event history, perform
+expected-version checks, begin/commit/rollback, own/close connections, provide a
+concrete transaction-bound capability, accept raw SQLite connections as reader
+authority, integrate with `WriterSession.apply_transition`, add fixtures, mutate
+state, or add migration 0002. `connection.in_transaction` is not transaction
+identity. Future B3c must own one opaque epoch per `BEGIN IMMEDIATE`
+transaction, invalidate it before commit or rollback, and reject old epochs after
+transaction end or restart on the same connection.
 
 ## Public Shape
 
@@ -237,7 +252,10 @@ Inside the future fenced transition transaction, B3 must:
 13. require command refs/version to match reconstructed context before the
     pure evaluator can produce an event.
 
-B3a does not implement these reads.
+B3a and B3b2a do not implement these reads. B3b2a supplies only the private
+capability protocol and immutable SQL contract data. Future B3b2b readers must
+accept only `_TransitionReadCapability`; future B3c owns the concrete
+transaction capability and transaction lifecycle.
 
 B3b1 row contracts retain row `created_at`, `admitted_at`, or `updated_at`
 values only in internal typed timestamp envelopes. They validate exact UTC

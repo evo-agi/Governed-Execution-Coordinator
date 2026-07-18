@@ -83,6 +83,20 @@ connection, transaction, row cardinality contract, not-found classification,
 fixture insertion helper, combined transition-input loader, transition/global
 stop mutation, or package-root export.
 
+B3b2a implements the next internal prerequisite only. It defines ordered
+schema-0001 row-column tuples as the row-shape source of truth, derives existing
+row-key contracts from those tuples, defines six immutable explicit-column
+parameterized SELECT specifications, and defines a private future-B3c
+transaction capability protocol. B3b2a does not implement a concrete
+transaction-bound capability, accept raw SQLite connections as authority,
+execute the SELECT specifications, create cursors, fetch rows, map tuples,
+invoke B3b1 adapters, classify cardinality or not-found, assemble transition
+input, own connection lifecycle, own transactions, widen public `StateStore`, or
+integrate with `WriterSession.apply_transition`. `connection.in_transaction` is
+not transaction identity. Future B3c must own one opaque epoch per `BEGIN
+IMMEDIATE` transaction, invalidate it before commit or rollback, and reject old
+epochs after transaction end or restart on the same connection.
+
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
 they are not generic sanitized payloads and do not carry private, endpoint,
@@ -226,5 +240,7 @@ SQLite reader, test database fixture insertion, transition/global-stop mutation,
 admission, authorization verifier, worker, scheduler, service, CLI, MCP,
 connector, repair, commit, publication, migration 0002, or executable A2
 behavior. B3b1 adds only pure full-row envelope adapters for already-fetched
-rows; B3b readers, B3c atomic transition apply, exact replay, and fault
-injection remain future. B4 remains future for global-stop persistence.
+rows. B3b2a adds private non-executing capability-protocol and query-spec
+contracts only; B3b2b readers, B3c concrete transaction capability and atomic
+transition apply, exact replay, and fault injection remain future. B4 remains
+future for global-stop persistence.

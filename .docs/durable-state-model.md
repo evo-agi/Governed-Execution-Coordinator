@@ -6,6 +6,8 @@ migration infrastructure. B2a corrects the writer-session authority contract.
 B2b adds the common state-authority lock for initialize/migrate administration.
 B2c adds durable writer issuance and an internal concrete SQLite
 `WriterSession`. B3a adds canonical persistence and provenance contracts only.
+B3b2a adds private non-executing capability-protocol and query-contract
+prerequisites.
 The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
@@ -114,6 +116,20 @@ model values. B3b1 does not add SQLite readers, cardinality/not-found behavior,
 fixture insertion, transition context assembly, idempotency/replay, event
 sequencing, expected-version checks, or mutation storage.
 
+B3b2a implements only the private non-executing capability-protocol and
+query-contract portion of the future typed-reader boundary. Ordered row-column
+tuples are now the source of truth for schema-0001 row shapes, and six immutable
+explicit-column parameterized SELECT specs exist as data. B3b2a defines
+`_TransitionReadCapability` for future B3b2b reader signatures, but it does not
+provide a concrete production capability, accept raw SQLite connections as
+authority, execute SQL, own or close the connection, begin or end a transaction,
+classify row cardinality, map tuples, invoke B3b1 adapters, classify missing
+rows, assemble `TransitionContext`, inspect idempotency/replay/event state, or
+mutate durable state. `connection.in_transaction` is not transaction identity.
+Future B3c must own one opaque epoch per `BEGIN IMMEDIATE` transaction,
+invalidate it before commit or rollback, and reject old epochs after transaction
+end or restart on the same connection.
+
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. It carries the complete `LeaseRuntimeDecision`
 mapping, so the transaction timestamp and runtime lease status used by the
@@ -155,9 +171,11 @@ live-schema manifest checks, and schema compatibility validation. B2a adds
 writer-session contract hardening, B2b adds the common administrative lock,
 B2c adds internal writer acquisition, B3a adds non-mutating canonical
 contracts, B3b prerequisite contracts add pure/model reader prerequisites, and
-B3b1 adds pure internal row-to-envelope adapters only. No `StateStore` mutation
-backend, typed SQLite reader, test database fixture insertion helper,
-coordinator service, or executable A2 capability exists in this slice.
+B3b1 adds pure internal row-to-envelope adapters only. B3b2a adds private
+non-executing capability-protocol and query-spec contracts only. No `StateStore`
+mutation backend, executing typed SQLite reader, concrete transaction
+capability, test database fixture insertion helper, coordinator service, or
+executable A2 capability exists in this slice.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

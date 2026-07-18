@@ -97,6 +97,16 @@ outside `WriterSession`. There is no `current_writer()` read surface and no
 `read_latest_writer_issuance()` read surface. Direct SQLite inspection remains
 test-only under temporary roots.
 
+B3b2a adds a private `_TransitionReadCapability` protocol for future
+B3c-managed transition transactions, but it is not writer authority, not public
+read authority, not a `StateStore` method, not a database handle for callers,
+and not a concrete production capability. `connection.in_transaction` is not
+transaction identity and does not prove `BEGIN IMMEDIATE`, writer fencing,
+private proof possession, or B2 operation guard ownership. Future B3c must
+create one concrete opaque epoch only after those gates, invalidate it before
+commit or rollback, and reject old epochs after transaction end or restart on
+the same connection.
+
 ## Failure Layer Taxonomy
 
 | Layer | Owner | Examples | Boundary | Result semantics |
@@ -428,3 +438,7 @@ only. B3/B4 remain future. B2c does not implement:
 - reports over SQLite;
 - worker, scheduler, daemon, recovery loop, repair, local commit,
   publication, deployment, or executable authorization.
+
+B3b2a does not change B2c writer-session semantics. It does not alter writer
+credential, proof, lock, close, finalizer, process, fork, cleanup, mutation-
+unavailable, or package-root export behavior.

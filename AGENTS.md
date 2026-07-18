@@ -130,6 +130,24 @@ not-found classification, fixture insertion, transition-input assembly,
 idempotency/replay, event sequencing, expected-version checks, transition
 mutation, or global-stop mutation.
 
+B3b2a implements only private transaction-capability protocol and immutable
+SELECT contract prerequisites for future B3b2b readers. It defines ordered
+row-column tuples as the single source of row-shape truth, derives existing
+row-key sets from those tuples, defines six data-only explicit-column
+parameterized SELECT specifications with `LIMIT 2`, and adds a private
+`_TransitionReadCapability` protocol for future B3c-managed active
+transactions. B3b2a does not execute SELECT, create cursors, fetch rows,
+reconstruct B3b1 envelopes, classify cardinality or missing rows, assemble
+transition input, inspect idempotency/replay/event state, own transactions or
+connections, provide a concrete transaction-bound capability, accept raw SQLite
+connections as reader authority, widen public `StateStore`, integrate with
+`WriterSession.apply_transition`, add fixtures, mutate state, or add migration
+0002. `connection.in_transaction` is not transaction identity. Future B3c must
+own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it before
+commit or rollback, and reject old epochs after transaction end or restart on
+the same connection. Future B3b2b readers will accept only the private
+capability protocol.
+
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.

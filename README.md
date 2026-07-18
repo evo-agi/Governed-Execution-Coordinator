@@ -44,6 +44,13 @@ SQLite bootstrap/migration infrastructure only:
   schema-0001 row mappings in operational timestamp envelopes for lease
   identity, authorization, dependency, work-item, admitted-backlog, and
   global-stop-current rows, with no SQLite I/O or reader implementation.
+- B3b2a private transaction-capability protocol and immutable SELECT contract
+  data:
+  ordered row-column tuples, six explicit-column parameterized query specs, and
+  capability-first future reader signatures for B3c-managed active
+  transactions, with no concrete transaction authority, SQL execution, row
+  reconstruction, cardinality, missing-row classification, public read port,
+  fixture insertion, or mutation behavior.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -120,5 +127,17 @@ SQLite `SELECT`, connection, row cardinality behavior, not-found behavior,
 combined transition-input loader, fixture insertion helper, idempotency/replay,
 expected-version runtime, event sequence allocation, B3c transition apply, or
 B4 global-stop mutation.
+
+B3b2a adds only internal prerequisites for those future readers: ordered
+schema-0001 row-column tuples, immutable data-only SELECT specifications, and a
+private future-B3c transaction capability protocol. B3b2a does not provide a
+concrete production capability, raw-connection scope, reader execution, or
+connection lifecycle. `connection.in_transaction` is not transaction identity.
+Future B3c must own one opaque epoch per `BEGIN IMMEDIATE` transaction,
+invalidate it before commit or rollback, reject old epochs after transaction end
+or restart on the same connection, and remain responsible for operation-guard,
+writer-fencing, idempotency, expected-version, reader ordering, context
+assembly, evaluator invocation, and mutation outcome. B3b2b readers will accept
+only the private capability protocol.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

@@ -36,9 +36,35 @@ from ge_nwp_coordinator.state_machine import (
 
 SQLITE_SIGNED_INT_MAX = 9223372036854775807
 FIRST_TRANSITION_EVENT_SEQUENCE = 0
+_SAFE_SQL_IDENTIFIER_FIRST_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz")
+_SAFE_SQL_IDENTIFIER_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789_")
 
-LEASE_IDENTITY_RECORD_KEYS = frozenset(
-    {
+
+def _validated_row_columns(name: str, columns: tuple[str, ...]) -> tuple[str, ...]:
+    if not columns:
+        raise ValueError(f"invalid_row_columns:{name}")
+    seen: set[str] = set()
+    for column in columns:
+        if type(column) is not str or not column:
+            raise ValueError(f"invalid_row_column:{name}")
+        if column[0] not in _SAFE_SQL_IDENTIFIER_FIRST_CHARS:
+            raise ValueError(f"invalid_row_column:{name}")
+        if any(character not in _SAFE_SQL_IDENTIFIER_CHARS for character in column):
+            raise ValueError(f"invalid_row_column:{name}")
+        if column in seen:
+            raise ValueError(f"duplicate_row_column:{name}")
+        seen.add(column)
+    return columns
+
+
+def _row_keys_without(columns: tuple[str, ...], operational_timestamp_column: str) -> frozenset[str]:
+    if operational_timestamp_column not in columns:
+        raise ValueError("missing_operational_timestamp_column")
+    return frozenset(column for column in columns if column != operational_timestamp_column)
+
+LEASE_IDENTITY_RECORD_ROW_COLUMNS = _validated_row_columns(
+    "LEASE_IDENTITY_RECORD_ROW_COLUMNS",
+    (
         "decision_ref",
         "lease_ref",
         "identity_valid",
@@ -46,11 +72,14 @@ LEASE_IDENTITY_RECORD_KEYS = frozenset(
         "schema_id",
         "canonical_json",
         "canonical_digest",
-    }
+        "created_at",
+    ),
 )
-LEASE_IDENTITY_RECORD_ROW_KEYS = LEASE_IDENTITY_RECORD_KEYS | frozenset({"created_at"})
-AUTHORIZATION_RECEIPT_KEYS = frozenset(
-    {
+LEASE_IDENTITY_RECORD_ROW_KEYS = frozenset(LEASE_IDENTITY_RECORD_ROW_COLUMNS)
+LEASE_IDENTITY_RECORD_KEYS = _row_keys_without(LEASE_IDENTITY_RECORD_ROW_COLUMNS, "created_at")
+AUTHORIZATION_RECEIPT_ROW_COLUMNS = _validated_row_columns(
+    "AUTHORIZATION_RECEIPT_ROW_COLUMNS",
+    (
         "decision_ref",
         "lease_ref",
         "lease_identity_decision_ref",
@@ -62,11 +91,14 @@ AUTHORIZATION_RECEIPT_KEYS = frozenset(
         "schema_id",
         "canonical_json",
         "canonical_digest",
-    }
+        "created_at",
+    ),
 )
-AUTHORIZATION_RECEIPT_ROW_KEYS = AUTHORIZATION_RECEIPT_KEYS | frozenset({"created_at"})
-DEPENDENCY_RECEIPT_KEYS = frozenset(
-    {
+AUTHORIZATION_RECEIPT_ROW_KEYS = frozenset(AUTHORIZATION_RECEIPT_ROW_COLUMNS)
+AUTHORIZATION_RECEIPT_KEYS = _row_keys_without(AUTHORIZATION_RECEIPT_ROW_COLUMNS, "created_at")
+DEPENDENCY_RECEIPT_ROW_COLUMNS = _validated_row_columns(
+    "DEPENDENCY_RECEIPT_ROW_COLUMNS",
+    (
         "decision_ref",
         "work_item_id",
         "dependencies_satisfied",
@@ -74,11 +106,14 @@ DEPENDENCY_RECEIPT_KEYS = frozenset(
         "schema_id",
         "canonical_json",
         "canonical_digest",
-    }
+        "created_at",
+    ),
 )
-DEPENDENCY_RECEIPT_ROW_KEYS = DEPENDENCY_RECEIPT_KEYS | frozenset({"created_at"})
-WORK_ITEM_ROW_KEYS = frozenset(
-    {
+DEPENDENCY_RECEIPT_ROW_KEYS = frozenset(DEPENDENCY_RECEIPT_ROW_COLUMNS)
+DEPENDENCY_RECEIPT_KEYS = _row_keys_without(DEPENDENCY_RECEIPT_ROW_COLUMNS, "created_at")
+WORK_ITEM_ROW_COLUMNS = _validated_row_columns(
+    "WORK_ITEM_ROW_COLUMNS",
+    (
         "work_item_id",
         "lease_id",
         "backlog_id",
@@ -93,10 +128,12 @@ WORK_ITEM_ROW_KEYS = frozenset(
         "max_repairs",
         "cleanup_required",
         "updated_at",
-    }
+    ),
 )
-ADMITTED_BACKLOG_ROW_KEYS = frozenset(
-    {
+WORK_ITEM_ROW_KEYS = frozenset(WORK_ITEM_ROW_COLUMNS)
+ADMITTED_BACKLOG_ROW_COLUMNS = _validated_row_columns(
+    "ADMITTED_BACKLOG_ROW_COLUMNS",
+    (
         "backlog_id",
         "lease_ref",
         "schema_id",
@@ -104,10 +141,12 @@ ADMITTED_BACKLOG_ROW_KEYS = frozenset(
         "content_digest",
         "canonical_json",
         "admitted_at",
-    }
+    ),
 )
-GLOBAL_STOP_CURRENT_ROW_KEYS = frozenset(
-    {
+ADMITTED_BACKLOG_ROW_KEYS = frozenset(ADMITTED_BACKLOG_ROW_COLUMNS)
+GLOBAL_STOP_CURRENT_ROW_COLUMNS = _validated_row_columns(
+    "GLOBAL_STOP_CURRENT_ROW_COLUMNS",
+    (
         "singleton_id",
         "schema_id",
         "version",
@@ -118,8 +157,9 @@ GLOBAL_STOP_CURRENT_ROW_KEYS = frozenset(
         "issued_at",
         "operator_decision_ref",
         "updated_at",
-    }
+    ),
 )
+GLOBAL_STOP_CURRENT_ROW_KEYS = frozenset(GLOBAL_STOP_CURRENT_ROW_COLUMNS)
 _MAX_CANONICAL_JSON_BYTES = 1048576
 
 
