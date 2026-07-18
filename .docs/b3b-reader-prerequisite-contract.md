@@ -1,21 +1,29 @@
 # B3b Reader Prerequisite Contract
 
-Status: contract-only prerequisite to typed SQLite readers.
+Status: contract-only prerequisite plus later B3b2b private SELECT readers.
 
 B3b1 status: implemented pure/model full-row contracts and internal
-operational timestamp envelopes only. No typed SQLite reader implementation
-exists in this tranche. No test database fixture insertion helper exists in
-this tranche.
+operational timestamp envelopes only. No test database fixture insertion helper
+exists in this tranche.
 
 B3b2a is a later implementation slice. It adds private non-executing
 capability-protocol and immutable query-spec contracts only; it does not change
 this B3b prerequisite tranche into an executing reader, concrete transaction
 authority, or fixture implementation.
 
-This tranche pins the authority contracts required before B3b typed SQLite
-readers and test-only authoritative fixtures can be implemented. No typed SQLite
-reader implementation exists in this tranche. No test database fixture insertion
-helper exists in this tranche. No SQLite I/O is added. No transition mutation,
+B3b2b is a later implementation slice. It adds six private SELECT readers over
+the B3b2a specs, with lookup validation, private capability borrowing,
+parameterized `SELECT ... LIMIT 2`, `fetchmany(2)`, bounded cardinality,
+tuple-to-private-mapping conversion, B3b1 adapter delegation, safe SQLite
+SELECT-error classification, and cursor cleanup. Tests execute the readers
+through a tests-only capability and in-memory tables. B3b2b still does not add
+production integration, a concrete transaction capability, a fixture program,
+transition/global-stop mutation, admission, or authorization implementation.
+
+This document pins the authority contracts required before integrated typed
+SQLite readers and test-only authoritative fixtures can be implemented. No test
+database fixture insertion helper exists in this tranche. No production SQLite
+reader integration is added. No transition mutation,
 global-stop mutation, event insertion, work-item update, idempotency lookup,
 replay runtime, event-sequence allocation, expected-version runtime, production
 admission, authorization implementation, worker, scheduler, service, CLI, MCP,
@@ -101,7 +109,8 @@ database paths, connections, row cardinality, missing-row/not-found
 classification, a reader object, a combined transition-input loader, fixture
 insertion, seed helpers, admission helpers, idempotency/replay, event-sequence
 allocation, expected-version checks, transition mutation, or global-stop
-mutation.
+mutation. B3b2b later consumes the B3b1 adapters from private readers but still
+does not assemble cross-record transition input.
 
 The single-row admitted-backlog contract validates literal canonical
 `FiniteBacklog` JSON, exact schema id/version, embedded content digest,

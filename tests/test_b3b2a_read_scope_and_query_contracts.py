@@ -35,14 +35,18 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _B3B2A_SELECT_QUERY_SPECS,
     _CURRENT_WORK_ITEM_SELECT,
     _DEPENDENCY_RECEIPT_SELECT,
-    _FUTURE_B3B2B_READER_SIGNATURES,
     _GLOBAL_STOP_CURRENT_SELECT,
     _LEASE_IDENTITY_SELECT,
-    _FutureReaderSignatureSpec,
     _SelectQuerySpec,
     _TransitionReadCapability,
     _TransitionReadCapabilityError,
     _TransitionReadCapabilityFailureReason,
+    _read_admitted_backlog,
+    _read_authorization_receipt,
+    _read_current_work_item,
+    _read_dependency_receipt,
+    _read_global_stop_current,
+    _read_lease_identity_record,
 )
 
 
@@ -254,30 +258,42 @@ def test_private_transition_read_capability_is_protocol_only() -> None:
     assert "runtime_checkable" not in source
 
 
-def test_future_b3b2b_reader_signatures_are_data_only_and_capability_bound() -> None:
+def test_b3b2b_private_reader_signatures_are_capability_bound() -> None:
     expected = {
         "_read_current_work_item": ("work_item_id", "WorkItemRecordEnvelope | None"),
         "_read_lease_identity_record": ("decision_ref", "LeaseIdentityRecordEnvelope | None"),
         "_read_authorization_receipt": ("decision_ref", "AuthorizationReceiptEnvelope | None"),
         "_read_dependency_receipt": ("decision_ref", "DependencyReceiptEnvelope | None"),
         "_read_admitted_backlog": ("backlog_id", "AdmittedBacklogRecordEnvelope | None"),
-        "_read_global_stop_current": ("singleton_id", "GlobalStopCurrentRecordEnvelope | None"),
+        "_read_global_stop_current": (None, "GlobalStopCurrentRecordEnvelope"),
     }
-    assert len(_FUTURE_B3B2B_READER_SIGNATURES) == 6
-    assert {spec.reader_name for spec in _FUTURE_B3B2B_READER_SIGNATURES} == set(expected)
-    for spec in _FUTURE_B3B2B_READER_SIGNATURES:
-        assert isinstance(spec, _FutureReaderSignatureSpec)
-        assert spec.capability_type == "_TransitionReadCapability"
-        assert (spec.lookup_parameter, spec.return_type) == expected[spec.reader_name]
-        serialized = repr(spec)
-        for forbidden in ("sqlite3.Connection", "StateStore", "WriterSession", "object", "Callable", "database_path"):
-            assert forbidden not in serialized
-        with pytest.raises(Exception):
-            spec.capability_type = "sqlite3.Connection"  # type: ignore[misc]
+    readers = {
+        "_read_current_work_item": _read_current_work_item,
+        "_read_lease_identity_record": _read_lease_identity_record,
+        "_read_authorization_receipt": _read_authorization_receipt,
+        "_read_dependency_receipt": _read_dependency_receipt,
+        "_read_admitted_backlog": _read_admitted_backlog,
+        "_read_global_stop_current": _read_global_stop_current,
+    }
+    assert set(readers) == set(expected)
+    for reader_name, reader in readers.items():
+        signature = inspect.signature(reader)
+        parameters = list(signature.parameters.values())
+        assert parameters[0].name == "capability"
+        assert parameters[0].annotation == "_TransitionReadCapability"
+        lookup_parameter, return_type = expected[reader_name]
+        if lookup_parameter is None:
+            assert [parameter.name for parameter in parameters] == ["capability"]
+        else:
+            assert [parameter.name for parameter in parameters] == ["capability", lookup_parameter]
+            assert parameters[1].annotation == "str"
+        assert signature.return_annotation == return_type
 
-    tree = ast.parse(READ_SCOPE_PATH.read_text(encoding="utf-8"))
-    function_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
-    assert not any(name.startswith("_read_") for name in function_names)
+    source = READ_SCOPE_PATH.read_text(encoding="utf-8")
+    assert "_FutureReaderSignatureSpec" not in source
+    assert "_FUTURE_B3B2B_READER_SIGNATURES" not in source
+    for forbidden in ("StateStore", "WriterSession", "database_path"):
+        assert forbidden not in "\n".join(inspect.getsource(reader) for reader in readers.values())
 
 
 def test_test_only_capability_rejects_transaction_a_reuse_after_transaction_b_starts() -> None:
@@ -440,7 +456,6 @@ def test_query_spec_type_and_constants_remain_internal_and_unexported() -> None:
     assert not hasattr(read_scope, "__all__")
     for name in (
         "_SelectQuerySpec",
-        "_FutureReaderSignatureSpec",
         "_TransitionReadCapability",
         "_TransitionReadCapabilityError",
         "_TransitionReadCapabilityFailureReason",
@@ -450,8 +465,13 @@ def test_query_spec_type_and_constants_remain_internal_and_unexported() -> None:
         "_DEPENDENCY_RECEIPT_SELECT",
         "_ADMITTED_BACKLOG_SELECT",
         "_GLOBAL_STOP_CURRENT_SELECT",
-        "_FUTURE_B3B2B_READER_SIGNATURES",
         "_B3B2A_SELECT_QUERY_SPECS",
+        "_read_current_work_item",
+        "_read_lease_identity_record",
+        "_read_authorization_receipt",
+        "_read_dependency_receipt",
+        "_read_admitted_backlog",
+        "_read_global_stop_current",
     ):
         assert name not in ge_nwp_coordinator.__all__
         assert not hasattr(ge_nwp_coordinator, name)
@@ -476,20 +496,17 @@ def test_b3b2a_does_not_widen_public_state_store_or_add_observer_apis() -> None:
     assert "sqlite_transition_read_scope" not in state_store_source
 
 
-def test_b3b2a_production_module_has_no_sql_execution_or_reader_methods() -> None:
+def test_b3b2b_production_module_only_adds_private_bounded_select_readers() -> None:
     source = READ_SCOPE_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
     forbidden_calls = {
-        "execute",
         "executemany",
         "executescript",
         "cursor",
         "fetchone",
-        "fetchmany",
         "fetchall",
         "commit",
         "rollback",
-        "close",
     }
 
     for node in ast.walk(tree):
@@ -500,6 +517,14 @@ def test_b3b2a_production_module_has_no_sql_execution_or_reader_methods() -> Non
                 assert node.func.id not in forbidden_calls
 
     function_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+    assert {
+        "_read_current_work_item",
+        "_read_lease_identity_record",
+        "_read_authorization_receipt",
+        "_read_dependency_receipt",
+        "_read_admitted_backlog",
+        "_read_global_stop_current",
+    } <= function_names
     assert not any(name.startswith("read_") for name in function_names)
     assert "_borrow_connection_for_select" in function_names
 
@@ -508,14 +533,13 @@ def test_b3b2a_production_module_has_no_sql_execution_or_reader_methods() -> Non
         "_create_for_b3c_managed_transition_transaction",
         "_borrow_connection_for_b3b2b",
         "_require_connection_posture",
-        "_from_row",
         "work_item_record_from_row",
         "validate_b3_work_item_authority_binding",
         "TransitionContext",
         "TransitionConflict",
         "row_to_mapping",
-        "tuple_to_mapping",
         "sqlite3.connect",
+        "connection.close",
         "database_path",
         "idempotency_key",
         "event_sequence",
@@ -554,16 +578,17 @@ def test_b3b2a_docs_pin_private_non_executing_protocol_and_b3c_authority() -> No
     )
     normalized = " ".join(docs.split())
     for phrase in (
-        "Status: implemented private capability protocol and immutable query contracts; no reader execution",
+        "private B3b2b SELECT readers now consume these contracts with no production integration",
         "ordered schema-0001 row-column tuples",
         "six immutable parameterized `SELECT` specifications",
         "private future-B3c transaction capability protocol",
-        "B3b2a does not execute SQL",
-        "B3b2a does not execute SELECT",
+        "B3b2a by itself does not execute SQL",
+        "B3b2b now implements private readers",
+        "fetchmany(2)",
+        "`commit_outcome_unknown` is never produced by B3b2b",
         "`connection.in_transaction` is not transaction identity",
         "Future B3c must own one opaque epoch per `BEGIN IMMEDIATE` transaction",
-        "B3b2b readers will accept only the private capability protocol",
-        "B3b2b will implement actual SELECT execution",
+        "B3b2b readers accept only the private capability protocol",
         "public `StateStore` is not widened",
     ):
         assert phrase in normalized

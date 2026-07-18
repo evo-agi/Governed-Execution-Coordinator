@@ -47,10 +47,17 @@ SQLite bootstrap/migration infrastructure only:
 - B3b2a private transaction-capability protocol and immutable SELECT contract
   data:
   ordered row-column tuples, six explicit-column parameterized query specs, and
-  capability-first future reader signatures for B3c-managed active
+  private capability-first reader contracts for B3c-managed active
   transactions, with no concrete transaction authority, SQL execution, row
   reconstruction, cardinality, missing-row classification, public read port,
   fixture insertion, or mutation behavior.
+- B3b2b private SELECT readers over those specs, test-executed only through a
+  tests-only capability and in-memory tables, with lookup validation,
+  parameterized `SELECT ... LIMIT 2`, `fetchmany(2)`, strict tuple-to-private
+  mapping conversion, B3b1 adapter delegation, safe SQLite SELECT-error
+  classification, and cursor cleanup, but no production caller, concrete
+  transaction capability, public read API, fixture program, context assembly,
+  admission, authorization implementation, or mutation behavior.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -137,7 +144,22 @@ Future B3c must own one opaque epoch per `BEGIN IMMEDIATE` transaction,
 invalidate it before commit or rollback, reject old epochs after transaction end
 or restart on the same connection, and remain responsible for operation-guard,
 writer-fencing, idempotency, expected-version, reader ordering, context
-assembly, evaluator invocation, and mutation outcome. B3b2b readers will accept
+assembly, evaluator invocation, and mutation outcome. B3b2b readers accept
 only the private capability protocol.
+
+B3b2b now implements those private readers, but keeps them unreachable from
+production source. The readers validate lookup refs before capability borrow,
+execute only the immutable parameterized SELECT specs, fetch at most two rows,
+map exactly one built-in tuple into a private mapping, and delegate to the B3b1
+row adapters. Optional readers return `None` for absence; the global-stop
+singleton reader raises a safe integrity failure if the mandatory singleton is
+absent. SQLite SELECT failures are reduced to safe
+`SQLiteMutationStoreError` classes with no raw exception text, SQL, parameters,
+rows, canonical JSON, paths, connection reprs, proofs, digests, or secrets
+retained. Tests use a tests-only structural capability; that does not prove
+production transaction authority. B3c remains future for the nominal concrete
+capability, transaction epoch, B2 operation guard, `BEGIN IMMEDIATE`, writer
+fencing, missing-row classification, assembly, evaluation, idempotency/replay,
+expected-version checks, and mutation.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

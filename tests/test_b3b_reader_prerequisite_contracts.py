@@ -355,8 +355,9 @@ def test_b3b_prerequisite_docs_pin_zero_cost_schema_and_internal_timestamp_contr
     doc = (ROOT / ".docs/b3b-reader-prerequisite-contract.md").read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
     for phrase in (
-        "Status: contract-only prerequisite to typed SQLite readers",
-        "No typed SQLite reader implementation exists in this tranche",
+        "Status: contract-only prerequisite plus later B3b2b private SELECT readers",
+        "B3b2b is a later implementation slice",
+        "No production SQLite reader integration is added",
         "No test database fixture insertion helper exists in this tranche",
         "WorkItemRecord.budget_consumed == 0",
         "TransitionCommand.budget_cost == 0",

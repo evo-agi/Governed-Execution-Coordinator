@@ -100,12 +100,15 @@ test-only under temporary roots.
 B3b2a adds a private `_TransitionReadCapability` protocol for future
 B3c-managed transition transactions, but it is not writer authority, not public
 read authority, not a `StateStore` method, not a database handle for callers,
-and not a concrete production capability. `connection.in_transaction` is not
-transaction identity and does not prove `BEGIN IMMEDIATE`, writer fencing,
-private proof possession, or B2 operation guard ownership. Future B3c must
-create one concrete opaque epoch only after those gates, invalidate it before
-commit or rollback, and reject old epochs after transaction end or restart on
-the same connection.
+and not a concrete production capability. B3b2b consumes that protocol from
+private SELECT readers and verifies only that the borrowed object is a
+`sqlite3.Connection`; this helper check is not an authority check and does not
+prove transaction identity. `connection.in_transaction` is not transaction
+identity and does not prove `BEGIN IMMEDIATE`, writer fencing, private proof
+possession, or B2 operation guard ownership. Future B3c must create one
+concrete opaque epoch only after those gates, invalidate it before commit or
+rollback, and reject old epochs after transaction end or restart on the same
+connection.
 
 ## Failure Layer Taxonomy
 
@@ -439,6 +442,8 @@ only. B3/B4 remain future. B2c does not implement:
 - worker, scheduler, daemon, recovery loop, repair, local commit,
   publication, deployment, or executable authorization.
 
-B3b2a does not change B2c writer-session semantics. It does not alter writer
-credential, proof, lock, close, finalizer, process, fork, cleanup, mutation-
-unavailable, or package-root export behavior.
+B3b2a does not change B2c writer-session semantics. B3b2b private readers also
+do not change B2c writer-session semantics and are not invoked by
+`_SQLiteWriterSession.apply_transition`. They do not alter writer credential,
+proof, lock, close, finalizer, process, fork, cleanup, mutation-unavailable, or
+package-root export behavior.

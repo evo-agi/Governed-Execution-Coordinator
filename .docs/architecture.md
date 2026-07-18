@@ -83,19 +83,29 @@ connection, transaction, row cardinality contract, not-found classification,
 fixture insertion helper, combined transition-input loader, transition/global
 stop mutation, or package-root export.
 
-B3b2a implements the next internal prerequisite only. It defines ordered
+B3b2a implements the next internal prerequisite. It defines ordered
 schema-0001 row-column tuples as the row-shape source of truth, derives existing
 row-key contracts from those tuples, defines six immutable explicit-column
 parameterized SELECT specifications, and defines a private future-B3c
 transaction capability protocol. B3b2a does not implement a concrete
 transaction-bound capability, accept raw SQLite connections as authority,
-execute the SELECT specifications, create cursors, fetch rows, map tuples,
-invoke B3b1 adapters, classify cardinality or not-found, assemble transition
-input, own connection lifecycle, own transactions, widen public `StateStore`, or
-integrate with `WriterSession.apply_transition`. `connection.in_transaction` is
-not transaction identity. Future B3c must own one opaque epoch per `BEGIN
-IMMEDIATE` transaction, invalidate it before commit or rollback, and reject old
-epochs after transaction end or restart on the same connection.
+own connection lifecycle, own transactions, widen public `StateStore`, or
+integrate with `WriterSession.apply_transition`.
+
+B3b2b implements the six private SELECT readers over those specs and keeps them
+unreachable from production callers. The readers validate lookup refs before
+borrowing, borrow only through `_TransitionReadCapability`, execute the
+parameterized specs, call `fetchmany(2)`, enforce zero/one/multiple
+cardinality, require exact built-in tuples, build private mappings, delegate to
+B3b1 row adapters, classify SQLite SELECT errors safely, and close cursors.
+Tests execute them with a tests-only capability and in-memory tables. B3b2b does
+not add a concrete capability, public read port, fixture program, cross-record
+assembly, admission, authorization verification, transaction ownership, or
+mutation. `connection.in_transaction` is not transaction identity. Future B3c
+must own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it
+before commit or rollback, reject old epochs after transaction end or restart on
+the same connection, and perform writer fencing, idempotency/replay,
+expected-version, context assembly, evaluator invocation, and mutation outcome.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -235,12 +245,13 @@ B3a defines transition-persistence contracts only: command-only
 `WriterSession.apply_transition`, typed lease runtime decisions,
 schema-aligned decision/event provenance, canonical event/replay mappings, and
 safe mutation-store errors. B3a does not add SQLite transition persistence.
-B3b prerequisite contracts add pure/model reader prerequisites only: no typed
-SQLite reader, test database fixture insertion, transition/global-stop mutation,
-admission, authorization verifier, worker, scheduler, service, CLI, MCP,
-connector, repair, commit, publication, migration 0002, or executable A2
-behavior. B3b1 adds only pure full-row envelope adapters for already-fetched
-rows. B3b2a adds private non-executing capability-protocol and query-spec
-contracts only; B3b2b readers, B3c concrete transaction capability and atomic
+B3b prerequisite contracts add pure/model reader prerequisites only: no
+integrated typed SQLite reader, test database fixture insertion,
+transition/global-stop mutation, admission, authorization verifier, worker,
+scheduler, service, CLI, MCP, connector, repair, commit, publication, migration
+0002, or executable A2 behavior. B3b1 adds only pure full-row envelope adapters
+for already-fetched rows. B3b2a adds private capability-protocol and query-spec
+contracts. B3b2b adds private SELECT readers with tests-only execution and no
+production call sites; B3c concrete transaction capability and atomic
 transition apply, exact replay, and fault injection remain future. B4 remains
 future for global-stop persistence.

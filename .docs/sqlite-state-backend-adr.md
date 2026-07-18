@@ -7,7 +7,7 @@ authority contract. B2c implements durable writer issuance and internal
 writer-session acquisition for managed SQLite databases. B3a implements
 canonical persistence and provenance contracts only. B3b2a implements private
 non-executing capability-protocol and immutable query-contract prerequisites
-only.
+only. B3b2b implements private SELECT readers with no production integration.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -20,7 +20,10 @@ session-local mutation-unavailable behavior. B2c does not implement a
 production `StateStore`, start a
 coordinator service, or enable executable A2 behavior. B3a adds no SQLite
 transition mutation runtime. B3b2a adds no executing reader, production read
-port, transition mutation, or transaction ownership.
+port, transition mutation, or transaction ownership. B3b2b adds executing
+private SELECT readers only; they are not production read ports and add no
+concrete transaction capability, transition mutation, fixture program, or
+transaction ownership.
 
 ## Decision
 
@@ -330,11 +333,11 @@ B1.1 and B2c treat a missing writer row as the valid pre-first-acquisition
 state and a present generation `0` row as malformed managed writer state. B2c
 mutation-unavailable methods enter and exit the private operation guard so
 future B3/B4 transactions can retain proof and advisory-lock authority across
-the full operation. B3b2a's private capability protocol does not prove that
-guard, transaction identity, or writer fencing by itself; future B3c must create
-one concrete opaque epoch only after the B3c-owned operation-guard, `BEGIN
-IMMEDIATE`, and fencing gates, and must invalidate it before commit or rollback.
-No B3/B4 persistence exists.
+the full operation. B3b2a's private capability protocol and B3b2b's private
+reader execution do not prove that guard, transaction identity, or writer
+fencing by themselves; future B3c must create one concrete opaque epoch only
+after the B3c-owned operation-guard, `BEGIN IMMEDIATE`, and fencing gates, and
+must invalidate it before commit or rollback. No B3/B4 persistence exists.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that
@@ -351,6 +354,8 @@ B3a does not implement transition persistence, global-stop persistence,
 idempotency lookup, expected-version checks, crash recovery orchestration,
 production read ports, a `StateStore` mutation backend, worker execution,
 scheduling, authorization, sandboxing, repair, local commit, publication, or
-deployment. B3b2a does not change that persistence boundary; it adds only
-private non-executing query-spec and capability-protocol contracts for future
-B3b2b/B3c.
+deployment. B3b2a does not change that persistence boundary; it adds private
+query-spec and capability-protocol contracts. B3b2b adds private, unreachable
+SELECT readers for tests only. B3b2b still does not add a production read port,
+fixture program, concrete transaction capability, context assembly, mutation,
+or executable A2 behavior.

@@ -149,9 +149,11 @@ event sequence allocation, expected-version runtime, B3c transition apply, or
 B4 global-stop mutation.
 
 B3b2a has since added ordered row-column tuples, immutable SELECT specification
-data, and a private future-B3c transaction capability protocol. It still
-performs no SELECT, row cardinality, tuple-to-mapping conversion, B3b1 adapter
-invocation, not-found classification, fixture insertion, transition-context
+data, and a private future-B3c transaction capability protocol. B3b2b has since
+added private SELECT readers that consume those specs and delegate to these
+B3b1 adapters after validating cardinality and tuple shape. The B3b1 adapters
+themselves still perform no SELECT, row cardinality, tuple-to-mapping
+conversion, not-found classification, fixture insertion, transition-context
 assembly, idempotency/replay lookup, expected-version check, concrete
 transaction authority, mutation, or public export.
 
@@ -168,4 +170,7 @@ related-repo cleanliness is closeout and audit evidence, not a Coordinator unit-
 contract. Workspace-level integration tests, if added later, require a
 separately owned harness outside this B3b1 contract.
 
-B3b2b executing readers remain future.
+B3b2b executing readers are now implemented only as private, unreachable
+per-table SELECT helpers and are test-executed through a tests-only capability.
+B3b3 coherent fixtures and B3c production transaction integration remain
+future.

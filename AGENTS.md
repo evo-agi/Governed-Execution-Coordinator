@@ -145,8 +145,25 @@ connections as reader authority, widen public `StateStore`, integrate with
 0002. `connection.in_transaction` is not transaction identity. Future B3c must
 own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it before
 commit or rollback, and reject old epochs after transaction end or restart on
-the same connection. Future B3b2b readers will accept only the private
+ the same connection. B3b2b readers accept only the private
 capability protocol.
+
+B3b2b implements only private, unreachable SELECT reader functions over the
+B3b2a query specs. They validate lookup refs before borrowing, borrow only via
+the private `_TransitionReadCapability` protocol, execute parameterized
+`SELECT ... LIMIT 2`, call `fetchmany(2)`, enforce bounded cardinality, require
+exact built-in tuple rows, build one private mapping, delegate to B3b1 row
+adapters, classify SQLite SELECT failures safely, and close cursors without
+owning the connection. Tests execute them through a clearly test-only
+capability and in-memory database setup. No production caller, concrete
+capability, transaction ownership, writer fencing, idempotency/replay,
+cross-record assembly, missing-row apply-conflict construction, mutation,
+fixture program, admission, authorization verifier, public read API,
+`StateStore` widening, `WriterSession` integration, or migration 0002 exists.
+B3c remains responsible for a nominal transaction capability with the B2
+operation guard, `BEGIN IMMEDIATE`, writer fencing, one opaque epoch,
+invalidation before commit/rollback, context assembly, evaluation, and atomic
+mutation.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,

@@ -1,7 +1,8 @@
 # B3 Transition Persistence Contract
 
-Status: B3a contract-only prerequisites, B3b/B3b1 reader prerequisites, and
-B3b2a private capability-protocol/query contracts.
+Status: B3a contract-only prerequisites, B3b/B3b1 reader prerequisites, B3b2a
+private capability-protocol/query contracts, and B3b2b private SELECT readers
+with no production integration.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -25,19 +26,29 @@ not-found classification, a combined transition-input loader, test database
 fixture insertion, transition/global-stop mutation, idempotency/replay,
 event-sequence allocation, expected-version checks, or migration 0002.
 
-B3b2a implements only immutable SELECT specifications and a private
-future-B3c transaction capability protocol. It defines ordered row-column tuples
-as the source of truth for the six B3b1 row shapes and derives existing key sets
-from those tuples. It does not execute SELECT, create cursors, fetch rows, map
-tuples, call B3b1 adapters, classify row cardinality or not-found, load
-transition context, inspect idempotency/replay/event history, perform
-expected-version checks, begin/commit/rollback, own/close connections, provide a
-concrete transaction-bound capability, accept raw SQLite connections as reader
-authority, integrate with `WriterSession.apply_transition`, add fixtures, mutate
-state, or add migration 0002. `connection.in_transaction` is not transaction
-identity. Future B3c must own one opaque epoch per `BEGIN IMMEDIATE`
-transaction, invalidate it before commit or rollback, and reject old epochs after
-transaction end or restart on the same connection.
+B3b2a implements immutable SELECT specifications and a private future-B3c
+transaction capability protocol. It defines ordered row-column tuples as the
+source of truth for the six B3b1 row shapes and derives existing key sets from
+those tuples.
+
+B3b2b implements the six private SELECT readers over those specs. They validate
+lookup refs before borrowing, borrow only through the private
+`_TransitionReadCapability` method, execute parameterized `SELECT ... LIMIT 2`,
+call `fetchmany(2)`, classify zero/one/multiple cardinality, map exactly one
+built-in tuple to a private mapping, delegate to B3b1 adapters, classify SQLite
+SELECT failures safely, and close cursors without closing the connection. Tests
+execute them through a tests-only capability and in-memory tables. No production
+module invokes them.
+
+B3b2b does not load transition context, inspect idempotency/replay/event
+history, perform expected-version checks, begin/commit/rollback, own or close
+connections, provide a concrete transaction-bound capability, accept raw SQLite
+connections as reader authority, integrate with
+`WriterSession.apply_transition`, add fixtures, mutate state, or add migration
+0002. `connection.in_transaction` is not transaction identity. Future B3c must
+own one opaque epoch per `BEGIN IMMEDIATE` transaction, invalidate it before
+commit or rollback, and reject old epochs after transaction end or restart on
+the same connection.
 
 ## Public Shape
 
@@ -252,10 +263,13 @@ Inside the future fenced transition transaction, B3 must:
 13. require command refs/version to match reconstructed context before the
     pure evaluator can produce an event.
 
-B3a and B3b2a do not implement these reads. B3b2a supplies only the private
-capability protocol and immutable SQL contract data. Future B3b2b readers must
-accept only `_TransitionReadCapability`; future B3c owns the concrete
-transaction capability and transaction lifecycle.
+B3b2b implements only the private per-table SELECT readers that can load the
+six individual rows when explicitly invoked by tests. Future B3c still owns
+reader ordering, missing-row apply-conflict classification, cross-record
+authority binding, lease runtime derivation, transaction timestamp,
+`TransitionContext` construction, idempotency/replay, expected-version checks,
+and mutation. Future B3c also owns the concrete transaction capability and
+transaction lifecycle.
 
 B3b1 row contracts retain row `created_at`, `admitted_at`, or `updated_at`
 values only in internal typed timestamp envelopes. They validate exact UTC
@@ -307,9 +321,20 @@ indexed/canonical disagreement, impossible evaluator `PRE_APPLY_INVALID` after
 authoritative reconstruction, and CAS rowcount mismatch inconsistent with a
 prior authoritative load.
 
+B3b2b also maps table-local SELECT contradictions to
+`database_integrity_failure`: duplicate rows observed through `fetchmany(2)`,
+wrong row tuple type or length, malformed rows rejected by B3b1 adapters,
+missing mandatory `global_stop_current`, and SQLite primary result codes for
+schema/query/database contradiction such as `SQLITE_ERROR`, `SQLITE_SCHEMA`,
+`SQLITE_CORRUPT`, `SQLITE_NOTADB`, `SQLITE_MISMATCH`, and
+`SQLITE_CONSTRAINT`.
+
 `mutation_failed` means rollback/no commit is definite. `commit_outcome_unknown`
 means the caller must retry with the same idempotency key; exact replay resolves
 whether the previous attempt committed.
+B3b2b maps every other SQLite SELECT failure, including closed connections,
+busy/locked/I/O/full/interrupted, and missing or unknown result codes, to
+`mutation_failed`; it never produces `commit_outcome_unknown`.
 
 ## Admission Boundary And First Proof
 

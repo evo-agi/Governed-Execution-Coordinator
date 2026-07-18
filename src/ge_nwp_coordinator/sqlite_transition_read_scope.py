@@ -1,29 +1,50 @@
-"""Private B3b2a transition-read capability and immutable SELECT contracts.
+"""Private B3b2 transition-read capability, SELECT contracts, and readers.
 
 B3b2a defines data-only query specifications and a private protocol for a
-future B3c-managed transaction capability. It does not implement concrete
-transaction authority, execute SQL, create cursors, fetch rows, map rows, invoke
-row adapters, or own connection lifecycle.
+future B3c-managed transaction capability. B3b2b adds private SELECT readers
+that consume only that protocol when tests invoke them. This module still does
+not implement concrete transaction authority, production read integration,
+transaction ownership, mutation, idempotency, replay, or context assembly.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 import sqlite3
-from typing import Protocol
+from typing import Any, Protocol, TypeVar
 
+from ge_nwp_coordinator.models import require_contract_ref
 from ge_nwp_coordinator.persistence_contracts import (
     ADMITTED_BACKLOG_ROW_COLUMNS,
+    AdmittedBacklogRecordEnvelope,
     AUTHORIZATION_RECEIPT_ROW_COLUMNS,
+    AuthorizationReceiptEnvelope,
     DEPENDENCY_RECEIPT_ROW_COLUMNS,
+    DependencyReceiptEnvelope,
     GLOBAL_STOP_CURRENT_ROW_COLUMNS,
+    GlobalStopCurrentRecordEnvelope,
     LEASE_IDENTITY_RECORD_ROW_COLUMNS,
+    LeaseIdentityRecordEnvelope,
     WORK_ITEM_ROW_COLUMNS,
+    WorkItemRecordEnvelope,
+    admitted_backlog_record_envelope_from_row,
+    authorization_receipt_envelope_from_row,
+    dependency_receipt_envelope_from_row,
+    global_stop_current_envelope_from_row,
+    lease_identity_record_envelope_from_row,
+    work_item_record_envelope_from_row,
+)
+from ge_nwp_coordinator.sqlite_errors import (
+    SQLiteMutationStoreError,
+    SQLiteMutationStoreErrorCode,
 )
 
 _SAFE_SQL_IDENTIFIER_FIRST_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _SAFE_SQL_IDENTIFIER_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789_")
+_GLOBAL_STOP_SINGLETON_ID = 1
+_EnvelopeT = TypeVar("_EnvelopeT")
 
 
 class _TransitionReadCapabilityFailureReason(str, Enum):
@@ -85,52 +106,9 @@ class _TransitionReadCapability(Protocol):
         ...
 
 
-@dataclass(frozen=True, slots=True)
-class _FutureReaderSignatureSpec:
-    reader_name: str
-    capability_type: str
-    lookup_parameter: str
-    return_type: str
-
-
-_FUTURE_B3B2B_READER_SIGNATURES = (
-    _FutureReaderSignatureSpec(
-        reader_name="_read_current_work_item",
-        capability_type="_TransitionReadCapability",
-        lookup_parameter="work_item_id",
-        return_type="WorkItemRecordEnvelope | None",
-    ),
-    _FutureReaderSignatureSpec(
-        reader_name="_read_lease_identity_record",
-        capability_type="_TransitionReadCapability",
-        lookup_parameter="decision_ref",
-        return_type="LeaseIdentityRecordEnvelope | None",
-    ),
-    _FutureReaderSignatureSpec(
-        reader_name="_read_authorization_receipt",
-        capability_type="_TransitionReadCapability",
-        lookup_parameter="decision_ref",
-        return_type="AuthorizationReceiptEnvelope | None",
-    ),
-    _FutureReaderSignatureSpec(
-        reader_name="_read_dependency_receipt",
-        capability_type="_TransitionReadCapability",
-        lookup_parameter="decision_ref",
-        return_type="DependencyReceiptEnvelope | None",
-    ),
-    _FutureReaderSignatureSpec(
-        reader_name="_read_admitted_backlog",
-        capability_type="_TransitionReadCapability",
-        lookup_parameter="backlog_id",
-        return_type="AdmittedBacklogRecordEnvelope | None",
-    ),
-    _FutureReaderSignatureSpec(
-        reader_name="_read_global_stop_current",
-        capability_type="_TransitionReadCapability",
-        lookup_parameter="singleton_id",
-        return_type="GlobalStopCurrentRecordEnvelope | None",
-    ),
-)
+class _MissingRowPolicy(str, Enum):
+    RETURN_NONE = "return_none"
+    INTEGRITY_FAILURE = "integrity_failure"
 
 
 def _make_select_query_spec(
@@ -221,3 +199,186 @@ _B3B2A_SELECT_QUERY_SPECS = (
     _ADMITTED_BACKLOG_SELECT,
     _GLOBAL_STOP_CURRENT_SELECT,
 )
+
+_SQLITE_INTEGRITY_PRIMARY_RESULT_CODES = frozenset(
+    code
+    for code in (
+        getattr(sqlite3, "SQLITE_ERROR", None),
+        getattr(sqlite3, "SQLITE_SCHEMA", None),
+        getattr(sqlite3, "SQLITE_CORRUPT", None),
+        getattr(sqlite3, "SQLITE_NOTADB", None),
+        getattr(sqlite3, "SQLITE_MISMATCH", None),
+        getattr(sqlite3, "SQLITE_CONSTRAINT", None),
+    )
+    if type(code) is int
+)
+
+
+def _read_current_work_item(
+    capability: _TransitionReadCapability,
+    work_item_id: str,
+) -> WorkItemRecordEnvelope | None:
+    validated_ref = require_contract_ref(work_item_id, "transition_read.work_item_id")
+    return _read_one_select_row(
+        capability=capability,
+        spec=_CURRENT_WORK_ITEM_SELECT,
+        lookup_value=validated_ref,
+        adapter=work_item_record_envelope_from_row,
+        missing_row_policy=_MissingRowPolicy.RETURN_NONE,
+    )
+
+
+def _read_lease_identity_record(
+    capability: _TransitionReadCapability,
+    decision_ref: str,
+) -> LeaseIdentityRecordEnvelope | None:
+    validated_ref = require_contract_ref(decision_ref, "transition_read.decision_ref")
+    return _read_one_select_row(
+        capability=capability,
+        spec=_LEASE_IDENTITY_SELECT,
+        lookup_value=validated_ref,
+        adapter=lease_identity_record_envelope_from_row,
+        missing_row_policy=_MissingRowPolicy.RETURN_NONE,
+    )
+
+
+def _read_authorization_receipt(
+    capability: _TransitionReadCapability,
+    decision_ref: str,
+) -> AuthorizationReceiptEnvelope | None:
+    validated_ref = require_contract_ref(decision_ref, "transition_read.decision_ref")
+    return _read_one_select_row(
+        capability=capability,
+        spec=_AUTHORIZATION_RECEIPT_SELECT,
+        lookup_value=validated_ref,
+        adapter=authorization_receipt_envelope_from_row,
+        missing_row_policy=_MissingRowPolicy.RETURN_NONE,
+    )
+
+
+def _read_dependency_receipt(
+    capability: _TransitionReadCapability,
+    decision_ref: str,
+) -> DependencyReceiptEnvelope | None:
+    validated_ref = require_contract_ref(decision_ref, "transition_read.decision_ref")
+    return _read_one_select_row(
+        capability=capability,
+        spec=_DEPENDENCY_RECEIPT_SELECT,
+        lookup_value=validated_ref,
+        adapter=dependency_receipt_envelope_from_row,
+        missing_row_policy=_MissingRowPolicy.RETURN_NONE,
+    )
+
+
+def _read_admitted_backlog(
+    capability: _TransitionReadCapability,
+    backlog_id: str,
+) -> AdmittedBacklogRecordEnvelope | None:
+    validated_ref = require_contract_ref(backlog_id, "transition_read.backlog_id")
+    return _read_one_select_row(
+        capability=capability,
+        spec=_ADMITTED_BACKLOG_SELECT,
+        lookup_value=validated_ref,
+        adapter=admitted_backlog_record_envelope_from_row,
+        missing_row_policy=_MissingRowPolicy.RETURN_NONE,
+    )
+
+
+def _read_global_stop_current(
+    capability: _TransitionReadCapability,
+) -> GlobalStopCurrentRecordEnvelope:
+    envelope = _read_one_select_row(
+        capability=capability,
+        spec=_GLOBAL_STOP_CURRENT_SELECT,
+        lookup_value=_GLOBAL_STOP_SINGLETON_ID,
+        adapter=global_stop_current_envelope_from_row,
+        missing_row_policy=_MissingRowPolicy.INTEGRITY_FAILURE,
+    )
+    if envelope is None:
+        raise _database_integrity_failure()
+    return envelope
+
+
+def _borrow_sqlite_connection_for_select(capability: _TransitionReadCapability) -> sqlite3.Connection:
+    try:
+        connection = capability._borrow_connection_for_select()
+    except _TransitionReadCapabilityError:
+        raise
+    if not isinstance(connection, sqlite3.Connection):
+        raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+    return connection
+
+
+def _read_one_select_row(
+    *,
+    capability: _TransitionReadCapability,
+    spec: _SelectQuerySpec,
+    lookup_value: str | int,
+    adapter: Callable[[Mapping[str, Any]], _EnvelopeT],
+    missing_row_policy: _MissingRowPolicy,
+) -> _EnvelopeT | None:
+    connection = _borrow_sqlite_connection_for_select(capability)
+    cursor: Any | None = None
+    sqlite_failure: SQLiteMutationStoreError | None = None
+    rows: Any | None = None
+    try:
+        cursor = connection.execute(spec.sql, (lookup_value,))
+        rows = cursor.fetchmany(2)
+    except sqlite3.Error as raw_sqlite_error:
+        sqlite_failure = _classify_sqlite_select_error(raw_sqlite_error)
+    finally:
+        if cursor is not None:
+            close_failure = _close_cursor_safely(cursor)
+            if sqlite_failure is None and close_failure is not None:
+                sqlite_failure = close_failure
+    if sqlite_failure is not None:
+        raise sqlite_failure
+
+    if type(rows) is not list:
+        raise _database_integrity_failure()
+    if len(rows) == 0:
+        if missing_row_policy is _MissingRowPolicy.RETURN_NONE:
+            return None
+        raise _database_integrity_failure()
+    if len(rows) != 1:
+        raise _database_integrity_failure()
+
+    row = rows[0]
+    row_mapping = _row_tuple_to_private_mapping(spec, row)
+    del row
+    del rows
+    return adapter(row_mapping)
+
+
+def _row_tuple_to_private_mapping(spec: _SelectQuerySpec, row: Any) -> dict[str, Any]:
+    if type(row) is not tuple:
+        raise _database_integrity_failure()
+    if len(row) != len(spec.columns):
+        raise _database_integrity_failure()
+    return dict(zip(spec.columns, row, strict=True))
+
+
+def _close_cursor_safely(cursor: Any) -> SQLiteMutationStoreError | None:
+    try:
+        cursor.close()
+    except sqlite3.Error as raw_sqlite_error:
+        return _classify_sqlite_select_error(raw_sqlite_error)
+    return None
+
+
+def _classify_sqlite_select_error(error: sqlite3.Error) -> SQLiteMutationStoreError:
+    primary_code = _sqlite_primary_result_code(error)
+    if primary_code in _SQLITE_INTEGRITY_PRIMARY_RESULT_CODES:
+        return _database_integrity_failure()
+    return SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+
+
+def _sqlite_primary_result_code(error: sqlite3.Error) -> int | None:
+    code = getattr(error, "sqlite_errorcode", None)
+    if type(code) is not int:
+        return None
+    return code & 0xFF
+
+
+def _database_integrity_failure() -> SQLiteMutationStoreError:
+    return SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)

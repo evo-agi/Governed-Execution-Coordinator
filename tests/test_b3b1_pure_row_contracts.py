@@ -694,7 +694,9 @@ def test_b3b1_docs_pin_pure_row_scope_and_timestamp_posture() -> None:
         "retained exception chains or tracebacks",
         "safe field-class failures",
         "B3b2a has since added ordered row-column tuples",
-        "B3b2b executing readers remain future",
+        "B3b2b has since added private SELECT readers",
+        "B3b2b executing readers are now implemented only as private, unreachable",
+        "B3b3 coherent fixtures and B3c production transaction integration remain future",
     ):
         assert phrase in normalized
 
