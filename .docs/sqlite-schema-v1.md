@@ -1,8 +1,8 @@
 # SQLite Schema V1
 
 Status: B1 initial migration schema with B1.1 live-schema validation, B3a
-canonical persistence contracts, and B3b reader prerequisite contracts. B3a/B3b
-do not change migration 0001.
+canonical persistence contracts, B3b reader prerequisite contracts, and B3b1
+pure full-row envelope contracts. B3a/B3b/B3b1 do not change migration 0001.
 
 Migration `0001_initial` is the authoritative B1 schema installation source and
 is packaged under `ge_nwp_coordinator.sqlite_migrations`. The
@@ -41,6 +41,9 @@ Immutable versioned contracts:
   SQLite. SQLite affinity and CHECK constraints alone do not prove the
   original caller type, so raw numerics or caller-supplied values are not a
   valid future write boundary.
+- B3b1 reconstructs already-fetched explicit row mappings for lease identity,
+  authorization, dependency, and admitted-backlog rows through the canonical
+  JSON plus digest/index authority already present in schema 0001.
 
 Exact replay snapshots:
 
@@ -137,6 +140,9 @@ Not stored in the first backend:
 - persisted Boolean columns must be exact SQLite integers `0` or `1` on read;
   Python booleans, floats, strings, nulls, and other numeric types are
   integrity failures in B3a row adapters;
+- B3b1 full-row reconstruction additionally requires `created_at` as exact
+  canonical UTC `Z` operational metadata and returns an internal
+  `LeaseIdentityRecordEnvelope`;
 - immutable.
 
 `authorization_decision_receipts`
@@ -151,6 +157,10 @@ Not stored in the first backend:
   and an invalid lease identity forces both flags false;
 - `operator_policy` is schema vocabulary only until a separate authorization
   contract is accepted;
+- B3b1 full-row reconstruction additionally requires `created_at` as exact
+  canonical UTC `Z` operational metadata and returns an internal
+  `AuthorizationReceiptEnvelope`; `operator_policy` remains untrusted schema
+  vocabulary, not executable authority;
 - immutable.
 
 `admitted_backlogs`
@@ -166,6 +176,14 @@ Not stored in the first backend:
   and item count not greater than `StandingLease.max_work_items`;
 - because production admission does not exist, these are mandatory read-time
   integrity checks for the first bounded B3 slice;
+- B3b1 implements the single-row part of this contract: exact full row shape,
+  safe backlog id, safe lease ref, schema id
+  `governed-execution.nwp-finite-backlog.v1`, exact integer schema version `1`,
+  lowercase SHA-256 content digest, non-empty bounded literal canonical JSON,
+  exact UTC `admitted_at`, embedded content-digest verification, and row/model
+  equality for backlog id, lease ref, schema id, schema version, and content
+  digest. Cross-record lease/backlog/work-item binding remains the separate
+  helper that future B3b2/B3c assembly must invoke;
 - immutable.
 
 `dependency_decision_receipts`
@@ -181,6 +199,9 @@ Not stored in the first backend:
   `TransitionCommand.dependency_decision_ref` must be null, no dependency receipt
   is read for non-READY targets, and neutral unbound `DependencyDecision()` is
   internal evaluator shape only, not persisted receipt evidence;
+- B3b1 full-row reconstruction additionally requires `created_at` as exact
+  canonical UTC `Z` operational metadata and returns an internal
+  `DependencyReceiptEnvelope`;
 - immutable.
 
 `global_stop_operator_decision_receipts`
@@ -199,6 +220,10 @@ Not stored in the first backend:
 - B3a maps every `WorkItemRecord` field from normalized columns. `updated_at`
   is operational transaction metadata and is excluded from replay identity and
   replay digest;
+- B3b1 returns an internal `WorkItemRecordEnvelope` that retains `updated_at`
+  as exact canonical UTC `Z` operational metadata while preserving
+  `work_item_record_from_row(payload)` as a compatibility helper returning only
+  `WorkItemRecord`;
 - B3b v1 requires `max_attempts` and `max_repairs` to be exact copies of the
   standing lease values. No finite-backlog work-item field defines a narrower
   override, and a mutable current-state row cannot invent one;
@@ -235,6 +260,13 @@ Not stored in the first backend:
 - B1 migration `0001_initial` seeds exactly one canonical clear row at version
   0 with no operator decision reference. This is not a global-stop event and
   not operator authorization.
+- B3b1 validates already-fetched full rows by requiring exact integer singleton
+  id `1`, schema id `governed-execution.nwp-global-stop.v1`, exact
+  non-negative integer version, strict SQLite Boolean `active`, exact canonical
+  UTC `updated_at`, active/clear nullable-field consistency, exact canonical
+  UTC active `issued_at`, and one valid `GlobalStopState`. The row contains no
+  canonical JSON or digest; the explicit normalized columns are current-state
+  authority.
 
 `global_stop_events`
 
@@ -278,6 +310,9 @@ Future B2/B3 integrity checks must:
   fields for the bounded B3 reader slice;
 - verify finite-backlog per-item and summed `api_calls` and `compute_seconds`
   allocations do not exceed the standing lease `compute_api_budget`;
+- validate B3b1 operational row timestamps only inside internal envelopes and
+  keep them outside semantic model identity, replay digest, event digest unless
+  independently defined, reports, and package-root exports;
 - verify event-owned idempotency uniqueness;
 - verify replay snapshot digests;
 - verify current-state versions against accepted events where applicable;
@@ -291,14 +326,14 @@ takeover state, or liveness flag to SQLite because those are session/process
 facts, not durable authority.
 
 B3a selected schema 0001 as sufficient for the first work-item transition
-persistence contract. B3b prerequisite contracts pin schema 0001 as sufficient
-for the bounded typed-reader slice: no migration 0002 is required for admitted
-backlog validation, exact limit provenance, zero scalar budget posture,
-READY-only dependency receipts, or internal timestamp envelopes. A future
-migration 0002 is required only if a later accepted contract needs additional
-durable facts, such as mutable current lease status, production admission
-authority, or multidimensional dynamic budget consumption not representable by
-schema 0001.
+persistence contract. B3b prerequisite contracts and B3b1 pure row contracts pin
+schema 0001 as sufficient for the bounded typed-reader slice: no migration 0002
+is required for admitted backlog validation, exact limit provenance, zero scalar
+budget posture, READY-only dependency receipts, global-stop-current row
+reconstruction, or internal timestamp envelopes. A future migration 0002 is
+required only if a later accepted contract needs additional durable facts, such
+as mutable current lease status, production admission authority, or
+multidimensional dynamic budget consumption not representable by schema 0001.
 
 ## B1 Initialization Guarantees
 

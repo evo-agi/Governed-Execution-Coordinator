@@ -104,6 +104,16 @@ slice; dependency receipts apply only to READY transitions; row timestamps may
 be carried only in internal envelopes; and schema 0001 is sufficient without
 migration 0002.
 
+B3b1 implements only the pure row-contract portion of that model. Already
+fetched explicit row mappings for lease identity, authorization, dependency,
+work items, admitted backlogs, and global-stop current state can now be
+validated into internal timestamped envelopes. The operational `created_at`,
+`admitted_at`, and `updated_at` fields are retained as internal metadata only
+and do not alter the semantic identity or canonical digest of the reconstructed
+model values. B3b1 does not add SQLite readers, cardinality/not-found behavior,
+fixture insertion, transition context assembly, idempotency/replay, event
+sequencing, expected-version checks, or mutation storage.
+
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. It carries the complete `LeaseRuntimeDecision`
 mapping, so the transaction timestamp and runtime lease status used by the
@@ -144,10 +154,10 @@ observational connection posture, migration-history/catalog equality,
 live-schema manifest checks, and schema compatibility validation. B2a adds
 writer-session contract hardening, B2b adds the common administrative lock,
 B2c adds internal writer acquisition, B3a adds non-mutating canonical
-contracts, and B3b prerequisite contracts add pure/model reader prerequisites
-only. No `StateStore` mutation backend, typed SQLite reader, test database
-fixture insertion helper, coordinator service, or executable A2 capability
-exists in this slice.
+contracts, B3b prerequisite contracts add pure/model reader prerequisites, and
+B3b1 adds pure internal row-to-envelope adapters only. No `StateStore` mutation
+backend, typed SQLite reader, test database fixture insertion helper,
+coordinator service, or executable A2 capability exists in this slice.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

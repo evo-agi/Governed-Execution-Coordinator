@@ -872,13 +872,19 @@ def _parse_timestamp(value: str, field_name: str) -> datetime:
 def _parse_timezone_aware_timestamp(value: Any, field_name: str) -> datetime:
     text = require_safe_string(value, field_name, max_length=64)
     raw = f"{text[:-1]}+00:00" if text.endswith("Z") else text
-    try:
-        parsed = datetime.fromisoformat(raw)
-    except ValueError as exc:
-        raise ValueError(f"invalid_field_type:{field_name}") from exc
+    parsed = _try_parse_iso_timestamp(raw)
+    if parsed is None:
+        raise ValueError(f"invalid_field_type:{field_name}")
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError(f"invalid_field_type:{field_name}")
     return parsed
+
+
+def _try_parse_iso_timestamp(value: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 def _lease_issue(reason: str, field: str) -> ValidationIssue:

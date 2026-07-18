@@ -2,6 +2,11 @@
 
 Status: contract-only prerequisite to typed SQLite readers.
 
+B3b1 status: implemented pure/model full-row contracts and internal
+operational timestamp envelopes only. No typed SQLite reader implementation
+exists in this tranche. No test database fixture insertion helper exists in
+this tranche.
+
 This tranche pins the authority contracts required before B3b typed SQLite
 readers and test-only authoritative fixtures can be implemented. No typed SQLite
 reader implementation exists in this tranche. No test database fixture insertion
@@ -68,6 +73,40 @@ raw row values, database paths, or other private material through public errors.
 The helper relies on the existing typed `StandingLease`, `FiniteBacklog`, and
 `WorkItemRecord` contracts. It must not introduce a second independent lease or
 backlog digest algorithm.
+
+## B3b1 Pure Row Contracts
+
+B3b1 adds pure internal adapters for already-fetched complete row mappings:
+
+- `lease_identity_records` to `LeaseIdentityRecordEnvelope`;
+- `authorization_decision_receipts` to `AuthorizationReceiptEnvelope`;
+- `dependency_decision_receipts` to `DependencyReceiptEnvelope`;
+- `work_items` to `WorkItemRecordEnvelope`;
+- `admitted_backlogs` to `AdmittedBacklogRecordEnvelope`;
+- `global_stop_current` to `GlobalStopCurrentRecordEnvelope`.
+
+These adapters require exact explicit column sets and map malformed row shape,
+type, strict SQLite Boolean, canonical JSON, digest, index-column, timestamp,
+singleton, enum, and nullable-state contradictions to
+`database_integrity_failure`. They return typed internal envelopes only; they do
+not return raw mappings or `sqlite3.Row` values.
+
+B3b1 does not implement SQLite `SELECT` statements, `sqlite3` imports,
+database paths, connections, row cardinality, missing-row/not-found
+classification, a reader object, a combined transition-input loader, fixture
+insertion, seed helpers, admission helpers, idempotency/replay, event-sequence
+allocation, expected-version checks, transition mutation, or global-stop
+mutation.
+
+The single-row admitted-backlog contract validates literal canonical
+`FiniteBacklog` JSON, exact schema id/version, embedded content digest,
+row/model backlog id equality, row/model lease ref equality, and row/model
+content digest equality. It does not invoke the cross-record
+lease/backlog/work-item authority validator by itself.
+
+The single-row `global_stop_current` contract validates the normalized
+singleton columns and constructs one `GlobalStopState`. It does not read
+global-stop event history and does not implement B4 mutation.
 
 ## Limit Provenance
 
@@ -179,10 +218,16 @@ envelopes only:
 - global-stop `updated_at`.
 
 operational timestamps may be retained only in internal typed envelopes.
-They must validate as exact UTC timestamps and remain outside
+In B3b1 they validate as exact canonical UTC `Z` timestamps and remain outside
 semantic model identity unless already defined elsewhere. They are not canonical
 receipt digest inputs unless already defined, not operator/public report fields,
 and not package-root exports.
+
+Changing a valid operational timestamp changes only the internal envelope
+timestamp. It does not change the reconstructed `StandingLease`,
+`AuthorizationDecision`, `DependencyDecision`, `FiniteBacklog`,
+`WorkItemRecord`, or `GlobalStopState`, and does not change those semantic
+models' canonical digests.
 
 ## Schema Decision
 

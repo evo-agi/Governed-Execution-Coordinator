@@ -650,10 +650,16 @@ def _require_timestamp(value: Any, field_name: str) -> str:
     raw = text
     if raw.endswith("Z"):
         raw = f"{raw[:-1]}+00:00"
-    try:
-        parsed = datetime.fromisoformat(raw)
-    except ValueError as exc:
-        raise ValueError(f"invalid_field_type:{field_name}") from exc
+    parsed = _try_parse_iso_timestamp(raw)
+    if parsed is None:
+        raise ValueError(f"invalid_field_type:{field_name}")
     if parsed.tzinfo is None:
         raise ValueError(f"invalid_field_type:{field_name}")
     return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _try_parse_iso_timestamp(value: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None

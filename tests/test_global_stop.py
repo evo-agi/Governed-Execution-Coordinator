@@ -1,3 +1,7 @@
+import traceback
+
+import pytest
+
 from ge_nwp_coordinator.global_stop import (
     GlobalStopAction,
     GlobalStopCommand,
@@ -27,6 +31,35 @@ from ge_nwp_coordinator.state_machine import (
     WorkItemState,
     transition,
 )
+
+
+PRIVATE_TIMESTAMP = "PRIVATE-GLOBAL-STOP-TIMESTAMP-DO-NOT-LEAK-271828"
+
+
+def _exception_graph(exc: BaseException) -> tuple[BaseException, ...]:
+    seen: set[int] = set()
+    pending = [exc]
+    graph: list[BaseException] = []
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        graph.append(current)
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
+    return tuple(graph)
+
+
+def _assert_exception_graph_omits(exc: BaseException, sentinel: str) -> None:
+    rendered = [
+        "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+    ]
+    for node in _exception_graph(exc):
+        rendered.extend((str(node), repr(node), repr(node.args)))
+    assert sentinel not in "\n".join(rendered)
 
 
 def _identity() -> LeaseIdentityValidation:
@@ -83,6 +116,35 @@ def _operator_decision(*, authorized: bool = True) -> GlobalStopOperatorDecision
         authorized=authorized,
         reason="accepted" if authorized else "operator_authorization_required",
     )
+
+
+def test_global_stop_timestamp_parse_failures_do_not_retain_rejected_literals() -> None:
+    with pytest.raises(ValueError) as state_exc:
+        GlobalStopState(
+            version=1,
+            active=True,
+            stop_id="stop-1",
+            reason_class=GlobalStopReasonClass.OPERATOR_STOP,
+            issuer_ref="operator-policy",
+            issued_at=PRIVATE_TIMESTAMP,
+            operator_decision_ref="operator-decision-1",
+        )
+    assert str(state_exc.value) == "invalid_field_type:global_stop.issued_at"
+    _assert_exception_graph_omits(state_exc.value, PRIVATE_TIMESTAMP)
+
+    with pytest.raises(ValueError) as command_exc:
+        GlobalStopCommand.create(
+            action=GlobalStopAction.ACTIVATE,
+            idempotency_key="stop-k1",
+            expected_version=0,
+            stop_id="stop-1",
+            reason_class=GlobalStopReasonClass.OPERATOR_STOP,
+            issuer_ref="operator-policy",
+            issued_at=PRIVATE_TIMESTAMP,
+            operator_decision_ref="operator-decision-1",
+        )
+    assert str(command_exc.value) == "invalid_field_type:global_stop_command.issued_at"
+    _assert_exception_graph_omits(command_exc.value, PRIVATE_TIMESTAMP)
 
 
 def _transition_command(

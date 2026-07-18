@@ -17,6 +17,13 @@ global-stop mutation, admission, authorization verification, event insertion,
 work-item updates, idempotency/replay, event-sequence runtime,
 expected-version runtime, or migration 0002.
 
+B3b1 implements a bounded subset of those pins: pure internal adapters for
+complete already-fetched schema-0001 rows and timestamped envelopes. It does
+not implement SQLite `SELECT` statements, connection ownership, row cardinality,
+not-found classification, a combined transition-input loader, test database
+fixture insertion, transition/global-stop mutation, idempotency/replay,
+event-sequence allocation, expected-version checks, or migration 0002.
+
 ## Public Shape
 
 `WriterSession.apply_transition` accepts only a `TransitionCommand`.
@@ -164,6 +171,12 @@ Future `work_items` row mapping is exact for all `WorkItemRecord` fields.
 `WorkItemRecord`, replay identity, or replay digest. Malformed row content is
 database-integrity failure and must not be echoed publicly.
 
+B3b1 exposes this mapping through an internal `WorkItemRecordEnvelope` and
+preserves `work_item_record_from_row(payload)` as a compatibility helper that
+returns only `.record`. The full-row adapter validates the exact schema-0001
+column set and strict SQLite Boolean shape but does not by itself assemble the
+cross-record lease/backlog/work-item authority bundle.
+
 For the first bounded persisted B3 slice, `WorkItemRecord.max_attempts` and
 `WorkItemRecord.max_repairs` are exact copies of `StandingLease.max_attempts`
 and `StandingLease.max_repairs`. The current finite backlog has no per-item
@@ -193,6 +206,13 @@ this contract.
 closed canonical read mapping. B3 does not trust caller-supplied global stop and
 does not implement B4 global-stop mutation.
 
+B3b1 adds a pure `global_stop_current` row contract. The row has no canonical
+JSON or digest; its explicit normalized columns are current-state authority.
+The adapter requires singleton id `1`, schema id
+`governed-execution.nwp-global-stop.v1`, non-negative integer version, strict
+SQLite Boolean `active`, active/clear nullable-field consistency, exact UTC `Z`
+timestamps, and one valid `GlobalStopState`.
+
 ## Future Transaction Reconstruction
 
 Inside the future fenced transition transaction, B3 must:
@@ -219,12 +239,16 @@ Inside the future fenced transition transaction, B3 must:
 
 B3a does not implement these reads.
 
-Future B3b readers may retain row `created_at`, `admitted_at`, or `updated_at`
-values only in internal typed timestamp envelopes. They must validate exact UTC
-timestamp shape, must not add those values to semantic model identity unless
-already defined, must not include them as canonical digest input unless already
-defined, and must not expose them through operator/public reports or package-root
-exports.
+B3b1 row contracts retain row `created_at`, `admitted_at`, or `updated_at`
+values only in internal typed timestamp envelopes. They validate exact UTC
+`YYYY-MM-DDTHH:MM:SSZ` shape, do not add those values to semantic model identity
+unless already defined, do not include them as canonical digest input unless
+already defined, and do not expose them through operator/public reports or
+package-root exports.
+
+This current-row timestamp posture is separate from the future B3a event-row
+rule below: `transition_events.created_at` must equal
+`TransitionEvent.lease_runtime.evaluated_at` when transition apply exists.
 
 ## Sequence And Timestamp
 

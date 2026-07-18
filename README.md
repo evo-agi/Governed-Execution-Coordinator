@@ -40,6 +40,10 @@ SQLite bootstrap/migration infrastructure only:
   zero-only scalar persisted budget fields, READY-only dependency receipts,
   internal timestamp-envelope posture, and schema-0001 sufficiency for the
   bounded reader slice, with no reader or fixture implementation.
+- B3b1 pure internal full-row contracts that wrap already-fetched
+  schema-0001 row mappings in operational timestamp envelopes for lease
+  identity, authorization, dependency, work-item, admitted-backlog, and
+  global-stop-current rows, with no SQLite I/O or reader implementation.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -108,5 +112,13 @@ contract pins, not typed SQLite readers. They add no SQLite I/O, no test databas
 fixture insertion helper, no transition/global-stop mutation, no production
 admission or authorization implementation, no executable work, and no migration
 0002.
+
+B3b1 is the first implementation under those pins. It adds pure mapping-to-value
+contracts for complete explicit row shapes and retains `created_at`,
+`admitted_at`, and `updated_at` only inside internal envelopes. It still adds no
+SQLite `SELECT`, connection, row cardinality behavior, not-found behavior,
+combined transition-input loader, fixture insertion helper, idempotency/replay,
+expected-version runtime, event sequence allocation, B3c transition apply, or
+B4 global-stop mutation.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

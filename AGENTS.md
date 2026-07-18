@@ -122,6 +122,14 @@ test database fixture insertion helper, transition/global-stop mutation,
 admission, authorization verifier, worker, scheduler, service, CLI, MCP,
 connector, repair, commit, publication, or migration 0002.
 
+B3b1 implements only pure internal full-row contracts for already-fetched
+schema-0001 row mappings and operational timestamp envelopes. It validates
+lease identity, authorization, dependency, work-item, admitted-backlog, and
+global-stop-current rows without SQLite I/O, readers, row cardinality,
+not-found classification, fixture insertion, transition-input assembly,
+idempotency/replay, event sequencing, expected-version checks, transition
+mutation, or global-stop mutation.
+
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.
