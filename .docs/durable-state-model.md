@@ -93,6 +93,17 @@ The caller supplies only `TransitionCommand`; future B3 reconstructs
 `GlobalStopState`, and `LeaseRuntimeDecision`. It no longer carries raw
 `lease_expired` or `lease_revoked` booleans.
 
+B3b prerequisite contracts are source-of-truth in
+`.docs/b3b-reader-prerequisite-contract.md`. They do not implement typed SQLite
+readers or fixtures. They pin future current-state reconstruction for the first
+bounded persisted slice: admitted backlog is mandatory read-time authority;
+work-item attempt and repair limits are exact copies of the standing lease;
+`WorkItemRecord.budget_consumed` and `WorkItemRecord.budget_limit` must both be
+zero; future B3c accepts only zero `TransitionCommand.budget_cost` in that
+slice; dependency receipts apply only to READY transitions; row timestamps may
+be carried only in internal envelopes; and schema 0001 is sufficient without
+migration 0002.
+
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. It carries the complete `LeaseRuntimeDecision`
 mapping, so the transaction timestamp and runtime lease status used by the
@@ -132,9 +143,11 @@ backend architecture. B1/B1.1 adds administrative database bootstrap,
 observational connection posture, migration-history/catalog equality,
 live-schema manifest checks, and schema compatibility validation. B2a adds
 writer-session contract hardening, B2b adds the common administrative lock,
-B2c adds internal writer acquisition, and B3a adds non-mutating canonical
-contracts. No `StateStore` mutation backend, coordinator service, or executable
-A2 capability exists in B3a.
+B2c adds internal writer acquisition, B3a adds non-mutating canonical
+contracts, and B3b prerequisite contracts add pure/model reader prerequisites
+only. No `StateStore` mutation backend, typed SQLite reader, test database
+fixture insertion helper, coordinator service, or executable A2 capability
+exists in this slice.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

@@ -1,7 +1,8 @@
 # SQLite Schema V1
 
-Status: B1 initial migration schema with B1.1 live-schema validation and B3a
-canonical persistence contracts. B3a does not change migration 0001.
+Status: B1 initial migration schema with B1.1 live-schema validation, B3a
+canonical persistence contracts, and B3b reader prerequisite contracts. B3a/B3b
+do not change migration 0001.
 
 Migration `0001_initial` is the authoritative B1 schema installation source and
 is packaged under `ge_nwp_coordinator.sqlite_migrations`. The
@@ -157,6 +158,14 @@ Not stored in the first backend:
 - primary key: `backlog_id`;
 - authority: canonical JSON plus content digest;
 - index columns: lease ref and schema version;
+- future B3b typed readers must require literal canonical `FiniteBacklog` JSON,
+  exact schema id/version, indexed/canonical equality, exact equality with
+  `WorkItemRecord.backlog_id`, `WorkItemRecord.lease_id`,
+  `StandingLease.finite_backlog_reference`, `StandingLease.lease_id`, and
+  `StandingLease.finite_backlog_digest`, exactly one matching current work item,
+  and item count not greater than `StandingLease.max_work_items`;
+- because production admission does not exist, these are mandatory read-time
+  integrity checks for the first bounded B3 slice;
 - immutable.
 
 `dependency_decision_receipts`
@@ -168,6 +177,10 @@ Not stored in the first backend:
   the receipt to a future command/current work item;
 - a future authoritative READY transition requires a non-null matching
   work-item binding; an unbound generic receipt is not READY authority;
+- P1/B3 v1 dependency receipts are READY-only. Non-READY
+  `TransitionCommand.dependency_decision_ref` must be null, no dependency receipt
+  is read for non-READY targets, and neutral unbound `DependencyDecision()` is
+  internal evaluator shape only, not persisted receipt evidence;
 - immutable.
 
 `global_stop_operator_decision_receipts`
@@ -186,6 +199,14 @@ Not stored in the first backend:
 - B3a maps every `WorkItemRecord` field from normalized columns. `updated_at`
   is operational transaction metadata and is excluded from replay identity and
   replay digest;
+- B3b v1 requires `max_attempts` and `max_repairs` to be exact copies of the
+  standing lease values. No finite-backlog work-item field defines a narrower
+  override, and a mutable current-state row cannot invent one;
+- B3b v1 requires `attempt_count <= max_attempts` and
+  `repair_count <= max_repairs`;
+- B3b v1 requires `budget_consumed == 0` and `budget_limit == 0`. These scalar
+  fields are reserved compatibility fields for the first persisted slice and do
+  not map either multidimensional static budget dimension into current state;
 - no private assignment payloads.
 
 `transition_events`
@@ -251,6 +272,12 @@ Future B2/B3 integrity checks must:
 - verify all immutable record digests;
 - verify index-column equality against canonical JSON for all immutable records
   and events;
+- verify admitted-backlog, lease, and current work-item authority bindings at
+  transition read time;
+- verify exact attempt/repair limit copies and zero scalar current-state budget
+  fields for the bounded B3 reader slice;
+- verify finite-backlog per-item and summed `api_calls` and `compute_seconds`
+  allocations do not exceed the standing lease `compute_api_budget`;
 - verify event-owned idempotency uniqueness;
 - verify replay snapshot digests;
 - verify current-state versions against accepted events where applicable;
@@ -264,9 +291,14 @@ takeover state, or liveness flag to SQLite because those are session/process
 facts, not durable authority.
 
 B3a selected schema 0001 as sufficient for the first work-item transition
-persistence contract. A future migration 0002 is required only if a later
-accepted contract needs additional durable facts, such as mutable current lease
-status or production admission authority not representable by schema 0001.
+persistence contract. B3b prerequisite contracts pin schema 0001 as sufficient
+for the bounded typed-reader slice: no migration 0002 is required for admitted
+backlog validation, exact limit provenance, zero scalar budget posture,
+READY-only dependency receipts, or internal timestamp envelopes. A future
+migration 0002 is required only if a later accepted contract needs additional
+durable facts, such as mutable current lease status, production admission
+authority, or multidimensional dynamic budget consumption not representable by
+schema 0001.
 
 ## B1 Initialization Guarantees
 

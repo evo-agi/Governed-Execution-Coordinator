@@ -938,11 +938,7 @@ def _pre_apply_invalid_reason(
             return "dependency_reference_mismatch"
         if context.dependency_decision.work_item_id != record.work_item_id:
             return "dependency_reference_mismatch"
-    if (
-        command.target_state is not WorkItemState.READY
-        and command.dependency_decision_ref is not None
-        and command.dependency_decision_ref != context.dependency_decision.decision_ref
-    ):
+    if command.target_state is not WorkItemState.READY and command.dependency_decision_ref is not None:
         return "dependency_reference_mismatch"
     if context.dependency_decision.work_item_id is not None and context.dependency_decision.work_item_id != record.work_item_id:
         return "dependency_reference_mismatch"

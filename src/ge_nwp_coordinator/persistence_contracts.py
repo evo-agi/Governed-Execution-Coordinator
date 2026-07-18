@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
+from ge_nwp_coordinator.backlog import BACKLOG_SCHEMA_ID, BACKLOG_SCHEMA_VERSION, FiniteBacklog, WorkItem
 from ge_nwp_coordinator.canonicalization import canonical_json_bytes, canonical_sha256, require_exact_keys, require_string
 from ge_nwp_coordinator.lease import (
     AUTHORIZATION_DECISION_SCHEMA_ID,
@@ -297,6 +298,51 @@ def classify_authorization_model_for_b3(
     return B3AuthorizationModelHandling.UNSUPPORTED_AUTHORITATIVE_MODEL
 
 
+def validate_b3_work_item_authority_binding(
+    lease: StandingLease,
+    backlog: FiniteBacklog,
+    record: WorkItemRecord,
+) -> WorkItem:
+    """Validate the B3 v1 lease/backlog/work-item read bundle.
+
+    This is a pure prerequisite contract for future SQLite readers. It returns
+    the matched canonical backlog work item and otherwise raises only the safe
+    database-integrity store classification.
+    """
+
+    try:
+        if not isinstance(lease, StandingLease):
+            raise ValueError("invalid_field_type:b3_authority.lease")
+        if not isinstance(backlog, FiniteBacklog):
+            raise ValueError("invalid_field_type:b3_authority.backlog")
+        if not isinstance(record, WorkItemRecord):
+            raise ValueError("invalid_field_type:b3_authority.record")
+
+        canonical_backlog = FiniteBacklog.from_dict(backlog.to_dict())
+        _require_equal(canonical_backlog.schema_id, BACKLOG_SCHEMA_ID)
+        _require_equal(canonical_backlog.schema_version, BACKLOG_SCHEMA_VERSION)
+        _require_equal(record.backlog_id, canonical_backlog.backlog_id)
+        _require_equal(canonical_backlog.backlog_id, lease.finite_backlog_reference)
+        _require_equal(canonical_backlog.lease_reference, record.lease_id)
+        _require_equal(record.lease_id, lease.lease_id)
+        _require_equal(canonical_backlog.content_digest, lease.finite_backlog_digest)
+
+        if len(canonical_backlog.work_items) > lease.max_work_items:
+            raise _integrity_failure()
+        matched_items = tuple(
+            item for item in canonical_backlog.work_items if item.work_item_id == record.work_item_id
+        )
+        if len(matched_items) != 1:
+            raise _integrity_failure()
+
+        _validate_b3_limit_provenance(lease, record)
+        _validate_b3_zero_scalar_budget(record)
+        _validate_b3_static_budget_policy(lease, canonical_backlog)
+        return matched_items[0]
+    except (TypeError, ValueError) as exc:
+        raise _integrity_failure() from exc
+
+
 def next_transition_event_sequence(max_event_sequence: int | None) -> int:
     if max_event_sequence is None:
         return FIRST_TRANSITION_EVENT_SEQUENCE
@@ -330,6 +376,49 @@ def require_sqlite_boolean(value: Any, field_name: str) -> bool:
 def _require_equal(left: Any, right: Any) -> None:
     if left != right:
         raise _integrity_failure()
+
+
+def _validate_b3_limit_provenance(lease: StandingLease, record: WorkItemRecord) -> None:
+    _require_equal(record.max_attempts, lease.max_attempts)
+    _require_equal(record.max_repairs, lease.max_repairs)
+    if record.attempt_count > record.max_attempts:
+        raise _integrity_failure()
+    if record.repair_count > record.max_repairs:
+        raise _integrity_failure()
+
+
+def _validate_b3_zero_scalar_budget(record: WorkItemRecord) -> None:
+    if record.budget_consumed != 0:
+        raise _integrity_failure()
+    if record.budget_limit != 0:
+        raise _integrity_failure()
+
+
+def _validate_b3_static_budget_policy(lease: StandingLease, backlog: FiniteBacklog) -> None:
+    lease_api_calls = _budget_dimension(lease.compute_api_budget, "api_calls")
+    lease_compute_seconds = _budget_dimension(lease.compute_api_budget, "compute_seconds")
+    total_api_calls = 0
+    total_compute_seconds = 0
+    for item in backlog.work_items:
+        item_api_calls = _budget_dimension(item.budget_allocation, "api_calls")
+        item_compute_seconds = _budget_dimension(item.budget_allocation, "compute_seconds")
+        if item_api_calls > lease_api_calls:
+            raise _integrity_failure()
+        if item_compute_seconds > lease_compute_seconds:
+            raise _integrity_failure()
+        total_api_calls += item_api_calls
+        total_compute_seconds += item_compute_seconds
+    if total_api_calls > lease_api_calls:
+        raise _integrity_failure()
+    if total_compute_seconds > lease_compute_seconds:
+        raise _integrity_failure()
+
+
+def _budget_dimension(payload: Mapping[str, Any], field_name: str) -> int:
+    value = payload.get(field_name)
+    if type(value) is not int or value < 0:
+        raise _integrity_failure()
+    return value
 
 
 def _integrity_failure() -> SQLiteMutationStoreError:

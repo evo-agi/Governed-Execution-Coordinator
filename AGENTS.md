@@ -110,6 +110,18 @@ does not insert transition events, update work items, perform idempotency or
 expected-version runtime checks, read SQLite for transition context, implement
 admission or authorization verification, or widen executable A2 behavior.
 
+B3b prerequisite contracts are pinned in
+`.docs/b3b-reader-prerequisite-contract.md`. They add only pure/model authority
+rules for the future typed-reader tranche: admitted backlog is mandatory
+transition authority, work-item attempt/repair limits are exact standing-lease
+copies, scalar persisted budget fields are zero-only reserved compatibility
+fields for the first B3 slice, dependency receipts are READY-only, operational
+timestamps may be retained only in internal envelopes, and schema 0001 remains
+sufficient for that bounded slice. This tranche still adds no SQLite reader,
+test database fixture insertion helper, transition/global-stop mutation,
+admission, authorization verifier, worker, scheduler, service, CLI, MCP,
+connector, repair, commit, publication, or migration 0002.
+
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.

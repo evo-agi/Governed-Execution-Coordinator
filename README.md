@@ -34,7 +34,12 @@ SQLite bootstrap/migration infrastructure only:
 - B2c durable writer issuance and internal SQLite `WriterSession` acquisition,
   with private in-memory proof material and no mutation storage;
 - B3a canonical persistence and provenance contracts for future work-item
-  transition persistence, with no SQLite transition mutation runtime.
+  transition persistence, with no SQLite transition mutation runtime;
+- B3b prerequisite authority contracts for future typed SQLite readers, pinning
+  admitted-backlog binding, exact lease-copied attempt/repair limits,
+  zero-only scalar persisted budget fields, READY-only dependency receipts,
+  internal timestamp-envelope posture, and schema-0001 sufficiency for the
+  bounded reader slice, with no reader or fixture implementation.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -96,5 +101,12 @@ and a safe mutation-store error taxonomy. It does not insert transition events,
 update work items, perform idempotency/replay/expected-version runtime logic,
 implement admission, verify operator-policy authorization, mutate global stop,
 or execute work.
+
+B3b prerequisite contracts are documented in
+`.docs/b3b-reader-prerequisite-contract.md`. They are implementation-only
+contract pins, not typed SQLite readers. They add no SQLite I/O, no test database
+fixture insertion helper, no transition/global-stop mutation, no production
+admission or authorization implementation, no executable work, and no migration
+0002.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

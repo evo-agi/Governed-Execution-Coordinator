@@ -1,6 +1,6 @@
 # B3 Transition Persistence Contract
 
-Status: B3a contract-only prerequisites.
+Status: B3a contract-only prerequisites with B3b reader prerequisite pins.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -8,6 +8,14 @@ SQLite transition mutation, idempotency lookup, exact replay runtime,
 expected-version checks, transaction-local readers, admission, operator-policy
 authorization verification, global-stop mutation, a service loop, worker
 execution, repair, commit, publication, or related-repo integration.
+
+The B3b reader prerequisite contract is documented in
+`.docs/b3b-reader-prerequisite-contract.md`. It adds only pure/model contract
+pins for future typed SQLite readers and test-only authoritative fixtures. It
+does not implement readers, fixtures, SQLite I/O, transition mutation,
+global-stop mutation, admission, authorization verification, event insertion,
+work-item updates, idempotency/replay, event-sequence runtime,
+expected-version runtime, or migration 0002.
 
 ## Public Shape
 
@@ -96,7 +104,12 @@ the receipt to a work item. Null remains allowed only for explicitly documented
 unbound dependency evidence. An authoritative READY transition must use a
 non-null dependency receipt bound to the same work item and matching the
 command dependency decision ref. A generic null receipt cannot satisfy that
-gate. Its canonical mapping and digest are closed.
+gate. For P1/B3 v1, dependency receipts are READY-only: every non-READY
+`TransitionCommand.dependency_decision_ref` must be null, no dependency receipt
+is read for those targets, and the assembler uses neutral unbound
+`DependencyDecision()` only as non-authoritative evaluator shape. A non-null
+dependency ref on a non-READY command is local/pre-apply invalid and produces no
+event. Its canonical mapping and digest are closed.
 
 ## Lease Identity Reconstruction
 
@@ -151,6 +164,21 @@ Future `work_items` row mapping is exact for all `WorkItemRecord` fields.
 `WorkItemRecord`, replay identity, or replay digest. Malformed row content is
 database-integrity failure and must not be echoed publicly.
 
+For the first bounded persisted B3 slice, `WorkItemRecord.max_attempts` and
+`WorkItemRecord.max_repairs` are exact copies of `StandingLease.max_attempts`
+and `StandingLease.max_repairs`. The current finite backlog has no per-item
+override. `WorkItemRecord.attempt_count` and `WorkItemRecord.repair_count` must
+not exceed those limits. Any mismatch is `database_integrity_failure`.
+
+The scalar persisted budget fields are reserved compatibility fields in this
+slice. `WorkItemRecord.budget_consumed == 0` and
+`WorkItemRecord.budget_limit == 0` are mandatory reader-integrity checks.
+Future B3c also requires `TransitionCommand.budget_cost == 0` and accepted
+`TransitionEvent.budget_cost_delta == 0` for this bounded slice. Nonzero command
+cost is a local/pre-store unsupported contract and produces no event. The pure
+evaluator may retain generic nonzero-budget model tests; those tests do not
+describe supported persisted B3 state.
+
 Future SQLite Boolean writes must bind caller values through the typed Boolean
 encoder: exact Python `bool` values become exact SQLite integers `0` or `1`.
 The read-side row adapters accept only exact Python integers `0` or `1` from
@@ -172,17 +200,31 @@ Inside the future fenced transition transaction, B3 must:
 1. load current `WorkItemRecord`;
 2. load the canonical lease through `lease_identity_records`;
 3. revalidate lease identity and row/index equality;
-4. load authorization receipt and verify canonical digest/index equality;
-5. require authorization lease ref and lease-identity decision ref to match;
-6. classify unsupported current authorization models as validation conflicts;
-7. load dependency receipt when required and verify work-item binding;
-8. load `global_stop_current`;
-9. derive `LeaseRuntimeDecision` using one transaction UTC timestamp;
-10. construct `TransitionContext` internally;
-11. require command refs/version to match reconstructed context before the
+4. load the admitted backlog and validate literal canonical `FiniteBacklog`
+   JSON, schema id/version, content digest, indexed/canonical equality, exact
+   lease/backlog/work-item bindings, exactly one matching current work item,
+   backlog size within `StandingLease.max_work_items`, exact attempt/repair
+   limit copies, zero scalar current-state budget fields, and static
+   multidimensional budget policy;
+5. load authorization receipt and verify canonical digest/index equality;
+6. require authorization lease ref and lease-identity decision ref to match;
+7. classify unsupported current authorization models as validation conflicts;
+8. load dependency receipt only for READY commands and verify work-item binding;
+9. require every non-READY command dependency ref to be null before apply;
+10. load `global_stop_current`;
+11. derive `LeaseRuntimeDecision` using one transaction UTC timestamp;
+12. construct `TransitionContext` internally;
+13. require command refs/version to match reconstructed context before the
     pure evaluator can produce an event.
 
 B3a does not implement these reads.
+
+Future B3b readers may retain row `created_at`, `admitted_at`, or `updated_at`
+values only in internal typed timestamp envelopes. They must validate exact UTC
+timestamp shape, must not add those values to semantic model identity unless
+already defined, must not include them as canonical digest input unless already
+defined, and must not expose them through operator/public reports or package-root
+exports.
 
 ## Sequence And Timestamp
 
@@ -233,6 +275,16 @@ B3 operates only on pre-admitted authoritative rows. B3a adds no admission API
 and no production helper that inserts leases, authorization receipts, backlogs,
 dependency decisions, or initial work items. B3b/B3c may use test-only fixtures
 under `tests/`; those fixtures must not be package-exported.
+
+Because production admission does not exist, B3 must not trust that admitted
+backlog, lease, work-item, static budget, or limit invariants were checked
+previously. The future typed-reader tranche must validate them transaction-time
+from authoritative rows.
+
+Schema 0001 is sufficient for the bounded B3b reader slice. No migration 0002 is
+required for these prerequisite contracts. Future multidimensional dynamic
+budget consumption accounting requires a separately audited versioned contract
+and may require schema/model evolution, but it must not modify migration 0001.
 
 The first bounded B3 proof will use a temporary managed DB, test-only seeded
 authoritative rows, an acquired internal writer session, production unsupported

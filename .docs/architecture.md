@@ -63,6 +63,15 @@ caller-supplied transition context are not supplied by callers.
 Expected-version mismatch is an apply conflict with no event. Safe writer
 metadata is evidence only and cannot authorize mutation.
 
+The B3b reader prerequisite contract is documented in
+`.docs/b3b-reader-prerequisite-contract.md`. It is not a reader implementation.
+It pins the future read bundle authority: admitted backlog is mandatory
+transition authority, `WorkItemRecord` attempt/repair limits are exact copies of
+standing-lease limits, scalar current-state budget fields are zero-only reserved
+compatibility fields in the first persisted slice, dependency receipts are
+READY-only, operational row timestamps remain internal envelope metadata, and
+schema 0001 is sufficient for the bounded typed-reader slice.
+
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
 they are not generic sanitized payloads and do not carry private, endpoint,
@@ -201,5 +210,9 @@ B3a defines transition-persistence contracts only: command-only
 `WriterSession.apply_transition`, typed lease runtime decisions,
 schema-aligned decision/event provenance, canonical event/replay mappings, and
 safe mutation-store errors. B3a does not add SQLite transition persistence.
-B3b/B3c/B3d remain future for readers, atomic transition apply, exact replay,
-and fault injection. B4 remains future for global-stop persistence.
+B3b prerequisite contracts add pure/model reader prerequisites only: no typed
+SQLite reader, test database fixture insertion, transition/global-stop mutation,
+admission, authorization verifier, worker, scheduler, service, CLI, MCP,
+connector, repair, commit, publication, migration 0002, or executable A2
+behavior. B3b readers, B3c atomic transition apply, exact replay, and fault
+injection remain future. B4 remains future for global-stop persistence.
