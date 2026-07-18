@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, Mapping, Protocol
 
 from ge_nwp_coordinator.canonicalization import (
+    canonical_json_bytes,
     canonical_sha256,
     decode_json_object,
     require_exact_keys,
@@ -35,6 +36,7 @@ from ge_nwp_coordinator.models import (
 LEASE_SCHEMA_ID = "governed-execution.nwp-standing-lease.v1"
 LEASE_SCHEMA_VERSION = 1
 AUTHORIZATION_DECISION_SCHEMA_ID = "governed-execution.nwp-authorization-decision.v1"
+LEASE_RUNTIME_DECISION_SCHEMA_ID = "governed-execution.nwp-lease-runtime-decision.v1"
 CANONICALIZATION_ID = "governed-execution.nwp-json-canonical.v1"
 SHA256_HEX_LENGTH = 64
 LEASE_KEYS = frozenset(
@@ -82,6 +84,20 @@ BRANCH_POLICY_KEYS = frozenset({"base", "mode"})
 COMPUTE_API_BUDGET_KEYS = frozenset({"api_calls", "compute_seconds"})
 CANONICAL_DIGEST_METADATA_KEYS = frozenset({"algorithm", "canonicalization", "digest"})
 AUTHORIZATION_MECHANISM_KEYS = frozenset({"kind", "descriptor"})
+AUTHORIZATION_DECISION_KEYS = frozenset(
+    {
+        "schema_id",
+        "decision_ref",
+        "lease_ref",
+        "lease_identity_decision_ref",
+        "lease_identity_valid",
+        "authorization_model",
+        "authorized",
+        "executable",
+        "reason",
+    }
+)
+LEASE_RUNTIME_DECISION_KEYS = frozenset({"schema_id", "lease_ref", "evaluated_at", "status", "reason"})
 
 
 class LeaseRevocationState(str, Enum):
@@ -98,6 +114,14 @@ class Permission(str, Enum):
 class AuthorizationModel(str, Enum):
     UNSUPPORTED = "unsupported"
     OPERATOR_POLICY = "operator_policy"
+
+
+class LeaseRuntimeStatus(str, Enum):
+    ACTIVE = "active"
+    NOT_YET_VALID = "not_yet_valid"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+    REVOCATION_UNKNOWN = "revocation_unknown"
 
 
 @dataclass(frozen=True)
@@ -143,6 +167,7 @@ class LeaseIdentityValidation:
 class AuthorizationDecision:
     decision_ref: str
     lease_ref: str
+    lease_identity_decision_ref: str
     lease_identity_valid: bool
     authorization_model: AuthorizationModel = AuthorizationModel.UNSUPPORTED
     authorized: bool = False
@@ -161,6 +186,14 @@ class AuthorizationDecision:
         object.__setattr__(self, "lease_ref", require_contract_ref(self.lease_ref, "authorization_decision.lease_ref"))
         object.__setattr__(
             self,
+            "lease_identity_decision_ref",
+            require_contract_ref(
+                self.lease_identity_decision_ref,
+                "authorization_decision.lease_identity_decision_ref",
+            ),
+        )
+        object.__setattr__(
+            self,
             "lease_identity_valid",
             require_bool(self.lease_identity_valid, "authorization_decision.lease_identity_valid"),
         )
@@ -172,15 +205,124 @@ class AuthorizationDecision:
         object.__setattr__(self, "authorized", require_bool(self.authorized, "authorization_decision.authorized"))
         object.__setattr__(self, "executable", require_bool(self.executable, "authorization_decision.executable"))
         object.__setattr__(self, "reason", require_reason_class(self.reason, "authorization_decision.reason"))
+        if self.executable and not self.authorized:
+            raise ValueError("invalid_field_value:authorization_decision.executable")
+        if self.reason == "accepted" and not self.authorized:
+            raise ValueError("invalid_field_value:authorization_decision.reason")
+        if self.authorized and self.reason != "accepted":
+            raise ValueError("invalid_field_value:authorization_decision.reason")
+        if not self.lease_identity_valid and (self.authorized or self.executable):
+            raise ValueError("invalid_field_value:authorization_decision.lease_identity_valid")
         if self.authorization_model is AuthorizationModel.UNSUPPORTED:
             if self.authorized or self.executable or self.reason != "unsupported_authorization_model":
                 raise ValueError("invalid_field_value:authorization_decision.unsupported_model")
-        elif self.reason != "accepted" and self.authorized:
-            raise ValueError("invalid_field_value:authorization_decision.reason")
 
     @property
     def identity_valid(self) -> bool:
         return self.lease_identity_valid
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "AuthorizationDecision":
+        raw = require_exact_keys(payload, "authorization_decision", AUTHORIZATION_DECISION_KEYS)
+        return cls(
+            schema_id=raw.get("schema_id"),
+            decision_ref=raw.get("decision_ref"),
+            lease_ref=raw.get("lease_ref"),
+            lease_identity_decision_ref=raw.get("lease_identity_decision_ref"),
+            lease_identity_valid=raw.get("lease_identity_valid"),
+            authorization_model=raw.get("authorization_model"),
+            authorized=raw.get("authorized"),
+            executable=raw.get("executable"),
+            reason=raw.get("reason"),
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> "AuthorizationDecision":
+        return cls.from_dict(decode_json_object(text, "authorization_decision"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_id": self.schema_id,
+            "decision_ref": self.decision_ref,
+            "lease_ref": self.lease_ref,
+            "lease_identity_decision_ref": self.lease_identity_decision_ref,
+            "lease_identity_valid": self.lease_identity_valid,
+            "authorization_model": self.authorization_model.value,
+            "authorized": self.authorized,
+            "executable": self.executable,
+            "reason": self.reason,
+        }
+
+    def canonical_identity_payload(self) -> dict[str, Any]:
+        return self.to_dict()
+
+    def canonical_json_bytes(self) -> bytes:
+        return canonical_json_bytes(self.canonical_identity_payload())
+
+    def canonical_json(self) -> str:
+        return self.canonical_json_bytes().decode("utf-8")
+
+    def canonical_digest(self) -> str:
+        return canonical_sha256(self.canonical_identity_payload())
+
+
+@dataclass(frozen=True)
+class LeaseRuntimeDecision:
+    lease_ref: str
+    evaluated_at: str
+    status: LeaseRuntimeStatus
+    reason: str
+    schema_id: str = LEASE_RUNTIME_DECISION_SCHEMA_ID
+
+    def __post_init__(self) -> None:
+        if require_string(self.schema_id, "lease_runtime.schema_id") != LEASE_RUNTIME_DECISION_SCHEMA_ID:
+            raise ValueError("invalid_field_type:lease_runtime.schema_id")
+        object.__setattr__(self, "lease_ref", require_contract_ref(self.lease_ref, "lease_runtime.lease_ref"))
+        object.__setattr__(self, "evaluated_at", require_utc_timestamp(self.evaluated_at, "lease_runtime.evaluated_at"))
+        object.__setattr__(self, "status", _require_lease_runtime_status(self.status, "lease_runtime.status"))
+        object.__setattr__(self, "reason", require_reason_class(self.reason, "lease_runtime.reason"))
+        expected_reason = {
+            LeaseRuntimeStatus.ACTIVE: "lease_runtime_active",
+            LeaseRuntimeStatus.NOT_YET_VALID: "lease_not_yet_valid",
+            LeaseRuntimeStatus.EXPIRED: "lease_expired",
+            LeaseRuntimeStatus.REVOKED: "lease_revoked",
+            LeaseRuntimeStatus.REVOCATION_UNKNOWN: "lease_revocation_unknown",
+        }[self.status]
+        if self.reason != expected_reason:
+            raise ValueError("invalid_field_value:lease_runtime.reason")
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "LeaseRuntimeDecision":
+        raw = require_exact_keys(payload, "lease_runtime", LEASE_RUNTIME_DECISION_KEYS)
+        return cls(
+            schema_id=raw.get("schema_id"),
+            lease_ref=raw.get("lease_ref"),
+            evaluated_at=raw.get("evaluated_at"),
+            status=raw.get("status"),
+            reason=raw.get("reason"),
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> "LeaseRuntimeDecision":
+        return cls.from_dict(decode_json_object(text, "lease_runtime"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_id": self.schema_id,
+            "lease_ref": self.lease_ref,
+            "evaluated_at": self.evaluated_at,
+            "status": self.status.value,
+            "reason": self.reason,
+        }
+
+    def canonical_json_bytes(self) -> bytes:
+        return canonical_json_bytes(self.to_dict())
+
+    def canonical_json(self) -> str:
+        return self.canonical_json_bytes().decode("utf-8")
+
+    def canonical_digest(self) -> str:
+        return canonical_sha256(self.to_dict())
 
 
 class AuthorizationProvider(Protocol):
@@ -198,6 +340,7 @@ class UnsupportedAuthorizationProvider:
         return AuthorizationDecision(
             decision_ref=f"authz-{lease.lease_id}",
             lease_ref=lease.lease_id,
+            lease_identity_decision_ref=validation.decision_ref,
             lease_identity_valid=validation.identity_valid,
             authorized=False,
             executable=False,
@@ -562,6 +705,50 @@ def validate_standing_lease(payload: Mapping[str, Any] | str) -> LeaseIdentityVa
         )
 
 
+def derive_lease_runtime_decision(
+    lease: StandingLease,
+    transaction_time: datetime | str,
+) -> LeaseRuntimeDecision:
+    """Derive runtime lease status from canonical lease content and transaction time."""
+
+    if not isinstance(lease, StandingLease):
+        raise ValueError("invalid_field_type:lease_runtime.lease")
+    evaluated_at = require_utc_timestamp(transaction_time, "lease_runtime.evaluated_at")
+    evaluated = _parse_strict_utc_timestamp(evaluated_at, "lease_runtime.evaluated_at")
+    valid_from = _parse_timestamp(lease.valid_from, "lease.valid_from")
+    expires_at = _parse_timestamp(lease.expires_at, "lease.expires_at")
+
+    if lease.revocation_state is LeaseRevocationState.REVOKED:
+        status = LeaseRuntimeStatus.REVOKED
+    elif lease.revocation_state is LeaseRevocationState.UNKNOWN:
+        status = LeaseRuntimeStatus.REVOCATION_UNKNOWN
+    elif evaluated < valid_from:
+        status = LeaseRuntimeStatus.NOT_YET_VALID
+    elif evaluated >= expires_at:
+        status = LeaseRuntimeStatus.EXPIRED
+    else:
+        status = LeaseRuntimeStatus.ACTIVE
+
+    reason = {
+        LeaseRuntimeStatus.ACTIVE: "lease_runtime_active",
+        LeaseRuntimeStatus.NOT_YET_VALID: "lease_not_yet_valid",
+        LeaseRuntimeStatus.EXPIRED: "lease_expired",
+        LeaseRuntimeStatus.REVOKED: "lease_revoked",
+        LeaseRuntimeStatus.REVOCATION_UNKNOWN: "lease_revocation_unknown",
+    }[status]
+    return LeaseRuntimeDecision(
+        lease_ref=lease.lease_id,
+        evaluated_at=evaluated_at,
+        status=status,
+        reason=reason,
+    )
+
+
+def require_utc_timestamp(value: Any, field_name: str) -> str:
+    parsed = _parse_strict_utc_timestamp(value, field_name)
+    return parsed.isoformat().replace("+00:00", "Z")
+
+
 def _require_revocation_state(value: Any) -> LeaseRevocationState:
     raw = require_string(value, "revocation_state")
     if raw not in {state.value for state in LeaseRevocationState}:
@@ -583,6 +770,15 @@ def _require_authorization_model(value: Any, field_name: str) -> AuthorizationMo
     if raw not in {model.value for model in AuthorizationModel}:
         raise ValueError(f"invalid_field_type:{field_name}")
     return AuthorizationModel(raw)
+
+
+def _require_lease_runtime_status(value: Any, field_name: str) -> LeaseRuntimeStatus:
+    if isinstance(value, LeaseRuntimeStatus):
+        return value
+    raw = require_string(value, field_name)
+    if raw not in {status.value for status in LeaseRuntimeStatus}:
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return LeaseRuntimeStatus(raw)
 
 
 def require_contract_issue(value: Any, field_name: str) -> ValidationIssue:
@@ -657,13 +853,32 @@ def _require_authorization_mechanism(value: Any) -> Mapping[str, Any]:
     )
 
 
+def _parse_strict_utc_timestamp(value: Any, field_name: str) -> datetime:
+    if isinstance(value, datetime):
+        if value.tzinfo is None or value.utcoffset() != timedelta(0) or value.microsecond != 0:
+            raise ValueError(f"invalid_field_type:{field_name}")
+        return value.astimezone(timezone.utc).replace(microsecond=0)
+    text = require_safe_string(value, field_name, max_length=64)
+    parsed = _parse_timezone_aware_timestamp(text, field_name)
+    if parsed.utcoffset() != timedelta(0) or parsed.microsecond != 0:
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return parsed.astimezone(timezone.utc).replace(microsecond=0)
+
+
 def _parse_timestamp(value: str, field_name: str) -> datetime:
-    if value.endswith("Z"):
-        value = f"{value[:-1]}+00:00"
-    parsed = datetime.fromisoformat(value)
-    if parsed.tzinfo is None:
-        raise ValueError(f"{field_name} must include timezone")
-    return parsed.astimezone(timezone.utc)
+    return _parse_timezone_aware_timestamp(value, field_name).astimezone(timezone.utc)
+
+
+def _parse_timezone_aware_timestamp(value: Any, field_name: str) -> datetime:
+    text = require_safe_string(value, field_name, max_length=64)
+    raw = f"{text[:-1]}+00:00" if text.endswith("Z") else text
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise ValueError(f"invalid_field_type:{field_name}") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError(f"invalid_field_type:{field_name}")
+    return parsed
 
 
 def _lease_issue(reason: str, field: str) -> ValidationIssue:

@@ -50,15 +50,16 @@ Runtime code uses only the Python standard library. Test-only fakes live under
 `tests/`; production code provides only fail-closed default authorization,
 typed contract objects, pure evaluators, and state-store protocols.
 
-The P1.1 transition flow is:
+The B3a transition contract flow is:
 
-`TransitionCommand + typed context + authoritative current state -> evaluator
--> TransitionEvent`
+`TransitionCommand + authoritative current state + internally reconstructed
+TransitionContext -> evaluator -> TransitionEvent`
 
 A future active writer session performs mutation through the atomic store
 boundary. That boundary performs fencing, idempotency, current-state load,
-expected-version comparison, evaluator invocation, and atomic state/event
-persistence. Proposed state and events are not supplied by callers.
+expected-version comparison, authoritative context reconstruction, evaluator
+invocation, and atomic state/event persistence. Proposed state, events, and
+caller-supplied transition context are not supplied by callers.
 Expected-version mismatch is an apply conflict with no event. Safe writer
 metadata is evidence only and cannot authorize mutation.
 
@@ -196,5 +197,9 @@ and advisory-lock resources before closed is published. Nonblocking fallback
 finalization may defer proof/lock cleanup until the last active operation exits,
 and concurrent explicit close callers wait for closed. B2c mutation methods
 enter that guard and fail locally with `writer_session_mutation_unavailable`.
-B3/B4 remain future for transition and global-stop persistence, and B2 still
-requires a fresh standalone re-audit before B3 begins.
+B3a defines transition-persistence contracts only: command-only
+`WriterSession.apply_transition`, typed lease runtime decisions,
+schema-aligned decision/event provenance, canonical event/replay mappings, and
+safe mutation-store errors. B3a does not add SQLite transition persistence.
+B3b/B3c/B3d remain future for readers, atomic transition apply, exact replay,
+and fault injection. B4 remains future for global-stop persistence.

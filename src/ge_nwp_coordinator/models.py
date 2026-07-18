@@ -20,8 +20,10 @@ TRANSITION_ACCEPTED_REASONS = frozenset({"transition_accepted"})
 TRANSITION_DOMAIN_REJECTED_REASONS = frozenset(
     {
         "lease_identity_invalid",
+        "lease_not_yet_valid",
         "lease_expired",
         "lease_revoked",
+        "lease_revocation_unknown",
         "unsupported_target_state",
         "stage_not_enabled",
         "terminal_state",
@@ -40,6 +42,15 @@ TRANSITION_DOMAIN_REJECTED_REASONS = frozenset(
         "global_stop_active:retry",
         "global_stop_active:repair",
         "global_stop_active:commit_eligibility",
+    }
+)
+LEASE_RUNTIME_REASONS = frozenset(
+    {
+        "lease_runtime_active",
+        "lease_not_yet_valid",
+        "lease_expired",
+        "lease_revoked",
+        "lease_revocation_unknown",
     }
 )
 GLOBAL_STOP_ACCEPTED_REASONS = frozenset({"global_stop_update_accepted"})
@@ -94,6 +105,7 @@ PRE_APPLY_REASONS = frozenset(
 )
 SAFE_DECISION_REASONS = (
     frozenset({"accepted", "global_stop_clear", "coordinator_cannot_clear_global_stop", "coordinator_cannot_replace_global_stop"})
+    | LEASE_RUNTIME_REASONS
     | TRANSITION_ACCEPTED_REASONS
     | TRANSITION_DOMAIN_REJECTED_REASONS
     | GLOBAL_STOP_ACCEPTED_REASONS
@@ -111,7 +123,9 @@ SAFE_FAILURE_CLASSES = frozenset(
         "invalid_predecessor",
         "lease_expired",
         "lease_not_authorized",
+        "lease_not_yet_valid",
         "lease_revoked",
+        "lease_revocation_unknown",
         "not_executable",
         "operator_action_required",
         "stage_not_enabled",

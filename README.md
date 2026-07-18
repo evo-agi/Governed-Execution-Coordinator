@@ -32,13 +32,18 @@ SQLite bootstrap/migration infrastructure only:
 - a B2b common state-authority advisory lock, used by SQLite initialize and
   migrate administration for live-process exclusion only;
 - B2c durable writer issuance and internal SQLite `WriterSession` acquisition,
-  with private in-memory proof material and no mutation storage.
+  with private in-memory proof material and no mutation storage;
+- B3a canonical persistence and provenance contracts for future work-item
+  transition persistence, with no SQLite transition mutation runtime.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
 Domain rejections, such as invalid predecessors, global stop, budget failure,
 missing evidence, and invariant P1 `stage_not_enabled`, commit exactly one
 event. The event is the receipt.
+For valid bound commands targeting P1-disabled worker, repair, or local-commit
+states, `stage_not_enabled` precedes contextual domain reasons while the event
+still retains complete runtime provenance.
 
 P1/B1 does not execute workers, invoke Bridge or Codex, start a scheduler, run
 a daemon, consume a queue, create worktrees, implement `StateStore` mutations,
@@ -79,7 +84,17 @@ callers wait for closed. The runtime still provides no `StateStore` mutation
 backend, transition/global-stop persistence, coordinator service, worker,
 scheduler, authorization path, or executable A2 capability. B2c mutation
 methods enter that guard and fail locally with
-`writer_session_mutation_unavailable`. B2 still requires a fresh standalone
-re-audit before B3 begins.
+`writer_session_mutation_unavailable`.
+
+B3a is contract-only. `WriterSession.apply_transition` accepts only a
+`TransitionCommand`; future transition apply must reconstruct
+`TransitionContext` internally from authoritative persisted records. B3a adds
+typed lease runtime status, schema-aligned authorization/dependency decisions,
+provenance-complete transition events, canonical transition-event and replay
+`WorkItemRecord` mappings, event-sequence and transaction-timestamp contracts,
+and a safe mutation-store error taxonomy. It does not insert transition events,
+update work items, perform idempotency/replay/expected-version runtime logic,
+implement admission, verify operator-policy authorization, mutate global stop,
+or execute work.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

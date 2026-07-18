@@ -1,6 +1,7 @@
 # SQLite Schema V1
 
-Status: B1 initial migration schema with B1.1 live-schema validation.
+Status: B1 initial migration schema with B1.1 live-schema validation and B3a
+canonical persistence contracts. B3a does not change migration 0001.
 
 Migration `0001_initial` is the authoritative B1 schema installation source and
 is packaged under `ge_nwp_coordinator.sqlite_migrations`. The
@@ -33,6 +34,12 @@ Immutable versioned contracts:
 - Index columns are derived from canonical content and must be validated before
   insertion.
 - Integrity checks compare index columns to canonical JSON/digest.
+- Future writers must bind Boolean columns through the typed Boolean encoder:
+  exact Python `bool` values become exact SQLite integers `0` or `1`.
+  Read-side B3a adapters accept only exact Python integers `0` or `1` from
+  SQLite. SQLite affinity and CHECK constraints alone do not prove the
+  original caller type, so raw numerics or caller-supplied values are not a
+  valid future write boundary.
 
 Exact replay snapshots:
 
@@ -122,6 +129,13 @@ Not stored in the first backend:
 - primary key: `decision_ref`;
 - authority: canonical JSON plus digest;
 - index columns: lease ref, identity validity, lease digest;
+- B3a reconstruction parses `canonical_json` as `StandingLease`, requires exact
+  canonical JSON, verifies the embedded lease digest through
+  `validate_identity()`, verifies row `canonical_digest`, and requires indexed
+  equality with the regenerated `LeaseIdentityValidation`;
+- persisted Boolean columns must be exact SQLite integers `0` or `1` on read;
+  Python booleans, floats, strings, nulls, and other numeric types are
+  integrity failures in B3a row adapters;
 - immutable.
 
 `authorization_decision_receipts`
@@ -130,6 +144,12 @@ Not stored in the first backend:
 - authority: canonical JSON plus digest;
 - index columns: lease ref, lease identity ref, authorization model,
   authorized/executable booleans, reason;
+- B3a canonical JSON includes `lease_identity_decision_ref`;
+- B3a requires internally coherent authorization flags and reason:
+  `executable` implies `authorized`, `accepted` is the only authorized reason,
+  and an invalid lease identity forces both flags false;
+- `operator_policy` is schema vocabulary only until a separate authorization
+  contract is accepted;
 - immutable.
 
 `admitted_backlogs`
@@ -144,6 +164,10 @@ Not stored in the first backend:
 - primary key: `decision_ref`;
 - authority: canonical JSON plus digest;
 - index columns: work item ref, dependencies satisfied, reason;
+- B3a canonical JSON includes nullable `work_item_id`; non-null values bind
+  the receipt to a future command/current work item;
+- a future authoritative READY transition requires a non-null matching
+  work-item binding; an unbound generic receipt is not READY authority;
 - immutable.
 
 `global_stop_operator_decision_receipts`
@@ -159,6 +183,9 @@ Not stored in the first backend:
 - authority: normalized columns;
 - foreign keys: admitted backlog;
 - mutable current-state table;
+- B3a maps every `WorkItemRecord` field from normalized columns. `updated_at`
+  is operational transaction metadata and is excluded from replay identity and
+  replay digest;
 - no private assignment payloads.
 
 `transition_events`
@@ -166,6 +193,16 @@ Not stored in the first backend:
 - primary key: `event_ref`;
 - unique: `(work_item_id, idempotency_key)`;
 - authority: canonical event JSON plus event digest;
+- B3a canonical event JSON includes event ref, all semantic event fields, and
+  lease-identity, authorization, dependency, lease-runtime, and global-stop
+  provenance fields;
+- `lease_runtime` contains the complete nested `LeaseRuntimeDecision` mapping
+  and is covered by event ref and event digest;
+- `transition_events.created_at` must equal
+  `TransitionEvent.lease_runtime.evaluated_at`;
+- `event_sequence` and SQL `created_at` are operational metadata. SQL
+  `created_at` is not independently part of event JSON, event digest, event
+  identity, or replay digest;
 - event-owned idempotency and replay snapshot;
 - append-only by schema trigger.
 
@@ -191,6 +228,9 @@ Not stored in the first backend:
 The fixture avoids `STRICT` tables because B0 does not pin a minimum SQLite
 runtime version. It uses explicit `CHECK` constraints for booleans, enums,
 digests, singleton rows, and bounded text where practical.
+Pure B3a persisted-row adapters intentionally narrow Boolean reconstruction to
+exact integer `0` or `1`, because Python bools and float/numeric lookalikes are
+not authoritative SQLite Boolean values.
 
 ## Integrity Checks
 
@@ -209,17 +249,24 @@ B1.1 integrity checks:
 Future B2/B3 integrity checks must:
 
 - verify all immutable record digests;
+- verify index-column equality against canonical JSON for all immutable records
+  and events;
 - verify event-owned idempotency uniqueness;
 - verify replay snapshot digests;
 - verify current-state versions against accepted events where applicable;
 - verify domain-rejected events do not mutate current state;
 - report divergence instead of repairing automatically.
 
-B2b and B2c require no schema change. B2c uses the existing
+B2b, B2c, and B3a require no schema change. B2c uses the existing
 `writer_ownership` singleton. It does not add active/released status, release
 timestamp, process id, lock inode, platform metadata, heartbeat, expiry,
 takeover state, or liveness flag to SQLite because those are session/process
 facts, not durable authority.
+
+B3a selected schema 0001 as sufficient for the first work-item transition
+persistence contract. A future migration 0002 is required only if a later
+accepted contract needs additional durable facts, such as mutable current lease
+status or production admission authority not representable by schema 0001.
 
 ## B1 Initialization Guarantees
 

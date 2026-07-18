@@ -15,6 +15,8 @@ It implements:
   always blocks with `unsupported_authorization_model`;
 - finite backlog parsing and canonical identity;
 - immutable work-item records and a pure state transition evaluator;
+- B3a canonical transition-event, replay-record, lease-runtime, and persisted
+  decision contracts;
 - a state-store protocol only for read-side P1.1 storage shape;
 - P1.1 transition commands, transition events, apply conflicts, committed
   outcomes, read-side state-store protocol, and writer-session protocol only;
@@ -48,7 +50,9 @@ it for SQLite initialize/migrate administration. B2c adds durable writer
 issuance and internal writer-session acquisition. B2c does not change the
 P1/P1.1 runtime prohibition above: there is still no production SQLite
 `StateStore` mutation backend, no coordinator service, and no executable A2
-capability.
+capability. B3a adds contract-only canonical persistence/provenance models and
+safe mutation-store error vocabulary, but no SQLite transition mutation
+runtime.
 
 ## P1 State Gating
 
@@ -56,6 +60,14 @@ The state vocabulary includes future executable stages so that the contract can
 be validated, but P1 gates those stages invariantly. Transitions into worker
 cycle, repair, or local-commit stages return `stage_not_enabled` under the
 committed P1 runtime.
+
+Pre-apply binding failures still precede domain evaluation. For a valid bound
+command whose target is one of those P1-disabled stages, `stage_not_enabled`
+precedes lease-runtime, global-stop, authorization, dependency, predecessor,
+evidence, budget, attempt, and repair-limit reasons. The domain-rejected event
+still retains the complete authoritative context provenance, including the
+nested `LeaseRuntimeDecision`; that runtime decision is evidence about the
+transaction context, not the causal rejection reason.
 
 P1 exposes no production API, policy object, constructor argument,
 configuration, environment variable, callback, or provider that enables those
@@ -67,13 +79,16 @@ No publication state exists in P1.
 ## P1.1 Transition Persistence Contract
 
 `TransitionCommand` carries caller intent and safe decision references.
-`TransitionEvent` is the only durable transition receipt. Caller code never
-provides proposed state, proposed events, or receipts.
+`WriterSession.apply_transition` accepts only that command. Future
+authoritative transition context is reconstructed inside the fenced store
+boundary. `TransitionEvent` is the only durable transition receipt. Caller code
+never provides proposed state, proposed events, caller context, or receipts.
 
 The pure evaluator owns domain rules and constructs accepted or
 domain-rejected events. Expected-version comparison, writer fencing,
-idempotency lookup, authoritative state loading, atomic state/event persistence,
-and exact replay belong to the atomic store boundary.
+idempotency lookup, authoritative state loading, authoritative context
+reconstruction, atomic state/event persistence, and exact replay belong to the
+atomic store boundary.
 
 Apply conflicts have no event. They include stale writer session, idempotency
 key reuse with a different command digest, expected-version conflict, and

@@ -23,7 +23,6 @@ from ge_nwp_coordinator.global_stop import (
 from ge_nwp_coordinator.models import require_apply_conflict_reason, require_contract_ref
 from ge_nwp_coordinator.state_machine import (
     TransitionCommand,
-    TransitionContext,
     TransitionEvent,
     WorkItemRecord,
 )
@@ -151,9 +150,8 @@ class WriterSession(Protocol):
     def apply_transition(
         self,
         transition_command: TransitionCommand,
-        typed_context: TransitionContext,
     ) -> TransitionApplyOutcome:
-        """Apply a transition after session-local lifecycle checks."""
+        """Apply a transition after reconstructing authoritative context internally."""
         ...
 
     def apply_global_stop_update(

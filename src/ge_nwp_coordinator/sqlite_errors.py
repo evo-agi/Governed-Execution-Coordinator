@@ -23,11 +23,42 @@ class SQLiteStateErrorCode(str, Enum):
     SQLITE_POSTURE_UNAVAILABLE = "sqlite_posture_unavailable"
 
 
+class SQLiteMutationStoreErrorCode(str, Enum):
+    DATABASE_INTEGRITY_FAILURE = "database_integrity_failure"
+    EVENT_SEQUENCE_EXHAUSTED = "event_sequence_exhausted"
+    MUTATION_FAILED = "mutation_failed"
+    COMMIT_OUTCOME_UNKNOWN = "commit_outcome_unknown"
+
+
 class SQLiteStateError(Exception):
     """Closed public error whose string form is only the safe error class."""
 
     def __init__(self, error_class: SQLiteStateErrorCode | str, *, internal_detail: Any | None = None) -> None:
         code = SQLiteStateErrorCode(error_class)
+        self.error_class = code.value
+        self._internal_detail = internal_detail
+        super().__init__(code.value)
+
+    @property
+    def internal_detail(self) -> Any | None:
+        """Internal diagnostic detail for tests; not a public payload field."""
+
+        return self._internal_detail
+
+    def __str__(self) -> str:
+        return self.error_class
+
+
+class SQLiteMutationStoreError(Exception):
+    """Closed future mutation-store error with no private public payload."""
+
+    def __init__(
+        self,
+        error_class: SQLiteMutationStoreErrorCode | str,
+        *,
+        internal_detail: Any | None = None,
+    ) -> None:
+        code = SQLiteMutationStoreErrorCode(error_class)
         self.error_class = code.value
         self._internal_detail = internal_detail
         super().__init__(code.value)

@@ -73,7 +73,7 @@ def test_state_store_has_no_mutation_methods_and_writer_session_owns_them() -> N
     assert hasattr(WriterSession, "apply_global_stop_update")
 
     transition_signature = inspect.signature(WriterSession.apply_transition)
-    assert tuple(transition_signature.parameters) == ("self", "transition_command", "typed_context")
+    assert tuple(transition_signature.parameters) == ("self", "transition_command")
 
     global_stop_signature = inspect.signature(WriterSession.apply_global_stop_update)
     assert tuple(global_stop_signature.parameters) == (

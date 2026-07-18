@@ -11,6 +11,13 @@ It returns `authorized=false`, `executable=false`, and
 external operator/repo policy truth, but P1/P1.1 implements no executable
 authorization provider and no trusted-local bypass.
 
+B3a does not add authorization verification. It aligns
+`AuthorizationDecision` with schema 0001 by binding it to
+`lease_identity_decision_ref`, keeps `unsupported` as the only current
+production posture, requires internally coherent authorization flags and
+reasons, and classifies `operator_policy` as unsupported by the accepted
+runtime architecture until a separate authorization contract exists.
+
 Bridge remains worker/evidence adapter only. Bridge ledgers and reports are
 evidence/projection and never become Coordinator durable state.
 
@@ -42,6 +49,14 @@ apply-boundary failures and never disclose idempotency status or return
 transition events. Closed-session and process-mismatch failures are
 session-local failures before the apply boundary; they are not durable apply
 conflicts.
+
+B3a changes the transition method shape to `apply_transition(command)` and
+requires future transition context to be reconstructed inside the fenced store
+boundary. It adds canonical event/replay contracts, including integrity-bound
+lease-runtime status and evaluation time in `TransitionEvent`, and safe
+mutation-store error classes only. It does not create admission, executable
+authorization, SQLite transition mutation, global-stop mutation, service,
+worker, repair, commit, publication, or related-repo authority.
 
 Transition events are durable receipts for future accepted or domain-rejected
 commands. Apply conflicts are not receipts and do not provide acceptance,

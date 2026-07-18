@@ -8,10 +8,12 @@ from ge_nwp_coordinator.lease import (
     AuthorizationModel,
     CANONICALIZATION_ID,
     LEASE_SCHEMA_ID,
+    LeaseRuntimeStatus,
     LeaseRevocationState,
     Permission,
     StandingLease,
     UnsupportedAuthorizationProvider,
+    derive_lease_runtime_decision,
     validate_standing_lease,
 )
 from ge_nwp_coordinator.state_machine import (
@@ -64,19 +66,22 @@ def _lease() -> StandingLease:
     ).with_digest()
 
 
-def _transition_context(lease: StandingLease) -> TransitionContext:
+def _test_only_authorized_operator_policy_context(lease: StandingLease) -> TransitionContext:
+    """Pure evaluator fixture only; not a persisted reader or provider."""
     identity = lease.validate_identity()
     return TransitionContext(
         lease_identity=identity,
         authorization=AuthorizationDecision(
             decision_ref=f"authz-{lease.lease_id}",
             lease_ref=lease.lease_id,
+            lease_identity_decision_ref=identity.decision_ref,
             lease_identity_valid=identity.identity_valid,
             authorization_model=AuthorizationModel.OPERATOR_POLICY,
             authorized=True,
             executable=True,
             reason="accepted",
         ),
+        lease_runtime=derive_lease_runtime_decision(lease, "2026-07-14T00:00:02Z"),
     )
 
 
@@ -261,7 +266,7 @@ def test_permissive_fields_do_not_authorize_or_enable_executability() -> None:
     assert decision.executable is False
     assert decision.reason == "unsupported_authorization_model"
 
-    context = _transition_context(lease)
+    context = _test_only_authorized_operator_policy_context(lease)
     commit = transition(
         (commit_record := WorkItemRecord(
             work_item_id="wi-1",

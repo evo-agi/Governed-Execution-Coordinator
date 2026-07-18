@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any, Mapping
 
 from ge_nwp_coordinator.canonicalization import (
+    canonical_json_bytes,
     canonical_sha256,
     decode_json_object,
     require_bool,
@@ -44,6 +45,18 @@ GLOBAL_STOP_COMMAND_KEYS = frozenset(
         "issued_at",
         "operator_decision_ref",
         "canonical_command_digest",
+    }
+)
+GLOBAL_STOP_STATE_KEYS = frozenset(
+    {
+        "schema_id",
+        "version",
+        "active",
+        "stop_id",
+        "reason_class",
+        "issuer_ref",
+        "issued_at",
+        "operator_decision_ref",
     }
 )
 
@@ -144,6 +157,45 @@ class GlobalStopState:
     @property
     def status(self) -> GlobalStopStatus:
         return GlobalStopStatus.ACTIVE if self.active else GlobalStopStatus.CLEAR
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "GlobalStopState":
+        raw = require_exact_keys(payload, "global_stop", GLOBAL_STOP_STATE_KEYS)
+        return cls(
+            schema_id=raw.get("schema_id"),
+            version=raw.get("version"),
+            active=raw.get("active"),
+            stop_id=raw.get("stop_id"),
+            reason_class=raw.get("reason_class"),
+            issuer_ref=raw.get("issuer_ref"),
+            issued_at=raw.get("issued_at"),
+            operator_decision_ref=raw.get("operator_decision_ref"),
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> "GlobalStopState":
+        return cls.from_dict(decode_json_object(text, "global_stop"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_id": self.schema_id,
+            "version": self.version,
+            "active": self.active,
+            "stop_id": self.stop_id,
+            "reason_class": self.reason_class.value if self.reason_class is not None else None,
+            "issuer_ref": self.issuer_ref,
+            "issued_at": self.issued_at,
+            "operator_decision_ref": self.operator_decision_ref,
+        }
+
+    def canonical_json_bytes(self) -> bytes:
+        return canonical_json_bytes(self.to_dict())
+
+    def canonical_json(self) -> str:
+        return self.canonical_json_bytes().decode("utf-8")
+
+    def canonical_digest(self) -> str:
+        return canonical_sha256(self.to_dict())
 
 
 @dataclass(frozen=True)

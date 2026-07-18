@@ -38,7 +38,7 @@ from ge_nwp_coordinator.sqlite_writer_state import (
     _require_writer_ref,
 )
 from ge_nwp_coordinator.state_authority_lock import StateAuthorityLock, acquire_state_authority_lock
-from ge_nwp_coordinator.state_machine import TransitionCommand, TransitionContext
+from ge_nwp_coordinator.state_machine import TransitionCommand
 from ge_nwp_coordinator.state_store import (
     GlobalStopApplyOutcome,
     MAX_WRITER_GENERATION,
@@ -473,7 +473,6 @@ class _SQLiteWriterSession(WriterSession):
     def apply_transition(
         self,
         transition_command: TransitionCommand,
-        typed_context: TransitionContext,
     ) -> TransitionApplyOutcome:
         with self._resource.operation_guard(self):
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)

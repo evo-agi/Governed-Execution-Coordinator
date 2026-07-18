@@ -5,8 +5,8 @@ SQLite bootstrap, observational validation, live-schema integrity checks, and
 migration infrastructure. B2a corrects the writer-session authority contract.
 B2b adds the common state-authority lock for initialize/migrate administration.
 B2c adds durable writer issuance and an internal concrete SQLite
-`WriterSession`. The code still does not implement a production `StateStore`
-mutation backend.
+`WriterSession`. B3a adds canonical persistence and provenance contracts only.
+The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
 
@@ -36,10 +36,11 @@ Alternate or terminal states:
 - `cleanup_pending`
 - `cleanup_completed`
 
-The transition evaluator is pure. It enforces allowed predecessors,
-lease/global-stop prerequisites, typed authorization and dependency decisions,
-attempt/repair/budget counters, evidence requirements, cleanup implications,
-P1 stage availability, and terminal-state checks. It produces either an
+The transition evaluator is pure. It enforces target-state support, invariant
+P1 stage availability, typed lease runtime status, global-stop prerequisites,
+terminal and predecessor rules, typed authorization and dependency decisions,
+evidence requirements, safe-failure-class requirements, and
+attempt/repair/budget counters. It produces either an
 accepted `TransitionEvent`, a domain-rejected `TransitionEvent`, or a local
 pre-apply-invalid result with no event.
 
@@ -51,7 +52,12 @@ P1 future worker-cycle, repair, and local-commit states are declared for
 contract shape only. They are not enableable in production P1. The transition
 engine returns `stage_not_enabled` for those stages without accepting a policy,
 configuration, environment variable, callback, or provider that can enable
-them.
+them. Pre-apply binding failures still win before domain evaluation, but for a
+valid bound command targeting a P1-disabled state, `stage_not_enabled` precedes
+lease runtime, global stop, authorization, dependency, evidence, predecessor,
+terminal, budget, attempt, and repair-limit reasons. The resulting
+domain-rejected event still records the complete reconstructed context
+provenance, including `LeaseRuntimeDecision`.
 
 ## P1.1 Atomic Apply Contract
 
@@ -62,6 +68,8 @@ mutation authority is session-bound. The atomic apply boundary owns:
 - internal idempotency lookup;
 - authoritative current-state loading;
 - expected-version comparison;
+- authoritative context reconstruction from persisted rows;
+- lease runtime derivation from one transaction UTC timestamp;
 - pure evaluator invocation;
 - atomic state/event persistence;
 - exact replay.
@@ -78,9 +86,18 @@ global-stop, dependency, current-record, or addressing bindings do not match
 authoritative records. Parser failures, closed sessions, forked sessions, and
 B2c mutation-unavailable failures are local/pre-store invalid outcomes.
 
+B3a corrects the transition writer protocol to `apply_transition(command)`.
+The caller supplies only `TransitionCommand`; future B3 reconstructs
+`TransitionContext` internally. `TransitionContext` contains
+`LeaseIdentityValidation`, `AuthorizationDecision`, `DependencyDecision`,
+`GlobalStopState`, and `LeaseRuntimeDecision`. It no longer carries raw
+`lease_expired` or `lease_revoked` booleans.
+
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
-The event is the receipt. There is no separate result reason or receipt object
-that can disagree with the event reason.
+The event is the receipt. It carries the complete `LeaseRuntimeDecision`
+mapping, so the transaction timestamp and runtime lease status used by the
+evaluator are covered by event identity and digest. There is no separate result
+reason or receipt object that can disagree with the event reason.
 
 Future production storage must provide one active authoritative writer session,
 ownership generation, stale-writer fencing, split-brain prevention,
@@ -114,9 +131,10 @@ B0 selected SQLite, one private local database, as the future first production
 backend architecture. B1/B1.1 adds administrative database bootstrap,
 observational connection posture, migration-history/catalog equality,
 live-schema manifest checks, and schema compatibility validation. B2a adds
-writer-session contract hardening, B2b adds the common administrative lock, and
-B2c adds internal writer acquisition. No `StateStore` mutation backend,
-coordinator service, or executable A2 capability exists in B2c.
+writer-session contract hardening, B2b adds the common administrative lock,
+B2c adds internal writer acquisition, and B3a adds non-mutating canonical
+contracts. No `StateStore` mutation backend, coordinator service, or executable
+A2 capability exists in B3a.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

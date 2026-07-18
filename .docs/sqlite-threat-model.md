@@ -3,12 +3,13 @@
 Status: B2b bootstrap/inspection/validation/migration implementation plus the
 common state-authority lock for initialize/migrate administration. B2c
 implements durable writer issuance and internal writer-session acquisition.
+B3a implements canonical persistence and provenance contracts only.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
 state-authority lock for administration. B2c implements writer issuance and an
 internal session. The current code still has no production `StateStore`
-mutation backend.
+mutation backend. B3a does not change that.
 
 ## First Backend Guarantees
 
@@ -132,6 +133,11 @@ after fork. Same-thread close fails locally with
 `writer_session_close_during_operation`; cross-thread and concurrent close
 callers wait until proof cleanup, advisory-lock close, and registry cleanup have
 completed.
+
+B3a adds no runtime mutation authority. Its threat-model contribution is to
+pin future transition context reconstruction, canonical event/replay digests,
+lease runtime derivation, event-sequence overflow handling, and commit
+uncertainty reporting before B3b/B3c implement SQLite readers or writes.
 
 Descriptor lifecycle threats:
 

@@ -12,8 +12,11 @@ from ge_nwp_coordinator.lease import (
     LEASE_SCHEMA_ID,
     AuthorizationDecision,
     LeaseIdentityValidation,
+    LeaseRuntimeDecision,
+    LeaseRuntimeStatus,
     StandingLease,
     UnsupportedAuthorizationProvider,
+    derive_lease_runtime_decision,
     validate_standing_lease,
 )
 from ge_nwp_coordinator.state_machine import (
@@ -49,6 +52,8 @@ __all__ = [
     "GlobalStopConflict",
     "LEASE_SCHEMA_ID",
     "LeaseIdentityValidation",
+    "LeaseRuntimeDecision",
+    "LeaseRuntimeStatus",
     "SafeWriterMetadata",
     "StateStore",
     "StandingLease",
@@ -65,6 +70,7 @@ __all__ = [
     "WorkItem",
     "WorkItemRecord",
     "WorkItemState",
+    "derive_lease_runtime_decision",
     "evaluate_transition",
     "transition",
     "validate_standing_lease",

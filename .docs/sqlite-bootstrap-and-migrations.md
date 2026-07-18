@@ -319,5 +319,7 @@ database, worker execution, Bridge invocation, Codex invocation, service loops,
 scheduler loops, recovery loops, repair, commit, publication, or deployment.
 B2b's state-authority lock is necessary exclusion only and is not writer
 authority by itself. B2c's writer acquisition and private operation guard do
-not implement transition or global-stop mutation storage. B2 still requires a
-fresh standalone re-audit before B3 begins.
+not implement transition or global-stop mutation storage. B3a adds
+contract-only canonical persistence and provenance rules; it does not open
+SQLite for transition apply, insert events, update work items, or add
+admission.

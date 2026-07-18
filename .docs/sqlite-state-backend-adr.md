@@ -4,7 +4,8 @@ Status: accepted architecture; B2b implements bootstrap, observational
 inspection/validation, migrations, and the common state-authority advisory
 lock for initialize/migrate administration. B2a corrects the writer-session
 authority contract. B2c implements durable writer issuance and internal
-writer-session acquisition for managed SQLite databases.
+writer-session acquisition for managed SQLite databases. B3a implements
+canonical persistence and provenance contracts only.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -15,7 +16,8 @@ adds the common state-authority lock and uses it for initialize/migrate. B2c
 adds internal writer acquisition, a private operation guard, and
 session-local mutation-unavailable behavior. B2c does not implement a
 production `StateStore`, start a
-coordinator service, or enable executable A2 behavior.
+coordinator service, or enable executable A2 behavior. B3a adds no SQLite
+transition mutation runtime.
 
 ## Decision
 
@@ -96,13 +98,14 @@ behavior, worker execution, or executable A2 behavior.
 
 Coordinator transition service:
 
-- validates external command and typed-context shape before calling the store;
-- invokes the `StateStore` port;
+- validates external command shape before invoking writer apply;
+- calls backend-created `WriterSession.apply_transition(command)` with no
+  caller-supplied `TransitionContext`;
 - does not write SQLite directly once the production store exists;
 - does not call Bridge, Codex, workers, reports, remotes, or authorization
   providers inside the mutation transaction.
 
-SQLite `StateStore` transaction:
+SQLite transition transaction:
 
 - is entered only through a backend-created active `WriterSession`;
 - validates writer ownership before idempotency disclosure;
@@ -221,27 +224,31 @@ only for replaying the original command outcome.
 
 Transition mutation transaction:
 
-1. `BEGIN IMMEDIATE`.
-2. Verify the active writer session, writer generation, and issuance proof.
-3. Look up `transition_events` by `(work_item_id, idempotency_key)`.
-4. If command digest matches, return stored event and replay snapshot.
-5. If command digest differs, return `idempotency_key_reuse_conflict`.
-6. Load authoritative `work_items`.
-7. Compare command expected version.
-8. Load authoritative `global_stop_current`.
-9. Load lease identity, authorization, and dependency decision receipts.
-10. Require command and typed context to match persisted receipts, or rehydrate
-    context exclusively from persisted receipts.
-11. If locally valid typed references or digests do not match authoritative
+1. Enter the active `WriterSession` operation guard.
+2. `BEGIN IMMEDIATE`.
+3. Verify writer generation and private issuance proof.
+4. Look up `transition_events` by `(work_item_id, idempotency_key)`.
+5. If command digest matches, return stored event and replay snapshot.
+6. If command digest differs, return `idempotency_key_reuse_conflict`.
+7. Load authoritative `work_items`.
+8. Compare command expected version.
+9. Load authoritative `global_stop_current`.
+10. Load lease identity, authorization, and dependency decision receipts.
+11. Derive `LeaseRuntimeDecision` from the canonical lease and one transaction
+    UTC timestamp.
+12. Reconstruct `TransitionContext` exclusively from persisted receipts and
+    transaction-derived lease runtime status.
+13. Require command refs and version to match the reconstructed context.
+14. If locally valid typed references or digests do not match authoritative
     persisted records, return a `validation_failed` apply conflict with no
     event. Parser, model-construction, session-lifecycle, and
     mutation-unavailable failures do not reach this step.
-12. Invoke the pure evaluator with no external I/O.
-13. Insert exactly one transition event and replay snapshot.
-14. On acceptance, update `work_items`.
-15. On domain rejection, leave `work_items` unchanged.
-16. Commit.
-17. Return the committed event and resulting record.
+15. Invoke the pure evaluator with no external I/O.
+16. Insert exactly one transition event and replay snapshot.
+17. On acceptance, update `work_items`.
+18. On domain rejection, leave `work_items` unchanged.
+19. Commit.
+20. Return the committed event and resulting record.
 
 Exact replay happens after writer-session fencing and idempotency match, before
 changed decision or global-stop context is re-evaluated.
@@ -273,13 +280,16 @@ verified inside the transaction:
 
 - lease identity decision ref must exist and bind to the same lease;
 - authorization decision ref must exist and bind to the same lease;
-- dependency decision ref must exist when required by the target state;
+- dependency decision ref must exist when required by the target state and a
+  READY transition must bind that dependency receipt to the same work item;
 - global stop is loaded from `global_stop_current`;
 - command global-stop ref and version must agree with the authoritative
   snapshot;
 - persisted schema ids and canonical digests must validate before evaluator
   use;
-- externally supplied typed decisions are never trusted solely by shape.
+- externally supplied typed decisions are never trusted solely by shape;
+- caller-supplied `TransitionContext` is not part of
+  `WriterSession.apply_transition`.
 
 This backend does not solve executable authorization. Until a separate
 authorization architecture is accepted, current production truth remains
@@ -330,7 +340,7 @@ authorization.
 
 ## Non-Goals
 
-B2c does not implement transition persistence, global-stop persistence,
+B3a does not implement transition persistence, global-stop persistence,
 idempotency lookup, expected-version checks, crash recovery orchestration,
 production read ports, a `StateStore` mutation backend, worker execution,
 scheduling, authorization, sandboxing, repair, local commit, publication, or

@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, Mapping
 
 from ge_nwp_coordinator.canonicalization import (
+    canonical_json_bytes,
     canonical_sha256,
     decode_json_object,
     require_bool,
@@ -20,7 +21,13 @@ from ge_nwp_coordinator.global_stop import (
     GlobalStopTransitionClass,
     enforce_global_stop,
 )
-from ge_nwp_coordinator.lease import AuthorizationDecision, LeaseIdentityValidation, require_digest
+from ge_nwp_coordinator.lease import (
+    AuthorizationDecision,
+    LeaseIdentityValidation,
+    LeaseRuntimeDecision,
+    LeaseRuntimeStatus,
+    require_digest,
+)
 from ge_nwp_coordinator.models import (
     ValidationIssue,
     require_contract_ref,
@@ -33,6 +40,7 @@ WORK_ITEM_STATE_SCHEMA_ID = "governed-execution.nwp-work-item-state.v1"
 TRANSITION_COMMAND_SCHEMA_ID = "governed-execution.nwp-transition-command.v1"
 TRANSITION_EVENT_SCHEMA_ID = "governed-execution.nwp-transition-event.v1"
 DEPENDENCY_DECISION_SCHEMA_ID = "governed-execution.nwp-dependency-decision.v1"
+SQLITE_SIGNED_INT_MAX = 9223372036854775807
 
 TRANSITION_COMMAND_KEYS = frozenset(
     {
@@ -50,6 +58,58 @@ TRANSITION_COMMAND_KEYS = frozenset(
         "safe_failure_class",
         "budget_cost",
         "canonical_command_digest",
+    }
+)
+DEPENDENCY_DECISION_KEYS = frozenset(
+    {
+        "schema_id",
+        "decision_ref",
+        "work_item_id",
+        "dependencies_satisfied",
+        "reason",
+    }
+)
+TRANSITION_EVENT_KEYS = frozenset(
+    {
+        "schema_id",
+        "event_ref",
+        "work_item_id",
+        "lease_id",
+        "command_digest",
+        "idempotency_key",
+        "source_state",
+        "source_version",
+        "resulting_state",
+        "resulting_version",
+        "outcome",
+        "reason",
+        "evidence_refs",
+        "budget_cost_delta",
+        "attempt_count_delta",
+        "repair_count_delta",
+        "lease_identity_decision_ref",
+        "authorization_decision_ref",
+        "dependency_decision_ref",
+        "lease_runtime",
+        "global_stop_ref",
+        "global_stop_version",
+    }
+)
+WORK_ITEM_RECORD_KEYS = frozenset(
+    {
+        "schema_id",
+        "work_item_id",
+        "lease_id",
+        "backlog_id",
+        "state",
+        "version",
+        "attempt_count",
+        "repair_count",
+        "budget_consumed",
+        "budget_limit",
+        "max_attempts",
+        "max_repairs",
+        "cleanup_required",
     }
 )
 
@@ -94,6 +154,19 @@ TERMINAL_STATES = frozenset(
         WorkItemState.LEASE_EXPIRED,
         WorkItemState.CANCELED_REVOKED,
         WorkItemState.CLEANUP_COMPLETED,
+    }
+)
+
+P1_DISABLED_TARGET_STATES = frozenset(
+    {
+        WorkItemState.CYCLE_STARTING,
+        WorkItemState.WORKER_RUNNING,
+        WorkItemState.VALIDATING,
+        WorkItemState.AUDITING,
+        WorkItemState.REPAIR_ADMITTED,
+        WorkItemState.REPAIR_RUNNING,
+        WorkItemState.COMMIT_ELIGIBLE,
+        WorkItemState.LOCAL_COMMIT_COMPLETED,
     }
 )
 
@@ -157,6 +230,7 @@ EVIDENCE_REQUIRED_STATES = frozenset(
 @dataclass(frozen=True)
 class DependencyDecision:
     decision_ref: str = "dependencies-clear"
+    work_item_id: str | None = None
     dependencies_satisfied: bool = True
     reason: str = "accepted"
     schema_id: str = DEPENDENCY_DECISION_SCHEMA_ID
@@ -169,6 +243,12 @@ class DependencyDecision:
             "decision_ref",
             require_contract_ref(self.decision_ref, "dependency_decision.decision_ref"),
         )
+        if self.work_item_id is not None:
+            object.__setattr__(
+                self,
+                "work_item_id",
+                require_contract_ref(self.work_item_id, "dependency_decision.work_item_id"),
+            )
         object.__setattr__(
             self,
             "dependencies_satisfied",
@@ -180,27 +260,59 @@ class DependencyDecision:
         if not self.dependencies_satisfied and self.reason != "dependencies_not_satisfied":
             raise ValueError("invalid_field_value:dependency_decision.reason")
 
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "DependencyDecision":
+        raw = require_exact_keys(payload, "dependency_decision", DEPENDENCY_DECISION_KEYS)
+        return cls(
+            schema_id=raw.get("schema_id"),
+            decision_ref=raw.get("decision_ref"),
+            work_item_id=raw.get("work_item_id"),
+            dependencies_satisfied=raw.get("dependencies_satisfied"),
+            reason=raw.get("reason"),
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> "DependencyDecision":
+        return cls.from_dict(decode_json_object(text, "dependency_decision"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_id": self.schema_id,
+            "decision_ref": self.decision_ref,
+            "work_item_id": self.work_item_id,
+            "dependencies_satisfied": self.dependencies_satisfied,
+            "reason": self.reason,
+        }
+
+    def canonical_json_bytes(self) -> bytes:
+        return canonical_json_bytes(self.to_dict())
+
+    def canonical_json(self) -> str:
+        return self.canonical_json_bytes().decode("utf-8")
+
+    def canonical_digest(self) -> str:
+        return canonical_sha256(self.to_dict())
+
 
 @dataclass(frozen=True)
 class TransitionContext:
     lease_identity: LeaseIdentityValidation
     authorization: AuthorizationDecision
+    lease_runtime: LeaseRuntimeDecision
     global_stop: GlobalStopState = field(default_factory=GlobalStopState)
     dependency_decision: DependencyDecision = field(default_factory=DependencyDecision)
-    lease_expired: bool = False
-    lease_revoked: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.lease_identity, LeaseIdentityValidation):
             raise ValueError("invalid_field_type:transition_context.lease_identity")
         if not isinstance(self.authorization, AuthorizationDecision):
             raise ValueError("invalid_field_type:transition_context.authorization")
+        if not isinstance(self.lease_runtime, LeaseRuntimeDecision):
+            raise ValueError("invalid_field_type:transition_context.lease_runtime")
         if not isinstance(self.global_stop, GlobalStopState):
             raise ValueError("invalid_field_type:transition_context.global_stop")
         if not isinstance(self.dependency_decision, DependencyDecision):
             raise ValueError("invalid_field_type:transition_context.dependency_decision")
-        object.__setattr__(self, "lease_expired", require_bool(self.lease_expired, "transition_context.lease_expired"))
-        object.__setattr__(self, "lease_revoked", require_bool(self.lease_revoked, "transition_context.lease_revoked"))
 
 
 @dataclass(frozen=True)
@@ -417,6 +529,12 @@ class TransitionEvent:
     budget_cost_delta: int
     attempt_count_delta: int
     repair_count_delta: int
+    lease_identity_decision_ref: str
+    authorization_decision_ref: str
+    dependency_decision_ref: str | None
+    lease_runtime: LeaseRuntimeDecision
+    global_stop_ref: str
+    global_stop_version: int
     schema_id: str = TRANSITION_EVENT_SCHEMA_ID
 
     def __post_init__(self) -> None:
@@ -478,6 +596,39 @@ class TransitionEvent:
             "repair_count_delta",
             require_non_negative_int(self.repair_count_delta, "transition_event.repair_count_delta"),
         )
+        object.__setattr__(
+            self,
+            "lease_identity_decision_ref",
+            require_contract_ref(
+                self.lease_identity_decision_ref,
+                "transition_event.lease_identity_decision_ref",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "authorization_decision_ref",
+            require_contract_ref(self.authorization_decision_ref, "transition_event.authorization_decision_ref"),
+        )
+        if self.dependency_decision_ref is not None:
+            object.__setattr__(
+                self,
+                "dependency_decision_ref",
+                require_contract_ref(self.dependency_decision_ref, "transition_event.dependency_decision_ref"),
+            )
+        if type(self.lease_runtime) is not LeaseRuntimeDecision:
+            raise ValueError("invalid_field_type:transition_event.lease_runtime")
+        if self.lease_runtime.lease_ref != self.lease_id:
+            raise ValueError("invalid_field_value:transition_event.lease_runtime")
+        object.__setattr__(
+            self,
+            "global_stop_ref",
+            require_contract_ref(self.global_stop_ref, "transition_event.global_stop_ref"),
+        )
+        object.__setattr__(
+            self,
+            "global_stop_version",
+            require_non_negative_int(self.global_stop_version, "transition_event.global_stop_version"),
+        )
         if accepted and self.resulting_version != self.source_version + 1:
             raise ValueError("invalid_field_value:transition_event.resulting_version")
         if not accepted:
@@ -485,6 +636,84 @@ class TransitionEvent:
                 raise ValueError("invalid_field_value:transition_event.result")
             if self.budget_cost_delta or self.attempt_count_delta or self.repair_count_delta:
                 raise ValueError("invalid_field_value:transition_event.deltas")
+        if self.event_ref != self.compute_event_ref():
+            raise ValueError("invalid_field_value:transition_event.event_ref")
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "TransitionEvent":
+        raw = require_exact_keys(payload, "transition_event", TRANSITION_EVENT_KEYS)
+        evidence_refs = _require_external_contract_ref_list(raw.get("evidence_refs"), "transition_event.evidence_refs")
+        return cls(
+            schema_id=raw.get("schema_id"),
+            event_ref=raw.get("event_ref"),
+            work_item_id=raw.get("work_item_id"),
+            lease_id=raw.get("lease_id"),
+            command_digest=raw.get("command_digest"),
+            idempotency_key=raw.get("idempotency_key"),
+            source_state=raw.get("source_state"),
+            source_version=raw.get("source_version"),
+            resulting_state=raw.get("resulting_state"),
+            resulting_version=raw.get("resulting_version"),
+            outcome=raw.get("outcome"),
+            reason=raw.get("reason"),
+            evidence_refs=evidence_refs,
+            budget_cost_delta=raw.get("budget_cost_delta"),
+            attempt_count_delta=raw.get("attempt_count_delta"),
+            repair_count_delta=raw.get("repair_count_delta"),
+            lease_identity_decision_ref=raw.get("lease_identity_decision_ref"),
+            authorization_decision_ref=raw.get("authorization_decision_ref"),
+            dependency_decision_ref=raw.get("dependency_decision_ref"),
+            lease_runtime=LeaseRuntimeDecision.from_dict(raw.get("lease_runtime")),
+            global_stop_ref=raw.get("global_stop_ref"),
+            global_stop_version=raw.get("global_stop_version"),
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> "TransitionEvent":
+        return cls.from_dict(decode_json_object(text, "transition_event"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_id": self.schema_id,
+            "event_ref": self.event_ref,
+            "work_item_id": self.work_item_id,
+            "lease_id": self.lease_id,
+            "command_digest": self.command_digest,
+            "idempotency_key": self.idempotency_key,
+            "source_state": self.source_state.value,
+            "source_version": self.source_version,
+            "resulting_state": self.resulting_state.value,
+            "resulting_version": self.resulting_version,
+            "outcome": self.outcome.value,
+            "reason": self.reason,
+            "evidence_refs": list(self.evidence_refs),
+            "budget_cost_delta": self.budget_cost_delta,
+            "attempt_count_delta": self.attempt_count_delta,
+            "repair_count_delta": self.repair_count_delta,
+            "lease_identity_decision_ref": self.lease_identity_decision_ref,
+            "authorization_decision_ref": self.authorization_decision_ref,
+            "dependency_decision_ref": self.dependency_decision_ref,
+            "lease_runtime": self.lease_runtime.to_dict(),
+            "global_stop_ref": self.global_stop_ref,
+            "global_stop_version": self.global_stop_version,
+        }
+
+    def canonical_event_ref_payload(self) -> dict[str, Any]:
+        payload = self.to_dict()
+        payload.pop("event_ref")
+        return payload
+
+    def compute_event_ref(self) -> str:
+        return f"transition-event-{canonical_sha256(self.canonical_event_ref_payload())[:24]}"
+
+    def canonical_json_bytes(self) -> bytes:
+        return canonical_json_bytes(self.to_dict())
+
+    def canonical_json(self) -> str:
+        return self.canonical_json_bytes().decode("utf-8")
+
+    def canonical_digest(self) -> str:
+        return canonical_sha256(self.to_dict())
 
 
 @dataclass(frozen=True)
@@ -526,6 +755,55 @@ class WorkItemRecord:
     @property
     def terminal(self) -> bool:
         return self.state in TERMINAL_STATES
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "WorkItemRecord":
+        raw = require_exact_keys(payload, "work_item", WORK_ITEM_RECORD_KEYS)
+        return cls(
+            schema_id=raw.get("schema_id"),
+            work_item_id=raw.get("work_item_id"),
+            lease_id=raw.get("lease_id"),
+            backlog_id=raw.get("backlog_id"),
+            state=raw.get("state"),
+            version=raw.get("version"),
+            attempt_count=raw.get("attempt_count"),
+            repair_count=raw.get("repair_count"),
+            budget_consumed=raw.get("budget_consumed"),
+            budget_limit=raw.get("budget_limit"),
+            max_attempts=raw.get("max_attempts"),
+            max_repairs=raw.get("max_repairs"),
+            cleanup_required=raw.get("cleanup_required"),
+        )
+
+    @classmethod
+    def from_json(cls, text: str) -> "WorkItemRecord":
+        return cls.from_dict(decode_json_object(text, "work_item"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_id": self.schema_id,
+            "work_item_id": self.work_item_id,
+            "lease_id": self.lease_id,
+            "backlog_id": self.backlog_id,
+            "state": self.state.value,
+            "version": self.version,
+            "attempt_count": self.attempt_count,
+            "repair_count": self.repair_count,
+            "budget_consumed": self.budget_consumed,
+            "budget_limit": self.budget_limit,
+            "max_attempts": self.max_attempts,
+            "max_repairs": self.max_repairs,
+            "cleanup_required": self.cleanup_required,
+        }
+
+    def canonical_json_bytes(self) -> bytes:
+        return canonical_json_bytes(self.to_dict())
+
+    def canonical_json(self) -> str:
+        return self.canonical_json_bytes().decode("utf-8")
+
+    def canonical_digest(self) -> str:
+        return canonical_sha256(self.to_dict())
 
 
 @dataclass(frozen=True)
@@ -581,12 +859,13 @@ def evaluate_transition(
 
     domain_reason = _domain_rejection_reason(record, command, context)
     if domain_reason is not None:
-        return _domain_rejected(record, command, domain_reason)
+        return _domain_rejected(record, command, context, domain_reason)
 
     next_record = _advance(record, command)
     event = _transition_event(
         source=record,
         command=command,
+        context=context,
         resulting_record=next_record,
         outcome=TransitionEventOutcome.ACCEPTED,
         reason="transition_accepted",
@@ -640,7 +919,11 @@ def _pre_apply_invalid_reason(
         return "work_item_id_mismatch"
     if record.lease_id != context.lease_identity.lease_ref or record.lease_id != context.authorization.lease_ref:
         return "lease_reference_mismatch"
+    if record.lease_id != context.lease_runtime.lease_ref:
+        return "lease_reference_mismatch"
     if context.authorization.lease_identity_valid != context.lease_identity.identity_valid:
+        return "decision_reference_mismatch"
+    if context.authorization.lease_identity_decision_ref != context.lease_identity.decision_ref:
         return "decision_reference_mismatch"
     if command.lease_identity_decision_ref != context.lease_identity.decision_ref:
         return "decision_reference_mismatch"
@@ -648,13 +931,20 @@ def _pre_apply_invalid_reason(
         return "decision_reference_mismatch"
     if command.global_stop_ref != context.global_stop.stop_ref or command.global_stop_version != context.global_stop.version:
         return "global_stop_reference_mismatch"
-    if command.target_state is WorkItemState.READY and command.dependency_decision_ref != context.dependency_decision.decision_ref:
-        return "dependency_reference_mismatch"
+    if command.target_state is WorkItemState.READY:
+        if command.dependency_decision_ref != context.dependency_decision.decision_ref:
+            return "dependency_reference_mismatch"
+        if context.dependency_decision.work_item_id is None:
+            return "dependency_reference_mismatch"
+        if context.dependency_decision.work_item_id != record.work_item_id:
+            return "dependency_reference_mismatch"
     if (
         command.target_state is not WorkItemState.READY
         and command.dependency_decision_ref is not None
         and command.dependency_decision_ref != context.dependency_decision.decision_ref
     ):
+        return "dependency_reference_mismatch"
+    if context.dependency_decision.work_item_id is not None and context.dependency_decision.work_item_id != record.work_item_id:
         return "dependency_reference_mismatch"
     return None
 
@@ -664,17 +954,21 @@ def _domain_rejection_reason(
     command: TransitionCommand,
     context: TransitionContext,
 ) -> str | None:
-    if not context.lease_identity.identity_valid:
-        return "lease_identity_invalid"
-    if context.lease_expired and command.target_state is not WorkItemState.LEASE_EXPIRED:
-        return "lease_expired"
-    if context.lease_revoked and command.target_state is not WorkItemState.CANCELED_REVOKED:
-        return "lease_revoked"
     if command.target_state not in ALLOWED_PREDECESSORS:
         return "unsupported_target_state"
     stage_reason = _stage_enabled(command.target_state)
     if stage_reason is not None:
         return stage_reason
+    if not context.lease_identity.identity_valid:
+        return "lease_identity_invalid"
+    if context.lease_runtime.status is LeaseRuntimeStatus.NOT_YET_VALID:
+        return "lease_not_yet_valid"
+    if context.lease_runtime.status is LeaseRuntimeStatus.EXPIRED and command.target_state is not WorkItemState.LEASE_EXPIRED:
+        return "lease_expired"
+    if context.lease_runtime.status is LeaseRuntimeStatus.REVOKED and command.target_state is not WorkItemState.CANCELED_REVOKED:
+        return "lease_revoked"
+    if context.lease_runtime.status is LeaseRuntimeStatus.REVOCATION_UNKNOWN:
+        return "lease_revocation_unknown"
     global_stop_reason = _global_stop_block(command.target_state, context.global_stop)
     if global_stop_reason is not None:
         return global_stop_reason
@@ -727,10 +1021,16 @@ def _advance(record: WorkItemRecord, command: TransitionCommand) -> WorkItemReco
     )
 
 
-def _domain_rejected(record: WorkItemRecord, command: TransitionCommand, reason: str) -> TransitionEvaluation:
+def _domain_rejected(
+    record: WorkItemRecord,
+    command: TransitionCommand,
+    context: TransitionContext,
+    reason: str,
+) -> TransitionEvaluation:
     event = _transition_event(
         source=record,
         command=command,
+        context=context,
         resulting_record=record,
         outcome=TransitionEventOutcome.DOMAIN_REJECTED,
         reason=reason,
@@ -746,6 +1046,7 @@ def _domain_rejected(record: WorkItemRecord, command: TransitionCommand, reason:
 def _transition_event(
     source: WorkItemRecord,
     command: TransitionCommand,
+    context: TransitionContext,
     resulting_record: WorkItemRecord,
     outcome: TransitionEventOutcome,
     reason: str,
@@ -767,6 +1068,12 @@ def _transition_event(
         "budget_cost_delta": command.budget_cost if accepted else 0,
         "attempt_count_delta": _attempt_delta(command) if accepted else 0,
         "repair_count_delta": _repair_delta(command) if accepted else 0,
+        "lease_identity_decision_ref": context.lease_identity.decision_ref,
+        "authorization_decision_ref": context.authorization.decision_ref,
+        "dependency_decision_ref": command.dependency_decision_ref,
+        "lease_runtime": context.lease_runtime.to_dict(),
+        "global_stop_ref": context.global_stop.stop_ref,
+        "global_stop_version": context.global_stop.version,
     }
     return TransitionEvent(
         event_ref=f"transition-event-{canonical_sha256(payload)[:24]}",
@@ -784,6 +1091,12 @@ def _transition_event(
         budget_cost_delta=payload["budget_cost_delta"],
         attempt_count_delta=payload["attempt_count_delta"],
         repair_count_delta=payload["repair_count_delta"],
+        lease_identity_decision_ref=payload["lease_identity_decision_ref"],
+        authorization_decision_ref=payload["authorization_decision_ref"],
+        dependency_decision_ref=payload["dependency_decision_ref"],
+        lease_runtime=context.lease_runtime,
+        global_stop_ref=payload["global_stop_ref"],
+        global_stop_version=payload["global_stop_version"],
     )
 
 
@@ -820,31 +1133,13 @@ def _global_stop_block(target: WorkItemState, global_stop: GlobalStopState) -> s
 
 
 def _stage_enabled(target: WorkItemState) -> str | None:
-    if target in {
-        WorkItemState.CYCLE_STARTING,
-        WorkItemState.WORKER_RUNNING,
-        WorkItemState.VALIDATING,
-        WorkItemState.AUDITING,
-    }:
-        return "stage_not_enabled"
-    if target in {WorkItemState.REPAIR_ADMITTED, WorkItemState.REPAIR_RUNNING}:
-        return "stage_not_enabled"
-    if target in {WorkItemState.COMMIT_ELIGIBLE, WorkItemState.LOCAL_COMMIT_COMPLETED}:
+    if target in P1_DISABLED_TARGET_STATES:
         return "stage_not_enabled"
     return None
 
 
 def _requires_executable_authority(target: WorkItemState) -> bool:
-    return target in {
-        WorkItemState.CYCLE_STARTING,
-        WorkItemState.WORKER_RUNNING,
-        WorkItemState.VALIDATING,
-        WorkItemState.AUDITING,
-        WorkItemState.REPAIR_ADMITTED,
-        WorkItemState.REPAIR_RUNNING,
-        WorkItemState.COMMIT_ELIGIBLE,
-        WorkItemState.LOCAL_COMMIT_COMPLETED,
-    }
+    return target in P1_DISABLED_TARGET_STATES
 
 
 def _require_event_outcome(value: Any, field_name: str) -> TransitionEventOutcome:

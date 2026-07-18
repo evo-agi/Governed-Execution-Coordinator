@@ -404,10 +404,12 @@ invariant layered above the frozen schema; it does not require migration 0002.
 
 Immutable writer-issuance history remains a future evidence enhancement for
 incident analysis or reporting. The latest-issuance singleton is sufficient for
-current B2 fencing and recovery and is not a B3 prerequisite.
+current B2 fencing and recovery and is not a B3a prerequisite.
 
-B2 hardening still requires a fresh standalone architecture re-audit before B3
-transition persistence begins.
+B3a corrects `WriterSession.apply_transition` to accept only
+`TransitionCommand`. The concrete B2c SQLite session still enters its private
+operation guard and raises `writer_session_mutation_unavailable`; no transition
+persistence begins in B3a.
 
 ## Non-Goals
 

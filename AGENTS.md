@@ -97,8 +97,18 @@ locally with
 `writer_session_mutation_unavailable`; no transition/global-stop event
 persistence, work-item update, global-stop update, idempotency lookup,
 expected-version check, service loop, worker execution, repair, commit, or
-publication exists. B2 still requires a fresh standalone re-audit before B3
-begins.
+publication exists.
+
+B3a implements contract-only prerequisites for future work-item transition
+persistence. It corrects `WriterSession.apply_transition` to accept only a
+`TransitionCommand`; requires future transition context to be reconstructed
+inside the fenced store boundary; replaces raw lease runtime booleans with a
+typed `LeaseRuntimeDecision`; aligns authorization/dependency decisions and
+transition events with schema 0001 provenance; defines canonical event and
+replay-record mappings; and adds a safe mutation-store error vocabulary. B3a
+does not insert transition events, update work items, perform idempotency or
+expected-version runtime checks, read SQLite for transition context, implement
+admission or authorization verification, or widen executable A2 behavior.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,

@@ -2,7 +2,9 @@
 
 Status: B2b bootstrap/inspection/validation/migration implementation plus the
 shared state-authority advisory lock for initialize/migrate administration.
-B2c adds durable writer issuance and internal writer-session acquisition.
+B2c adds durable writer issuance and internal writer-session acquisition. B3a
+adds contract-only future transition persistence rules and no SQLite mutation
+runtime.
 
 ## Filesystem Posture
 
@@ -148,6 +150,23 @@ release marker, or generation reset. Mutation methods currently enter the
 private guard and then fail locally with
 `writer_session_mutation_unavailable`.
 
+## B3a Future Mutation Error Contract
+
+B3a defines `SQLiteMutationStoreError` for future transition mutation apply. It
+is separate from administrative `SQLiteStateError`, session-local
+`WriterSessionError`, and `TransitionConflict`.
+
+Closed public classes are `database_integrity_failure`,
+`event_sequence_exhausted`, `mutation_failed`, and
+`commit_outcome_unknown`. Public strings contain only those classes: no raw SQL,
+SQLite exception text, paths, canonical JSON, rows, proof material, proof
+digests, credentials, endpoints, or secrets.
+
+`mutation_failed` means rollback/no commit is definite.
+`commit_outcome_unknown` means the future caller must retry with the same
+idempotency key; exact replay resolves whether the prior attempt committed.
+B3a does not implement commit, rollback, idempotency, or replay runtime.
+
 ## Backup
 
 The first backend should use SQLite's backup API or a mode-compatible offline
@@ -205,6 +224,9 @@ Read connections cannot mutate. Reads must not expose an unfenced idempotency
 oracle. Raw database rows and canonical JSON are not public reports. Bridge,
 Control Plane, Execution Substrate, Maintenance Agent, and Infrastructure
 Manager receive no database handle.
+
+B3a adds pure canonical row mapping helpers only. They must not open SQLite and
+must not become read/report APIs.
 
 There is no B2a latest-writer read API. A future administrative observer may
 read safe durable writer issuance metadata, but such a read would not prove

@@ -11,9 +11,22 @@ from ge_nwp_coordinator.global_stop import (
     enforce_global_stop,
     evaluate_global_stop_update,
 )
-from ge_nwp_coordinator.lease import AuthorizationDecision, AuthorizationModel, LeaseIdentityValidation
+from ge_nwp_coordinator.lease import (
+    AuthorizationDecision,
+    AuthorizationModel,
+    LeaseIdentityValidation,
+    LeaseRuntimeDecision,
+    LeaseRuntimeStatus,
+)
 from ge_nwp_coordinator.reports import project_work_item_report
-from ge_nwp_coordinator.state_machine import TransitionCommand, TransitionContext, WorkItemRecord, WorkItemState, transition
+from ge_nwp_coordinator.state_machine import (
+    DependencyDecision,
+    TransitionCommand,
+    TransitionContext,
+    WorkItemRecord,
+    WorkItemState,
+    transition,
+)
 
 
 def _identity() -> LeaseIdentityValidation:
@@ -26,20 +39,29 @@ def _identity() -> LeaseIdentityValidation:
     )
 
 
-def _context(global_stop: GlobalStopState) -> TransitionContext:
+def _test_only_authorized_operator_policy_context(global_stop: GlobalStopState) -> TransitionContext:
+    """Pure evaluator fixture only; not a persisted reader or provider."""
     identity = _identity()
     return TransitionContext(
         lease_identity=identity,
         authorization=AuthorizationDecision(
             decision_ref="authz-lease-1",
             lease_ref="lease-1",
+            lease_identity_decision_ref=identity.decision_ref,
             lease_identity_valid=True,
             authorization_model=AuthorizationModel.OPERATOR_POLICY,
             authorized=True,
             executable=True,
             reason="accepted",
         ),
+        lease_runtime=LeaseRuntimeDecision(
+            lease_ref="lease-1",
+            evaluated_at="2026-07-14T00:00:02Z",
+            status=LeaseRuntimeStatus.ACTIVE,
+            reason="lease_runtime_active",
+        ),
         global_stop=global_stop,
+        dependency_decision=DependencyDecision(decision_ref="deps-ready", work_item_id="wi-1"),
     )
 
 
@@ -100,7 +122,7 @@ def test_global_stop_blocks_required_transition_classes() -> None:
 
 def test_state_machine_global_stop_blocks_enabled_p1_admission_and_ready() -> None:
     stop = _active_stop()
-    context = _context(stop)
+    context = _test_only_authorized_operator_policy_context(stop)
     record = WorkItemRecord(work_item_id="wi-1", lease_id="lease-1", backlog_id="backlog-1")
     result = transition(
         record,
@@ -129,7 +151,7 @@ def test_state_machine_global_stop_blocks_enabled_p1_admission_and_ready() -> No
 
 def test_p1_stage_not_enabled_precedes_global_stop_for_future_stages() -> None:
     stop = _active_stop()
-    context = _context(stop)
+    context = _test_only_authorized_operator_policy_context(stop)
     cases = (
         (WorkItemState.READY, WorkItemState.CYCLE_STARTING),
         (WorkItemState.CYCLE_STARTING, WorkItemState.WORKER_RUNNING),
@@ -258,7 +280,7 @@ def test_report_projection_failure_cannot_disable_global_stop() -> None:
     else:  # pragma: no cover - defensive assertion path
         raise AssertionError("unsafe projection should fail closed")
 
-    context = _context(stop)
+    context = _test_only_authorized_operator_policy_context(stop)
     result = transition(
         record,
         _transition_command(WorkItemState.LEASE_ADMITTED, record=record, context=context),

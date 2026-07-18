@@ -59,5 +59,50 @@ Permission-shaped fields in the identity contract do not grant P1 execution.
 fields only unless a future exact authorization and execution contract says
 otherwise.
 
-Transition evaluation consumes typed lease identity and authorization
-decisions. Raw caller booleans are not authority.
+Transition evaluation consumes typed lease identity, lease runtime,
+authorization, dependency, and global-stop decisions. Raw caller booleans are
+not authority.
+
+## B3a Lease Runtime
+
+B3a replaces loose `lease_expired` and `lease_revoked` transition-context
+booleans with `LeaseRuntimeDecision`. The decision contains a safe lease ref,
+one exact UTC evaluated-at timestamp, a closed `LeaseRuntimeStatus`, and a
+closed reason. Status values are `active`, `not_yet_valid`, `expired`,
+`revoked`, and `revocation_unknown`.
+
+`derive_lease_runtime_decision` is pure. It parses the stored `StandingLease`
+with the same timezone-aware ISO timestamp grammar used by identity validation,
+then parses a transaction UTC timestamp. Lease timestamps may use `Z`,
+`+00:00`, or another explicit offset and are normalized only for comparison.
+Naive or malformed timestamps fail. The transaction timestamp serializes in
+exact `Z` form in `LeaseRuntimeDecision.evaluated_at`. It derives status with
+this precedence: revoked, revocation unknown, not yet valid, expired, active.
+A revoked lease may transition to the explicit canceled-revoked terminal state
+where the state machine permits it. An expired lease may transition to the
+explicit lease-expired terminal state where permitted. Revocation unknown fails
+closed and is not treated as not revoked.
+
+B3a adds no current lease-status row. Transition events carry the complete
+`LeaseRuntimeDecision` mapping so the transaction timestamp and runtime status
+that affected acceptance or domain rejection are integrity-bound by event
+identity. Any future mutable revocation or live lease-status authority requires
+a separate accepted contract.
+
+## B3a Authorization Receipt Binding
+
+`AuthorizationDecision` includes `lease_identity_decision_ref`. The canonical
+authorization decision JSON and digest cover schema id, decision ref, lease
+ref, lease-identity-decision ref, lease-identity validity, authorization model,
+authorized, executable, and reason.
+
+The decision is internally coherent: `executable` implies `authorized`,
+`accepted` is the only authorized reason, and an invalid lease identity forces
+both authorization flags false.
+
+`authorization_model=unsupported` is the only currently supported production
+posture and remains fail-closed. `authorization_model=operator_policy` remains
+schema vocabulary only; B3a adds no verifier, trust root, executable authority,
+or production allow provider. Future B3 transition apply must treat an
+operator-policy authorization receipt as `validation_failed` until a separate
+authorization architecture is accepted.

@@ -611,7 +611,7 @@ def test_session_lifecycle_context_manager_and_mutation_unavailable_boundary(
 
     monkeypatch.setattr(writer_module, "open_existing_sqlite_connection", fail_if_sqlite_opens)
     with pytest.raises(WriterSessionError) as mutation_error:
-        active.apply_transition(None, None)  # type: ignore[arg-type]
+        active.apply_transition(None)  # type: ignore[arg-type]
     assert mutation_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
     with pytest.raises(WriterSessionError) as global_stop_error:
         active.apply_global_stop_update(None, None)  # type: ignore[arg-type]
@@ -619,7 +619,7 @@ def test_session_lifecycle_context_manager_and_mutation_unavailable_boundary(
     assert calls == 0
     active.close()
     with pytest.raises(WriterSessionError) as closed_mutation:
-        active.apply_transition(None, None)  # type: ignore[arg-type]
+        active.apply_transition(None)  # type: ignore[arg-type]
     assert closed_mutation.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
     assert _operation_count(active._resource) == 0
 
@@ -635,7 +635,7 @@ def test_process_mismatch_fails_locally_without_private_detail(
     monkeypatch.setattr(writer_module.os, "getpid", lambda: owner_pid + 1)
 
     with pytest.raises(WriterSessionError) as exc_info:
-        session.apply_transition(None, None)  # type: ignore[arg-type]
+        session.apply_transition(None)  # type: ignore[arg-type]
     assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH
     assert str(owner_pid) not in str(exc_info.value)
     assert _operation_count(session._resource) == 0
@@ -752,7 +752,7 @@ def test_operation_guard_close_waits_and_retains_authority_until_exit(tmp_path: 
     assert _run_writer_attempt(location) == "state_authority_lock_busy"
 
     with pytest.raises(WriterSessionError) as closing_error:
-        session.apply_transition(None, None)  # type: ignore[arg-type]
+        session.apply_transition(None)  # type: ignore[arg-type]
     assert closing_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
     assert _operation_count(resource) == 1
 
@@ -1073,7 +1073,7 @@ def test_mutation_unavailable_methods_enter_and_exit_operation_guard(
 
     monkeypatch.setattr(resource, "operation_guard", TrackingGuard)
     with pytest.raises(WriterSessionError) as transition_error:
-        session.apply_transition(None, None)  # type: ignore[arg-type]
+        session.apply_transition(None)  # type: ignore[arg-type]
     assert transition_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
     with pytest.raises(WriterSessionError) as global_stop_error:
         session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
@@ -1096,7 +1096,7 @@ def test_fork_child_session_is_invalidated_and_parent_remains_active(tmp_path: P
         os.close(read_fd)
         try:
             try:
-                session.apply_transition(None, None)  # type: ignore[arg-type]
+                session.apply_transition(None)  # type: ignore[arg-type]
             except WriterSessionError as exc:
                 reason = exc.reason.value
             else:
@@ -1142,7 +1142,7 @@ def test_fork_child_operation_with_inherited_locked_session_sync_does_not_hang(t
         os.close(read_fd)
         try:
             try:
-                session.apply_transition(None, None)  # type: ignore[arg-type]
+                session.apply_transition(None)  # type: ignore[arg-type]
             except WriterSessionError as exc:
                 reason = exc.reason.value
             else:
@@ -1201,7 +1201,7 @@ def test_fork_child_copied_operation_lease_exit_and_finalizer_are_noops(tmp_path
             except BaseException as exc:  # noqa: BLE001
                 finalizer_result = f"finalizer-{exc.__class__.__name__}"
             try:
-                session.apply_transition(None, None)  # type: ignore[arg-type]
+                session.apply_transition(None)  # type: ignore[arg-type]
             except WriterSessionError as exc:
                 session_result = exc.reason.value
             else:
