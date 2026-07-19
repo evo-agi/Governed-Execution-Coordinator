@@ -27,8 +27,8 @@ The tests directly seed synthetic authoritative rows.
 
 Direct seeding is not admission or product mutation. The same boundary in
 lowercase is: direct seeding is not admission or product mutation. It is a
-tests-only setup path for future B3c1-B3c4 tests and is not the future B3c
-transaction path.
+tests-only setup path for future B3c1 runtime and later B3c tests and is not
+the future B3c transaction path.
 It performs no writer fencing, context assembly, evaluator integration,
 admission, authorization verification, product state mutation API, worker
 behavior, service behavior, or publication behavior.
@@ -57,8 +57,8 @@ adapter for that table. The row builder is not a second authority.
 
 Required fixture truths: real writer issuance is temporary test evidence only;
 unsupported authorization remains production/default; optional persisted event
-is domain-rejected; no accepted executable transition is proved; B3c1-B3c4
-remain future.
+is domain-rejected; no accepted executable transition is proved; B3c1
+prerequisites are contract-only and B3c1 runtime plus B3c2-B3c4 remain future.
 
 Unsupported authorization remains production/default:
 
@@ -96,7 +96,9 @@ must fail through existing safe row or binding contracts.
 
 ## Remaining Work
 
-B3c1 remains future for nominal transaction capability and writer fencing.
+B3c1 prerequisites are contract-only; B3c1 runtime remains future for the
+mutation slot, rollback-only controller, nominal transaction capability, and
+writer fencing.
 B3c2 remains future for event/idempotency/sequence readers. B3c3 remains
 future for context assembly and evaluator dry run. B3c4 remains future for
 atomic persistence, accepted-state CAS, rollback, and commit-uncertainty

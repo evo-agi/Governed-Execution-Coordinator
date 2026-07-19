@@ -15,6 +15,11 @@ connector, or migration 0002.
 B3c0b has since implemented pure/static transition-event row, replay,
 idempotency, and sequence contracts only; it still does not implement any of
 the B3c runtime steps above.
+B3c1 has since frozen the prerequisite contract for the production-unintegrated
+rollback-only controller posture in
+`.docs/b3c1-prerequisite-contract.md`; it still implements no mutation slot,
+controller, concrete capability, writer-fencing query, transaction runtime, or
+state mutation.
 
 ## Nominal Capability Ownership
 
@@ -23,9 +28,18 @@ one private nominal transaction-read capability. The concrete class is not
 trusted through structural Protocol conformance, is not a public reader, and is
 not package-root exported.
 
-The concrete capability is created only inside
-`_SQLiteWriterSession.apply_transition()` while one valid
-`_WriterSessionOperationLease` is active. Creation occurs only after:
+The concrete capability is created only by one private rollback-only
+transaction controller. There is one controller construction path, and that
+controller path is the only path that may construct the nominal capability.
+Future production invocation may occur only from
+`_SQLiteWriterSession.apply_transition()`. During B3c1, the controller has no
+production caller; coherent tests may invoke the same private controller
+directly through private imports without adding a separate source-level
+`for_test` factory. Direct private test invocation is not public or production
+authority.
+
+Capability creation occurs only while one valid `_WriterSessionOperationLease`
+is active and only after:
 
 1. opening one existing managed SQLite connection create-disabled and
    read/write;
@@ -42,8 +56,12 @@ exposure, package-root export, or `StateStore` observer API may create or hold
 the capability. One opaque epoch belongs to exactly one transaction, never
 changes, is never public, and cannot become valid again during a later
 transaction on the same connection. The capability is invalidated before commit
-or rollback, invalidation is permanent, and the object must not escape
-`apply_transition()`.
+or rollback, invalidation is permanent, and the object must not escape the
+controller lifecycle.
+
+In B3c1, `_SQLiteWriterSession.apply_transition()` and
+`_SQLiteWriterSession.apply_global_stop_update()` remain
+`writer_session_mutation_unavailable` and contact no SQLite database.
 
 B3b2a's `_TransitionReadCapability` Protocol remains only the private reader
 shape. B3b2b's structural tests do not prove production transaction authority.
@@ -392,7 +410,15 @@ domain-rejected event/replay rows. Fixtures are not production admission,
 authorization, runtime authority, accepted operator-policy authority, executable
 transition proof, or migration 0002.
 
-B3c1 remains future for nominal transaction capability and writer fencing only.
+B3c1 prerequisite contracts are implemented in
+`.docs/b3c1-prerequisite-contract.md` for production-unintegrated
+rollback-only transaction authority, but no B3c1 runtime exists.
+
+B3c1a remains future for the runtime mutation slot, mutation lease, and
+operation-lease verification interface.
+
+B3c1b remains future for the rollback-only transaction controller, writer
+fencing query, and nominal capability.
 
 B3c2 remains future for event/replay/idempotency/sequence readers.
 

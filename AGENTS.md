@@ -193,6 +193,27 @@ integration, mutation runtime, admission, authorization verifier, migration
 0002, worker, service, CLI, MCP, connector, repair, commit, publication, or
 deployment behavior.
 
+B3c1 implements only prerequisite contract/static pins for future rollback-only
+transaction authority. It freezes the production-unintegrated/test-executed
+posture, one private controller construction path, future resource-owned
+mutation slot and mutation-lease identity, operation-lease active-authority and
+durable-issuance verification interfaces, writer-row query/parser ownership,
+writer-fencing classification matrix, nominal capability/epoch contract,
+rollback-only lifecycle, cleanup/error precedence, and the B3c1a/B3c1b split.
+Future production invocation of that controller may occur only from
+`_SQLiteWriterSession.apply_transition()`, but B3c1 gives it no production
+caller; coherent tests may invoke the same private controller directly through
+private imports when the runtime exists and must not add a separate source-level
+`for_test` factory. Public transition/global-stop mutation methods remain
+`writer_session_mutation_unavailable` and contact no SQLite database. B3c1 adds
+no runtime mutation slot, `_WriterSessionMutationLease`, operation-lease
+verification method, transaction controller, concrete capability, writer
+fencing SELECT, B3b2 reader integration, context assembly, evaluator
+invocation, idempotency/event/sequence reader, event insertion, work-item or
+global-stop update, public API, migration 0002, admission, authorization,
+worker, service, CLI, MCP, connector, repair, commit, publication, or deployment
+behavior.
+
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production
 initialization, directly seed synthetic authoritative rows through a test setup

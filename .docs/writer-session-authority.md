@@ -114,11 +114,17 @@ possession, or B2 operation guard ownership. Future B3c must create one
 concrete opaque epoch only after those gates, invalidate it before commit or
 rollback, and reject old epochs after transaction end or restart on the same
 connection.
-B3c0a additionally pins that the concrete capability is nominal, is created only
-inside `_SQLiteWriterSession.apply_transition()`, and receives no credential,
-proof, proof digest, authority lock, lock descriptor, writer metadata as
-authority, process/thread identity, or transaction epoch through a public
-surface.
+B3c0a additionally pins that the concrete capability is nominal. B3c1
+prerequisites in `.docs/b3c1-prerequisite-contract.md` reconcile production
+reachability: the capability is created only by one private rollback-only
+transaction controller. There is one controller construction path. Future
+production invocation may occur only from
+`_SQLiteWriterSession.apply_transition()`. During B3c1, the controller has no
+production caller, and coherent tests may invoke the same private controller
+directly through private imports without adding a separate source-level
+`for_test` factory. The capability receives no credential, proof, proof digest,
+authority lock, lock descriptor, writer metadata as authority, process/thread
+identity, or transaction epoch through a public surface.
 
 ## Failure Layer Taxonomy
 
@@ -472,6 +478,11 @@ operation guard and raises `writer_session_mutation_unavailable`; no transition
 persistence begins in B3a.
 B3c0a preserves that runtime behavior while reserving
 `writer_session_mutation_in_progress` for future B3/B4 concurrency checks.
+B3c1 freezes prerequisites only: `_SQLiteWriterSession.apply_transition()` and
+`apply_global_stop_update()` remain mutation-unavailable and open no SQLite
+database; B3c1a remains future for the runtime mutation slot and
+operation-lease verification methods; B3c1b remains future for the rollback-only
+controller, writer-fencing query, and nominal capability.
 
 ## Non-Goals
 

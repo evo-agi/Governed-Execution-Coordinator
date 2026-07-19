@@ -107,16 +107,16 @@ authorization verification, transaction ownership, or mutation.
 B3c0a freezes the future transition mutation authority and ordering contract in
 `.docs/b3c0a-transition-authority-and-order.md`. Future B3c must own one
 nominal private capability and one opaque epoch per `BEGIN IMMEDIATE`
-transaction, create that capability only inside `_SQLiteWriterSession` transition
-apply while one operation lease is active and after writer fencing, treat
-operation-lease acquisition as the externally atomic lifecycle/process and
+transaction, create that capability only through one private controller path
+while one operation lease is active and after writer fencing, allow future
+production invocation only from `_SQLiteWriterSession.apply_transition()`,
+treat operation-lease acquisition as the externally atomic lifecycle/process and
 retained-lock gate, share the transition/global-stop pre-SQLite mutation prefix
 and one mutation slot, invalidate the capability before commit or rollback,
-reject old epochs after
-transaction end or restart, fence before idempotency, read current state and
-expected version before context rows, capture the transaction timestamp only
-after authoritative row binding, and preserve the pinned rollback/commit/close
-precedence. B3c0a does not implement the concrete
+reject old epochs after transaction end or restart, fence before idempotency,
+read current state and expected version before context rows, capture the
+transaction timestamp only after authoritative row binding, and preserve the
+pinned rollback/commit/close precedence. B3c0a does not implement the concrete
 capability, writer-fencing SELECT, idempotency/replay, event sequence SQL,
 context assembly, evaluator invocation, fixtures, or mutation outcome.
 
@@ -139,6 +139,18 @@ optionally persist a domain-rejected event/replay row produced by the pure
 evaluator. The fixture graph is not production admission, not authorization, not
 runtime authority, not product state initialization, not accepted
 operator-policy authority, and not an executable transition proof.
+
+B3c1 prerequisite contracts are documented in
+`.docs/b3c1-prerequisite-contract.md`. They freeze the
+production-unintegrated/test-executed rollback-only posture, the single private
+controller construction path, the future resource-owned mutation slot and
+mutation-lease identity, the operation-lease authority and durable-issuance
+verification interfaces, the writer-row query/parser ownership, writer-fencing
+classifications, nominal capability and epoch rules, rollback-only cleanup
+precedence, and the B3c1a/B3c1b split. B3c1 adds no runtime mutation slot,
+controller, concrete capability, query execution, B3b2 reader integration,
+context assembly, evaluator invocation, event/state mutation, public behavior
+change, or migration 0002.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -288,9 +300,12 @@ contracts. B3b2b adds private SELECT readers with tests-only execution and no
 production call sites. B3c0a adds contract/static pins only for the future
 transition authority boundary. B3c0b adds pure event/replay row, idempotency,
 and sequence contracts only. B3 tests-only coherent fixtures add temporary
-managed graphs for future tests only. There is still no production transaction
-controller, concrete capability, reader integration, context assembly,
-evaluator integration, exact replay runtime over SQLite, or mutation. B3c
-concrete transaction capability and atomic transition apply, exact replay
-readers, and fault injection remain future. B4 remains future for global-stop
-persistence.
+managed graphs for future tests only. B3c1 adds prerequisite contract pins only
+for production-unintegrated rollback-only controller construction, the future
+mutation slot and operation-lease interfaces, writer-fencing taxonomy,
+capability epoch rules, cleanup precedence, and the B3c1a/B3c1b split. There
+is still no production transaction controller, concrete capability, reader
+integration, context assembly, evaluator integration, exact replay runtime over
+SQLite, or mutation. B3c concrete transaction capability and atomic transition
+apply, exact replay readers, and fault injection remain future. B4 remains
+future for global-stop persistence.

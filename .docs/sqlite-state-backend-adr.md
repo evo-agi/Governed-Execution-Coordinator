@@ -12,7 +12,12 @@ B3c0a pins transition authority, ordering, fencing, and failure precedence as a
 contract/static prerequisite only. B3c0b adds pure/static transition-event row,
 replay, idempotency, and sequence contracts only. B3 tests-only coherent
 fixtures add temporary managed graphs under `tests/` only, with no production
-admission or runtime authority.
+admission or runtime authority. B3c1 adds prerequisite contract pins for the
+production-unintegrated rollback-only controller posture, single private
+controller construction path, future mutation slot, operation-lease interfaces,
+writer-row query ownership, fencing taxonomy, nominal capability epoch,
+cleanup precedence, and B3c1a/B3c1b split only, as documented in
+`.docs/b3c1-prerequisite-contract.md`.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -34,6 +39,10 @@ evaluator integration, or mutation.
 B3c0b adds no SQL execution, idempotency/event/sequence reader, fixture,
 concrete transaction capability, writer fencing, context assembly, evaluator
 integration, event insertion, current-state update, or mutation.
+B3c1 adds no runtime mutation slot, transaction controller, concrete
+capability, writer-fencing query execution, B3b2 reader integration, context
+assembly, evaluator integration, event insertion, current-state update, public
+mutation-method behavior change, or migration 0002.
 
 ## Decision
 
@@ -377,10 +386,13 @@ future B3/B4 transactions can retain proof and advisory-lock authority across
 the full operation. B3b2a's private capability protocol and B3b2b's private
 reader execution do not prove that guard, transaction identity, or writer
 fencing by themselves; future B3c must create one concrete opaque epoch only
-after operation-lease acquisition, mutation-specific local checks, shared
-mutation-slot acquisition, `BEGIN IMMEDIATE`, managed validation, and fencing
-gates, and must invalidate it before commit or rollback. No B3/B4 persistence
-exists.
+through the private rollback-only transaction controller after operation-lease
+acquisition, mutation-specific local checks, shared mutation-slot acquisition,
+`BEGIN IMMEDIATE`, managed validation, and fencing gates, and must invalidate it
+before commit or rollback. Future production invocation of that controller may
+occur only from `_SQLiteWriterSession.apply_transition()`; B3c1 gives the
+controller no production caller and public mutation methods remain unavailable.
+No B3/B4 persistence exists.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that
@@ -406,6 +418,10 @@ replay, idempotency-match, and sequence/query-spec contracts only; it still
 does not add a production read port, idempotency reader, event reader, sequence
 reader, production fixture program, concrete transaction capability, writer fencing,
 context assembly, evaluator integration, mutation, or executable A2 behavior.
+B3c1 adds prerequisite contracts only and still does not add a runtime mutation
+slot, transaction controller, concrete capability, writer-fencing query
+execution, reader integration, rollback runtime, state mutation, or executable
+A2 behavior.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,
