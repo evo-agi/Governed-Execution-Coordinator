@@ -59,7 +59,8 @@ Required fixture truths: real writer issuance is temporary test evidence only;
 unsupported authorization remains production/default; optional persisted event
 is domain-rejected; no accepted executable transition is proved; B3c1
 prerequisites plus B3c1a private authority plumbing do not make the fixture
-runtime authority; B3c1b plus B3c2-B3c4 remain future.
+runtime authority; B3c1b rollback-only mechanics are private test-executed
+only; B3c2-B3c4 remain future.
 
 Unsupported authorization remains production/default:
 

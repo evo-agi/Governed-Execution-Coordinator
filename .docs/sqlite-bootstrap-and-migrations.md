@@ -102,19 +102,27 @@ The state root is created with mode `0700` when absent. Existing roots must be
 directories, not symlinks, owner-owned where portable, and free of group/other
 permissions. Child paths are resolved and confined to the trusted root.
 
-The database file is created with mode `0600` when absent. Existing database
-paths must be regular files, not symlinks, directories, FIFOs, sockets, or
-devices, and must reject group/other permissions. The B2b state-authority lock
-file is created at the fixed path with mode `0600`, validated as a regular
-non-symlink file, rejected when group/other-accessible, rejected when hardlinked
-where link count is safely testable, acquired with a nonblocking exclusive
-advisory lock, and left in place after release. Public errors never echo raw
-paths.
+The database file is created with mode `0600` when absent. Existing active
+database paths must be regular files, not symlinks, directories, FIFOs,
+sockets, or devices, must reject group/other permissions, and must have exactly
+one hard link where link count is safely testable. This single-link rule
+applies to the fixed active Coordinator database path, not to backup artifacts
+generally. The B2b state-authority lock file is created at the fixed path with
+mode `0600`, validated as a regular non-symlink file, rejected when
+group/other-accessible, rejected when hardlinked where link count is safely
+testable, acquired with a nonblocking exclusive advisory lock, and left in
+place after release. Public errors never echo raw paths.
 
-Python `sqlite3` opens the database by pathname. The owner-only parent
-directory mitigates other-user replacement, but same-account malicious-process
-resistance is limited. B1 does not claim no-follow semantics that the standard
-library SQLite API does not provide.
+Python `sqlite3` opens the database by pathname. B3c1b adds a private bounded
+open helper that pins the retained state-root, authority-lock-file, and
+database-file identities before open, holds temporary anchor descriptors while
+SQLite opens the fixed pathname, and revalidates after open and after
+`BEGIN IMMEDIATE`. This is bounded local filesystem identity pinning, not a
+claim of immunity to every same-account race, unsupported filesystem, or mount
+namespace attack. The owner-only parent directory mitigates other-user
+replacement, but same-account malicious-process resistance remains limited.
+B1 does not claim no-follow semantics that the standard library SQLite API does
+not provide.
 
 ## Connection Posture
 

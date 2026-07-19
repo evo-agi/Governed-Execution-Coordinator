@@ -21,6 +21,9 @@ stop, widen `StateStore`, or create a public read port.
 B3b2b now implements private readers in the same module. Those readers consume
 the B3b2a specs only when explicitly invoked by tests and remain absent from
 production call sites.
+B3c1b now implements a private nominal rollback-only transaction capability,
+but its controller does not call these B3b2 readers and still performs no
+state mutation.
 
 ## Ordered Row Columns
 
@@ -75,25 +78,25 @@ not provide a constructor, factory, raw-connection wrapper, transaction epoch
 implementation, connection posture probe, or production object that can be
 instantiated as transaction-bound read authority.
 
-Future B3c must create any concrete capability only after B3c has acquired the
-B2 operation lease, completed mutation-specific local checks, acquired the shared
-per-session mutation slot, opened an existing managed read/write connection,
-executed `BEGIN IMMEDIATE`, revalidated managed schema/posture inside the
-transaction, and completed writer fencing gates required by final apply ordering.
-The concrete B3c capability must be nominal, not trusted by Protocol conformance,
-bind exactly one opaque transaction epoch, never change that epoch, invalidate
-before commit or rollback, reject use after transaction end, reject use after
-another transaction starts on the same connection, reject process/thread
-mismatch, expose no connection property, open/close/commit/roll back nothing
-through the reader interface, expose no transaction identifier publicly, and
-raise only safe closed internal errors.
+B3c1b creates the concrete capability only after B2 operation-lease authority,
+the shared per-session mutation slot, managed read/write connection open,
+`BEGIN IMMEDIATE`, managed validation, and writer fencing. Later B3c production
+reader integration must continue to preserve those gates. The concrete B3c
+capability is nominal, not trusted by Protocol conformance, binds exactly one
+opaque transaction epoch, never changes that epoch, invalidates before rollback
+in B3c1b and before commit or rollback in future mutation slices, rejects use
+after transaction end, rejects use after another transaction starts on the same
+connection, rejects process/thread mismatch, exposes no connection property,
+opens/closes/commits/rolls back nothing through the reader interface, exposes no
+transaction identifier publicly, and raises only safe closed internal errors.
 
 `connection.in_transaction` is not transaction identity. It proves only that a
 connection currently reports an active transaction. It does not prove continuity
 with the transaction that created a capability, `BEGIN IMMEDIATE`, writer
 fencing, B2 operation-guard ownership, idempotency ordering, expected-version
-ordering, or transition-context authority. Transaction-generation and
-invalidation proof is deferred to the future B3c implementation and audit.
+ordering, or transition-context authority. B3c1b supplies the private opaque
+epoch and permanent invalidation mechanics; production reader integration and
+mutation authority remain future.
 
 B3b2b readers accept only the private capability protocol, not raw connections,
 database paths, public `StateStore`, `WriterSession`, generic objects,

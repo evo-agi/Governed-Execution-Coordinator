@@ -15,9 +15,10 @@ fixtures add temporary managed graphs under `tests/` only, with no production
 admission or runtime authority. B3c1 adds prerequisite contract pins for the
 production-unintegrated rollback-only controller posture, single private
 controller construction path, mutation slot, operation-lease interfaces,
-writer-row query ownership, fencing taxonomy, nominal capability epoch, cleanup
-precedence, and B3c1a/B3c1b split. B3c1a private WriterSession authority
-plumbing is documented in `.docs/b3c1a-writer-session-authority.md`.
+resource-owned state-database filesystem binding, writer-row query ownership, fencing
+taxonomy, nominal capability epoch, cleanup precedence, and B3c1a/B3c1b split.
+B3c1a private WriterSession authority plumbing is documented in
+`.docs/b3c1a-writer-session-authority.md`.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -40,10 +41,16 @@ B3c0b adds no SQL execution, idempotency/event/sequence reader, fixture,
 concrete transaction capability, writer fencing, context assembly, evaluator
 integration, event insertion, current-state update, or mutation.
 B3c1a adds only private WriterSession mutation-slot and operation-lease
-verification plumbing. B3c1 adds no transaction controller, concrete
-capability, writer-fencing query execution, B3b2 reader integration, context
+verification plumbing plus a retained private root/lock/database filesystem
+binding. B3c1b adds only private rollback-only writer fencing/capability
+mechanics: one private controller, one fresh managed read/write connection
+opened only through that binding, `BEGIN IMMEDIATE`, post-begin binding
+revalidation, managed validation, one bounded writer-row query using the
+existing parser, one nominal capability with one opaque epoch, permanent
+invalidation, rollback, close, and private `_WriterIssuanceMatch` return.
+B3c1 adds no B3b2 reader integration, context
 assembly, evaluator integration, event insertion, current-state update, public
-mutation-method behavior change, or migration 0002.
+mutation-method behavior change, commit, or migration 0002.
 
 ## Decision
 
@@ -269,32 +276,35 @@ summary order is:
 2. perform exact `TransitionCommand` checks and bounded persisted-slice local
    checks;
 3. acquire the shared per-session mutation slot;
-4. open one existing managed read/write connection;
-5. execute `BEGIN IMMEDIATE`;
-6. validate managed schema/posture inside the transaction;
-7. load and parse `writer_ownership`;
-8. verify writer generation, refs, and private issuance proof;
-9. create the nominal capability only after fencing;
-10. look up `transition_events` by event-owned idempotency;
-11. replay exact command digests or return idempotency conflict before changed
+4. derive the resource-owned root/lock/database binding from the active
+   operation lease;
+5. open one existing managed read/write connection through that binding;
+6. execute `BEGIN IMMEDIATE`;
+7. revalidate the retained binding and validate managed schema/posture inside
+   the transaction;
+8. load and parse `writer_ownership`;
+9. verify writer generation, refs, and private issuance proof;
+10. create the nominal capability only after fencing;
+11. look up `transition_events` by event-owned idempotency;
+12. replay exact command digests or return idempotency conflict before changed
     context is read;
-12. load authoritative `work_items`;
-13. compare command expected version;
-14. load context rows in B3c0a order: lease identity, admitted backlog,
+13. load authoritative `work_items`;
+14. compare command expected version;
+15. load context rows in B3c0a order: lease identity, admitted backlog,
     authorization, READY dependency only when required, then
     `global_stop_current`;
-15. apply all cross-record binding and authorization-support checks;
-16. capture one transaction UTC timestamp only after successful binding;
-17. derive `LeaseRuntimeDecision`;
-18. Reconstruct `TransitionContext` exclusively from persisted receipts and
+16. apply all cross-record binding and authorization-support checks;
+17. capture one transaction UTC timestamp only after successful binding;
+18. derive `LeaseRuntimeDecision`;
+19. Reconstruct `TransitionContext` exclusively from persisted receipts and
     transaction-derived lease runtime status;
-19. invoke the pure evaluator with no external I/O exactly once;
-20. allocate event sequence;
-21. insert exactly one transition event and replay snapshot;
-22. on acceptance, compare-and-set update `work_items`;
-23. on domain rejection, leave `work_items` unchanged;
-24. invalidate the capability before commit or rollback;
-25. commit or roll back, close the connection, and return only after transaction
+20. invoke the pure evaluator with no external I/O exactly once;
+21. allocate event sequence;
+22. insert exactly one transition event and replay snapshot;
+23. on acceptance, compare-and-set update `work_items`;
+24. on domain rejection, leave `work_items` unchanged;
+25. invalidate the capability before commit or rollback;
+26. commit or roll back, close the connection, and return only after transaction
     resolution.
 
 Exact replay happens after writer-session fencing and idempotency match, before
@@ -311,24 +321,25 @@ same pre-SQLite authority prefix as transition mutation:
 1. acquire the operation lease; acquisition performs owner-process and active-session validation and returns only after the retained authority lock is confirmed active;
 2. perform existing future global-stop typed command/operator-decision local checks;
 3. acquire the shared per-session mutation slot;
-4. open one existing managed read/write connection;
-5. execute `BEGIN IMMEDIATE`;
-6. validate managed schema/posture inside the transaction;
-7. load and parse `writer_ownership`;
-8. verify writer fencing;
-9. look up `global_stop_events` by idempotency key;
-10. if command digest matches, return stored event and replay snapshot;
-11. if command digest differs, return `idempotency_key_reuse_conflict`;
-12. load authoritative `global_stop_current`;
-13. compare command expected version;
-14. load the operator decision receipt;
-15. verify command and typed operator decision against the persisted receipt;
-16. invoke the pure global-stop evaluator with no external I/O;
-17. insert exactly one global-stop event and replay snapshot;
-18. on acceptance, update `global_stop_current`;
-19. on domain rejection, leave `global_stop_current` unchanged;
-20. resolve commit, rollback, and close using the B3c0a transaction precedence;
-21. return the committed event and resulting global-stop state only after resolution.
+4. derive the resource-owned root/lock/database binding from the active operation lease;
+5. open one existing managed read/write connection through that binding;
+6. execute `BEGIN IMMEDIATE`;
+7. revalidate the retained binding and validate managed schema/posture inside the transaction;
+8. load and parse `writer_ownership`;
+9. verify writer fencing;
+10. look up `global_stop_events` by idempotency key;
+11. if command digest matches, return stored event and replay snapshot;
+12. if command digest differs, return `idempotency_key_reuse_conflict`;
+13. load authoritative `global_stop_current`;
+14. compare command expected version;
+15. load the operator decision receipt;
+16. verify command and typed operator decision against the persisted receipt;
+17. invoke the pure global-stop evaluator with no external I/O;
+18. insert exactly one global-stop event and replay snapshot;
+19. on acceptance, update `global_stop_current`;
+20. on domain rejection, leave `global_stop_current` unchanged;
+21. resolve commit, rollback, and close using the B3c0a transaction precedence;
+22. return the committed event and resulting global-stop state only after resolution.
 
 ## Context Provenance
 
@@ -389,10 +400,23 @@ reader execution do not prove that guard, transaction identity, or writer
 fencing by themselves; future B3c must create one concrete opaque epoch only
 through the private rollback-only transaction controller after operation-lease
 acquisition, mutation-specific local checks, shared mutation-slot acquisition,
-`BEGIN IMMEDIATE`, managed validation, and fencing gates, and must invalidate it
-before commit or rollback. Future production invocation of that controller may
-occur only from `_SQLiteWriterSession.apply_transition()`; B3c1 gives the
-controller no production caller and public mutation methods remain unavailable.
+resource-owned bound-database derivation, `BEGIN IMMEDIATE`, managed
+validation, and fencing gates, and must invalidate it before commit or
+rollback. The B3c1b controller accepts only the active operation lease and
+opens the WriterSession resource-owned binding, which contains the exact
+CoordinatorStateLocation, state-root identity, authority-lock-file identity,
+and single-link database-file identity captured while the retained common
+authority lock was held; a matching writer row in a cloned database is not
+authority. Replaced root/lock/database paths and hard-linked active database
+aliases fail closed. Future production invocation of that controller may occur
+only from `_SQLiteWriterSession.apply_transition()`; B3c1 gives the controller
+no production caller and public mutation methods remain unavailable.
+If bound-open admission fails after SQLite open, the helper preserves the
+primary structural or operational classification even if best-effort close of
+the rejected connection also fails, returns no connection, and does not retain
+raw cleanup detail. After a connection has been admitted into the rollback-only
+controller, transaction-resolution close failure remains an independent
+`mutation_failed` cleanup result.
 No B3/B4 persistence exists.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
@@ -419,10 +443,12 @@ replay, idempotency-match, and sequence/query-spec contracts only; it still
 does not add a production read port, idempotency reader, event reader, sequence
 reader, production fixture program, concrete transaction capability, writer fencing,
 context assembly, evaluator integration, mutation, or executable A2 behavior.
-B3c1a adds only private WriterSession authority plumbing and still does not add
-a transaction controller, concrete capability, writer-fencing query execution,
-reader integration, rollback runtime, state mutation, or executable A2
-behavior.
+B3c1a adds only private WriterSession authority plumbing, including the
+resource-owned bound-database accessor and atomic mutation-slot publication
+plus lease-construction unwind. B3c1b adds only private operation-lease-only
+rollback-only writer fencing/capability mechanics and still does not add
+reader integration, context assembly, evaluator integration, state mutation,
+commit, public mutation behavior, or executable A2 behavior.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

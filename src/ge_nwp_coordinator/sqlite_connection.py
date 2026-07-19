@@ -8,7 +8,17 @@ from typing import Any
 
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
-from ge_nwp_coordinator.sqlite_security import existing_state_database_path, prepare_state_database
+from ge_nwp_coordinator.sqlite_security import (
+    _StateDatabaseAuthorityBinding,
+    _StateDatabaseAuthorityBindingMismatch,
+    _StateDatabaseAuthorityBindingUnavailable,
+    _close_descriptor,
+    _open_bound_database_descriptor,
+    _open_bound_root_descriptor,
+    _validate_state_database_authority_binding,
+    existing_state_database_path,
+    prepare_state_database,
+)
 
 DEFAULT_BUSY_TIMEOUT_MS = 5000
 MIN_BUSY_TIMEOUT_MS = 1
@@ -26,6 +36,10 @@ class SQLiteConnectionPosture:
     busy_timeout_ms: int
     extension_loading_disabled: bool
     explicit_transaction_control: bool
+
+
+class _SQLiteOperationalPostureError(SQLiteStateError):
+    """Private marker for operational posture failures without raw details."""
 
 
 def _open_sqlite_connection(
@@ -62,6 +76,60 @@ def open_existing_sqlite_connection(
         connection.close()
         raise
     return connection
+
+
+def _open_bound_existing_sqlite_connection(
+    binding: _StateDatabaseAuthorityBinding,
+    *,
+    read_only: bool,
+    busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
+) -> sqlite3.Connection:
+    if type(binding) is not _StateDatabaseAuthorityBinding:
+        raise _StateDatabaseAuthorityBindingMismatch(SQLiteStateErrorCode.UNSAFE_DATABASE_FILE)
+    root_descriptor = -1
+    database_descriptor = -1
+    connection: sqlite3.Connection | None = None
+    failure: BaseException | None = None
+    try:
+        _validate_state_database_authority_binding(binding)
+        root_descriptor = _open_bound_root_descriptor(binding)
+        database_descriptor = _open_bound_database_descriptor(
+            binding,
+            root_descriptor=root_descriptor,
+        )
+        database_path = binding._location_for_private_open().database_path
+        mode = "ro" if read_only else "rw"
+        connection = _connect_uri(
+            f"{database_path.resolve(strict=True).as_uri()}?mode={mode}",
+            busy_timeout_ms=busy_timeout_ms,
+        )
+        _validate_state_database_authority_binding(binding)
+        apply_observational_connection_posture(connection, busy_timeout_ms=busy_timeout_ms)
+        _validate_state_database_authority_binding(binding)
+        opened = connection
+        connection = None
+        return opened
+    except (_StateDatabaseAuthorityBindingMismatch, _StateDatabaseAuthorityBindingUnavailable) as exc:
+        if connection is not None:
+            _close_rejected_bound_connection(connection)
+        failure = exc
+    except (OSError, SQLiteStateError, sqlite3.Error):
+        if connection is not None:
+            _close_rejected_bound_connection(connection)
+        failure = _StateDatabaseAuthorityBindingUnavailable(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+    finally:
+        _close_descriptor(database_descriptor)
+        _close_descriptor(root_descriptor)
+    if failure is not None:
+        raise failure
+    raise _StateDatabaseAuthorityBindingUnavailable(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+
+
+def _close_rejected_bound_connection(connection: sqlite3.Connection) -> None:
+    try:
+        connection.close()
+    except Exception:
+        pass
 
 
 def apply_connection_posture(
@@ -118,7 +186,9 @@ def apply_observational_connection_posture(
             extension_loading_disabled=True,
             explicit_transaction_control=connection.isolation_level is None,
         )
-    except (sqlite3.Error, TypeError, ValueError):
+    except sqlite3.Error:
+        raise _SQLiteOperationalPostureError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
+    except (TypeError, ValueError):
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
     _verify_nonpersistent_posture(posture, busy_timeout_ms)
     return posture
@@ -153,7 +223,7 @@ def _disable_extension_loading(connection: sqlite3.Connection) -> None:
         try:
             enable_load_extension(False)
         except sqlite3.Error:
-            raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
+            raise _SQLiteOperationalPostureError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
 
 
 def _set_busy_timeout(connection: sqlite3.Connection, busy_timeout_ms: int) -> None:
@@ -219,6 +289,11 @@ def _verify_posture(posture: SQLiteConnectionPosture, expected_busy_timeout_ms: 
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
     if not posture.extension_loading_disabled or not posture.explicit_transaction_control:
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+
+
+def _is_operational_posture_error(error: SQLiteStateError) -> bool:
+    return isinstance(error, _SQLiteOperationalPostureError)
+
 
 def _verify_nonpersistent_posture(posture: SQLiteConnectionPosture, expected_busy_timeout_ms: int) -> None:
     if not posture.foreign_keys:

@@ -559,6 +559,7 @@ def test_b3b2a_runtime_import_is_the_only_new_sqlite_importer() -> None:
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
         "src/ge_nwp_coordinator/sqlite_transition_read_scope.py",
+        "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }
 

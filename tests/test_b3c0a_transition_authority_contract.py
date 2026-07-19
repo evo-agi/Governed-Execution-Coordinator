@@ -20,9 +20,10 @@ EXPECTED_APPLY_ORDER = (
     "validate exact TransitionCommand type and already-established canonical digest;",
     "enforce non-READY dependency ref is null and budget_cost is zero;",
     "acquire the shared per-session mutation slot;",
-    "open one existing managed read/write connection;",
+    "derive the resource-owned root/lock/database binding from the active operation lease;",
+    "open one existing managed read/write connection through that binding;",
     "BEGIN IMMEDIATE;",
-    "validate current managed schema and posture inside the transaction;",
+    "revalidate the retained binding and validate current managed schema and posture inside the transaction;",
     "load and parse writer_ownership;",
     "verify writer fencing;",
     "create the nominal capability;",
@@ -56,9 +57,10 @@ EXPECTED_GLOBAL_STOP_ORDER_PREFIX = (
     "acquire the operation lease; acquisition performs owner-process and active-session validation and returns only after the retained authority lock is confirmed active;",
     "perform existing future global-stop typed command/operator-decision local checks;",
     "acquire the shared per-session mutation slot;",
-    "open one existing managed read/write connection;",
+    "derive the resource-owned root/lock/database binding from the active operation lease;",
+    "open one existing managed read/write connection through that binding;",
     "execute `BEGIN IMMEDIATE`;",
-    "validate managed schema/posture inside the transaction;",
+    "revalidate the retained binding and validate managed schema/posture inside the transaction;",
     "load and parse `writer_ownership`;",
     "verify writer fencing;",
     "look up `global_stop_events` by idempotency key;",
@@ -134,7 +136,7 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3c1 has since frozen the prerequisite contract",
         "B3 tests-only coherent fixtures are implemented under `tests/` only",
         "B3c1a implements the runtime mutation slot",
-        "B3c1b remains future",
+        "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
         "B3c2 remains future",
         "B3c3 remains future",
         "B3c4 remains future",
@@ -174,10 +176,18 @@ def test_current_expected_context_timestamp_and_evaluator_relative_order() -> No
         "acquire the shared per-session mutation slot;"
     )
     assert order.index("acquire the shared per-session mutation slot;") < order.index(
-        "open one existing managed read/write connection;"
+        "derive the resource-owned root/lock/database binding from the active operation lease;"
     )
-    assert order.index("open one existing managed read/write connection;") < order.index("BEGIN IMMEDIATE;")
-    assert order.index("validate current managed schema and posture inside the transaction;") < order.index(
+    assert order.index("derive the resource-owned root/lock/database binding from the active operation lease;") < order.index(
+        "open one existing managed read/write connection through that binding;"
+    )
+    assert order.index("open one existing managed read/write connection through that binding;") < order.index("BEGIN IMMEDIATE;")
+    assert order.index("BEGIN IMMEDIATE;") < order.index(
+        "revalidate the retained binding and validate current managed schema and posture inside the transaction;"
+    )
+    assert order.index(
+        "revalidate the retained binding and validate current managed schema and posture inside the transaction;"
+    ) < order.index(
         "verify writer fencing;"
     )
     assert order.index("verify writer fencing;") < order.index("create the nominal capability;")
@@ -263,10 +273,15 @@ def test_global_stop_adr_uses_shared_pre_sqlite_mutation_prefix() -> None:
         "acquire the shared per-session mutation slot;"
     )
     assert items.index("acquire the shared per-session mutation slot;") < items.index(
-        "open one existing managed read/write connection;"
+        "derive the resource-owned root/lock/database binding from the active operation lease;"
     )
-    assert items.index("open one existing managed read/write connection;") < items.index("execute `BEGIN IMMEDIATE`;")
-    assert items.index("validate managed schema/posture inside the transaction;") < items.index(
+    assert items.index("derive the resource-owned root/lock/database binding from the active operation lease;") < items.index(
+        "open one existing managed read/write connection through that binding;"
+    )
+    assert items.index("open one existing managed read/write connection through that binding;") < items.index(
+        "execute `BEGIN IMMEDIATE`;"
+    )
+    assert items.index("revalidate the retained binding and validate managed schema/posture inside the transaction;") < items.index(
         "verify writer fencing;"
     )
     assert items.index("verify writer fencing;") < items.index(
@@ -285,7 +300,7 @@ def test_nominal_capability_owner_contract_has_no_concrete_runtime() -> None:
         "created only by one private rollback-only transaction controller",
         "There is one controller construction path",
         "Future production invocation may occur only from `_SQLiteWriterSession.apply_transition()`",
-        "During B3c1a, the controller has no production caller",
+        "During B3c1b, the controller has no production caller",
         "coherent tests may invoke the same private controller directly through private imports",
         "without adding a separate source-level `for_test` factory",
         "while one valid `_WriterSessionOperationLease` is active",

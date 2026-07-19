@@ -145,14 +145,28 @@ B3c1 prerequisite contracts are documented in
 production-unintegrated/test-executed rollback-only posture, the single private
 controller construction path, the resource-owned mutation slot and
 mutation-lease identity, the operation-lease authority and durable-issuance
-verification interfaces, the writer-row query/parser ownership, writer-fencing
-classifications, nominal capability and epoch rules, rollback-only cleanup
-precedence, and the B3c1a/B3c1b split. B3c1a implements only private
+verification interfaces, resource-owned state-database filesystem-authority binding, the writer-row
+query/parser ownership, writer-fencing classifications, nominal capability and
+epoch rules, rollback-only cleanup precedence, and the B3c1a/B3c1b split.
+B3c1a implements only private
 WriterSession authority plumbing: one mutation slot, one mutation lease,
-operation-lease active-authority checks, durable-issuance verification, and
-`_WriterIssuanceMatch`. B3c1 adds no controller, concrete capability, query
-execution, B3b2 reader integration, context assembly, evaluator invocation,
-event/state mutation, public behavior change, or migration 0002.
+operation-lease active-authority checks, resource-owned bound-database
+authority, durable-issuance verification, atomic mutation-slot publication plus
+lease-construction unwind, and `_WriterIssuanceMatch`. B3c1b implements only
+private rollback-only writer fencing/capability mechanics: one operation-lease
+only private controller entry point, one fresh managed read/write connection
+opened only through the WriterSession resource-owned root/lock/database
+binding, `BEGIN IMMEDIATE`, post-begin binding revalidation, managed
+validation, one bounded writer-row query using the existing parser, one
+nominal capability with one opaque epoch, permanent invalidation, rollback,
+close, and exact private `_WriterIssuanceMatch` return. The controller
+database binding contains the exact CoordinatorStateLocation, state-root
+identity, authority-lock-file identity, and single-link database-file identity
+captured while the retained common authority lock was held; a matching writer
+row in another database is not authority. Replaced root/lock/database paths and
+hard-linked active database aliases fail closed. B3c1 still adds no B3b2
+reader integration, context assembly, evaluator invocation, event/state
+mutation, public behavior change, commit, or migration 0002.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -305,7 +319,7 @@ and sequence contracts only. B3 tests-only coherent fixtures add temporary
 managed graphs for future tests only. B3c1 adds prerequisite contract pins and
 B3c1a private WriterSession authority plumbing for production-unintegrated
 rollback-only controller construction, the mutation slot and operation-lease
-interfaces, writer-fencing taxonomy, capability epoch rules, cleanup
+interfaces, retained filesystem binding, writer-fencing taxonomy, capability epoch rules, cleanup
 precedence, and the B3c1a/B3c1b split. There
 is still no production transaction controller, concrete capability, reader
 integration, context assembly, evaluator integration, exact replay runtime over

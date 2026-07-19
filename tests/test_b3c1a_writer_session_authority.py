@@ -521,7 +521,13 @@ def test_public_boundary_exports_and_mutation_methods_remain_unavailable(
         assert private_name not in package_exports
         assert not hasattr(ge_nwp_coordinator, private_name)
 
-    assert not (PACKAGE_DIR / "sqlite_transition_transaction.py").exists()
+    transaction_module_path = PACKAGE_DIR / "sqlite_transition_transaction.py"
+    assert transaction_module_path.exists()
+    transaction_source = transaction_module_path.read_text(encoding="utf-8")
+    assert "def _run_rollback_only_writer_fencing(" in transaction_source
+    assert "class _RollbackOnlyTransitionTransactionController" in transaction_source
+    assert "sqlite_transition_transaction" not in package_exports
+    assert "sqlite_transition_transaction" not in (PACKAGE_DIR / "__init__.py").read_text(encoding="utf-8")
     writer_source = inspect.getsource(writer_module)
     for forbidden in (
         "class _SQLiteTransitionTransactionController",

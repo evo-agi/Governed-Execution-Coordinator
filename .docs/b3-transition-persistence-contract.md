@@ -9,7 +9,8 @@ admission or runtime authority. B3c1 adds contract/static prerequisite pins for
 the production-unintegrated rollback-only controller posture, resource-owned
 mutation slot, operation-lease interfaces, writer-row query and parser
 ownership, fencing taxonomy, nominal capability epoch, cleanup precedence, and
-B3c1a/B3c1b split. B3c1a adds only private WriterSession authority plumbing.
+B3c1a/B3c1b split. B3c1a adds only private WriterSession authority plumbing,
+and B3c1b adds only private rollback-only writer-fencing/capability mechanics.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -95,10 +96,10 @@ path: future production invocation may occur only from
 controller no production caller and allows coherent tests to invoke the same
 private controller through private imports. Public transition and global-stop
 methods remain `writer_session_mutation_unavailable` and contact no SQLite
-database. B3c1a adds no controller, concrete capability, writer-fencing query
-execution, B3b2 reader integration, context assembly, evaluator invocation,
-event/state mutation, public mutation-method behavior change, or migration
-0002.
+database. B3c1b adds the private rollback-only controller, writer-fencing
+query, and nominal capability, but still adds no B3b2 reader integration,
+context assembly, evaluator invocation, event/state mutation, public
+mutation-method behavior change, commit, or migration 0002.
 
 ## Public Shape
 

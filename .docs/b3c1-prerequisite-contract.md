@@ -1,8 +1,8 @@
 # B3c1 Prerequisite Contract
 
-Status: implemented B3c1a private WriterSession authority plumbing; no SQLite
-transaction controller, nominal capability, fencing query, reader integration,
-transaction runtime, or state mutation.
+Status: implemented B3c1a private WriterSession authority plumbing and B3c1b
+private rollback-only writer-fencing/capability mechanics; no B3b2 reader
+integration, production caller, state mutation, or durable transaction apply.
 
 B3c1 freezes the contracts needed before the first rollback-only
 transaction-authority implementation. It reconciles the production reachability
@@ -13,12 +13,23 @@ runtime work into B3c1a and B3c1b.
 
 B3c1a implements only `_WriterSessionResource` mutation-slot ownership,
 `_WriterSessionMutationLease`, operation-lease active-authority validation,
-private durable-writer-issuance verification, and `_WriterIssuanceMatch`. It
-does not implement a writer-row `SELECT`, add a transaction controller, add a
-concrete capability, open SQLite from transition or global-stop apply, execute
+resource-owned state-database filesystem-authority binding for mutation,
+private durable-writer-issuance verification, and `_WriterIssuanceMatch`. It does not
+implement a writer-row `SELECT`, add a transaction controller, add a concrete
+capability, open SQLite from transition or global-stop apply, execute
 `BEGIN IMMEDIATE`, call B3b2 readers, assemble context, invoke the evaluator,
 insert events, update work-item or global-stop state, change public
 mutation-method behavior, modify migration 0001, or add migration 0002.
+B3c1b implements only the private rollback-only transaction controller, one
+fresh managed read/write SQLite connection opened only through that retained
+private binding, `BEGIN IMMEDIATE`, post-begin binding revalidation, managed
+validation, bounded writer-row `SELECT`, parser reuse, writer fencing through
+the B3c1a operation lease, a private nominal read capability, one opaque
+epoch, permanent invalidation, rollback, close, and private
+`_WriterIssuanceMatch` return. It does not call
+B3b2 readers, inspect event/idempotency/sequence state, assemble context,
+invoke the evaluator, mutate durable state, integrate with public mutation
+methods, modify migration 0001, or add migration 0002.
 
 ## B3c1 Boundary
 
@@ -30,18 +41,19 @@ The B3c1 boundary is limited to:
 1. the real shared per-`WriterSession` mutation slot;
 2. the smallest safe operation-lease active-authority interface;
 3. the smallest safe operation-lease durable-issuance verification interface;
-4. one private nominal rollback-only transaction controller;
-5. one private nominal transaction-read capability;
-6. one fresh existing managed read/write SQLite connection;
-7. `BEGIN IMMEDIATE`;
-8. managed schema and connection-posture validation;
-9. durable writer-row load and parse;
-10. writer ref, generation, issued ref, and proof fencing;
-11. one opaque transaction epoch;
-12. permanent capability invalidation;
-13. rollback-only transaction resolution;
-14. connection cleanup;
-15. coherent-fixture tests.
+4. resource-owned state-database filesystem-authority binding through the operation lease;
+5. one private nominal rollback-only transaction controller;
+6. one private nominal transaction-read capability;
+7. one fresh existing managed read/write SQLite connection;
+8. `BEGIN IMMEDIATE`;
+9. managed schema and connection-posture validation;
+10. durable writer-row load and parse;
+11. writer ref, generation, issued ref, and proof fencing;
+12. one opaque transaction epoch;
+13. permanent capability invalidation;
+14. rollback-only transaction resolution;
+15. connection cleanup;
+16. coherent-fixture tests.
 
 B3c1 still excludes event, idempotency, and sequence readers; current-state
 readers; B3b2 reader calls; context assembly; expected-version checking;
@@ -56,8 +68,8 @@ path. The controller construction path is the only path that may construct the
 nominal capability.
 
 Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1a, the controller has no
-production caller. coherent tests may invoke the same private controller
+`_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
+production caller; coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
 `for_test` factory. Direct private test invocation is not a public or
 production authority route.
@@ -65,7 +77,7 @@ production authority route.
 `_SQLiteWriterSession.apply_transition()` and
 `_SQLiteWriterSession.apply_global_stop_update()` remain
 `writer_session_mutation_unavailable` and contact no SQLite database during
-B3c1a. A method that returns `writer_session_mutation_unavailable` has not
+B3c1b. A method that returns `writer_session_mutation_unavailable` has not
 entered the B3c1 rollback-only controller, has not acquired the mutation slot,
 has not opened SQLite, and has not produced a fencing result.
 
@@ -87,6 +99,12 @@ The slot is:
    database open;
 6. retained through the connection-close attempt;
 7. released before the outer operation lease exits.
+
+Mutation-slot publication and `_WriterSessionMutationLease` construction are
+externally atomic. If lease construction fails after publishing the slot, the
+resource synchronously releases the exact just-published slot before the
+exception escapes. Stale, copied, or newer slots cannot be cleared by that
+unwind.
 
 Contention is a prompt local `writer_session_mutation_in_progress`
 `WriterSessionError` before SQLite. It must never degrade into SQLite
@@ -121,10 +139,22 @@ _acquire_mutation_lease() -> _WriterSessionMutationLease
 
 _require_active_mutation_authority() -> None
 
+_bound_state_database_for_mutation() -> _StateDatabaseAuthorityBinding
+
 _verify_durable_writer_issuance(
     issuance: _DurableWriterIssuance,
 ) -> _WriterIssuanceMatch
 ```
+
+`_bound_state_database_for_mutation()` first requires active mutation
+authority and returns the exact private filesystem-authority binding retained
+by the owning `_WriterSessionResource`. That binding contains the exact
+`CoordinatorStateLocation`, the state-root identity, the common
+authority-lock-file identity, and the active database-file identity captured
+while the retained common `StateAuthorityLock` was held. The active database
+file must have exactly one hard link. The method accepts no location argument,
+does not reconstruct a location from caller fields, and does not expose the
+authority lock, descriptor, path, inode, device, or link count.
 
 `_WriterIssuanceMatch` is a closed private result with exactly:
 
@@ -143,12 +173,13 @@ learn whether writer ref, generation, issued ref, or proof failed.
 The interface must not expose the private credential object, raw proof, proof
 digest, authority lock, lock descriptor, operation id, lifecycle epoch, writer
 metadata as authority, process id, thread id, resource, transaction epoch, raw
-SQLite row, or connection. No mismatch detail may appear in errors, reprs,
+SQLite row, state-root path, database path, filesystem identity, link count, or
+connection. No mismatch or location detail may appear in errors, reprs,
 reports, test output, traces, or public payloads.
 
 ## Rollback-only controller result
 
-The future B3c1b private rollback-only controller returns exactly
+B3c1b's private rollback-only controller returns exactly
 `_WriterIssuanceMatch`. It has exactly two return values: `MATCH` and
 `STALE_WRITER`.
 
@@ -180,9 +211,9 @@ It returns `_WriterIssuanceMatch.STALE_WRITER` only after all of the following:
 The controller returns neither enum value before rollback and close complete.
 Missing, multiple, or malformed writer rows and managed schema/query
 contradictions produce `database_integrity_failure` and no enum. Operational
-open, `BEGIN`, `SELECT`, controller, rollback, and connection-close failures
-produce `mutation_failed` and no enum. No rollback-only B3c1 path returns
-`commit_outcome_unknown`.
+open, `BEGIN`, managed-validation, `SELECT`, cursor-close, controller,
+rollback, and connection-close failures produce `mutation_failed` and no enum.
+No rollback-only B3c1 path returns `commit_outcome_unknown`.
 
 `_WriterIssuanceMatch.STALE_WRITER` is an internal private result. Future
 production apply integration owns the one conversion from
@@ -197,7 +228,7 @@ private and unexported.
 
 ## Writer-Row Query
 
-The future B3c1b writer-fencing query is:
+B3c1b's writer-fencing query is:
 
 ```sql
 SELECT
@@ -222,13 +253,41 @@ must not reuse the acquisition reader's outward error taxonomy as-is, because
 writer acquisition and mutation fencing have different safe public
 classifications.
 
-No B3c1a SQL implementation exists.
+B3c1b adds no other production SQL.
+
+The controller closes the writer-row cursor before validating row type/length
+or invoking the parser. If fetch failed and cursor close also fails, the
+original fetch classification remains primary. If fetch succeeded but cursor
+close fails, the outcome is `mutation_failed`.
 
 ## Writer Fencing
 
 Fencing occurs before all idempotency, current-state, event, replay, and
 context reads. Stale writer results carry no event or replay and disclose no
 key existence.
+
+The controller's database authority is not caller-selected. It is derived from
+the active operation lease as one private retained filesystem binding and
+satisfies:
+
+```text
+controller database open binding
+==
+WriterSession resource-owned state-database binding
+==
+same CoordinatorStateLocation, state-root identity, authority-lock-file
+identity, and database-file identity captured while the retained common
+authority lock was held
+```
+
+A matching `writer_ownership` row in an independent or cloned database is
+insufficient authority. Equivalent independently constructed location objects
+are not controller inputs, and path aliases cannot be introduced through
+controller invocation. Replacing the visible state root, replacing the visible
+lock file, replacing the visible database file, or adding a hard-link alias to
+the active database file fails closed before writer authority can be accepted.
+The active database file must retain `st_nlink == 1`; copied writer rows remain
+evidence only, never root authority.
 
 | Case | Classification |
 | --- | --- |
@@ -240,28 +299,30 @@ key existence.
 | malformed writer row | `database_integrity_failure` |
 | managed-schema contradiction | `database_integrity_failure` |
 | writer-query contradiction | `database_integrity_failure` |
+| retained root/lock/database identity mismatch | `database_integrity_failure` |
+| active database hard-link alias | `database_integrity_failure` |
 | operational open failure | `mutation_failed` |
 | operational BEGIN failure | `mutation_failed` |
+| operational managed-validation failure | `mutation_failed` |
 | operational SELECT failure | `mutation_failed` |
+| successful fetch plus cursor-close failure | `mutation_failed` |
 | well-formed writer ref mismatch | `stale_writer_token` |
 | well-formed generation mismatch | `stale_writer_token` |
 | well-formed issued-ref mismatch | `stale_writer_token` |
 | proof mismatch | `stale_writer_token` |
 
 There is no automatic reacquisition, takeover, TTL, heartbeat, or failover.
-No proof, proof digest, mismatch detail, raw row, path, endpoint, secret, SQL
-parameter, or private value may enter public errors, internal details, reprs,
-reports, traces, or test output.
+No proof, proof digest, mismatch detail, raw row, path, filesystem identity,
+link count, endpoint, secret, SQL parameter, or private value may enter public
+errors, internal details, reprs, reports, traces, or test output.
 
 ## Nominal Capability And Epoch
 
-The future private module is:
+The private module is:
 
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`
 
-This module remains future after B3c1a.
-
-The future module owns one private nominal rollback-only transaction controller
+This module owns one private nominal rollback-only transaction controller
 and one private nominal transaction-read capability. The capability has no
 public constructor, no package-root export, no finalizer, no independent close,
 no public connection property, and no `WriterSession` metadata, credential,
@@ -286,22 +347,24 @@ connection.
 
 ## Rollback-Only Controller Lifecycle
 
-The future B3c1b private lifecycle is:
+The B3c1b private lifecycle is:
 
 1. enter with an active operation lease;
 2. acquire the mutation lease;
-3. open one fresh existing managed read/write connection;
-4. execute `BEGIN IMMEDIATE`;
-5. validate managed schema and connection posture;
-6. query and parse the writer row;
-7. verify durable issuance;
-8. on `MATCH`, create the nominal capability;
-9. call no B3b2 reader;
-10. invalidate the capability;
-11. roll back;
-12. close the connection;
-13. release the mutation lease;
-14. exit the operation lease.
+3. derive the resource-owned state-database binding from the operation lease;
+4. open one fresh existing managed read/write connection through the bound private open helper;
+5. execute `BEGIN IMMEDIATE`;
+6. revalidate the retained root/lock/database binding after `BEGIN`;
+7. validate managed schema and connection posture;
+8. query and parse the writer row;
+9. verify durable issuance;
+10. on `MATCH`, create the nominal capability;
+11. call no B3b2 reader;
+12. invalidate the capability;
+13. roll back;
+14. close the connection;
+15. release the mutation lease;
+16. exit the operation lease.
 
 B3c1 never commits. `COMMIT` and `commit_outcome_unknown` remain outside the
 rollback-only B3c1 tranche.
@@ -330,8 +393,10 @@ Session or slot failure before SQLite remains an existing local
 | Missing/multiple/malformed row | `database_integrity_failure` |
 | Schema/query contradiction | `database_integrity_failure` |
 | Operational failure | `mutation_failed` |
+| Cursor close after successful fetch | `mutation_failed` |
 | Rollback failure | `mutation_failed`; no enum |
 | Close failure | `mutation_failed`; no enum |
+| Failed bound-open admission plus rejected-connection close failure | primary structural/operational open failure preserved; no connection returned |
 | Any rollback-only path | never `commit_outcome_unknown` |
 
 Capability invalidation precedes rollback. `_WriterIssuanceMatch.STALE_WRITER`

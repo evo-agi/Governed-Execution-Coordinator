@@ -27,6 +27,12 @@ from ge_nwp_coordinator.sqlite_location import (
     CoordinatorStateLocation,
 )
 from ge_nwp_coordinator.sqlite_security import (
+    _FilesystemObjectIdentity,
+    _StateDatabaseAuthorityBinding,
+    _StateDatabaseAuthorityBindingMismatch,
+    _capture_state_database_authority_binding,
+    _filesystem_identity_for_stat,
+    _validate_state_database_authority_binding,
     _reject_network_like_root,
     _reject_repository_checkout,
     _reject_unsafe_owner,
@@ -101,13 +107,34 @@ class StateAuthorityLock:
     def _descriptor(self) -> int:
         return self._resource.descriptor_for_test
 
+    def _capture_state_database_authority_binding(
+        self,
+        location: CoordinatorStateLocation,
+    ) -> _StateDatabaseAuthorityBinding:
+        return self._resource.capture_state_database_authority_binding(location)
+
+    def _validate_state_database_authority_binding(
+        self,
+        binding: _StateDatabaseAuthorityBinding,
+    ) -> None:
+        self._resource.validate_state_database_authority_binding(binding)
+
 
 class _StateAuthorityLockResource:
     """Private descriptor owner for one acquired state-authority lock."""
 
-    def __init__(self, descriptor: int, identity: tuple[int, int]) -> None:
+    def __init__(
+        self,
+        descriptor: int,
+        identity: tuple[int, int],
+        *,
+        state_root_identity: _FilesystemObjectIdentity,
+        authority_lock_file_identity: _FilesystemObjectIdentity,
+    ) -> None:
         self._descriptor = descriptor
         self._identity = identity
+        self._state_root_identity = state_root_identity
+        self._authority_lock_file_identity = authority_lock_file_identity
         self._owner_pid = os.getpid()
         self._state = _ACTIVE
 
@@ -144,6 +171,31 @@ class _StateAuthorityLockResource:
             _LIFECYCLE_GATE.release()
         if not active:
             raise StateAuthorityLockError(StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_CLOSED)
+
+    def capture_state_database_authority_binding(
+        self,
+        location: CoordinatorStateLocation,
+    ) -> _StateDatabaseAuthorityBinding:
+        self.require_active_for_owner()
+        return _capture_state_database_authority_binding(
+            location,
+            state_root_identity=self._state_root_identity,
+            authority_lock_file_identity=self._authority_lock_file_identity,
+        )
+
+    def validate_state_database_authority_binding(
+        self,
+        binding: _StateDatabaseAuthorityBinding,
+    ) -> None:
+        self.require_active_for_owner()
+        if type(binding) is not _StateDatabaseAuthorityBinding:
+            raise _StateDatabaseAuthorityBindingMismatch(SQLiteStateErrorCode.UNSAFE_DATABASE_FILE)
+        _capture_state_database_authority_binding(
+            binding._location_for_private_open(),
+            state_root_identity=self._state_root_identity,
+            authority_lock_file_identity=self._authority_lock_file_identity,
+        )
+        _validate_state_database_authority_binding(binding)
 
     def active_in_registry(self) -> bool:
         return self._owner_pid == os.getpid() and self._state == _ACTIVE and self._descriptor >= 0
@@ -219,11 +271,13 @@ def acquire_state_authority_lock(location: CoordinatorStateLocation) -> StateAut
     _ensure_supported_platform()
     descriptor = -1
     resource: _StateAuthorityLockResource | None = None
+    state_root_identity: _FilesystemObjectIdentity | None = None
+    lock_file_identity: _FilesystemObjectIdentity | None = None
     _LIFECYCLE_GATE.acquire()
     try:
         _register_at_fork_once_locked()
-        descriptor = _open_prepared_lock_file(location)
-        identity = _lock_identity(descriptor)
+        descriptor, state_root_identity = _open_prepared_lock_file(location)
+        identity, lock_file_identity = _lock_identity(descriptor)
         if _active_resource_for_locked(identity) is not None:
             raise StateAuthorityLockError(StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY)
         try:
@@ -234,7 +288,12 @@ def acquire_state_authority_lock(location: CoordinatorStateLocation) -> StateAut
             raise StateAuthorityLockError(StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_FAILED) from None
         if _active_resource_for_locked(identity) is not None:
             raise StateAuthorityLockError(StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY)
-        resource = _StateAuthorityLockResource(descriptor, identity)
+        resource = _StateAuthorityLockResource(
+            descriptor,
+            identity,
+            state_root_identity=state_root_identity,
+            authority_lock_file_identity=lock_file_identity,
+        )
         _ACTIVE_LOCK_RESOURCES[identity] = resource
         lock = StateAuthorityLock(resource)
         descriptor = -1
@@ -269,7 +328,7 @@ def _ensure_supported_platform() -> None:
         raise StateAuthorityLockError(StateAuthorityLockErrorReason.UNSUPPORTED_PLATFORM)
 
 
-def _open_prepared_lock_file(location: CoordinatorStateLocation) -> int:
+def _open_prepared_lock_file(location: CoordinatorStateLocation) -> tuple[int, _FilesystemObjectIdentity]:
     if not isinstance(location, CoordinatorStateLocation):
         raise StateAuthorityLockError(StateAuthorityLockErrorReason.UNSAFE_AUTHORITY_LOCK)
     _assert_fixed_lock_path(location)
@@ -288,7 +347,8 @@ def _open_prepared_lock_file(location: CoordinatorStateLocation) -> int:
     root = _validate_root_for_lock(location.state_root)
     root_descriptor = _open_root_descriptor(root)
     try:
-        return _open_lock_file_at(root_descriptor.descriptor)
+        root_identity = _filesystem_identity_for_stat(os.fstat(root_descriptor.descriptor))
+        return (_open_lock_file_at(root_descriptor.descriptor), root_identity)
     finally:
         root_descriptor._close()
 
@@ -470,12 +530,13 @@ def _validate_lock_metadata(metadata: os.stat_result) -> None:
         raise StateAuthorityLockError(StateAuthorityLockErrorReason.UNSAFE_AUTHORITY_LOCK)
 
 
-def _lock_identity(descriptor: int) -> tuple[int, int]:
+def _lock_identity(descriptor: int) -> tuple[tuple[int, int], _FilesystemObjectIdentity]:
     try:
         metadata = os.fstat(descriptor)
     except OSError:
         raise StateAuthorityLockError(StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_FAILED) from None
-    return (metadata.st_dev, metadata.st_ino)
+    identity = _filesystem_identity_for_stat(metadata)
+    return (identity._registry_key(), identity)
 
 
 def _active_resource_for_locked(identity: tuple[int, int]) -> _StateAuthorityLockResource | None:

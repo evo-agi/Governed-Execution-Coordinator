@@ -55,12 +55,13 @@ converted to `transition_read_capability_unavailable` after the raw exception ha
 left active exception context, so raw exception text, capability details, notes,
 causes, contexts, and traceback content do not survive on the safe error.
 
-Production integration waits for B3c to implement and audit a nominal concrete
-capability that follows the B3c0a shared prefix: B2 operation-lease acquisition,
-mutation-specific local checks, shared per-session mutation slot, managed
-read/write connection open, `BEGIN IMMEDIATE`, managed validation, writer
-fencing, one opaque transaction epoch, invalidation before commit or rollback,
-and permanent rejection after transaction end or restart.
+B3c1b now implements the nominal concrete capability only inside its private
+rollback-only writer-fencing controller, after the B3c0a shared prefix of B2
+operation-lease authority, shared per-session mutation slot, managed read/write
+connection open, `BEGIN IMMEDIATE`, managed validation, writer fencing, one
+opaque transaction epoch, and invalidation before rollback. Production reader
+integration waits for a later B3c slice. The B3c1b controller calls no B3b2
+reader, produces no reader result, and performs no durable state mutation.
 
 ## Missing Rows
 

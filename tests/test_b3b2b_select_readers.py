@@ -989,7 +989,8 @@ def test_b3b2b_docs_pin_private_unintegrated_reader_scope() -> None:
         "`global_stop_current` absence raises `database_integrity_failure` directly",
         "`commit_outcome_unknown` is never produced by B3b2b",
         "The tests-only capability does not prove production transaction authority",
-        "Production integration waits for B3c to implement and audit a nominal concrete capability",
-        "No `StateStore` mutation backend, integrated production typed SQLite reader, concrete transaction capability",
+        "B3c1b now implements the nominal concrete capability only inside its private rollback-only writer-fencing controller",
+        "Production reader integration waits for a later B3c slice",
+        "No `StateStore` mutation backend, integrated production typed SQLite reader",
     ):
         assert phrase in normalized

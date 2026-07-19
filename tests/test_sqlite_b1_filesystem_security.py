@@ -109,6 +109,31 @@ def test_rejects_existing_database_with_group_or_other_permissions(tmp_path: Pat
         prepare_state_database(_location(root))
 
 
+def test_rejects_hard_linked_active_database_file(tmp_path: Path) -> None:
+    location = _location(tmp_path / "state")
+    prepare_state_database(location)
+    alias = tmp_path / "database-alias.sqlite"
+    os.link(location.database_path, alias)
+
+    with pytest.raises(SQLiteStateError) as exc_info:
+        prepare_state_database(location)
+
+    assert exc_info.value.error_class == "unsafe_database_file"
+    assert str(location.database_path) not in str(exc_info.value)
+
+
+def test_backup_hard_links_do_not_reject_single_link_active_database(tmp_path: Path) -> None:
+    location = _location(tmp_path / "state")
+    prepare_state_database(location)
+    location.backup_directory_path.mkdir(mode=0o700)
+    source = tmp_path / "backup-source"
+    source.write_text("backup", encoding="utf-8")
+    source.chmod(0o600)
+    os.link(source, location.backup_directory_path / "backup-copy")
+
+    assert prepare_state_database(location) == location.database_path
+
+
 def test_rejects_traversal_or_alternate_database_filename(tmp_path: Path) -> None:
     root = tmp_path / "state"
     location = CoordinatorStateLocation(

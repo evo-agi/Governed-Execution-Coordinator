@@ -3,8 +3,8 @@
 Status: B2b bootstrap/inspection/validation/migration implementation plus the
 shared state-authority advisory lock for initialize/migrate administration.
 B2c adds durable writer issuance and internal writer-session acquisition. B3a
-adds contract-only future transition persistence rules and no SQLite mutation
-runtime.
+adds contract-only future transition persistence rules. B3c1b adds private
+rollback-only writer fencing with no public mutation runtime.
 
 ## Filesystem Posture
 
@@ -36,7 +36,11 @@ not part of B0 because WAL is not selected.
 
 The practical TOCTOU boundary is owner-only containment. A `0700` parent
 prevents other-user file replacement. Same-account malicious-process resistance
-is limited and must not be overclaimed.
+is limited and must not be overclaimed. B3c1b additionally pins the retained
+root, authority-lock-file, and active database-file identities for its private
+rollback-only open path and rejects replaced paths or active database
+hard-link aliases, but that is bounded local filesystem identity pinning, not
+a universal mount-namespace or same-account race guarantee.
 
 B1.1/B2b implement portable filesystem checks for bootstrap,
 existing-database inspection, and the state-authority lock:
@@ -48,7 +52,8 @@ existing-database inspection, and the state-authority lock:
 - state root mode `0700`;
 - database mode `0600`;
 - fixed state-authority lock file mode `0600`;
-- symlink and non-regular database rejection;
+- symlink, non-regular, group/other-accessible, and hard-linked active
+  database rejection;
 - symlink, non-regular, group/other-accessible, and hardlinked lock-file
   rejection where safely testable;
 - safe closed errors without raw paths.
@@ -140,6 +145,14 @@ private-proof digest, commits, closes the acquisition connection, and returns
 an internal session that retains the common lock. A missing writer row is valid
 before first acquisition; a present generation `0` row is malformed managed
 writer state.
+
+B3c1b rollback-only fencing opens the database only through the retained
+root/lock/database binding. A failed bound-open admission preserves its primary
+structural or operational classification even if best-effort close of the
+rejected connection also fails; no rejected connection is returned and no raw
+cleanup exception is retained. Once a connection is admitted into the
+rollback-only controller, later transaction-resolution close failure remains
+`mutation_failed` and no `MATCH` or `STALE_WRITER` result is returned.
 
 Close is explicit and idempotent after completion. It marks the session closing
 before releasing resources, waits for any private operation guard to exit,

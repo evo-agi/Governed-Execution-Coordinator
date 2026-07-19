@@ -193,27 +193,37 @@ integration, mutation runtime, admission, authorization verifier, migration
 0002, worker, service, CLI, MCP, connector, repair, commit, publication, or
 deployment behavior.
 
-B3c1 implements only prerequisite/private plumbing for future rollback-only
+B3c1 implements only prerequisite/private plumbing for rollback-only
 transaction authority. It freezes the production-unintegrated/test-executed
 posture, one private controller construction path, resource-owned mutation slot
-and mutation-lease identity, operation-lease active-authority and
-durable-issuance verification interfaces, writer-row query/parser ownership,
-writer-fencing classification matrix, nominal capability/epoch contract,
-rollback-only lifecycle, cleanup/error precedence, and the B3c1a/B3c1b split.
+and mutation-lease identity, operation-lease active-authority, resource-owned
+state-database filesystem binding, durable-issuance verification interfaces,
+writer-row query/parser ownership, writer-fencing classification matrix, nominal
+capability/epoch contract, rollback-only lifecycle, cleanup/error precedence,
+and the B3c1a/B3c1b split.
 Future production invocation of that controller may occur only from
 `_SQLiteWriterSession.apply_transition()`, but B3c1 gives it no production
 caller; coherent tests may invoke the same private controller directly through
-private imports when the runtime exists and must not add a separate source-level
-`for_test` factory. Public transition/global-stop mutation methods remain
+private imports and must not add a separate source-level `for_test` factory.
+Public transition/global-stop mutation methods remain
 `writer_session_mutation_unavailable` and contact no SQLite database. B3c1a
 implements only the private mutation slot, `_WriterSessionMutationLease`,
-operation-lease active-authority validation, durable-issuance verification, and
-`_WriterIssuanceMatch`. It adds no transaction controller, concrete capability,
-writer fencing SELECT, B3b2 reader integration, context assembly, evaluator
+operation-lease active-authority validation, resource-owned bound-database
+authority, durable-issuance verification, atomic mutation-slot publication plus
+lease-construction unwind, and `_WriterIssuanceMatch`. B3c1b implements only
+the private rollback-only controller with an operation-lease-only entry point,
+one fresh managed read/write connection opened only through the resource-owned
+root/lock/database binding, `BEGIN IMMEDIATE`, post-begin binding
+revalidation, managed validation, bounded `writer_ownership` SELECT, parser
+reuse, writer fencing, one private nominal read capability with one opaque
+epoch, permanent invalidation, rollback, close, and exact private
+`_WriterIssuanceMatch` return. A matching writer row in another database is
+not authority; replaced root/lock/database paths and hard-linked active
+database aliases fail closed. It adds no B3b2 reader integration, context assembly, evaluator
 invocation, idempotency/event/sequence reader, event insertion, work-item or
 global-stop update, public API, migration 0002, admission, authorization,
-worker, service, CLI, MCP, connector, repair, commit, publication, or deployment
-behavior.
+worker, service, CLI, MCP, connector, repair, commit, publication, or
+deployment behavior.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

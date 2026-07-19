@@ -3,13 +3,18 @@
 Status: B2b bootstrap/inspection/validation/migration implementation plus the
 common state-authority lock for initialize/migrate administration. B2c
 implements durable writer issuance and internal writer-session acquisition.
-B3a implements canonical persistence and provenance contracts only.
+B3a implements canonical persistence and provenance contracts only. B3c1b adds
+private operation-lease-only rollback-only writer-fencing/capability mechanics
+with no production caller and no durable state mutation.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
 state-authority lock for administration. B2c implements writer issuance and an
-internal session. The current code still has no production `StateStore`
-mutation backend. B3a does not change that.
+internal session. B3c1a/B3c1b bind rollback-only transaction setup to the
+WriterSession resource-owned root/lock/database filesystem binding and
+retained common authority lock; a caller cannot supply another database root
+to the private controller. The current code still has no production
+`StateStore` mutation backend. B3a and B3c1b do not change that.
 
 ## First Backend Guarantees
 
@@ -66,9 +71,14 @@ Report failure:
 Malicious or accidental file replacement:
 
 - first backend uses a secured state directory with owner-only permissions;
-- startup rejects symlink and non-regular database paths;
+- startup rejects symlink, non-regular, group/other-accessible, and
+  hard-linked active database paths;
 - B2b rejects symlink, non-regular, group/other-accessible, and hardlinked
   state-authority lock files where safely testable;
+- B3c1b retains the state-root identity, authority-lock-file identity, and
+  active database-file identity captured while the common authority lock was
+  held, and it rejects visible root, lock, or database replacement before
+  accepting writer authority;
 - same-account malicious-process resistance is limited and must not be
   overclaimed.
 
@@ -123,8 +133,13 @@ execution, or product read/report authority over SQLite.
 B2c adds runtime writer issuance. Durable `writer_ownership` metadata remains
 latest issuance evidence only, and mutation authority requires an active
 internal `WriterSession` holding a private proof and the common
-state-authority lock. In B2c, mutation methods enter a private operation guard
-and still fail before any apply boundary with
+state-authority lock for the same retained state location. A copied
+`writer_ownership` row in another managed database is not authority because
+B3c1b derives the private bound database authority from the active operation
+lease rather than from caller input. A copied row is evidence only; it cannot
+replace the retained root/lock/database binding, and a hard-linked active
+database alias is rejected while its link count exceeds one. In B2c, mutation
+methods enter a private operation guard and still fail before any apply boundary with
 `writer_session_mutation_unavailable`. The guard prevents close from releasing
 the proof or advisory lock while a future operation is active. Operation
 leases carry private operation identity and lifecycle epoch, retain the
@@ -133,6 +148,19 @@ after fork. Same-thread close fails locally with
 `writer_session_close_during_operation`; cross-thread and concurrent close
 callers wait until proof cleanup, advisory-lock close, and registry cleanup have
 completed.
+
+B3c1b validation distinguishes durable managed-state contradictions from
+operational SQLite failures while keeping the public mutation-store error graph
+closed. Cursor-close failure after successful writer-row fetch is
+`mutation_failed`; if fetch already failed, its original safe classification
+remains primary.
+The bound-open helper uses the same primary-failure rule for failed admission:
+a post-open structural binding contradiction remains structural, and a
+post-open operational failure remains operational, even if best-effort close of
+the rejected SQLite connection also fails. That close failure is suppressed, not
+chained, not retained, and no rejected connection is returned. Once a connection
+has been admitted into controller transaction resolution, close failure is an
+independent cleanup failure and maps to `mutation_failed`.
 
 B3a adds no runtime mutation authority. Its threat-model contribution is to
 pin future transition context reconstruction, canonical event/replay digests,
@@ -156,6 +184,12 @@ Descriptor lifecycle threats:
   child-side lifecycle epoch, clears the child operation registry, clears the
   copied proof, and fails later child session use with
   `writer_session_process_mismatch`;
+- the active-session registry is process-local and non-authoritative; inactive
+  or fork-invalid resources are removed from the current process registry so
+  the registry does not strongly retain stale resources;
+- the at-fork child handler clears the copied active-session registry without
+  acquiring inherited per-session synchronization, marks copied resources
+  fork-invalid, and installs fresh child lifecycle synchronization;
 - B2c session fallback finalization is nonblocking: it may mark cleanup
   deferred while operations remain active, and the last operation may become
   the single cleanup owner. Closing and cleaning are distinct; closed is

@@ -11,6 +11,7 @@ import signal
 import sqlite3
 import threading
 import time
+import traceback
 import weakref
 
 import pytest
@@ -179,6 +180,32 @@ def _wait_for_event(event: threading.Event, *, timeout: float = 2.0) -> None:
 def _join_thread(thread: threading.Thread, *, timeout: float = 2.0) -> None:
     thread.join(timeout)
     assert not thread.is_alive()
+
+
+def _render_exception_graph(exc: BaseException) -> str:
+    rendered: list[str] = []
+    pending = [exc]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        rendered.extend(
+            (
+                type(current).__name__,
+                str(current),
+                repr(current),
+                repr(current.args),
+                repr(getattr(current, "__notes__", None)),
+                "".join(traceback.format_exception(type(current), current, current.__traceback__)),
+            )
+        )
+        if current.__cause__ is not None:
+            pending.append(current.__cause__)
+        if current.__context__ is not None:
+            pending.append(current.__context__)
+    return "\n".join(rendered)
 
 
 def _attempt_writer_acquisition(root: str, sender) -> None:
@@ -554,6 +581,55 @@ def test_abandoned_session_finalizer_releases_lock_and_clears_registry(tmp_path:
     assert _run_writer_attempt(location) == "acquired:2"
 
 
+def test_foreign_process_cleanup_clears_authority_and_active_registry_idempotently(tmp_path: Path) -> None:
+    location = _location(tmp_path / "primary")
+    other_location = _location(tmp_path / "other")
+    initialize_database(location)
+    initialize_database(other_location)
+    session = acquire_sqlite_writer_session(location)
+    other_session = acquire_sqlite_writer_session(other_location)
+    resource = session._resource
+    other_resource = other_session._resource
+    registry_key = resource._registry_key
+    other_registry_key = other_resource._registry_key
+    proof = resource._credential._proof
+    retained_lock = resource._authority_lock
+    prior_generation = session.metadata.generation
+
+    try:
+        assert writer_module._ACTIVE_SESSION_RESOURCES.get(registry_key) is resource
+        assert writer_module._ACTIVE_SESSION_RESOURCES.get(other_registry_key) is other_resource
+
+        resource.cleanup_from_foreign_process()
+
+        assert resource._state == writer_module._FORK_INVALID
+        assert resource._owner_pid == -1
+        assert resource._credential is None
+        assert resource._authority_lock is None
+        assert resource._database_binding is None
+        assert resource._mutation_slot is None
+        assert _operation_count(resource) == 0
+        assert set(proof) == {0}
+        assert registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
+        assert writer_module._ACTIVE_SESSION_RESOURCES.get(other_registry_key) is other_resource
+
+        resource.cleanup_from_foreign_process()
+
+        assert registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
+        assert writer_module._ACTIVE_SESSION_RESOURCES.get(other_registry_key) is other_resource
+    finally:
+        if retained_lock is not None:
+            retained_lock.close()
+        session.close()
+        other_session.close()
+
+    next_session = acquire_sqlite_writer_session(location)
+    try:
+        assert next_session.metadata.generation == prior_generation + 1
+    finally:
+        next_session.close()
+
+
 def test_cross_process_exclusion_and_process_crash_generation_skip(tmp_path: Path) -> None:
     location = _location(tmp_path)
     initialize_database(location)
@@ -633,13 +709,29 @@ def test_process_mismatch_fails_locally_without_private_detail(
     initialize_database(location)
     session = acquire_sqlite_writer_session(location)
     owner_pid = os.getpid()
-    monkeypatch.setattr(writer_module.os, "getpid", lambda: owner_pid + 1)
+    resource = session._resource
+    registry_key = resource._registry_key
+    proof = resource._credential._proof
+    retained_lock = resource._authority_lock
 
-    with pytest.raises(WriterSessionError) as exc_info:
-        session.apply_transition(None)  # type: ignore[arg-type]
+    with monkeypatch.context() as pid_patch:
+        pid_patch.setattr(writer_module.os, "getpid", lambda: owner_pid + 1)
+        with pytest.raises(WriterSessionError) as exc_info:
+            session.apply_transition(None)  # type: ignore[arg-type]
     assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH
     assert str(owner_pid) not in str(exc_info.value)
-    assert _operation_count(session._resource) == 0
+    assert registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
+    assert resource._state == writer_module._FORK_INVALID
+    assert resource._credential is None
+    assert resource._authority_lock is None
+    assert resource._database_binding is None
+    assert resource._mutation_slot is None
+    assert set(proof) == {0}
+    assert _operation_count(resource) == 0
+    assert str(registry_key) not in _render_exception_graph(exc_info.value)
+    if retained_lock is not None:
+        retained_lock.close()
+    session.close()
 
 
 @pytest.mark.parametrize("mutation_method_name", ("apply_transition", "apply_global_stop_update"))
@@ -721,6 +813,9 @@ def test_foreign_process_cleanup_replaces_locked_session_synchronization(
     initialize_database(location)
     session = acquire_sqlite_writer_session(location)
     resource = session._resource
+    registry_key = resource._registry_key
+    proof = resource._credential._proof
+    retained_lock = resource._authority_lock
     old_condition = resource._condition
     old_condition.acquire()
     owner_pid = os.getpid()
@@ -733,17 +828,27 @@ def test_foreign_process_cleanup_replaces_locked_session_synchronization(
             results.append(exc.__class__.__name__)
 
     try:
-        monkeypatch.setattr(writer_module.os, "getpid", lambda: owner_pid + 1)
-        thread = threading.Thread(target=call_active_with_foreign_pid)
-        thread.start()
-        thread.join(1)
-        assert not thread.is_alive()
-        assert results == ["False"]
-        assert resource._condition is not old_condition
-        assert resource._state == writer_module._FORK_INVALID
-        assert _operation_count(resource) == 0
+        with monkeypatch.context() as pid_patch:
+            pid_patch.setattr(writer_module.os, "getpid", lambda: owner_pid + 1)
+            thread = threading.Thread(target=call_active_with_foreign_pid)
+            thread.start()
+            thread.join(1)
+            assert not thread.is_alive()
+            assert results == ["False"]
+            assert resource._condition is not old_condition
+            assert resource._state == writer_module._FORK_INVALID
+            assert resource._credential is None
+            assert resource._authority_lock is None
+            assert resource._database_binding is None
+            assert resource._mutation_slot is None
+            assert set(proof) == {0}
+            assert _operation_count(resource) == 0
+            assert registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
     finally:
         old_condition.release()
+        if retained_lock is not None:
+            retained_lock.close()
+        session.close()
 
 
 def test_nested_operation_leases_are_independent_identities(tmp_path: Path) -> None:
@@ -1162,6 +1267,8 @@ def test_fork_child_session_is_invalidated_and_parent_remains_active(tmp_path: P
     location = _location(tmp_path)
     initialize_database(location)
     session = acquire_sqlite_writer_session(location)
+    registry_key = session._resource._registry_key
+    assert writer_module._ACTIVE_SESSION_RESOURCES.get(registry_key) is session._resource
     read_fd, write_fd = os.pipe()
     child_pid = os.fork()
     if child_pid == 0:
@@ -1174,7 +1281,8 @@ def test_fork_child_session_is_invalidated_and_parent_remains_active(tmp_path: P
             else:
                 reason = "unexpected-active"
             proof_state = "cleared" if session._resource._credential is None else "kept"
-            os.write(write_fd, f"{reason}:{proof_state}".encode("ascii"))
+            registry_state = "registry-empty" if writer_module._ACTIVE_SESSION_RESOURCES == {} else "registry-kept"
+            os.write(write_fd, f"{reason}:{proof_state}:{registry_state}".encode("ascii"))
         finally:
             os.close(write_fd)
             os._exit(0)
@@ -1185,10 +1293,12 @@ def test_fork_child_session_is_invalidated_and_parent_remains_active(tmp_path: P
     waited_pid, status = os.waitpid(child_pid, 0)
     assert waited_pid == child_pid
     assert status == 0
-    assert child_result == "writer_session_process_mismatch:cleared"
+    assert child_result == "writer_session_process_mismatch:cleared:registry-empty"
+    assert writer_module._ACTIVE_SESSION_RESOURCES.get(registry_key) is session._resource
     assert session.active is True
     assert _run_writer_attempt(location) == "state_authority_lock_busy"
     session.close()
+    assert registry_key not in writer_module._ACTIVE_SESSION_RESOURCES
     assert _run_writer_attempt(location) == "acquired:2"
 
 

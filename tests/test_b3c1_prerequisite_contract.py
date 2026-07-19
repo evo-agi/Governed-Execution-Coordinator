@@ -77,8 +77,8 @@ def test_b3c1_prerequisite_document_status_boundary_and_split_are_static_only() 
     doc = B3C1_DOC.read_text(encoding="utf-8")
     normalized = _normalized(doc)
     for phrase in (
-        "Status: implemented B3c1a private WriterSession authority plumbing",
-        "no SQLite transaction controller, nominal capability, fencing query, reader integration, transaction runtime, or state mutation",
+        "Status: implemented B3c1a private WriterSession authority plumbing and B3c1b private rollback-only writer-fencing/capability mechanics",
+        "no B3b2 reader integration, production caller, state mutation, or durable transaction apply",
         "B3c1 is production-unintegrated and test-executed only",
         "B3c1a implements only `_WriterSessionResource` mutation-slot ownership",
         "B3c1a implements:",
@@ -89,10 +89,11 @@ def test_b3c1_prerequisite_document_status_boundary_and_split_are_static_only() 
         assert phrase in normalized
 
     boundary_items = _numbered_items(_section(doc, "B3c1 Boundary"))
-    assert boundary_items[:8] == (
+    assert boundary_items[:9] == (
         "the real shared per-`WriterSession` mutation slot;",
         "the smallest safe operation-lease active-authority interface;",
         "the smallest safe operation-lease durable-issuance verification interface;",
+        "resource-owned state-database filesystem-authority binding through the operation lease;",
         "one private nominal rollback-only transaction controller;",
         "one private nominal transaction-read capability;",
         "one fresh existing managed read/write SQLite connection;",
@@ -111,7 +112,7 @@ def test_production_unintegrated_posture_reconciles_single_controller_path() -> 
             "created only by one private rollback-only transaction controller",
             "There is one controller construction path",
             "Future production invocation may occur only from `_SQLiteWriterSession.apply_transition()`",
-            "During B3c1a, the controller has no production caller",
+            "During B3c1b, the controller has no production caller",
             "coherent tests may invoke the same private controller directly through private imports",
             "without adding a separate source-level `for_test` factory",
         ):
@@ -150,6 +151,7 @@ def test_resource_owned_mutation_slot_and_lease_identity_are_private_b3c1a_runti
         "the owner thread",
         "an opaque slot token",
         "resource operation finish defensively clears a slot owned by the operation being finished",
+        "Mutation-slot publication and `_WriterSessionMutationLease` construction are externally atomic.",
         "no mutation-lease finalizer is primary lifecycle authority",
         "every exit path releases exactly once",
     ):
@@ -165,6 +167,7 @@ def test_resource_owned_mutation_slot_and_lease_identity_are_private_b3c1a_runti
         "WRITER_SESSION_MUTATION_IN_PROGRESS",
         "def _release_mutation_slot",
         "def _clear_mutation_slot_owned_by_operation_locked",
+        "_MUTATION_LEASE_FACTORY",
     ):
         assert required in writer_source
 
@@ -175,6 +178,7 @@ def test_operation_lease_interface_and_issuance_match_are_private_b3c1a_runtime(
     for phrase in (
         "_acquire_mutation_lease() -> _WriterSessionMutationLease",
         "_require_active_mutation_authority() -> None",
+        "_bound_state_database_for_mutation() -> _StateDatabaseAuthorityBinding",
         "_verify_durable_writer_issuance(",
         "issuance: _DurableWriterIssuance",
         "-> _WriterIssuanceMatch",
@@ -187,6 +191,10 @@ def test_operation_lease_interface_and_issuance_match_are_private_b3c1a_runtime(
         "writer ref, generation, issued ref, and the private proof",
         "`acquired_at` is not credential identity",
         "Every well-formed mismatch returns only `STALE_WRITER`",
+        "returns the exact private filesystem-authority binding retained by the owning `_WriterSessionResource`",
+        "state-root identity, the common authority-lock-file identity, and the active database-file identity",
+        "The active database file must have exactly one hard link.",
+        "accepts no location argument",
     ):
         assert phrase in normalized
 
@@ -204,6 +212,10 @@ def test_operation_lease_interface_and_issuance_match_are_private_b3c1a_runtime(
         "resource",
         "transaction epoch",
         "raw SQLite row",
+        "state-root path",
+        "database path",
+        "filesystem identity",
+        "link count",
         "connection",
     ):
         assert f"must not expose the {forbidden}" in normalized or forbidden in normalized
@@ -232,6 +244,7 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
         "returns neither enum value before rollback and close complete",
         "produce `database_integrity_failure` and no enum",
         "produce `mutation_failed` and no enum",
+        "Operational open, `BEGIN`, managed-validation, `SELECT`, cursor-close, controller",
         "No rollback-only B3c1 path returns `commit_outcome_unknown`",
         "`_WriterIssuanceMatch.STALE_WRITER` is an internal private result",
         "one conversion from `_WriterIssuanceMatch.STALE_WRITER` to `TransitionConflict(\"stale_writer_token\")`",
@@ -286,7 +299,13 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
     assert "class _WriterIssuanceMatch(str, Enum):" in writer_source
     assert "_WriterIssuanceMatch" not in ge_nwp_coordinator.__all__
     assert not hasattr(ge_nwp_coordinator, "_WriterIssuanceMatch")
-    assert "sqlite_transition_transaction" not in production_source
+    transaction_source = _read("src/ge_nwp_coordinator/sqlite_transition_transaction.py")
+    assert "def _run_rollback_only_writer_fencing(" in transaction_source
+    assert "class _RollbackOnlyTransitionTransactionController" in transaction_source
+    assert "_run_rollback_only_writer_fencing" not in ge_nwp_coordinator.__all__
+    assert "_RollbackOnlyTransitionTransactionController" not in ge_nwp_coordinator.__all__
+    assert "sqlite_transition_transaction" not in ge_nwp_coordinator.__all__
+    assert "sqlite_transition_transaction" not in _read("src/ge_nwp_coordinator/__init__.py")
     assert "class _SQLiteTransitionTransactionController" not in production_source
 
 
@@ -307,7 +326,10 @@ def test_writer_row_query_parser_ownership_and_fencing_matrix_are_pinned() -> No
         "reuse `_parse_writer_ownership_rows`",
         "must not create a second writer-row grammar",
         "must not reuse the acquisition reader's outward error taxonomy as-is",
-        "No B3c1a SQL implementation exists.",
+        "B3c1b adds no other production SQL.",
+        "closes the writer-row cursor before validating row type/length",
+        "original fetch classification remains primary",
+        "fetch succeeded but cursor close fails",
     ):
         assert phrase in normalized_query
 
@@ -321,9 +343,13 @@ def test_writer_row_query_parser_ownership_and_fencing_matrix_are_pinned() -> No
         "malformed writer row": ("`database_integrity_failure`",),
         "managed-schema contradiction": ("`database_integrity_failure`",),
         "writer-query contradiction": ("`database_integrity_failure`",),
+        "retained root/lock/database identity mismatch": ("`database_integrity_failure`",),
+        "active database hard-link alias": ("`database_integrity_failure`",),
         "operational open failure": ("`mutation_failed`",),
         "operational BEGIN failure": ("`mutation_failed`",),
+        "operational managed-validation failure": ("`mutation_failed`",),
         "operational SELECT failure": ("`mutation_failed`",),
+        "successful fetch plus cursor-close failure": ("`mutation_failed`",),
         "well-formed writer ref mismatch": ("`stale_writer_token`",),
         "well-formed generation mismatch": ("`stale_writer_token`",),
         "well-formed issued-ref mismatch": ("`stale_writer_token`",),
@@ -332,15 +358,18 @@ def test_writer_row_query_parser_ownership_and_fencing_matrix_are_pinned() -> No
     normalized_fencing = _normalized(_section(doc, "Writer Fencing"))
     assert "Fencing occurs before all idempotency, current-state, event, replay, and context reads." in normalized_fencing
     assert "Stale writer results carry no event or replay and disclose no key existence." in normalized_fencing
+    assert "controller database open binding == WriterSession resource-owned state-database binding" in normalized_fencing
+    assert "matching `writer_ownership` row in an independent or cloned database is insufficient authority" in normalized_fencing
+    assert "hard-link alias to the active database file fails closed" in normalized_fencing
     assert "There is no automatic reacquisition, takeover, TTL, heartbeat, or failover." in normalized_fencing
 
 
-def test_nominal_capability_epoch_contract_uses_existing_closed_reasons_without_runtime_module() -> None:
+def test_nominal_capability_epoch_contract_uses_existing_closed_reasons() -> None:
     section = _section(B3C1_DOC.read_text(encoding="utf-8"), "Nominal Capability And Epoch")
     normalized = _normalized(section)
     for phrase in (
         "`src/ge_nwp_coordinator/sqlite_transition_transaction.py`",
-        "This module remains future",
+        "This module owns one private nominal rollback-only transaction controller",
         "private nominal rollback-only transaction controller",
         "private nominal transaction-read capability",
         "no public constructor",
@@ -365,7 +394,7 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons_without_
     assert _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED.value == "transition_read_capability_expired"
     assert _TransitionReadCapabilityFailureReason.PROCESS_MISMATCH.value == "process_mismatch"
     assert _TransitionReadCapabilityFailureReason.THREAD_MISMATCH.value == "thread_mismatch"
-    assert not (PACKAGE_DIR / "sqlite_transition_transaction.py").exists()
+    assert (PACKAGE_DIR / "sqlite_transition_transaction.py").exists()
 
     class_names: set[str] = set()
     for source in _source_files().values():
@@ -373,8 +402,9 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons_without_
             node.name for node in ast.walk(ast.parse(source)) if isinstance(node, ast.ClassDef)
         )
     assert "_WriterSessionMutationLease" in class_names
+    assert "_RollbackOnlyTransitionTransactionController" in class_names
     assert "_SQLiteTransitionTransactionController" not in class_names
-    assert "_SQLiteTransitionReadCapability" not in class_names
+    assert "_SQLiteTransitionReadCapability" in class_names
 
 
 def test_rollback_only_lifecycle_and_cleanup_precedence_are_exact() -> None:
@@ -383,8 +413,10 @@ def test_rollback_only_lifecycle_and_cleanup_precedence_are_exact() -> None:
     assert lifecycle_items == (
         "enter with an active operation lease;",
         "acquire the mutation lease;",
-        "open one fresh existing managed read/write connection;",
+        "derive the resource-owned state-database binding from the operation lease;",
+        "open one fresh existing managed read/write connection through the bound private open helper;",
         "execute `BEGIN IMMEDIATE`;",
+        "revalidate the retained root/lock/database binding after `BEGIN`;",
         "validate managed schema and connection posture;",
         "query and parse the writer row;",
         "verify durable issuance;",
@@ -409,8 +441,12 @@ def test_rollback_only_lifecycle_and_cleanup_precedence_are_exact() -> None:
         "Missing/multiple/malformed row": ("`database_integrity_failure`",),
         "Schema/query contradiction": ("`database_integrity_failure`",),
         "Operational failure": ("`mutation_failed`",),
+        "Cursor close after successful fetch": ("`mutation_failed`",),
         "Rollback failure": ("`mutation_failed`; no enum",),
         "Close failure": ("`mutation_failed`; no enum",),
+        "Failed bound-open admission plus rejected-connection close failure": (
+            "primary structural/operational open failure preserved; no connection returned",
+        ),
         "Any rollback-only path": ("never `commit_outcome_unknown`",),
     }
     normalized_precedence = _normalized(_section(doc, "Cleanup And Error Precedence"))
@@ -419,6 +455,7 @@ def test_rollback_only_lifecycle_and_cleanup_precedence_are_exact() -> None:
     assert "`_WriterIssuanceMatch.STALE_WRITER` is returned only after rollback and close both succeed." in normalized_precedence
     assert "The controller returns no enum before cleanup completes." in normalized_precedence
     assert "The mutation slot remains held through the connection-close attempt." in normalized_precedence
+    assert "Failed bound-open admission plus rejected-connection close failure" in normalized_precedence
     assert "No finalizer is the primary cleanup path." in normalized_precedence
 
 
@@ -446,7 +483,7 @@ def test_public_mutation_methods_remain_unavailable_and_contact_no_sqlite() -> N
     assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_IN_PROGRESS.value == "writer_session_mutation_in_progress"
 
 
-def test_docs_cross_reference_b3c1a_and_no_b3c1b_runtime_or_migration_exists() -> None:
+def test_docs_cross_reference_b3c1a_b3c1b_and_no_mutation_or_migration_exists() -> None:
     for path in (
         "AGENTS.md",
         "README.md",
@@ -468,9 +505,7 @@ def test_docs_cross_reference_b3c1a_and_no_b3c1b_runtime_or_migration_exists() -
 
     source = "\n".join(_source_files().values())
     for forbidden in (
-        "sqlite_transition_transaction",
         "class _SQLiteTransitionTransactionController",
-        "class _SQLiteTransitionReadCapability",
         "def assemble_transition_context",
         "def verify_writer_fencing",
         "INSERT INTO transition_events",
@@ -478,6 +513,8 @@ def test_docs_cross_reference_b3c1a_and_no_b3c1b_runtime_or_migration_exists() -
         "UPDATE global_stop_current",
     ):
         assert forbidden not in source
+    assert "def _run_rollback_only_writer_fencing(" in source
+    assert "class _SQLiteTransitionReadCapability" in source
 
     migrations = sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql"))
     assert migrations == ["0001_initial.sql"]

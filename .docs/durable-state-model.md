@@ -164,15 +164,15 @@ B3c1 prerequisites are source-of-truth in
 `.docs/b3c1-prerequisite-contract.md`. They reconcile the B3c0a capability
 wording by requiring a single private rollback-only controller construction path
 while keeping future production invocation limited to
-`_SQLiteWriterSession.apply_transition()`. During B3c1a, that controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1b, that controller has no
 production caller; coherent tests may invoke the same private controller
 directly through private imports; public transition and global-stop mutation
 methods remain `writer_session_mutation_unavailable` and open no SQLite
-database. B3c1a implements only private WriterSession authority plumbing and
-adds no transaction controller, concrete capability, writer-fencing query
-execution, B3b2 reader integration, context assembly, evaluator invocation,
-event/state mutation, public mutation-method behavior change, or migration
-0002.
+database. B3c1a implements only private WriterSession authority plumbing.
+B3c1b implements only private rollback-only writer fencing/capability
+mechanics, with no B3b2 reader integration, context assembly, evaluator
+invocation, event/state mutation, public mutation-method behavior change,
+commit, or migration 0002.
 
 B3c0b implements the already-fetched `transition_events` row contract and pure
 idempotency match. `TransitionEventRecordEnvelope` reconstructs the stored
@@ -248,10 +248,11 @@ that are not called by production source. B3c0a adds contract/static pins only.
 B3c0b adds pure/static transition-event envelope, idempotency match, and
 sequence/query-spec contracts only. B3 tests-only coherent fixtures add
 temporary managed graphs under `tests/` only. No `StateStore` mutation backend,
-integrated production typed SQLite reader, concrete transaction capability,
-production fixture insertion helper, coordinator service, or executable A2
-capability exists in this slice. B3c1a adds only private WriterSession
-authority plumbing and does not change that runtime boundary.
+integrated production typed SQLite reader, production fixture insertion helper,
+coordinator service, or executable A2 capability exists in this slice. B3c1a
+adds only private WriterSession authority plumbing, and B3c1b adds only private
+rollback-only writer fencing/capability mechanics; neither changes that runtime
+boundary.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

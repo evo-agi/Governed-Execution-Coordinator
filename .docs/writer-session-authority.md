@@ -1,7 +1,8 @@
 # Writer Session Authority
 
-Status: B2c durable writer issuance, internal writer-session acquisition, and
-B3c1a private WriterSession authority plumbing.
+Status: B2c durable writer issuance, internal writer-session acquisition,
+B3c1a private WriterSession authority plumbing, and B3c1b private
+rollback-only writer-fencing/capability mechanics.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
@@ -11,7 +12,9 @@ persistence, worker, service, scheduler, executable authorization, repair,
 commit, publication, or deployment behavior exists.
 B2c implements an internal concrete `WriterSession`. B3c1a implements only the
 private resource-owned mutation slot, mutation lease, operation-lease authority
-checks, and durable-issuance verification needed by future B3c1b.
+checks, and durable-issuance verification. B3c1b implements only the private
+rollback-only writer-fencing/capability mechanics that consume that private
+verification interface.
 
 ## Purpose
 
@@ -121,12 +124,21 @@ prerequisites in `.docs/b3c1-prerequisite-contract.md` reconcile production
 reachability: the capability is created only by one private rollback-only
 transaction controller. There is one controller construction path. Future
 production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1a, the controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
 production caller, and coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
-`for_test` factory. The capability receives no credential, proof, proof digest,
-authority lock, lock descriptor, writer metadata as authority, process/thread
-identity, or transaction epoch through a public surface.
+`for_test` factory. The controller entry point accepts only the active
+operation lease; it derives the private state-database filesystem binding from
+the WriterSession resource after mutation-slot acquisition. That binding
+contains the exact CoordinatorStateLocation, state-root identity,
+authority-lock-file identity, and single-link database-file identity captured
+while the retained common authority lock was held. A matching
+`writer_ownership` row in another database is not authority, and replaced
+root/lock/database paths or hard-linked active database aliases fail closed.
+The capability receives no credential, proof, proof digest, authority lock,
+lock descriptor, path, filesystem identity, link count, writer metadata as
+authority, process/thread identity, or transaction epoch through a public
+surface.
 
 ## Failure Layer Taxonomy
 
@@ -208,10 +220,27 @@ Future `WriterSession` mutation calls use this order:
    A second mutation cannot begin while the first is committing, rolling back,
    classifying outcome, or closing the connection.
 
-5. Open one existing managed read/write connection, execute `BEGIN IMMEDIATE`,
-   and validate managed schema/posture inside the transaction.
+   Publishing the slot and constructing the mutation lease are externally
+   atomic: if lease construction fails, the exact just-published slot is
+   released before the failure escapes, and no copied or newer slot can be
+   cleared by that unwind.
 
-   This remains future B3/B4 behavior.
+5. Derive the private state-database filesystem binding from the active
+   operation lease. Open one existing managed read/write connection through
+   that resource-owned binding, execute `BEGIN IMMEDIATE`, revalidate the
+   binding after begin, and validate managed schema/posture inside the
+   transaction.
+
+   The bound database authority contains the WriterSession resource-owned
+   location, retained root identity, retained authority-lock-file identity, and
+   retained single-link database-file identity. Equivalent independently
+   constructed location objects are not controller inputs, path aliases cannot
+   be introduced through controller invocation, and copied writer rows remain
+   evidence only.
+
+   B3c1b implements only the rollback-only setup/fencing form of this step;
+   idempotency, context reads, evaluator integration, durable writes, and commit
+   remain future B3/B4 behavior.
 
 6. Load and parse the durable writer row, then validate writer generation, refs,
    and issuance proof.
@@ -308,7 +337,10 @@ active per session, and a second private mutation attempt fails locally with
 still fail with `writer_session_mutation_unavailable` before acquiring the
 slot. The slot is retained until after transaction resolution and
 connection-close attempt, then released before the outer operation lease exits
-when future runtime uses it.
+when future runtime uses it. B3c1a also exposes the private resource-owned
+bound-database accessor used by B3c1b after active mutation authority is
+established; it does not expose the common authority lock, descriptor, path,
+inode, device, or link count.
 
 The private operation guard uses process-local lifecycle synchronization and a
 private operation-identity registry, not a count-only authority truth. Each
@@ -336,6 +368,12 @@ Same-thread close during an active operation fails promptly with
 `writer_session_close_during_operation`, does not transition the session to
 closing, and does not clear proof or release the common lock. Close remains
 idempotent after closed and performs no SQLite writer-row update.
+Foreign-process cleanup and late owner-process mismatch cleanup also mark the
+resource fork-invalid, clear credential, proof, operation, mutation-slot, and
+retained binding authority, and remove that exact resource from the current
+process-local active-session registry. The registry is not authority and cannot
+establish liveness, but it must not strongly retain an inactive or fork-invalid
+resource.
 
 Fallback finalization is nonblocking. If the session wrapper or resource
 finalizer runs while operations remain active, it marks closing, requests
@@ -485,8 +523,10 @@ B3c0a preserves that runtime behavior while reserving
 `writer_session_mutation_in_progress` for future B3/B4 concurrency checks.
 B3c1a implements private WriterSession authority plumbing:
 `_SQLiteWriterSession.apply_transition()` and `apply_global_stop_update()`
-remain mutation-unavailable and open no SQLite database; B3c1b remains future
-for the rollback-only controller, writer-fencing query, and nominal capability.
+remain mutation-unavailable and open no SQLite database. B3c1b implements the
+private operation-lease-only rollback-only controller, writer-fencing query,
+and nominal capability, but has no production caller and does not change public
+mutation behavior.
 
 ## Non-Goals
 

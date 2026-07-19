@@ -14,6 +14,7 @@ from typing import Any, Iterable
 from ge_nwp_coordinator.sqlite_connection import (
     apply_observational_connection_posture,
     open_existing_sqlite_connection,
+    _is_operational_posture_error,
     _open_sqlite_connection,
 )
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorCode
@@ -27,6 +28,33 @@ MIGRATION_PACKAGE = "ge_nwp_coordinator.sqlite_migrations"
 SQLITE_HEADER = b"SQLite format 3\x00"
 ROLLBACK_JOURNAL_FILE_FORMAT_VERSION = 1
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+_SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
+    code
+    for code in (
+        getattr(sqlite3, "SQLITE_BUSY", None),
+        getattr(sqlite3, "SQLITE_LOCKED", None),
+        getattr(sqlite3, "SQLITE_NOMEM", None),
+        getattr(sqlite3, "SQLITE_READONLY", None),
+        getattr(sqlite3, "SQLITE_INTERRUPT", None),
+        getattr(sqlite3, "SQLITE_IOERR", None),
+        getattr(sqlite3, "SQLITE_FULL", None),
+        getattr(sqlite3, "SQLITE_CANTOPEN", None),
+        getattr(sqlite3, "SQLITE_PROTOCOL", None),
+    )
+    if type(code) is int
+)
+_SQLITE_VALIDATION_INTEGRITY_PRIMARY_RESULT_CODES = frozenset(
+    code
+    for code in (
+        getattr(sqlite3, "SQLITE_ERROR", None),
+        getattr(sqlite3, "SQLITE_SCHEMA", None),
+        getattr(sqlite3, "SQLITE_CORRUPT", None),
+        getattr(sqlite3, "SQLITE_NOTADB", None),
+        getattr(sqlite3, "SQLITE_MISMATCH", None),
+        getattr(sqlite3, "SQLITE_CONSTRAINT", None),
+    )
+    if type(code) is int
+)
 
 EXPECTED_TABLES = frozenset(
     {
@@ -126,6 +154,29 @@ class _MigrationHistoryRow:
     applied_at: str
     min_app_schema: int
     max_app_schema: int
+
+
+class _SQLiteOperationalValidationError(SQLiteStateError):
+    """Private marker that preserves operational validation origin."""
+
+
+def _is_operational_validation_error(error: SQLiteStateError) -> bool:
+    return isinstance(error, _SQLiteOperationalValidationError) or _is_operational_posture_error(error)
+
+
+def _validation_sqlite_state_error(
+    error: sqlite3.Error,
+    error_class: SQLiteStateErrorCode,
+) -> SQLiteStateError:
+    code = getattr(error, "sqlite_errorcode", None)
+    if type(code) is not int:
+        return _SQLiteOperationalValidationError(error_class)
+    primary_code = code & 0xFF
+    if primary_code in _SQLITE_VALIDATION_INTEGRITY_PRIMARY_RESULT_CODES:
+        return SQLiteStateError(error_class)
+    if primary_code in _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES:
+        return _SQLiteOperationalValidationError(error_class)
+    return _SQLiteOperationalValidationError(error_class)
 
 
 def load_migration_catalog() -> MigrationCatalog:
@@ -358,8 +409,8 @@ def _user_schema_objects(connection: sqlite3.Connection) -> set[tuple[str, str]]
               AND name NOT LIKE 'sqlite_%'
             """
         ).fetchall()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_HISTORY_INVALID) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.MIGRATION_HISTORY_INVALID) from None
     return {(str(row[0]), str(row[1])) for row in rows}
 
 
@@ -379,8 +430,8 @@ def _validate_migration_history(
             ORDER BY sequence, migration_id
             """
         ).fetchall()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_HISTORY_INVALID) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.MIGRATION_HISTORY_INVALID) from None
     if not rows:
         raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_HISTORY_MISSING)
     history = tuple(_history_row(row) for row in rows)
@@ -512,8 +563,8 @@ def _expected_schema_manifest(sql_text: str) -> tuple[Any, ...]:
         return manifest
     except SQLiteStateError:
         raise
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
     finally:
         connection.close()
 
@@ -529,8 +580,8 @@ def _schema_manifest(connection: sqlite3.Connection) -> tuple[Any, ...]:
             ORDER BY type, name
             """
         ).fetchall()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
     manifest: list[Any] = [
         (
             "schema",
@@ -569,8 +620,8 @@ def _schema_manifest(connection: sqlite3.Connection) -> tuple[Any, ...]:
 def _pragma_rows(connection: sqlite3.Connection, statement: str) -> tuple[tuple[Any, ...], ...]:
     try:
         return tuple(tuple(row) for row in connection.execute(statement).fetchall())
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
 
 
 def _quote_identifier(identifier: str) -> str:
@@ -592,8 +643,8 @@ def _verify_global_stop_clear_seed(connection: sqlite3.Connection) -> None:
             FROM global_stop_current
             """
         ).fetchall()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
     if rows != [
         (
             1,
@@ -615,8 +666,8 @@ def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:
     for table_name in EMPTY_AFTER_BOOTSTRAP_TABLES:
         try:
             count = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-        except sqlite3.Error:
-            raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+        except sqlite3.Error as exc:
+            raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
         if count != 0:
             raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
 
@@ -635,8 +686,8 @@ def _verify_global_stop_current_shape(connection: sqlite3.Connection) -> None:
             FROM global_stop_current
             """
         ).fetchall()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
     if len(rows) != 1:
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
     (
@@ -678,8 +729,8 @@ def _verify_writer_ownership_shape(connection: sqlite3.Connection) -> None:
             FROM writer_ownership
             """
         ).fetchall()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
     try:
         _parse_writer_ownership_rows(rows)
     except ValueError:
@@ -689,8 +740,8 @@ def _verify_writer_ownership_shape(connection: sqlite3.Connection) -> None:
 def _verify_foreign_key_posture(connection: sqlite3.Connection) -> None:
     try:
         row = connection.execute("PRAGMA foreign_keys").fetchone()
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+    except sqlite3.Error as exc:
+        raise _validation_sqlite_state_error(exc, SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
     if row is None or int(row[0]) != 1:
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
 

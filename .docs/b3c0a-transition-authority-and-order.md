@@ -18,9 +18,10 @@ the B3c runtime steps above.
 B3c1 has since frozen the prerequisite contract for the production-unintegrated
 rollback-only controller posture in
 `.docs/b3c1-prerequisite-contract.md`, and B3c1a has since implemented private
-WriterSession mutation-slot and operation-lease verification plumbing. It still
-implements no transaction controller, concrete capability, writer-fencing
-query, transaction runtime, or state mutation.
+WriterSession mutation-slot and operation-lease verification plumbing. B3c1b
+has since implemented private rollback-only writer fencing and nominal
+capability mechanics with no B3b2 reader integration, production caller, or
+state mutation.
 
 ## Nominal Capability Ownership
 
@@ -33,7 +34,7 @@ The concrete capability is created only by one private rollback-only
 transaction controller. There is one controller construction path, and that
 controller path is the only path that may construct the nominal capability.
 Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1a, the controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
 production caller; coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
 `for_test` factory. Direct private test invocation is not public or production
@@ -145,12 +146,13 @@ The shared future transition/global-stop mutation prefix is:
    is confirmed active;
 2. perform mutation-specific local command-shape checks;
 3. acquire the shared per-session mutation slot;
-4. open one existing managed read/write connection;
-5. execute `BEGIN IMMEDIATE`;
-6. validate managed schema and connection posture inside the transaction;
-7. load and parse the durable writer row;
-8. verify writer fencing;
-9. continue into mutation-specific idempotency, current-state, evaluator, event,
+4. derive the resource-owned root/lock/database binding from the active operation lease;
+5. open one existing managed read/write connection through that binding;
+6. execute `BEGIN IMMEDIATE`;
+7. revalidate the retained binding and validate managed schema and connection posture inside the transaction;
+8. load and parse the durable writer row;
+9. verify writer fencing;
+10. continue into mutation-specific idempotency, current-state, evaluator, event,
    and resolution behavior.
 
 The mutation slot precedes database open, database open precedes
@@ -217,36 +219,37 @@ The exact future transition apply order is:
 2. validate exact TransitionCommand type and already-established canonical digest;
 3. enforce non-READY dependency ref is null and budget_cost is zero;
 4. acquire the shared per-session mutation slot;
-5. open one existing managed read/write connection;
-6. BEGIN IMMEDIATE;
-7. validate current managed schema and posture inside the transaction;
-8. load and parse writer_ownership;
-9. verify writer fencing;
-10. create the nominal capability;
-11. inspect event-owned idempotency;
-12. on exact replay, skip all changed context;
-13. on idempotency-key digest mismatch, return conflict;
-14. read current work item;
-15. if absent, work_item_not_found;
-16. compare expected version;
-17. if mismatch, expected_version_conflict;
-18. read lease identity;
-19. read admitted backlog;
-20. read authorization;
-21. read READY dependency only when required;
-22. read global-stop singleton;
-23. apply all cross-record binding and authorization-support checks;
-24. capture one whole-second UTC transaction timestamp;
-25. derive LeaseRuntimeDecision;
-26. construct TransitionContext;
-27. invoke evaluator exactly once;
-28. allocate event sequence;
-29. insert event and replay snapshot;
-30. on acceptance, CAS-update current work item;
-31. invalidate capability;
-32. commit or roll back;
-33. close connection;
-34. return only after transaction resolution.
+5. derive the resource-owned root/lock/database binding from the active operation lease;
+6. open one existing managed read/write connection through that binding;
+7. BEGIN IMMEDIATE;
+8. revalidate the retained binding and validate current managed schema and posture inside the transaction;
+9. load and parse writer_ownership;
+10. verify writer fencing;
+11. create the nominal capability;
+12. inspect event-owned idempotency;
+13. on exact replay, skip all changed context;
+14. on idempotency-key digest mismatch, return conflict;
+15. read current work item;
+16. if absent, work_item_not_found;
+17. compare expected version;
+18. if mismatch, expected_version_conflict;
+19. read lease identity;
+20. read admitted backlog;
+21. read authorization;
+22. read READY dependency only when required;
+23. read global-stop singleton;
+24. apply all cross-record binding and authorization-support checks;
+25. capture one whole-second UTC transaction timestamp;
+26. derive LeaseRuntimeDecision;
+27. construct TransitionContext;
+28. invoke evaluator exactly once;
+29. allocate event sequence;
+30. insert event and replay snapshot;
+31. on acceptance, CAS-update current work item;
+32. invalidate capability;
+33. commit or roll back;
+34. close connection;
+35. return only after transaction resolution.
 
 No B3c0a code implements any transition apply step except defensive sanitation
 of unexpected private read-capability exceptions.
@@ -419,8 +422,9 @@ plumbing is implemented in `.docs/b3c1a-writer-session-authority.md`.
 B3c1a implements the runtime mutation slot, mutation lease, and
 operation-lease verification interface without SQLite transaction work.
 
-B3c1b remains future for the rollback-only transaction controller, writer
-fencing query, and nominal capability.
+B3c1b implements the private rollback-only transaction controller, writer
+fencing query, and nominal capability. It remains production-unintegrated and
+performs no B3b2 reader calls or durable mutation.
 
 B3c2 remains future for event/replay/idempotency/sequence readers.
 

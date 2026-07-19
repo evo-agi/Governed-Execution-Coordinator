@@ -79,14 +79,26 @@ SQLite bootstrap/migration infrastructure only:
 - B3c1 prerequisite/private plumbing for the production-unintegrated/test-executed
   rollback-only posture: one private controller construction path,
   resource-owned mutation slot and mutation-lease identity, operation-lease
-  authority and durable-issuance verification interfaces, writer-row query and
-  parser ownership, writer-fencing taxonomy, nominal capability epoch rules,
-  cleanup precedence, and B3c1a/B3c1b split. B3c1a implements only the private
-  slot, lease, authority checks, durable-issuance verification, and
-  `_WriterIssuanceMatch`, with no controller, concrete capability, query
-  execution, B3b2 reader integration, context assembly, evaluator invocation,
-  event/state mutation, public mutation-method behavior change, or migration
-  0002.
+  authority, resource-owned state-database filesystem binding, durable-issuance
+  verification interfaces, writer-row query and parser ownership,
+  writer-fencing taxonomy, nominal capability epoch rules, cleanup precedence,
+  and B3c1a/B3c1b split. B3c1a implements only the private slot, lease,
+  authority checks, resource-owned bound-database accessor, durable-issuance
+  verification, atomic mutation-slot publication plus lease-construction
+  unwind, and `_WriterIssuanceMatch`, with no controller, concrete capability,
+  query execution, B3b2 reader integration, context assembly, evaluator
+  invocation, event/state mutation, public mutation-method behavior change, or
+  migration 0002. B3c1b implements only the private operation-lease-only
+  rollback-only controller, one fresh managed read/write connection to the
+  WriterSession resource-owned root/lock/database binding, `BEGIN IMMEDIATE`,
+  post-begin binding revalidation, managed validation, bounded writer-row
+  `SELECT`, parser reuse, writer fencing, one
+  nominal capability with one opaque epoch, permanent invalidation, rollback,
+  close, and private `_WriterIssuanceMatch` return. A matching writer row in
+  another database is not authority; replaced root/lock/database paths and
+  hard-linked active database aliases fail closed. It has no B3b2 reader call,
+  event/idempotency/sequence reader, context assembly, evaluator invocation,
+  durable state mutation, public caller, commit, or migration 0002.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -212,13 +224,15 @@ B3c0b now implements the pure/static event-row and replay contract portion
 that B3c0a left future. It adds no runtime caller: idempotency and
 maximum-sequence SQL are immutable data only, and exact replay is a pure
 event-owned match over an already reconstructed envelope.
-B3c1 now includes B3c1a private WriterSession authority plumbing. It reconciles
+B3c1 now includes B3c1a private WriterSession authority plumbing and B3c1b
+private rollback-only writer fencing/capability mechanics. It reconciles
 nominal capability construction as one private rollback-only controller path,
+binds the controller database open to the active operation lease's
+WriterSession resource-owned root/lock/database filesystem binding and
+retained common authority lock,
 keeps future production invocation limited to
 `_SQLiteWriterSession.apply_transition()`, allows coherent tests to invoke that
-same private controller through private imports when the runtime slice exists,
-and keeps public mutation methods `writer_session_mutation_unavailable` with no
-SQLite contact. B3c1b remains future for rollback-only controller execution,
-fencing, and nominal capability construction.
+same private controller through private imports, and keeps public mutation
+methods `writer_session_mutation_unavailable` with no SQLite contact.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

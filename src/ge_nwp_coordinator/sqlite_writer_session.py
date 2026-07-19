@@ -21,13 +21,19 @@ from typing import Any, Self
 import weakref
 
 from ge_nwp_coordinator.global_stop import GlobalStopCommand, GlobalStopOperatorDecision
-from ge_nwp_coordinator.sqlite_connection import open_existing_sqlite_connection
+from ge_nwp_coordinator.sqlite_connection import _open_bound_existing_sqlite_connection, open_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import (
     DatabaseClassification,
     inspect_database,
     _validate_current_managed_connection,
+)
+from ge_nwp_coordinator.sqlite_security import (
+    _StateDatabaseAuthorityBinding,
+    _StateDatabaseAuthorityBindingMismatch,
+    _StateDatabaseAuthorityBindingUnavailable,
+    _require_same_state_database_authority_binding,
 )
 from ge_nwp_coordinator.sqlite_writer_state import (
     _DurableWriterIssuance,
@@ -82,6 +88,20 @@ class SQLiteWriterAcquisitionError(RuntimeError):
 class _WriterIssuanceMatch(str, Enum):
     MATCH = "match"
     STALE_WRITER = "stale_writer"
+
+
+class _WriterSessionAuthorityClosed(WriterSessionError):
+    """Safe private marker for closed retained mutation authority."""
+
+    def __init__(self) -> None:
+        super().__init__(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+
+
+class _WriterSessionAuthorityUnavailable(WriterSessionError):
+    """Safe private marker for unavailable retained mutation authority."""
+
+    def __init__(self) -> None:
+        super().__init__(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
 
 
 class _WriterSessionMutationToken:
@@ -199,11 +219,15 @@ class _WriterSessionResource:
         *,
         location: CoordinatorStateLocation,
         authority_lock: StateAuthorityLock,
+        database_binding: _StateDatabaseAuthorityBinding,
         credential: _PrivateWriterCredential,
         metadata: SafeWriterMetadata,
     ) -> None:
+        if type(database_binding) is not _StateDatabaseAuthorityBinding:
+            raise ValueError("invalid writer input")
         self._location = location
         self._authority_lock: StateAuthorityLock | None = authority_lock
+        self._database_binding: _StateDatabaseAuthorityBinding | None = database_binding
         self._credential: _PrivateWriterCredential | None = credential
         self._metadata = metadata
         self._owner_pid = os.getpid()
@@ -269,8 +293,10 @@ class _WriterSessionResource:
         credential = self._credential
         self._credential = None
         self._authority_lock = None
+        self._database_binding = None
         if credential is not None:
             credential.overwrite_and_drop()
+        _remove_active_session_resource(self)
 
     def mark_closed_after_fork(self) -> None:
         self._replace_lifecycle_synchronization_after_fork()
@@ -284,6 +310,7 @@ class _WriterSessionResource:
         credential = self._credential
         self._credential = None
         self._authority_lock = None
+        self._database_binding = None
         if credential is not None:
             credential.overwrite_and_drop()
 
@@ -357,6 +384,7 @@ class _WriterSessionResource:
         authority_lock = self._authority_lock
         self._credential = None
         self._authority_lock = None
+        self._database_binding = None
         self._mutation_slot = None
         self._deferred_cleanup_requested = False
         self._state = _CLEANING
@@ -377,6 +405,7 @@ class _WriterSessionResource:
         _remove_active_session_resource(self)
         with self._condition:
             self._mutation_slot = None
+            self._database_binding = None
             if self._state == _CLEANING:
                 self._state = _CLOSED
                 self._condition.notify_all()
@@ -455,15 +484,42 @@ class _WriterSessionResource:
             )
             self._cleanup_release_lock_nonblocking(release_lock=True)
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
-        return _WriterSessionMutationLease(
-            resource=self,
-            operation_lease=operation_lease,
-            operation_id=operation_id,
-            owner_pid=owner_pid,
-            owner_thread=owner_thread,
-            lifecycle_epoch=lifecycle_epoch,
-            token=token,
-        )
+        try:
+            self._verify_filesystem_authority_binding(authority_lock)
+        except (
+            _WriterSessionAuthorityClosed,
+            _WriterSessionAuthorityUnavailable,
+        ):
+            self._release_mutation_slot(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                owner_thread=owner_thread,
+                lifecycle_epoch=lifecycle_epoch,
+                token=token,
+            )
+            raise
+        try:
+            mutation_lease = _MUTATION_LEASE_FACTORY(
+                resource=self,
+                operation_lease=operation_lease,
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                owner_thread=owner_thread,
+                lifecycle_epoch=lifecycle_epoch,
+                token=token,
+            )
+            if type(mutation_lease) is not _WriterSessionMutationLease:
+                raise ValueError("invalid writer input")
+            return mutation_lease
+        except BaseException:
+            self._release_mutation_slot(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                owner_thread=owner_thread,
+                lifecycle_epoch=lifecycle_epoch,
+                token=token,
+            )
+            raise
 
     def _release_mutation_slot(
         self,
@@ -532,6 +588,30 @@ class _WriterSessionResource:
             )
             self._cleanup_release_lock_nonblocking(release_lock=True)
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        self._verify_filesystem_authority_binding(authority_lock)
+
+    def _bound_state_database_for_mutation_operation(
+        self,
+        operation_lease: "_WriterSessionOperationLease",
+    ) -> _StateDatabaseAuthorityBinding:
+        self._require_active_mutation_authority_for_operation(operation_lease)
+        binding = self._database_binding
+        if type(binding) is not _StateDatabaseAuthorityBinding:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        return binding
+
+    def _verify_filesystem_authority_binding(self, authority_lock: StateAuthorityLock) -> None:
+        binding = self._database_binding
+        if type(binding) is not _StateDatabaseAuthorityBinding:
+            raise _WriterSessionAuthorityClosed()
+        try:
+            authority_lock._validate_state_database_authority_binding(binding)
+        except _StateDatabaseAuthorityBindingMismatch:
+            raise _WriterSessionAuthorityClosed() from None
+        except _StateDatabaseAuthorityBindingUnavailable:
+            raise _WriterSessionAuthorityUnavailable() from None
+        except Exception:
+            raise _WriterSessionAuthorityUnavailable() from None
 
     def _clear_mutation_slot_owned_by_operation(
         self,
@@ -673,6 +753,9 @@ class _WriterSessionOperationLease:
     def _require_active_mutation_authority(self) -> None:
         self._resource._require_active_mutation_authority_for_operation(self)
 
+    def _bound_state_database_for_mutation(self) -> _StateDatabaseAuthorityBinding:
+        return self._resource._bound_state_database_for_mutation_operation(self)
+
     def _verify_durable_writer_issuance(
         self,
         issuance: _DurableWriterIssuance,
@@ -789,6 +872,30 @@ class _WriterSessionMutationLease:
         self._operation_lease = None
 
 
+def _make_writer_session_mutation_lease(
+    *,
+    resource: _WriterSessionResource,
+    operation_lease: _WriterSessionOperationLease,
+    operation_id: int,
+    owner_pid: int,
+    owner_thread: int,
+    lifecycle_epoch: int,
+    token: _WriterSessionMutationToken,
+) -> _WriterSessionMutationLease:
+    return _WriterSessionMutationLease(
+        resource=resource,
+        operation_lease=operation_lease,
+        operation_id=operation_id,
+        owner_pid=owner_pid,
+        owner_thread=owner_thread,
+        lifecycle_epoch=lifecycle_epoch,
+        token=token,
+    )
+
+
+_MUTATION_LEASE_FACTORY = _make_writer_session_mutation_lease
+
+
 class _SQLiteWriterSession(WriterSession):
     """Internal concrete writer session for B2c acquisition only."""
 
@@ -850,10 +957,12 @@ def acquire_sqlite_writer_session(location: CoordinatorStateLocation) -> WriterS
     authority_lock = acquire_state_authority_lock(location)
     connection: sqlite3.Connection | None = None
     credential: _PrivateWriterCredential | None = None
+    database_binding: _StateDatabaseAuthorityBinding | None = None
     committed = False
     try:
         _require_managed_preflight(location)
-        connection = open_existing_sqlite_connection(location, read_only=False)
+        database_binding = authority_lock._capture_state_database_authority_binding(location)
+        connection = _open_bound_existing_sqlite_connection(database_binding, read_only=False)
         connection.execute("BEGIN IMMEDIATE")
         try:
             _validate_current_managed_connection(connection)
@@ -904,9 +1013,12 @@ def acquire_sqlite_writer_session(location: CoordinatorStateLocation) -> WriterS
         finally:
             connection.close()
             connection = None
+        confirmed_database_binding = authority_lock._capture_state_database_authority_binding(location)
+        _require_same_state_database_authority_binding(database_binding, confirmed_database_binding)
         resource = _WriterSessionResource(
             location=location,
             authority_lock=authority_lock,
+            database_binding=confirmed_database_binding,
             credential=credential,
             metadata=SafeWriterMetadata(
                 writer_ref=writer_ref,
