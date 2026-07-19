@@ -79,6 +79,79 @@ class SQLiteWriterAcquisitionError(RuntimeError):
         super().__init__(normalized.value)
 
 
+class _WriterIssuanceMatch(str, Enum):
+    MATCH = "match"
+    STALE_WRITER = "stale_writer"
+
+
+class _WriterSessionMutationToken:
+    """Opaque identity-only token for one resource mutation slot."""
+
+    __slots__ = ()
+    __hash__ = object.__hash__
+
+    def __repr__(self) -> str:
+        return "<_WriterSessionMutationToken>"
+
+    def __reduce__(self) -> object:
+        raise TypeError("invalid writer input")
+
+
+class _WriterSessionMutationSlot:
+    """Private resource-owned slot record for one active mutation."""
+
+    __slots__ = ("operation_id", "owner_pid", "owner_thread", "lifecycle_epoch", "token")
+    __hash__ = object.__hash__
+
+    def __init__(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        owner_thread: int,
+        lifecycle_epoch: int,
+        token: _WriterSessionMutationToken,
+    ) -> None:
+        self.operation_id = operation_id
+        self.owner_pid = owner_pid
+        self.owner_thread = owner_thread
+        self.lifecycle_epoch = lifecycle_epoch
+        self.token = token
+
+    def __repr__(self) -> str:
+        return "<_WriterSessionMutationSlot>"
+
+    def matches(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        owner_thread: int,
+        lifecycle_epoch: int,
+        token: _WriterSessionMutationToken,
+    ) -> bool:
+        return (
+            self.operation_id == operation_id
+            and self.owner_pid == owner_pid
+            and self.owner_thread == owner_thread
+            and self.lifecycle_epoch == lifecycle_epoch
+            and self.token is token
+        )
+
+    def owned_by_operation(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        lifecycle_epoch: int,
+    ) -> bool:
+        return (
+            self.operation_id == operation_id
+            and self.owner_pid == owner_pid
+            and self.lifecycle_epoch == lifecycle_epoch
+        )
+
+
 class _PrivateWriterCredential:
     """Memory-only private issuance proof held by an active session resource."""
 
@@ -138,6 +211,7 @@ class _WriterSessionResource:
         self._lifecycle_epoch = 1
         self._next_operation_id = 1
         self._active_operations: dict[int, int] = {}
+        self._mutation_slot: _WriterSessionMutationSlot | None = None
         self._deferred_cleanup_requested = False
         self._reset_lifecycle_synchronization()
         self._registry_key = id(self)
@@ -190,6 +264,7 @@ class _WriterSessionResource:
         self._lifecycle_epoch += 1
         self._next_operation_id = 1
         self._active_operations = {}
+        self._mutation_slot = None
         self._deferred_cleanup_requested = False
         credential = self._credential
         self._credential = None
@@ -204,6 +279,7 @@ class _WriterSessionResource:
         self._lifecycle_epoch += 1
         self._next_operation_id = 1
         self._active_operations = {}
+        self._mutation_slot = None
         self._deferred_cleanup_requested = False
         credential = self._credential
         self._credential = None
@@ -281,6 +357,7 @@ class _WriterSessionResource:
         authority_lock = self._authority_lock
         self._credential = None
         self._authority_lock = None
+        self._mutation_slot = None
         self._deferred_cleanup_requested = False
         self._state = _CLEANING
         self._condition.notify_all()
@@ -299,6 +376,7 @@ class _WriterSessionResource:
             authority_lock.close()
         _remove_active_session_resource(self)
         with self._condition:
+            self._mutation_slot = None
             if self._state == _CLEANING:
                 self._state = _CLOSED
                 self._condition.notify_all()
@@ -332,6 +410,163 @@ class _WriterSessionResource:
             raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
         return lease
 
+    def _acquire_mutation_lease_for_operation(
+        self,
+        operation_lease: "_WriterSessionOperationLease",
+    ) -> "_WriterSessionMutationLease":
+        operation_lease._require_owner_call()
+        token = _WriterSessionMutationToken()
+        owner_pid = operation_lease._owner_pid
+        owner_thread = operation_lease._owner_thread
+        operation_id = operation_lease._operation_id
+        lifecycle_epoch = operation_lease._lifecycle_epoch
+        with self._condition:
+            if (
+                self._owner_pid != owner_pid
+                or self._state != _ACTIVE
+                or self._lifecycle_epoch != lifecycle_epoch
+                or self._credential is None
+                or self._authority_lock is None
+            ):
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if self._active_operations.get(operation_id) != owner_thread:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if operation_lease._credential is not self._credential:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if operation_lease._authority_lock is not self._authority_lock:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if self._mutation_slot is not None:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_IN_PROGRESS)
+            self._mutation_slot = _WriterSessionMutationSlot(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                owner_thread=owner_thread,
+                lifecycle_epoch=lifecycle_epoch,
+                token=token,
+            )
+            authority_lock = self._authority_lock
+        if not _authority_lock_active(authority_lock):
+            self._release_mutation_slot(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                owner_thread=owner_thread,
+                lifecycle_epoch=lifecycle_epoch,
+                token=token,
+            )
+            self._cleanup_release_lock_nonblocking(release_lock=True)
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        return _WriterSessionMutationLease(
+            resource=self,
+            operation_lease=operation_lease,
+            operation_id=operation_id,
+            owner_pid=owner_pid,
+            owner_thread=owner_thread,
+            lifecycle_epoch=lifecycle_epoch,
+            token=token,
+        )
+
+    def _release_mutation_slot(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        owner_thread: int,
+        lifecycle_epoch: int,
+        token: _WriterSessionMutationToken,
+    ) -> bool:
+        if owner_pid != os.getpid() or self._owner_pid != owner_pid or owner_thread != get_ident():
+            return False
+        with self._condition:
+            slot = self._mutation_slot
+            if slot is None:
+                return False
+            if not slot.matches(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                owner_thread=owner_thread,
+                lifecycle_epoch=lifecycle_epoch,
+                token=token,
+            ):
+                return False
+            self._mutation_slot = None
+            self._condition.notify_all()
+            return True
+
+    def _require_active_mutation_authority_for_operation(
+        self,
+        operation_lease: "_WriterSessionOperationLease",
+    ) -> None:
+        operation_lease._require_owner_call()
+        owner_pid = operation_lease._owner_pid
+        owner_thread = operation_lease._owner_thread
+        operation_id = operation_lease._operation_id
+        lifecycle_epoch = operation_lease._lifecycle_epoch
+        with self._condition:
+            if (
+                self._owner_pid != owner_pid
+                or self._state != _ACTIVE
+                or self._lifecycle_epoch != lifecycle_epoch
+                or self._credential is None
+                or self._authority_lock is None
+            ):
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if self._active_operations.get(operation_id) != owner_thread:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if operation_lease._credential is not self._credential:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            if operation_lease._authority_lock is not self._authority_lock:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            slot = self._mutation_slot
+            if slot is None or not slot.owned_by_operation(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                lifecycle_epoch=lifecycle_epoch,
+            ) or slot.owner_thread != owner_thread:
+                raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+            authority_lock = self._authority_lock
+        if not _authority_lock_active(authority_lock):
+            self._clear_mutation_slot_owned_by_operation(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                lifecycle_epoch=lifecycle_epoch,
+            )
+            self._cleanup_release_lock_nonblocking(release_lock=True)
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+
+    def _clear_mutation_slot_owned_by_operation(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        lifecycle_epoch: int,
+    ) -> bool:
+        if owner_pid != os.getpid() or self._owner_pid != owner_pid:
+            return False
+        with self._condition:
+            return self._clear_mutation_slot_owned_by_operation_locked(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                lifecycle_epoch=lifecycle_epoch,
+            )
+
+    def _clear_mutation_slot_owned_by_operation_locked(
+        self,
+        *,
+        operation_id: int,
+        owner_pid: int,
+        lifecycle_epoch: int,
+    ) -> bool:
+        slot = self._mutation_slot
+        if slot is None or not slot.owned_by_operation(
+            operation_id=operation_id,
+            owner_pid=owner_pid,
+            lifecycle_epoch=lifecycle_epoch,
+        ):
+            return False
+        self._mutation_slot = None
+        self._condition.notify_all()
+        return True
+
     def _finish_operation(
         self,
         *,
@@ -344,8 +579,14 @@ class _WriterSessionResource:
         with self._condition:
             if lifecycle_epoch != self._lifecycle_epoch:
                 return None
-            if self._active_operations.pop(operation_id, None) is None:
+            if self._active_operations.get(operation_id) is None:
                 return None
+            self._clear_mutation_slot_owned_by_operation_locked(
+                operation_id=operation_id,
+                owner_pid=owner_pid,
+                lifecycle_epoch=lifecycle_epoch,
+            )
+            self._active_operations.pop(operation_id, None)
             if not self._active_operations:
                 self._condition.notify_all()
                 if self._state == _CLOSING:
@@ -426,6 +667,40 @@ class _WriterSessionOperationLease:
     ) -> None:
         self._close()
 
+    def _acquire_mutation_lease(self) -> "_WriterSessionMutationLease":
+        return self._resource._acquire_mutation_lease_for_operation(self)
+
+    def _require_active_mutation_authority(self) -> None:
+        self._resource._require_active_mutation_authority_for_operation(self)
+
+    def _verify_durable_writer_issuance(
+        self,
+        issuance: _DurableWriterIssuance,
+    ) -> _WriterIssuanceMatch:
+        self._require_active_mutation_authority()
+        parsed = _validated_durable_writer_issuance(issuance)
+        credential = self._credential
+        if credential is None:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        writer_ref_matches = credential.writer_ref == parsed.writer_ref
+        generation_matches = credential.generation == parsed.generation
+        issued_ref_matches = credential.issued_ref == parsed.issued_ref
+        proof_matches = credential.verify_digest(parsed.issuance_nonce_digest)
+        if writer_ref_matches and generation_matches and issued_ref_matches and proof_matches:
+            return _WriterIssuanceMatch.MATCH
+        return _WriterIssuanceMatch.STALE_WRITER
+
+    def _require_owner_call(self) -> None:
+        if self._closed:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        if self._owner_pid != os.getpid():
+            self._resource.cleanup_from_foreign_process()
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_PROCESS_MISMATCH)
+        if self._owner_thread != get_ident():
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+        if self._credential is None or self._authority_lock is None:
+            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_CLOSED)
+
     def _close(self) -> None:
         if self._closed:
             return
@@ -447,6 +722,71 @@ class _WriterSessionOperationLease:
                 authority_lock=authority_lock,
                 release_lock=True,
             )
+
+
+class _WriterSessionMutationLease:
+    """Private release handle for the resource-owned mutation slot."""
+
+    __slots__ = (
+        "_resource",
+        "_operation_lease",
+        "_operation_id",
+        "_owner_pid",
+        "_owner_thread",
+        "_lifecycle_epoch",
+        "_token",
+        "_closed",
+    )
+    __hash__ = object.__hash__
+
+    def __init__(
+        self,
+        *,
+        resource: _WriterSessionResource,
+        operation_lease: _WriterSessionOperationLease,
+        operation_id: int,
+        owner_pid: int,
+        owner_thread: int,
+        lifecycle_epoch: int,
+        token: _WriterSessionMutationToken,
+    ) -> None:
+        self._resource = resource
+        self._operation_lease: _WriterSessionOperationLease | None = operation_lease
+        self._operation_id = operation_id
+        self._owner_pid = owner_pid
+        self._owner_thread = owner_thread
+        self._lifecycle_epoch = lifecycle_epoch
+        self._token = token
+        self._closed = False
+
+    def __repr__(self) -> str:
+        return "<_WriterSessionMutationLease>"
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self._close()
+
+    def _close(self) -> None:
+        if self._closed:
+            return
+        if self._owner_pid != os.getpid() or self._owner_thread != get_ident():
+            return
+        self._resource._release_mutation_slot(
+            operation_id=self._operation_id,
+            owner_pid=self._owner_pid,
+            owner_thread=self._owner_thread,
+            lifecycle_epoch=self._lifecycle_epoch,
+            token=self._token,
+        )
+        self._closed = True
+        self._operation_lease = None
 
 
 class _SQLiteWriterSession(WriterSession):
@@ -731,6 +1071,38 @@ def _require_persisted_matches(
         or persisted.acquired_at != acquired_at
     ):
         raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_ACQUISITION_FAILED)
+
+
+def _validated_durable_writer_issuance(issuance: _DurableWriterIssuance) -> _DurableWriterIssuance:
+    if type(issuance) is not _DurableWriterIssuance:
+        raise ValueError("invalid writer input")
+    try:
+        parsed = _parse_writer_ownership_rows_or_raise(
+            [
+                (
+                    1,
+                    issuance.writer_ref,
+                    issuance.generation,
+                    issuance.issued_ref,
+                    issuance.issuance_nonce_digest,
+                    issuance.acquired_at,
+                )
+            ]
+        )
+    except (AttributeError, ValueError):
+        raise ValueError("invalid writer input") from None
+    if parsed is None:
+        raise ValueError("invalid writer input")
+    return parsed
+
+
+def _authority_lock_active(authority_lock: StateAuthorityLock | None) -> bool:
+    if authority_lock is None:
+        return False
+    try:
+        return authority_lock.active
+    except Exception:
+        return False
 
 
 def _generate_writer_ref() -> str:

@@ -17,9 +17,10 @@ idempotency, and sequence contracts only; it still does not implement any of
 the B3c runtime steps above.
 B3c1 has since frozen the prerequisite contract for the production-unintegrated
 rollback-only controller posture in
-`.docs/b3c1-prerequisite-contract.md`; it still implements no mutation slot,
-controller, concrete capability, writer-fencing query, transaction runtime, or
-state mutation.
+`.docs/b3c1-prerequisite-contract.md`, and B3c1a has since implemented private
+WriterSession mutation-slot and operation-lease verification plumbing. It still
+implements no transaction controller, concrete capability, writer-fencing
+query, transaction runtime, or state mutation.
 
 ## Nominal Capability Ownership
 
@@ -32,7 +33,7 @@ The concrete capability is created only by one private rollback-only
 transaction controller. There is one controller construction path, and that
 controller path is the only path that may construct the nominal capability.
 Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1, the controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1a, the controller has no
 production caller; coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
 `for_test` factory. Direct private test invocation is not public or production
@@ -412,10 +413,11 @@ transition proof, or migration 0002.
 
 B3c1 prerequisite contracts are implemented in
 `.docs/b3c1-prerequisite-contract.md` for production-unintegrated
-rollback-only transaction authority, but no B3c1 runtime exists.
+rollback-only transaction authority. B3c1a private WriterSession authority
+plumbing is implemented in `.docs/b3c1a-writer-session-authority.md`.
 
-B3c1a remains future for the runtime mutation slot, mutation lease, and
-operation-lease verification interface.
+B3c1a implements the runtime mutation slot, mutation lease, and
+operation-lease verification interface without SQLite transaction work.
 
 B3c1b remains future for the rollback-only transaction controller, writer
 fencing query, and nominal capability.

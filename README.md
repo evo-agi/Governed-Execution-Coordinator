@@ -76,15 +76,17 @@ SQLite bootstrap/migration infrastructure only:
   SQLite execution, reader, fixture, transaction capability, fencing, context
   assembly, evaluator integration, mutation runtime, admission, authorization
   implementation, or migration 0002.
-- B3c1 prerequisite contracts for the production-unintegrated/test-executed
-  rollback-only posture: one private controller construction path, future
+- B3c1 prerequisite/private plumbing for the production-unintegrated/test-executed
+  rollback-only posture: one private controller construction path,
   resource-owned mutation slot and mutation-lease identity, operation-lease
   authority and durable-issuance verification interfaces, writer-row query and
   parser ownership, writer-fencing taxonomy, nominal capability epoch rules,
-  cleanup precedence, and B3c1a/B3c1b split, with no runtime mutation slot,
-  controller, concrete capability, query execution, B3b2 reader integration,
-  context assembly, evaluator invocation, event/state mutation, public
-  mutation-method behavior change, or migration 0002.
+  cleanup precedence, and B3c1a/B3c1b split. B3c1a implements only the private
+  slot, lease, authority checks, durable-issuance verification, and
+  `_WriterIssuanceMatch`, with no controller, concrete capability, query
+  execution, B3b2 reader integration, context assembly, evaluator invocation,
+  event/state mutation, public mutation-method behavior change, or migration
+  0002.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -210,14 +212,13 @@ B3c0b now implements the pure/static event-row and replay contract portion
 that B3c0a left future. It adds no runtime caller: idempotency and
 maximum-sequence SQL are immutable data only, and exact replay is a pure
 event-owned match over an already reconstructed envelope.
-B3c1 now freezes prerequisite contracts only. It reconciles nominal capability
-construction as one private rollback-only controller path, keeps future
-production invocation limited to `_SQLiteWriterSession.apply_transition()`,
-allows coherent tests to invoke that same private controller through private
-imports when the runtime slice exists, and keeps public mutation methods
-`writer_session_mutation_unavailable` with no SQLite contact. B3c1a remains
-future for the runtime mutation slot and operation-lease verification; B3c1b
-remains future for rollback-only controller execution, fencing, and nominal
-capability construction.
+B3c1 now includes B3c1a private WriterSession authority plumbing. It reconciles
+nominal capability construction as one private rollback-only controller path,
+keeps future production invocation limited to
+`_SQLiteWriterSession.apply_transition()`, allows coherent tests to invoke that
+same private controller through private imports when the runtime slice exists,
+and keeps public mutation methods `writer_session_mutation_unavailable` with no
+SQLite contact. B3c1b remains future for rollback-only controller execution,
+fencing, and nominal capability construction.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

@@ -1,29 +1,31 @@
 # B3c1 Prerequisite Contract
 
-Status: implemented contract/static prerequisite; no mutation slot, controller,
-capability, fencing, reader integration, transaction runtime, or state mutation.
+Status: implemented B3c1a private WriterSession authority plumbing; no SQLite
+transaction controller, nominal capability, fencing query, reader integration,
+transaction runtime, or state mutation.
 
-B3c1 freezes only the contracts needed before the first rollback-only
+B3c1 freezes the contracts needed before the first rollback-only
 transaction-authority implementation. It reconciles the production reachability
-posture, pins the future session-owned mutation slot, defines the minimal
+posture, pins the session-owned mutation slot, defines the minimal
 operation-lease authority interface, freezes writer-row fencing ownership and
 classification, records the nominal capability and epoch model, and splits the
-future runtime work into B3c1a and B3c1b.
+runtime work into B3c1a and B3c1b.
 
-B3c1 does not implement `_WriterSessionMutationLease`, add mutation-slot state
-to `_WriterSessionResource`, add operation-lease authority methods, implement a
-writer-row `SELECT`, add a transaction controller, add a concrete capability,
-open SQLite from transition or global-stop apply, execute `BEGIN IMMEDIATE`,
-call B3b2 readers, assemble context, invoke the evaluator, insert events,
-update work-item or global-stop state, change public mutation-method behavior,
-modify migration 0001, or add migration 0002.
+B3c1a implements only `_WriterSessionResource` mutation-slot ownership,
+`_WriterSessionMutationLease`, operation-lease active-authority validation,
+private durable-writer-issuance verification, and `_WriterIssuanceMatch`. It
+does not implement a writer-row `SELECT`, add a transaction controller, add a
+concrete capability, open SQLite from transition or global-stop apply, execute
+`BEGIN IMMEDIATE`, call B3b2 readers, assemble context, invoke the evaluator,
+insert events, update work-item or global-stop state, change public
+mutation-method behavior, modify migration 0001, or add migration 0002.
 
 ## B3c1 Boundary
 
-B3c1 is production-unintegrated and test-executed only. It is a prerequisite
-contract tranche, not a runtime tranche.
+B3c1 is production-unintegrated and test-executed only. B3c1a is private
+WriterSession authority plumbing, not transaction or mutation runtime.
 
-The future B3c1 runtime boundary is limited to:
+The B3c1 boundary is limited to:
 
 1. the real shared per-`WriterSession` mutation slot;
 2. the smallest safe operation-lease active-authority interface;
@@ -54,7 +56,7 @@ path. The controller construction path is the only path that may construct the
 nominal capability.
 
 Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1, the controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1a, the controller has no
 production caller. coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
 `for_test` factory. Direct private test invocation is not a public or
@@ -63,15 +65,15 @@ production authority route.
 `_SQLiteWriterSession.apply_transition()` and
 `_SQLiteWriterSession.apply_global_stop_update()` remain
 `writer_session_mutation_unavailable` and contact no SQLite database during
-B3c1. A method that returns `writer_session_mutation_unavailable` has not
+B3c1a. A method that returns `writer_session_mutation_unavailable` has not
 entered the B3c1 rollback-only controller, has not acquired the mutation slot,
 has not opened SQLite, and has not produced a fencing result.
 
 ## B3c1a Mutation Slot
 
-The future mutation slot is owned by `_WriterSessionResource`.
+The B3c1a mutation slot is owned by `_WriterSessionResource`.
 
-The future representation is a dedicated private
+The representation is a dedicated private
 `_WriterSessionMutationLease`. A Boolean field, count, or public token is not
 the authority object.
 
@@ -111,8 +113,8 @@ Release semantics are:
 
 ## Operation-Lease Interface
 
-The future `_WriterSessionOperationLease` private interface may expose only
-conceptual methods equivalent to:
+The `_WriterSessionOperationLease` private interface exposes only methods
+equivalent to:
 
 ```python
 _acquire_mutation_lease() -> _WriterSessionMutationLease
@@ -129,7 +131,7 @@ _verify_durable_writer_issuance(
 - `MATCH`;
 - `STALE_WRITER`.
 
-The issuance argument must be the exact `_DurableWriterIssuance` type produced
+The issuance argument is the exact `_DurableWriterIssuance` type produced
 by `sqlite_writer_state.py`; structural lookalikes are not accepted. The
 verification method must check owner process, owner thread, lifecycle epoch,
 retained lock, writer ref, generation, issued ref, and the private proof
@@ -220,7 +222,7 @@ must not reuse the acquisition reader's outward error taxonomy as-is, because
 writer acquisition and mutation fencing have different safe public
 classifications.
 
-No SQL implementation exists in this prerequisite tranche.
+No B3c1a SQL implementation exists.
 
 ## Writer Fencing
 
@@ -257,7 +259,7 @@ The future private module is:
 
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`
 
-This module remains future in the B3c1 prerequisite patch.
+This module remains future after B3c1a.
 
 The future module owns one private nominal rollback-only transaction controller
 and one private nominal transaction-read capability. The capability has no
@@ -341,15 +343,16 @@ No finalizer is the primary cleanup path.
 
 ## Implementation Split
 
-B3c1a implements only:
+B3c1a implements:
 
 - runtime mutation slot;
 - `_WriterSessionMutationLease`;
 - operation-lease active-authority method;
 - operation-lease durable-issuance verification;
-- no SQLite;
+- no SQLite transaction work;
 - no transaction controller;
-- no nominal capability.
+- no nominal capability;
+- no public mutation-method behavior change.
 
 B3c1b implements only:
 

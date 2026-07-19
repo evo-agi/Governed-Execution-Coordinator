@@ -14,10 +14,10 @@ replay, idempotency, and sequence contracts only. B3 tests-only coherent
 fixtures add temporary managed graphs under `tests/` only, with no production
 admission or runtime authority. B3c1 adds prerequisite contract pins for the
 production-unintegrated rollback-only controller posture, single private
-controller construction path, future mutation slot, operation-lease interfaces,
-writer-row query ownership, fencing taxonomy, nominal capability epoch,
-cleanup precedence, and B3c1a/B3c1b split only, as documented in
-`.docs/b3c1-prerequisite-contract.md`.
+controller construction path, mutation slot, operation-lease interfaces,
+writer-row query ownership, fencing taxonomy, nominal capability epoch, cleanup
+precedence, and B3c1a/B3c1b split. B3c1a private WriterSession authority
+plumbing is documented in `.docs/b3c1a-writer-session-authority.md`.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -39,7 +39,8 @@ evaluator integration, or mutation.
 B3c0b adds no SQL execution, idempotency/event/sequence reader, fixture,
 concrete transaction capability, writer fencing, context assembly, evaluator
 integration, event insertion, current-state update, or mutation.
-B3c1 adds no runtime mutation slot, transaction controller, concrete
+B3c1a adds only private WriterSession mutation-slot and operation-lease
+verification plumbing. B3c1 adds no transaction controller, concrete
 capability, writer-fencing query execution, B3b2 reader integration, context
 assembly, evaluator integration, event insertion, current-state update, public
 mutation-method behavior change, or migration 0002.
@@ -418,10 +419,10 @@ replay, idempotency-match, and sequence/query-spec contracts only; it still
 does not add a production read port, idempotency reader, event reader, sequence
 reader, production fixture program, concrete transaction capability, writer fencing,
 context assembly, evaluator integration, mutation, or executable A2 behavior.
-B3c1 adds prerequisite contracts only and still does not add a runtime mutation
-slot, transaction controller, concrete capability, writer-fencing query
-execution, reader integration, rollback runtime, state mutation, or executable
-A2 behavior.
+B3c1a adds only private WriterSession authority plumbing and still does not add
+a transaction controller, concrete capability, writer-fencing query execution,
+reader integration, rollback runtime, state mutation, or executable A2
+behavior.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

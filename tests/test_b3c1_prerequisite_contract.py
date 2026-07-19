@@ -5,6 +5,7 @@ import hashlib
 import inspect
 from pathlib import Path
 
+import ge_nwp_coordinator
 from ge_nwp_coordinator.sqlite_transition_read_scope import _TransitionReadCapabilityFailureReason
 from ge_nwp_coordinator.sqlite_writer_session import _SQLiteWriterSession
 from ge_nwp_coordinator.state_store import WriterSessionFailureReason
@@ -76,11 +77,11 @@ def test_b3c1_prerequisite_document_status_boundary_and_split_are_static_only() 
     doc = B3C1_DOC.read_text(encoding="utf-8")
     normalized = _normalized(doc)
     for phrase in (
-        "Status: implemented contract/static prerequisite",
-        "no mutation slot, controller, capability, fencing, reader integration, transaction runtime, or state mutation",
+        "Status: implemented B3c1a private WriterSession authority plumbing",
+        "no SQLite transaction controller, nominal capability, fencing query, reader integration, transaction runtime, or state mutation",
         "B3c1 is production-unintegrated and test-executed only",
-        "B3c1 does not implement `_WriterSessionMutationLease`",
-        "B3c1a implements only:",
+        "B3c1a implements only `_WriterSessionResource` mutation-slot ownership",
+        "B3c1a implements:",
         "B3c1b implements only:",
         "Each slice requires an implementation-only prompt",
         "No fresh source snapshot is required between accepted B3c1a and B3c1b commits unless evidence conflicts.",
@@ -110,7 +111,7 @@ def test_production_unintegrated_posture_reconciles_single_controller_path() -> 
             "created only by one private rollback-only transaction controller",
             "There is one controller construction path",
             "Future production invocation may occur only from `_SQLiteWriterSession.apply_transition()`",
-            "During B3c1, the controller has no production caller",
+            "During B3c1a, the controller has no production caller",
             "coherent tests may invoke the same private controller directly through private imports",
             "without adding a separate source-level `for_test` factory",
         ):
@@ -133,7 +134,7 @@ def test_production_unintegrated_posture_reconciles_single_controller_path() -> 
     assert "make_coherent_transition_fixture_for_test" not in production_source
 
 
-def test_future_resource_owned_mutation_slot_and_lease_identity_are_pinned_not_implemented() -> None:
+def test_resource_owned_mutation_slot_and_lease_identity_are_private_b3c1a_runtime() -> None:
     section = _section(B3C1_DOC.read_text(encoding="utf-8"), "B3c1a Mutation Slot")
     normalized = _normalized(section)
     for phrase in (
@@ -156,16 +157,19 @@ def test_future_resource_owned_mutation_slot_and_lease_identity_are_pinned_not_i
 
     writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
     assert "_active_operations" in writer_source
-    for forbidden in (
+    for required in (
         "class _WriterSessionMutationLease",
-        "_mutation_slot",
-        "_acquire_mutation_lease",
-        "WRITER_SESSION_MUTATION_IN_PROGRESS" + ")",
+        "class _WriterSessionMutationSlot",
+        "self._mutation_slot",
+        "def _acquire_mutation_lease",
+        "WRITER_SESSION_MUTATION_IN_PROGRESS",
+        "def _release_mutation_slot",
+        "def _clear_mutation_slot_owned_by_operation_locked",
     ):
-        assert forbidden not in writer_source
+        assert required in writer_source
 
 
-def test_operation_lease_interface_and_issuance_match_are_pinned_not_implemented() -> None:
+def test_operation_lease_interface_and_issuance_match_are_private_b3c1a_runtime() -> None:
     section = _section(B3C1_DOC.read_text(encoding="utf-8"), "Operation-Lease Interface")
     normalized = _normalized(section)
     for phrase in (
@@ -206,12 +210,14 @@ def test_operation_lease_interface_and_issuance_match_are_pinned_not_implemented
 
     writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
     assert "_DurableWriterIssuance" in _read("src/ge_nwp_coordinator/sqlite_writer_state.py")
-    for forbidden in (
+    for required in (
         "class _WriterIssuanceMatch",
         "_require_active_mutation_authority",
         "_verify_durable_writer_issuance",
+        "credential.verify_digest",
+        "type(issuance) is not _DurableWriterIssuance",
     ):
-        assert forbidden not in writer_source
+        assert required in writer_source
 
 
 def test_rollback_only_controller_result_is_exact_private_enum_contract() -> None:
@@ -275,8 +281,11 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
     ):
         assert forbidden not in ambiguous
 
+    writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
     production_source = "\n".join(_source_files().values())
-    assert "_WriterIssuanceMatch" not in production_source
+    assert "class _WriterIssuanceMatch(str, Enum):" in writer_source
+    assert "_WriterIssuanceMatch" not in ge_nwp_coordinator.__all__
+    assert not hasattr(ge_nwp_coordinator, "_WriterIssuanceMatch")
     assert "sqlite_transition_transaction" not in production_source
     assert "class _SQLiteTransitionTransactionController" not in production_source
 
@@ -298,7 +307,7 @@ def test_writer_row_query_parser_ownership_and_fencing_matrix_are_pinned() -> No
         "reuse `_parse_writer_ownership_rows`",
         "must not create a second writer-row grammar",
         "must not reuse the acquisition reader's outward error taxonomy as-is",
-        "No SQL implementation exists in this prerequisite tranche.",
+        "No B3c1a SQL implementation exists.",
     ):
         assert phrase in normalized_query
 
@@ -363,9 +372,9 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons_without_
         class_names.update(
             node.name for node in ast.walk(ast.parse(source)) if isinstance(node, ast.ClassDef)
         )
+    assert "_WriterSessionMutationLease" in class_names
     assert "_SQLiteTransitionTransactionController" not in class_names
     assert "_SQLiteTransitionReadCapability" not in class_names
-    assert "_WriterSessionMutationLease" not in class_names
 
 
 def test_rollback_only_lifecycle_and_cleanup_precedence_are_exact() -> None:
@@ -437,29 +446,31 @@ def test_public_mutation_methods_remain_unavailable_and_contact_no_sqlite() -> N
     assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_IN_PROGRESS.value == "writer_session_mutation_in_progress"
 
 
-def test_docs_cross_reference_b3c1_and_no_runtime_or_migration_exists() -> None:
+def test_docs_cross_reference_b3c1a_and_no_b3c1b_runtime_or_migration_exists() -> None:
     for path in (
         "AGENTS.md",
         "README.md",
         ".docs/architecture.md",
         ".docs/durable-state-model.md",
         ".docs/writer-session-authority.md",
+        ".docs/b3c1a-writer-session-authority.md",
         ".docs/b3-transition-persistence-contract.md",
         ".docs/b3c0a-transition-authority-and-order.md",
         ".docs/sqlite-state-backend-adr.md",
     ):
         normalized = _normalized(_read(path))
         assert "B3c1" in normalized
-        assert ".docs/b3c1-prerequisite-contract.md" in normalized or path in {"AGENTS.md", "README.md"}
+        assert (
+            ".docs/b3c1-prerequisite-contract.md" in normalized
+            or ".docs/b3c1a-writer-session-authority.md" in normalized
+            or path in {"AGENTS.md", "README.md"}
+        )
 
     source = "\n".join(_source_files().values())
     for forbidden in (
         "sqlite_transition_transaction",
-        "class _WriterSessionMutationLease",
         "class _SQLiteTransitionTransactionController",
         "class _SQLiteTransitionReadCapability",
-        "def _verify_durable_writer_issuance",
-        "def _require_active_mutation_authority",
         "def assemble_transition_context",
         "def verify_writer_fencing",
         "INSERT INTO transition_events",

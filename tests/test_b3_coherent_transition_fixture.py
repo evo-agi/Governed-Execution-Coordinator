@@ -332,8 +332,8 @@ def test_docs_and_static_contracts_record_tests_only_fixture_status() -> None:
         "unsupported authorization remains production/default",
         "optional persisted event is domain-rejected",
         "no accepted executable transition is proved",
-        "B3c1 prerequisites are contract-only",
-        "B3c1 runtime plus B3c2-B3c4 remain future",
+        "B3c1 prerequisites plus B3c1a private authority plumbing",
+        "B3c1b plus B3c2-B3c4 remain future",
     ):
         assert phrase in normalized
 

@@ -58,7 +58,8 @@ adapter for that table. The row builder is not a second authority.
 Required fixture truths: real writer issuance is temporary test evidence only;
 unsupported authorization remains production/default; optional persisted event
 is domain-rejected; no accepted executable transition is proved; B3c1
-prerequisites are contract-only and B3c1 runtime plus B3c2-B3c4 remain future.
+prerequisites plus B3c1a private authority plumbing do not make the fixture
+runtime authority; B3c1b plus B3c2-B3c4 remain future.
 
 Unsupported authorization remains production/default:
 
@@ -96,9 +97,9 @@ must fail through existing safe row or binding contracts.
 
 ## Remaining Work
 
-B3c1 prerequisites are contract-only; B3c1 runtime remains future for the
-mutation slot, rollback-only controller, nominal transaction capability, and
-writer fencing.
+B3c1a private authority plumbing exists only behind private WriterSession
+helpers; rollback-only controller, nominal transaction capability, and writer
+fencing remain future B3c1b work.
 B3c2 remains future for event/idempotency/sequence readers. B3c3 remains
 future for context assembly and evaluator dry run. B3c4 remains future for
 atomic persistence, accepted-state CAS, rollback, and commit-uncertainty

@@ -12,8 +12,9 @@ integration. B3c0a adds contract/static pins for future transition authority,
 ordering, fencing, and failure precedence only. B3c0b adds pure/static
 transition-event row, replay, event-owned idempotency, and sequence contracts
 only. B3c1 adds contract/static pins for the production-unintegrated
-rollback-only controller posture, future mutation slot, operation-lease
-interfaces, writer fencing, nominal capability epoch, cleanup precedence, and
+rollback-only controller posture plus B3c1a private mutation slot,
+operation-lease authority checks, durable-issuance verification, writer
+fencing result vocabulary, nominal capability epoch, cleanup precedence, and
 B3c1a/B3c1b split only.
 The code still does not implement a production `StateStore` mutation backend.
 
@@ -163,13 +164,15 @@ B3c1 prerequisites are source-of-truth in
 `.docs/b3c1-prerequisite-contract.md`. They reconcile the B3c0a capability
 wording by requiring a single private rollback-only controller construction path
 while keeping future production invocation limited to
-`_SQLiteWriterSession.apply_transition()`. During B3c1, that controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1a, that controller has no
 production caller; coherent tests may invoke the same private controller
 directly through private imports; public transition and global-stop mutation
 methods remain `writer_session_mutation_unavailable` and open no SQLite
-database. B3c1 adds no runtime mutation slot, transaction controller, concrete
-capability, writer-fencing query execution, B3b2 reader integration, context
-assembly, evaluator invocation, event/state mutation, or migration 0002.
+database. B3c1a implements only private WriterSession authority plumbing and
+adds no transaction controller, concrete capability, writer-fencing query
+execution, B3b2 reader integration, context assembly, evaluator invocation,
+event/state mutation, public mutation-method behavior change, or migration
+0002.
 
 B3c0b implements the already-fetched `transition_events` row contract and pure
 idempotency match. `TransitionEventRecordEnvelope` reconstructs the stored
@@ -247,8 +250,8 @@ sequence/query-spec contracts only. B3 tests-only coherent fixtures add
 temporary managed graphs under `tests/` only. No `StateStore` mutation backend,
 integrated production typed SQLite reader, concrete transaction capability,
 production fixture insertion helper, coordinator service, or executable A2
-capability exists in this slice. B3c1 adds prerequisite contracts only and does
-not change that runtime boundary.
+capability exists in this slice. B3c1a adds only private WriterSession
+authority plumbing and does not change that runtime boundary.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

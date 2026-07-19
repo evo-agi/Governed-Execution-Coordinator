@@ -1,6 +1,7 @@
 # Writer Session Authority
 
-Status: B2c durable writer issuance and internal writer-session acquisition.
+Status: B2c durable writer issuance, internal writer-session acquisition, and
+B3c1a private WriterSession authority plumbing.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
@@ -8,9 +9,9 @@ updates, and an internal concrete `WriterSession`. No `StateStore` mutation
 backend, transition persistence, global-stop
 persistence, worker, service, scheduler, executable authorization, repair,
 commit, publication, or deployment behavior exists.
-B2c implements an internal concrete `WriterSession`. B3c0a adds
-contract/static pins for future mutation authority, including a
-one-mutation-per-session policy, but no mutation implementation.
+B2c implements an internal concrete `WriterSession`. B3c1a implements only the
+private resource-owned mutation slot, mutation lease, operation-lease authority
+checks, and durable-issuance verification needed by future B3c1b.
 
 ## Purpose
 
@@ -65,9 +66,10 @@ credential, is bound to the acquiring process, and has an
 active/closing/cleaning/closed lifecycle. Mutation methods exist on the session
 surface but fail locally with
 `writer_session_mutation_unavailable` until B3/B4 implement storage.
-B3c0a reserves `writer_session_mutation_in_progress` as a future local failure
-for a second concurrent mutation transaction on the same session; B2c does not
-implement that slot yet.
+B3c1a implements the private slot that uses
+`writer_session_mutation_in_progress` for a second concurrent private mutation
+attempt on the same session. Public mutation methods still do not acquire that
+slot.
 
 ### SafeWriterMetadata
 
@@ -119,7 +121,7 @@ prerequisites in `.docs/b3c1-prerequisite-contract.md` reconcile production
 reachability: the capability is created only by one private rollback-only
 transaction controller. There is one controller construction path. Future
 production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1, the controller has no
+`_SQLiteWriterSession.apply_transition()`. During B3c1a, the controller has no
 production caller, and coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
 `for_test` factory. The capability receives no credential, proof, proof digest,
@@ -187,7 +189,8 @@ Future `WriterSession` mutation calls use this order:
    the future typed command/operator-decision local checks without widening B4
    semantics.
 
-4. In future B3/B4, acquire the shared per-session mutation slot.
+4. In B3c1a private plumbing and future B3/B4 mutation runtime, acquire the
+   shared per-session mutation slot.
 
    If another mutation transaction is active on the same session, fail locally
    with `writer_session_mutation_in_progress`. No SQLite connection opens, no
@@ -298,12 +301,14 @@ Mutation methods in B2c first validate process identity, then enter a private
 operation guard, then fail locally with `writer_session_mutation_unavailable`.
 They do not open SQLite, do not call a `StateStore` apply method, do not
 inspect idempotency, do not emit an event, and do not mutate state.
-B3c0a pins a future private mutation slot layered inside this session boundary:
-at most one transition or global-stop mutation transaction may be active per
-session, and a second concurrent mutation attempt fails locally with
-`writer_session_mutation_in_progress` before SQLite. The slot is retained until
-after transaction resolution and connection-close attempt, then released before
-the outer operation lease exits.
+B3c1a implements the private mutation slot layered inside this session
+boundary: at most one transition or global-stop mutation transaction may be
+active per session, and a second private mutation attempt fails locally with
+`writer_session_mutation_in_progress` before SQLite. Public mutation methods
+still fail with `writer_session_mutation_unavailable` before acquiring the
+slot. The slot is retained until after transaction resolution and
+connection-close attempt, then released before the outer operation lease exits
+when future runtime uses it.
 
 The private operation guard uses process-local lifecycle synchronization and a
 private operation-identity registry, not a count-only authority truth. Each
@@ -313,7 +318,7 @@ retains a strong reference to the concrete session wrapper so wrapper
 finalization cannot release proof or lock authority while the operation is
 active. Nested operations are allowed as independent private operation
 identities.
-That generic operation registry is not the future mutation slot. B3c0a keeps
+That generic operation registry is not the B3c1a mutation slot. B3c0a keeps
 lifecycle operation identities separate from the stricter
 one-mutation-per-session rule.
 
@@ -478,11 +483,10 @@ operation guard and raises `writer_session_mutation_unavailable`; no transition
 persistence begins in B3a.
 B3c0a preserves that runtime behavior while reserving
 `writer_session_mutation_in_progress` for future B3/B4 concurrency checks.
-B3c1 freezes prerequisites only: `_SQLiteWriterSession.apply_transition()` and
-`apply_global_stop_update()` remain mutation-unavailable and open no SQLite
-database; B3c1a remains future for the runtime mutation slot and
-operation-lease verification methods; B3c1b remains future for the rollback-only
-controller, writer-fencing query, and nominal capability.
+B3c1a implements private WriterSession authority plumbing:
+`_SQLiteWriterSession.apply_transition()` and `apply_global_stop_update()`
+remain mutation-unavailable and open no SQLite database; B3c1b remains future
+for the rollback-only controller, writer-fencing query, and nominal capability.
 
 ## Non-Goals
 

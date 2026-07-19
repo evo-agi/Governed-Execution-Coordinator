@@ -143,14 +143,16 @@ operator-policy authority, and not an executable transition proof.
 B3c1 prerequisite contracts are documented in
 `.docs/b3c1-prerequisite-contract.md`. They freeze the
 production-unintegrated/test-executed rollback-only posture, the single private
-controller construction path, the future resource-owned mutation slot and
+controller construction path, the resource-owned mutation slot and
 mutation-lease identity, the operation-lease authority and durable-issuance
 verification interfaces, the writer-row query/parser ownership, writer-fencing
 classifications, nominal capability and epoch rules, rollback-only cleanup
-precedence, and the B3c1a/B3c1b split. B3c1 adds no runtime mutation slot,
-controller, concrete capability, query execution, B3b2 reader integration,
-context assembly, evaluator invocation, event/state mutation, public behavior
-change, or migration 0002.
+precedence, and the B3c1a/B3c1b split. B3c1a implements only private
+WriterSession authority plumbing: one mutation slot, one mutation lease,
+operation-lease active-authority checks, durable-issuance verification, and
+`_WriterIssuanceMatch`. B3c1 adds no controller, concrete capability, query
+execution, B3b2 reader integration, context assembly, evaluator invocation,
+event/state mutation, public behavior change, or migration 0002.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -300,10 +302,11 @@ contracts. B3b2b adds private SELECT readers with tests-only execution and no
 production call sites. B3c0a adds contract/static pins only for the future
 transition authority boundary. B3c0b adds pure event/replay row, idempotency,
 and sequence contracts only. B3 tests-only coherent fixtures add temporary
-managed graphs for future tests only. B3c1 adds prerequisite contract pins only
-for production-unintegrated rollback-only controller construction, the future
-mutation slot and operation-lease interfaces, writer-fencing taxonomy,
-capability epoch rules, cleanup precedence, and the B3c1a/B3c1b split. There
+managed graphs for future tests only. B3c1 adds prerequisite contract pins and
+B3c1a private WriterSession authority plumbing for production-unintegrated
+rollback-only controller construction, the mutation slot and operation-lease
+interfaces, writer-fencing taxonomy, capability epoch rules, cleanup
+precedence, and the B3c1a/B3c1b split. There
 is still no production transaction controller, concrete capability, reader
 integration, context assembly, evaluator integration, exact replay runtime over
 SQLite, or mutation. B3c concrete transaction capability and atomic transition
