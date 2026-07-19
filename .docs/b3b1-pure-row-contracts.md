@@ -1,6 +1,7 @@
 # B3b1 Pure Row Contracts
 
-Status: implemented pure/model row contracts; no SQLite readers or fixtures.
+Status: implemented pure/model row contracts; no SQLite readers or fixture code
+in this module.
 
 B3b1 implements internal contracts that convert already-fetched explicit-column
 SQLite row mappings into typed internal envelopes. These contracts are pure
@@ -172,5 +173,5 @@ separately owned harness outside this B3b1 contract.
 
 B3b2b executing readers are now implemented only as private, unreachable
 per-table SELECT helpers and are test-executed through a tests-only capability.
-B3b3 coherent fixtures and B3c production transaction integration remain
-future.
+B3 tests-only coherent fixtures are implemented separately under `tests/` only.
+B3c production transaction integration remains future.

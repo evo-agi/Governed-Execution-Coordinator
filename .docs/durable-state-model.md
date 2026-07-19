@@ -101,7 +101,7 @@ The caller supplies only `TransitionCommand`; future B3 reconstructs
 
 B3b prerequisite contracts are source-of-truth in
 `.docs/b3b-reader-prerequisite-contract.md`. They do not implement typed SQLite
-readers or fixtures. They pin future current-state reconstruction for the first
+readers or production fixtures. They pin future current-state reconstruction for the first
 bounded persisted slice: admitted backlog is mandatory read-time authority;
 work-item attempt and repair limits are exact copies of the standing lease;
 `WorkItemRecord.budget_consumed` and `WorkItemRecord.budget_limit` must both be
@@ -173,6 +173,16 @@ B3c0b also defines immutable data-only query specs for future
 specs have no runtime caller in this tranche. B3c2 remains future for readers
 over the specs.
 
+B3 tests-only coherent fixtures now live under `tests/` only. They use a
+temporary managed schema-0001 database, directly seed synthetic authoritative
+rows through a test-setup transaction, reconstruct through existing B3b1/B3b2b
+and B3c0b contracts, and acquire real internal writer issuance as temporary
+test evidence. Unsupported authorization remains production/default, optional
+persisted events are domain-rejected, and no accepted executable transition is
+proved. The fixtures do not add production admission, authorization, product
+state initialization, runtime authority, a concrete capability, fencing, context
+assembly, mutation, or migration 0002.
+
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. It carries the complete `LeaseRuntimeDecision`
 mapping, so the transaction timestamp and runtime lease status used by the
@@ -218,9 +228,10 @@ B3b1 adds pure internal row-to-envelope adapters only. B3b2a adds private
 capability-protocol and query-spec contracts. B3b2b adds private SELECT readers
 that are not called by production source. B3c0a adds contract/static pins only.
 B3c0b adds pure/static transition-event envelope, idempotency match, and
-sequence/query-spec contracts only. No `StateStore` mutation backend,
+sequence/query-spec contracts only. B3 tests-only coherent fixtures add
+temporary managed graphs under `tests/` only. No `StateStore` mutation backend,
 integrated production typed SQLite reader, concrete transaction capability,
-test database fixture insertion helper, coordinator service, or executable A2
+production fixture insertion helper, coordinator service, or executable A2
 capability exists in this slice.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict

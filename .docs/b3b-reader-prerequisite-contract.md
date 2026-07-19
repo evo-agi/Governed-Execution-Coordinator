@@ -1,6 +1,7 @@
 # B3b Reader Prerequisite Contract
 
-Status: contract-only prerequisite plus later B3b2b private SELECT readers.
+Status: contract-only prerequisite plus later B3b2b private SELECT readers and
+a separate B3 tests-only coherent fixture graph.
 
 B3b1 status: implemented pure/model full-row contracts and internal
 operational timestamp envelopes only. No test database fixture insertion helper
@@ -22,8 +23,11 @@ transition/global-stop mutation, admission, or authorization implementation.
 
 This document pins the authority contracts required before integrated typed
 SQLite readers and test-only authoritative fixtures can be implemented. No test
-database fixture insertion helper exists in this tranche. No production SQLite
-reader integration is added. No transition mutation,
+database fixture insertion helper exists in this tranche. A later B3 tests-only
+coherent fixture graph now lives under `tests/` only; it is not part of this
+prerequisite tranche and is not production admission, authorization, reader
+integration, or runtime authority. No production SQLite reader integration is
+added. No transition mutation,
 global-stop mutation, event insertion, work-item update, idempotency lookup,
 replay runtime, event-sequence allocation, expected-version runtime, production
 admission, authorization implementation, worker, scheduler, service, CLI, MCP,

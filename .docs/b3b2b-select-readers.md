@@ -15,7 +15,8 @@ B3b2b implements six private functions in `sqlite_transition_read_scope.py`:
 These functions are not package-root exports, not public read APIs, not
 `StateStore` methods, and not `WriterSession` methods. No production module
 calls them. Tests invoke them directly through a clearly test-only structural
-capability and in-memory test tables.
+capability and in-memory test tables; the B3 coherent fixture tests also invoke
+them over a temporary managed database through a tests-only capability.
 
 ## Boundary
 
@@ -104,3 +105,8 @@ row behavior, and production unreachability.
 
 The tests-only capability does not prove production transaction authority and
 must not be imported by production source.
+
+The B3 coherent fixture helpers live under `tests/` only. Their direct seeding
+path is test setup, not B3b2b reader integration, production admission,
+authorization, concrete capability construction, fencing, context assembly, or
+mutation runtime.

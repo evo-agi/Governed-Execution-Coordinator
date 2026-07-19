@@ -679,7 +679,7 @@ def test_b3b1_docs_pin_pure_row_scope_and_timestamp_posture() -> None:
     doc = (ROOT / ".docs/b3b1-pure-row-contracts.md").read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
     for phrase in (
-        "Status: implemented pure/model row contracts; no SQLite readers or fixtures",
+        "Status: implemented pure/model row contracts; no SQLite readers or fixture code in this module",
         "already-fetched explicit-column SQLite row mappings",
         "Every adapter requires the complete explicit SQL column set",
         "operational row timestamps",
@@ -696,7 +696,7 @@ def test_b3b1_docs_pin_pure_row_scope_and_timestamp_posture() -> None:
         "B3b2a has since added ordered row-column tuples",
         "B3b2b has since added private SELECT readers",
         "B3b2b executing readers are now implemented only as private, unreachable",
-        "B3b3 coherent fixtures and B3c production transaction integration remain future",
+        "B3 tests-only coherent fixtures are implemented separately under `tests/` only",
     ):
         assert phrase in normalized
 

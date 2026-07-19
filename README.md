@@ -39,7 +39,7 @@ SQLite bootstrap/migration infrastructure only:
   admitted-backlog binding, exact lease-copied attempt/repair limits,
   zero-only scalar persisted budget fields, READY-only dependency receipts,
   internal timestamp-envelope posture, and schema-0001 sufficiency for the
-  bounded reader slice, with no reader or fixture implementation.
+  bounded reader slice, with no reader implementation in that tranche.
 - B3b1 pure internal full-row contracts that wrap already-fetched
   schema-0001 row mappings in operational timestamp envelopes for lease
   identity, authorization, dependency, work-item, admitted-backlog, and
@@ -76,6 +76,14 @@ SQLite bootstrap/migration infrastructure only:
   SQLite execution, reader, fixture, transaction capability, fencing, context
   assembly, evaluator integration, mutation runtime, admission, authorization
   implementation, or migration 0002.
+- a B3 tests-only coherent fixture graph under `tests/` that initializes a
+  temporary managed schema-0001 database, directly seeds synthetic
+  authoritative rows through a test-setup transaction, validates them through
+  existing row contracts, acquires real internal writer issuance as temporary
+  test evidence, and optionally persists a domain-rejected event/replay row.
+  It adds no production fixture module, admission, authorization verifier,
+  concrete capability, fencing, context assembly, mutation runtime, accepted
+  operator-policy authority, executable transition proof, or migration 0002.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -184,10 +192,11 @@ shared transition/global-stop pre-SQLite mutation prefix and mutation slot,
 invalidation before commit or rollback, missing-row classifications,
 current/expected/context ordering, timestamp point, idempotency/replay
 placement, evaluator placement, sequence and event collision posture, and
-rollback/commit/close precedence. B3c remains
-future for implementing the concrete capability, transaction controller,
-fencing SELECT, idempotency/event/sequence readers, runtime replay, context
-assembly, evaluation, fixtures, and mutation.
+rollback/commit/close precedence. B3 tests-only coherent fixtures now provide
+temporary managed graphs for future B3c tests. B3c remains future for
+implementing the concrete capability, transaction controller, fencing SELECT,
+idempotency/event/sequence readers, runtime replay, context assembly,
+evaluation, and mutation.
 B3c0b now implements the pure/static event-row and replay contract portion
 that B3c0a left future. It adds no runtime caller: idempotency and
 maximum-sequence SQL are immutable data only, and exact replay is a pure

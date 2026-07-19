@@ -384,11 +384,13 @@ B3c0b has since implemented pure/static transition-event row, replay,
 event-owned idempotency, immutable data-only query specs, and sequence
 allocation contracts. It executes no SQL and mutates no state.
 
-B3 fixtures remain future for tests-only coherent managed graphs: managed schema
-0001, real internal writer issuance, lease/backlog/current work item,
-authorization and optional dependency receipts, global stop, and optional
-existing event/replay rows. Fixtures must not become production admission or
-authority.
+B3 tests-only coherent fixtures are implemented under `tests/` only for
+temporary managed schema-0001 graphs: real internal writer issuance,
+lease/backlog/current work item, unsupported authorization and optional
+dependency receipts, migration-owned clear global stop, and optional
+domain-rejected event/replay rows. Fixtures are not production admission,
+authorization, runtime authority, accepted operator-policy authority, executable
+transition proof, or migration 0002.
 
 B3c1 remains future for nominal transaction capability and writer fencing only.
 

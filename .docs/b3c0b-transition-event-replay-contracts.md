@@ -198,7 +198,9 @@ implementation, worker, service, scheduler, CLI, MCP, connector, network,
 repair, commit, publication, deployment behavior, migration 0002, or migration
 0001 edit.
 
-B3 fixtures remain future for tests-only coherent managed graphs. B3c1 remains
-future for nominal capability and fencing. B3c2 remains future for
-idempotency/event/sequence readers. B3c3 remains future for context/evaluator
-dry run. B3c4 remains future for atomic persistence.
+B3 tests-only coherent fixtures are implemented separately under `tests/` only.
+They may persist only domain-rejected event/replay rows produced by the pure
+evaluator and do not add SQL execution to B3c0b. B3c1 remains future for nominal
+capability and fencing. B3c2 remains future for idempotency/event/sequence
+readers. B3c3 remains future for context/evaluator dry run. B3c4 remains future
+for atomic persistence.

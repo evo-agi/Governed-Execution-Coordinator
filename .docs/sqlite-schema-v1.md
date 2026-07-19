@@ -380,6 +380,15 @@ already fetched or future transition-event rows. It executes no SQL and adds no
 idempotency/event/sequence reader, fixture, transaction capability, mutation, or
 migration 0002.
 
+B3 tests-only coherent fixtures also use schema 0001 without changing migration
+0001. They live under `tests/` only, initialize temporary managed databases,
+directly seed synthetic authoritative rows as test setup, validate through
+existing row contracts, acquire real writer issuance as temporary test evidence,
+and may persist only domain-rejected event/replay rows. They add no production
+fixture, admission, authorization, concrete capability, fencing, context
+assembly, mutation, accepted operator-policy authority, executable transition
+proof, migration 0002, or schema change.
+
 ## B1 Initialization Guarantees
 
 Migration `0001_initial` creates schema objects and inserts its

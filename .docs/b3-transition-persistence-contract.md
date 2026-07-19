@@ -2,9 +2,10 @@
 
 Status: B3a contract-only prerequisites, B3b/B3b1 reader prerequisites, B3b2a
 private capability-protocol/query contracts, B3b2b private SELECT readers with
-no production integration, B3c0a transition-authority/order contract pins, and
+no production integration, B3c0a transition-authority/order contract pins,
 B3c0b pure/static transition-event row, replay, idempotency, and sequence
-contracts.
+contracts, and a B3 tests-only coherent fixture graph with no production
+admission or runtime authority.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -69,9 +70,18 @@ reconstruction, digest/index equality, created-at/runtime equality, bounded
 zero-budget replay checks, pure event-owned idempotency matching, immutable
 data-only idempotency and maximum-sequence query specs, and pure sequence
 allocation tests. It still adds no SQL execution, idempotency reader, event
-reader, sequence reader, coherent fixture, concrete capability, writer fencing,
+reader, sequence reader, concrete capability, writer fencing,
 context assembler, evaluator integration, event insertion, current-state update,
 admission, authorization verifier, or migration 0002.
+
+B3 tests-only coherent fixtures live under `tests/` only. They initialize a
+temporary managed schema-0001 database, directly seed synthetic authoritative
+rows through a test-setup transaction, validate and reconstruct through existing
+B3b1/B3b2b/B3c0b contracts, acquire real internal writer issuance as temporary
+test evidence, and may persist only a domain-rejected event/replay row produced
+by the pure evaluator. Direct seeding is not admission or product mutation, and
+the fixtures prove no accepted operator-policy authority, executable transition,
+production admission, production runtime authority, or migration 0002.
 
 ## Public Shape
 
@@ -454,10 +464,10 @@ required for these prerequisite contracts. Future multidimensional dynamic
 budget consumption accounting requires a separately audited versioned contract
 and may require schema/model evolution, but it must not modify migration 0001.
 
-The first bounded B3 proof will use a temporary managed DB, test-only seeded
-authoritative rows, an acquired internal writer session, production unsupported
-authorization for durable domain rejection, an accepted non-executable
-transition from an already-admitted test state, exact replay, idempotency
-conflict, expected-version conflict, and not-found. It will not prove
-admission, executable authorization, worker execution, service behavior,
+The B3 tests-only coherent fixture graph uses a temporary managed DB,
+test-only seeded authoritative rows, an acquired internal writer session,
+production unsupported authorization for durable domain rejection, optional
+READY dependency receipts, exact replay, and safe current-state read-back. It
+does not prove admission, accepted operator-policy authority, executable
+authorization, an accepted transition, worker execution, service behavior,
 global-stop mutation, repair, commit, publication, or related-repo authority.

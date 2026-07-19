@@ -128,8 +128,17 @@ reconstruction and digest/index equality checks, `created_at` equality with
 posture, pure event-owned idempotency matching, immutable data-only idempotency
 and maximum-sequence query specs, and pure sequence allocation tests. It does
 not implement SQL execution, readers, a concrete capability, writer fencing,
-context assembly, evaluator invocation, fixtures, mutation outcome, admission,
+context assembly, evaluator invocation, mutation outcome, admission,
 authorization verification, or migration 0002.
+
+B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
+temporary managed schema-0001 database, directly seed synthetic authoritative
+rows through a test-setup transaction, validate those rows through existing row
+contracts, acquire real internal writer issuance as temporary test evidence, and
+optionally persist a domain-rejected event/replay row produced by the pure
+evaluator. The fixture graph is not production admission, not authorization, not
+runtime authority, not product state initialization, not accepted
+operator-policy authority, and not an executable transition proof.
 
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
@@ -270,7 +279,7 @@ B3a defines transition-persistence contracts only: command-only
 schema-aligned decision/event provenance, canonical event/replay mappings, and
 safe mutation-store errors. B3a does not add SQLite transition persistence.
 B3b prerequisite contracts add pure/model reader prerequisites only: no
-integrated typed SQLite reader, test database fixture insertion,
+integrated production typed SQLite reader, production fixture insertion,
 transition/global-stop mutation, admission, authorization verifier, worker,
 scheduler, service, CLI, MCP, connector, repair, commit, publication, migration
 0002, or executable A2 behavior. B3b1 adds only pure full-row envelope adapters
@@ -278,8 +287,10 @@ for already-fetched rows. B3b2a adds private capability-protocol and query-spec
 contracts. B3b2b adds private SELECT readers with tests-only execution and no
 production call sites. B3c0a adds contract/static pins only for the future
 transition authority boundary. B3c0b adds pure event/replay row, idempotency,
-and sequence contracts only. There is still no transaction controller, concrete
-capability, reader integration, context assembly, evaluator integration, exact
-replay runtime over SQLite, or mutation. B3c concrete transaction capability
-and atomic transition apply, exact replay readers, and fault injection remain
-future. B4 remains future for global-stop persistence.
+and sequence contracts only. B3 tests-only coherent fixtures add temporary
+managed graphs for future tests only. There is still no production transaction
+controller, concrete capability, reader integration, context assembly,
+evaluator integration, exact replay runtime over SQLite, or mutation. B3c
+concrete transaction capability and atomic transition apply, exact replay
+readers, and fault injection remain future. B4 remains future for global-stop
+persistence.

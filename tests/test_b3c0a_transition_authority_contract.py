@@ -131,7 +131,7 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "does not implement a concrete transaction capability",
         "does not implement a concrete transaction capability, transaction controller, writer-fencing `SELECT`",
         "B3c0b has since implemented pure/static transition-event row, replay, idempotency, and sequence contracts",
-        "B3 fixtures remain future",
+        "B3 tests-only coherent fixtures are implemented under `tests/` only",
         "B3c1 remains future",
         "B3c2 remains future",
         "B3c3 remains future",

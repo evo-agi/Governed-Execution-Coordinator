@@ -193,6 +193,16 @@ integration, mutation runtime, admission, authorization verifier, migration
 0002, worker, service, CLI, MCP, connector, repair, commit, publication, or
 deployment behavior.
 
+B3 tests-only coherent fixtures are implemented only under `tests/`. They
+create temporary managed schema-0001 SQLite databases through production
+initialization, directly seed synthetic authoritative rows through a test setup
+transaction, validate rows through existing pure contracts, acquire real
+internal writer issuance as temporary test evidence, and may persist only a
+domain-rejected event/replay row produced by the pure evaluator. They are not
+production admission, not authorization, not runtime authority, not product
+state initialization, not accepted operator-policy authority, not an executable
+transition proof, and not migration 0002.
+
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.

@@ -10,7 +10,9 @@ non-executing capability-protocol and immutable query-contract prerequisites
 only. B3b2b implements private SELECT readers with no production integration.
 B3c0a pins transition authority, ordering, fencing, and failure precedence as a
 contract/static prerequisite only. B3c0b adds pure/static transition-event row,
-replay, idempotency, and sequence contracts only.
+replay, idempotency, and sequence contracts only. B3 tests-only coherent
+fixtures add temporary managed graphs under `tests/` only, with no production
+admission or runtime authority.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -25,7 +27,7 @@ coordinator service, or enable executable A2 behavior. B3a adds no SQLite
 transition mutation runtime. B3b2a adds no executing reader, production read
 port, transition mutation, or transaction ownership. B3b2b adds executing
 private SELECT readers only; they are not production read ports and add no
-concrete transaction capability, transition mutation, fixture program, or
+concrete transaction capability, transition mutation, production fixture program, or
 transaction ownership. B3c0a adds no concrete transaction capability,
 transaction controller, writer-fencing SELECT, fixture, context assembly,
 evaluator integration, or mutation.
@@ -398,9 +400,17 @@ scheduling, authorization, sandboxing, repair, local commit, publication, or
 deployment. B3b2a does not change that persistence boundary; it adds private
 query-spec and capability-protocol contracts. B3b2b adds private, unreachable
 SELECT readers for tests only. B3b2b still does not add a production read port,
-fixture program, concrete transaction capability, context assembly, mutation,
+production fixture program, concrete transaction capability, context assembly, mutation,
 or executable A2 behavior. B3c0b adds pure/static transition-event row,
 replay, idempotency-match, and sequence/query-spec contracts only; it still
 does not add a production read port, idempotency reader, event reader, sequence
-reader, fixture program, concrete transaction capability, writer fencing,
+reader, production fixture program, concrete transaction capability, writer fencing,
 context assembly, evaluator integration, mutation, or executable A2 behavior.
+
+The tests-only coherent fixture graph initializes a temporary managed database,
+directly seeds synthetic authoritative rows through a test transaction,
+validates them through existing contracts, acquires real writer issuance as
+temporary test evidence, and optionally persists a domain-rejected event/replay
+row. It is not product state initialization, not admission, not authorization,
+not a concrete capability, not fencing, not context assembly, not mutation, and
+not a migration.
