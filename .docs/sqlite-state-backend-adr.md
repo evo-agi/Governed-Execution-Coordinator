@@ -9,7 +9,8 @@ canonical persistence and provenance contracts only. B3b2a implements private
 non-executing capability-protocol and immutable query-contract prerequisites
 only. B3b2b implements private SELECT readers with no production integration.
 B3c0a pins transition authority, ordering, fencing, and failure precedence as a
-contract/static prerequisite only.
+contract/static prerequisite only. B3c0b adds pure/static transition-event row,
+replay, idempotency, and sequence contracts only.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -28,6 +29,9 @@ concrete transaction capability, transition mutation, fixture program, or
 transaction ownership. B3c0a adds no concrete transaction capability,
 transaction controller, writer-fencing SELECT, fixture, context assembly,
 evaluator integration, or mutation.
+B3c0b adds no SQL execution, idempotency/event/sequence reader, fixture,
+concrete transaction capability, writer fencing, context assembly, evaluator
+integration, event insertion, current-state update, or mutation.
 
 ## Decision
 
@@ -230,6 +234,16 @@ The first schema uses event-owned idempotency:
 Exact replay snapshots do not become current-state truth. They are authoritative
 only for replaying the original command outcome.
 
+B3c0b implements the pure transition-event half of that contract for already
+fetched rows. `transition_event_record_envelope_from_row(...)` reconstructs the
+canonical event and replay `WorkItemRecord`, validates exact JSON/digest/index
+equality, created-at/runtime equality, and bounded zero-budget replay posture.
+`match_transition_event_idempotency(...)` returns miss, exact replay,
+`idempotency_key_reuse_conflict`, or `database_integrity_failure` without
+reading SQLite. The future idempotency lookup remains a data-only query spec:
+`SELECT <all transition event row columns> FROM transition_events WHERE
+work_item_id = ? AND idempotency_key = ? LIMIT 2`.
+
 ## Transaction Order
 
 Transition mutation transaction:
@@ -275,6 +289,9 @@ Exact replay happens after writer-session fencing and idempotency match, before
 changed decision or global-stop context is re-evaluated.
 No timestamp is generated for replay, idempotency conflict, work-item not found,
 expected-version conflict, or validation conflict.
+B3c0b defines only pure sequence allocation and immutable maximum-sequence SQL
+text. It does not run the maximum-sequence query and does not allocate from
+SQLite.
 
 Global-stop mutation transaction remains future and unimplemented. It shares the
 same pre-SQLite authority prefix as transition mutation:
@@ -382,4 +399,8 @@ deployment. B3b2a does not change that persistence boundary; it adds private
 query-spec and capability-protocol contracts. B3b2b adds private, unreachable
 SELECT readers for tests only. B3b2b still does not add a production read port,
 fixture program, concrete transaction capability, context assembly, mutation,
-or executable A2 behavior.
+or executable A2 behavior. B3c0b adds pure/static transition-event row,
+replay, idempotency-match, and sequence/query-spec contracts only; it still
+does not add a production read port, idempotency reader, event reader, sequence
+reader, fixture program, concrete transaction capability, writer fencing,
+context assembly, evaluator integration, mutation, or executable A2 behavior.

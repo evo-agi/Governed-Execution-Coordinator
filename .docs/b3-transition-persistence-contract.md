@@ -2,7 +2,9 @@
 
 Status: B3a contract-only prerequisites, B3b/B3b1 reader prerequisites, B3b2a
 private capability-protocol/query contracts, B3b2b private SELECT readers with
-no production integration, and B3c0a transition-authority/order contract pins.
+no production integration, B3c0a transition-authority/order contract pins, and
+B3c0b pure/static transition-event row, replay, idempotency, and sequence
+contracts.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -59,6 +61,17 @@ precedence, and event-ref/sequence collision posture. It still adds no concrete
 capability, transaction controller, writer-fencing SELECT, event/replay row
 contract, idempotency reader, event-sequence SQL, fixture, context assembler,
 evaluator integration, or mutation.
+
+B3c0b implements the pure/static event/replay row-contract portion that B3c0a
+left future. It adds exact ordered `transition_events` row columns, a hidden
+internal `TransitionEventRecordEnvelope`, canonical event and replay
+reconstruction, digest/index equality, created-at/runtime equality, bounded
+zero-budget replay checks, pure event-owned idempotency matching, immutable
+data-only idempotency and maximum-sequence query specs, and pure sequence
+allocation tests. It still adds no SQL execution, idempotency reader, event
+reader, sequence reader, coherent fixture, concrete capability, writer fencing,
+context assembler, evaluator integration, event insertion, current-state update,
+admission, authorization verifier, or migration 0002.
 
 ## Public Shape
 
@@ -200,6 +213,18 @@ cleanup flag. It excludes SQLite `updated_at`, row ids, event sequence, and
 writer metadata. `replay_work_item_digest` is SHA-256 over the exact canonical
 replay JSON.
 
+B3c0b's internal `TransitionEventRecordEnvelope` reconstructs both values from
+an already fetched full row. `event_json` must equal
+`TransitionEvent.canonical_json()` byte-for-byte and `event_digest` must equal
+`TransitionEvent.canonical_digest()`. Every indexed event row column must equal
+the reconstructed event, and `evidence_refs_json` must equal the exact
+canonical JSON array derived from `event.evidence_refs`. `replay_work_item_json`
+must equal `WorkItemRecord.canonical_json()`, its digest must match, and the
+replay record must match event work item, lease, resulting state, and resulting
+version. Constructing `CommittedTransition(..., replayed=True)` must succeed.
+For the first bounded persisted slice, replay budget consumed, replay budget
+limit, and event budget-cost delta must all be zero.
+
 ## SQL Mapping
 
 Future `work_items` row mapping is exact for all `WorkItemRecord` fields.
@@ -315,6 +340,12 @@ Future transition event sequence allocation is:
 Sequence is operational ordering metadata. It is not event identity, event
 digest, or replay digest.
 
+B3c0b preserves the pure `next_transition_event_sequence(...)` behavior:
+`None -> 0`, non-negative integer maximum -> maximum plus one, bools/negative
+values/non-integers as integrity failures, and signed SQLite integer maximum as
+`event_sequence_exhausted`. It also defines immutable data-only SQL text for
+future maximum-sequence inspection. No B3c0b code runs that query.
+
 Future apply captures no new timestamp for exact replay, idempotency conflict,
 work-item not found, expected-version conflict, or validation conflict. After
 all prerequisite rows are loaded and cross-bound successfully, it uses one
@@ -326,6 +357,47 @@ transaction metadata, while the same semantic timestamp is integrity-bound
 inside event JSON, event digest, and event identity through `lease_runtime`.
 `created_at` is not independently hashed as a separate SQL column and remains
 outside replay digest. Exact replay returns stored original timestamps.
+
+B3c0b row reconstruction requires `transition_events.created_at` to be exact
+whole-second UTC `YYYY-MM-DDTHH:MM:SSZ` and equal the reconstructed event's
+`lease_runtime.evaluated_at`. Changing only `event_sequence` cannot change
+event identity, event digest, replay record, or replay digest. Changing
+`created_at` without changing lease runtime is integrity failure.
+
+## B3c0b Idempotency And Query Specs
+
+Event rows own transition idempotency. B3c0b's pure matcher returns:
+
+- `None` when no already-fetched row exists;
+- `database_integrity_failure` when the row is addressed under a different work
+  item or idempotency key;
+- `TransitionConflict("idempotency_key_reuse_conflict")` when work item and key
+  match but command digest differs;
+- `CommittedTransition(record=existing.replay_record, event=existing.event,
+  replayed=True)` when work item, key, and digest match.
+
+The matcher compares only against `TransitionCommand.canonical_command_digest`.
+It does not reread context, generate timestamps, allocate sequences, invoke the
+evaluator, mutate state, or invent another idempotency result model.
+
+`sqlite_transition_event_contracts.py` defines immutable data-only specs for:
+
+```sql
+SELECT <all TRANSITION_EVENT_ROW_COLUMNS>
+FROM transition_events
+WHERE work_item_id = ? AND idempotency_key = ?
+LIMIT 2
+```
+
+and:
+
+```sql
+SELECT MAX(event_sequence)
+FROM transition_events
+```
+
+These specs have no runtime caller in B3c0b. B3c2 remains future for
+idempotency/event/sequence readers over those specs.
 
 ## Error Taxonomy
 

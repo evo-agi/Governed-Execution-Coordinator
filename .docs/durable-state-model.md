@@ -9,7 +9,9 @@ B2c adds durable writer issuance and an internal concrete SQLite
 B3b2a adds private capability-protocol and query-contract prerequisites.
 B3b2b adds private SELECT readers over those specs with no production
 integration. B3c0a adds contract/static pins for future transition authority,
-ordering, fencing, and failure precedence only.
+ordering, fencing, and failure precedence only. B3c0b adds pure/static
+transition-event row, replay, event-owned idempotency, and sequence contracts
+only.
 The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
@@ -154,6 +156,23 @@ capability invalidation before commit or rollback, rollback/commit/close
 precedence, and event-ref/sequence collision posture.
 B3c0a implements none of those runtime steps.
 
+B3c0b implements the already-fetched `transition_events` row contract and pure
+idempotency match. `TransitionEventRecordEnvelope` reconstructs the stored
+event and replay `WorkItemRecord`, hides both from repr, validates exact
+canonical event/replay JSON and digests, checks all indexed event columns,
+requires `transition_events.created_at` to equal the event's
+`LeaseRuntimeDecision.evaluated_at`, and enforces the bounded zero-budget
+replay slice. `match_transition_event_idempotency(...)` returns `None` for an
+absent row, exact replay for matching work item/key/digest, an
+`idempotency_key_reuse_conflict` for a digest mismatch, and
+`database_integrity_failure` for wrong-address rows. It does not read SQLite,
+generate timestamps, invoke the evaluator, allocate sequences, or mutate state.
+
+B3c0b also defines immutable data-only query specs for future
+`transition_events` idempotency lookup and maximum sequence inspection. Those
+specs have no runtime caller in this tranche. B3c2 remains future for readers
+over the specs.
+
 Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
 The event is the receipt. It carries the complete `LeaseRuntimeDecision`
 mapping, so the transaction timestamp and runtime lease status used by the
@@ -198,9 +217,11 @@ contracts, B3b prerequisite contracts add pure/model reader prerequisites, and
 B3b1 adds pure internal row-to-envelope adapters only. B3b2a adds private
 capability-protocol and query-spec contracts. B3b2b adds private SELECT readers
 that are not called by production source. B3c0a adds contract/static pins only.
-No `StateStore` mutation backend, integrated production typed SQLite reader,
-concrete transaction capability, test database fixture insertion helper,
-coordinator service, or executable A2 capability exists in this slice.
+B3c0b adds pure/static transition-event envelope, idempotency match, and
+sequence/query-spec contracts only. No `StateStore` mutation backend,
+integrated production typed SQLite reader, concrete transaction capability,
+test database fixture insertion helper, coordinator service, or executable A2
+capability exists in this slice.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state

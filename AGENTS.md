@@ -180,6 +180,19 @@ integration, or migration 0002. Future concurrent mutation attempts are reserved
 as the local `writer_session_mutation_in_progress` session failure; B2c still
 raises `writer_session_mutation_unavailable`.
 
+B3c0b implements only pure/static transition-event row, replay, event-owned
+idempotency, and sequence contracts. It defines the exact ordered schema-0001
+`transition_events` row columns, an internal hidden event/replay envelope,
+canonical event/replay reconstruction and digest/index equality checks,
+created-at/runtime equality, bounded zero-budget replay checks, pure
+idempotency matching, immutable data-only idempotency and maximum-sequence query
+specifications, and pure sequence allocation tests. B3c0b executes no SQLite
+query and adds no idempotency/event/sequence reader, fixture program,
+transaction capability, writer fencing, context assembly, evaluator
+integration, mutation runtime, admission, authorization verifier, migration
+0002, worker, service, CLI, MCP, connector, repair, commit, publication, or
+deployment behavior.
+
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.

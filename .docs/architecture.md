@@ -120,6 +120,17 @@ precedence. B3c0a does not implement the concrete
 capability, writer-fencing SELECT, idempotency/replay, event sequence SQL,
 context assembly, evaluator invocation, fixtures, or mutation outcome.
 
+B3c0b implements the pure/static event-row and replay contracts that B3c0a left
+future. It defines the exact ordered schema-0001 `transition_events` columns,
+an internal hidden `TransitionEventRecordEnvelope`, canonical event/replay
+reconstruction and digest/index equality checks, `created_at` equality with
+`TransitionEvent.lease_runtime.evaluated_at`, bounded zero-budget replay
+posture, pure event-owned idempotency matching, immutable data-only idempotency
+and maximum-sequence query specs, and pure sequence allocation tests. It does
+not implement SQL execution, readers, a concrete capability, writer fencing,
+context assembly, evaluator invocation, fixtures, mutation outcome, admission,
+authorization verification, or migration 0002.
+
 Report projections are closed typed models. They expose safe refs, enums,
 bounded counters, global-stop status, and a fixed non-authority notice only;
 they are not generic sanitized payloads and do not carry private, endpoint,
@@ -266,8 +277,9 @@ scheduler, service, CLI, MCP, connector, repair, commit, publication, migration
 for already-fetched rows. B3b2a adds private capability-protocol and query-spec
 contracts. B3b2b adds private SELECT readers with tests-only execution and no
 production call sites. B3c0a adds contract/static pins only for the future
-transition authority boundary and adds no transaction controller, concrete
-capability, reader integration, context assembly, exact replay runtime, or
-mutation. B3c concrete transaction capability and atomic transition apply, exact
-replay, and fault injection remain future. B4 remains future for global-stop
-persistence.
+transition authority boundary. B3c0b adds pure event/replay row, idempotency,
+and sequence contracts only. There is still no transaction controller, concrete
+capability, reader integration, context assembly, evaluator integration, exact
+replay runtime over SQLite, or mutation. B3c concrete transaction capability
+and atomic transition apply, exact replay readers, and fault injection remain
+future. B4 remains future for global-stop persistence.

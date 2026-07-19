@@ -130,7 +130,7 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
     for phrase in (
         "does not implement a concrete transaction capability",
         "does not implement a concrete transaction capability, transaction controller, writer-fencing `SELECT`",
-        "B3c0b remains future",
+        "B3c0b has since implemented pure/static transition-event row, replay, idempotency, and sequence contracts",
         "B3 fixtures remain future",
         "B3c1 remains future",
         "B3c2 remains future",
@@ -452,7 +452,12 @@ def test_static_runtime_boundary_still_has_no_b3c_transition_apply_implementatio
     writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
     read_scope_source = _read("src/ge_nwp_coordinator/sqlite_transition_read_scope.py")
     persistence_source = _read("src/ge_nwp_coordinator/persistence_contracts.py")
-    sqlite_sources = "\n".join(path.read_text(encoding="utf-8") for path in PACKAGE_DIR.glob("sqlite_*.py"))
+    sqlite_runtime_sources = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in PACKAGE_DIR.glob("sqlite_*.py")
+        if path.name != "sqlite_transition_event_contracts.py"
+    )
+    transition_event_contract_source = _read("src/ge_nwp_coordinator/sqlite_transition_event_contracts.py")
 
     apply_source = inspect.getsource(_SQLiteWriterSession.apply_transition)
     global_stop_source = inspect.getsource(_SQLiteWriterSession.apply_global_stop_update)
@@ -498,12 +503,15 @@ def test_static_runtime_boundary_still_has_no_b3c_transition_apply_implementatio
     ):
         assert forbidden not in read_scope_source
     assert "sqlite3.connect" not in read_scope_source
-    assert "TransitionEventRecord" not in persistence_source
+    assert "TransitionEventRecordEnvelope" in persistence_source
+    assert "transition_event_record_envelope_from_row" in persistence_source
     assert "ReplayWorkItemRecord" not in persistence_source
-    assert "MAX(event_sequence" not in sqlite_sources
-    assert "evaluate_transition" not in sqlite_sources
-    assert "INSERT INTO transition_events" not in sqlite_sources
-    assert "UPDATE work_items" not in sqlite_sources
+    assert "_TRANSITION_EVENT_MAX_SEQUENCE_SELECT" in transition_event_contract_source
+    assert "MAX({sequence_column})" in transition_event_contract_source
+    assert "MAX(event_sequence" not in sqlite_runtime_sources
+    assert "evaluate_transition" not in sqlite_runtime_sources
+    assert "INSERT INTO transition_events" not in sqlite_runtime_sources
+    assert "UPDATE work_items" not in sqlite_runtime_sources
 
     assert "sqlite_transition_fixtures" not in writer_source
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()

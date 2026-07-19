@@ -34,6 +34,11 @@ current work-item load, expected-version comparison, context rows, binding
 checks, transaction timestamp, lease runtime, context construction, one evaluator
 invocation, event sequence, event/replay insert, accepted-state CAS, capability
 invalidation, commit or rollback, connection close, and result return.
+B3c0b implements the pure event-row and replay contracts used by that future
+idempotency step: an already fetched `transition_events` row reconstructs one
+canonical `TransitionEvent` and one canonical replay `WorkItemRecord`, and a
+pure event-owned matcher returns miss, exact replay, key-reuse conflict, or
+database-integrity failure without reading SQLite or mutating state.
 
 The pure evaluator owns domain rules: target-state support, invariant P1 stage
 availability, typed lease identity/runtime and authorization decision effects,
@@ -119,6 +124,10 @@ counter change, budget effect, or state mutation occurs.
   event's integrity-bound `lease_runtime.evaluated_at` timestamp. Event digest
   and event identity cover that semantic runtime timestamp through the event
   JSON.
+- B3c0b event-row reconstruction requires literal canonical event/replay JSON,
+  digest equality, indexed/event equality, canonical evidence-ref JSON, replay
+  work-item/lease/state/version equality, and bounded zero-budget replay
+  posture.
 - Replay `WorkItemRecord` snapshots exclude SQLite `updated_at`.
 - No separate result reason can disagree with event reason.
 - Apply conflicts never carry events.

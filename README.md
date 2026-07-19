@@ -67,6 +67,15 @@ SQLite bootstrap/migration infrastructure only:
   posture, with no concrete capability, controller, fencing SELECT,
   idempotency/replay reader, context assembler, evaluator integration, fixture,
   transition mutation, global-stop mutation, or migration 0002.
+- B3c0b pure/static transition-event row, replay, event-owned idempotency, and
+  sequence contracts: exact ordered schema-0001 `transition_events` columns,
+  internal event/replay envelope reconstruction, canonical JSON/digest/index
+  equality checks, created-at/runtime equality, zero-budget bounded-slice
+  enforcement, pure idempotency matching, immutable data-only idempotency and
+  maximum-sequence query specs, and pure sequence allocation tests, with no
+  SQLite execution, reader, fixture, transaction capability, fencing, context
+  assembly, evaluator integration, mutation runtime, admission, authorization
+  implementation, or migration 0002.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -177,7 +186,11 @@ current/expected/context ordering, timestamp point, idempotency/replay
 placement, evaluator placement, sequence and event collision posture, and
 rollback/commit/close precedence. B3c remains
 future for implementing the concrete capability, transaction controller,
-fencing SELECT, idempotency/replay, context assembly, evaluation, fixtures, and
-mutation.
+fencing SELECT, idempotency/event/sequence readers, runtime replay, context
+assembly, evaluation, fixtures, and mutation.
+B3c0b now implements the pure/static event-row and replay contract portion
+that B3c0a left future. It adds no runtime caller: idempotency and
+maximum-sequence SQL are immutable data only, and exact replay is a pure
+event-owned match over an already reconstructed envelope.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

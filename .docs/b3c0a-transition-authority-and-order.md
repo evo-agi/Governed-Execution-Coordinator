@@ -12,6 +12,9 @@ event/replay row contract, idempotency reader, event-sequence SQL, coherent
 fixture, context assembler, evaluator integration, transition/global-stop
 mutation, admission, authorization verification, worker behavior, CLI, MCP,
 connector, or migration 0002.
+B3c0b has since implemented pure/static transition-event row, replay,
+idempotency, and sequence contracts only; it still does not implement any of
+the B3c runtime steps above.
 
 ## Nominal Capability Ownership
 
@@ -375,12 +378,11 @@ consume sequence numbers. Replay and apply conflicts do not. Rolled-back
 sequence numbers may be reused; committed sequence numbers are never reused.
 Signed SQLite maximum overflow remains `event_sequence_exhausted`.
 
-## Remaining Future Stages
+## Later Stages
 
-B3c0b remains future for ordered transition-event row columns, a pure
-event/replay row envelope, canonical event/replay equality, idempotency match
-contract, and sequence query/allocation contract. It must not execute SQL or
-mutate state.
+B3c0b has since implemented pure/static transition-event row, replay,
+event-owned idempotency, immutable data-only query specs, and sequence
+allocation contracts. It executes no SQL and mutates no state.
 
 B3 fixtures remain future for tests-only coherent managed graphs: managed schema
 0001, real internal writer issuance, lease/backlog/current work item,

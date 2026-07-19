@@ -27,12 +27,16 @@ from ge_nwp_coordinator.models import require_contract_ref
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError, SQLiteMutationStoreErrorCode
 from ge_nwp_coordinator.state_machine import (
     DEPENDENCY_DECISION_SCHEMA_ID,
+    TRANSITION_EVENT_SCHEMA_ID,
     WORK_ITEM_STATE_SCHEMA_ID,
     DependencyDecision,
+    TransitionCommand,
+    TransitionEvent,
     WorkItemRecord,
     WorkItemState,
     require_work_item_state,
 )
+from ge_nwp_coordinator.state_store import CommittedTransition, TransitionConflict
 
 SQLITE_SIGNED_INT_MAX = 9223372036854775807
 FIRST_TRANSITION_EVENT_SEQUENCE = 0
@@ -160,7 +164,41 @@ GLOBAL_STOP_CURRENT_ROW_COLUMNS = _validated_row_columns(
     ),
 )
 GLOBAL_STOP_CURRENT_ROW_KEYS = frozenset(GLOBAL_STOP_CURRENT_ROW_COLUMNS)
+TRANSITION_EVENT_ROW_COLUMNS = _validated_row_columns(
+    "TRANSITION_EVENT_ROW_COLUMNS",
+    (
+        "event_ref",
+        "event_sequence",
+        "work_item_id",
+        "lease_id",
+        "idempotency_key",
+        "command_digest",
+        "source_state",
+        "source_version",
+        "resulting_state",
+        "resulting_version",
+        "outcome",
+        "reason",
+        "evidence_refs_json",
+        "budget_cost_delta",
+        "attempt_count_delta",
+        "repair_count_delta",
+        "lease_identity_decision_ref",
+        "authorization_decision_ref",
+        "dependency_decision_ref",
+        "global_stop_ref",
+        "global_stop_version",
+        "schema_id",
+        "event_json",
+        "event_digest",
+        "replay_work_item_json",
+        "replay_work_item_digest",
+        "created_at",
+    ),
+)
+TRANSITION_EVENT_ROW_KEYS = frozenset(TRANSITION_EVENT_ROW_COLUMNS)
 _MAX_CANONICAL_JSON_BYTES = 1048576
+_MAX_EVIDENCE_REFS_JSON_BYTES = 262144
 
 
 class B3AuthorizationModelHandling(str, Enum):
@@ -262,6 +300,186 @@ class GlobalStopCurrentRecordEnvelope:
             "updated_at",
             _require_canonical_utc_timestamp(self.updated_at, "global_stop_current_row.updated_at"),
         )
+
+
+@dataclass(frozen=True)
+class TransitionEventRecordEnvelope:
+    event_sequence: int
+    event: TransitionEvent = field(repr=False)
+    replay_record: WorkItemRecord = field(repr=False)
+    created_at: str
+
+    def __post_init__(self) -> None:
+        event = self.event
+        replay_record = self.replay_record
+        object.__setattr__(
+            self,
+            "event_sequence",
+            _require_transition_event_sequence(self.event_sequence),
+        )
+        if type(event) is not TransitionEvent:
+            raise _integrity_failure()
+        if type(replay_record) is not WorkItemRecord:
+            raise _integrity_failure()
+        object.__setattr__(
+            self,
+            "created_at",
+            _require_transition_event_created_at(self.created_at),
+        )
+
+
+@dataclass(frozen=True)
+class TransitionEventRecordContract:
+    event_ref: str = field(repr=False)
+    event_sequence: int
+    work_item_id: str = field(repr=False)
+    lease_id: str = field(repr=False)
+    idempotency_key: str = field(repr=False)
+    command_digest: str = field(repr=False)
+    source_state: WorkItemState = field(repr=False)
+    source_version: int = field(repr=False)
+    resulting_state: WorkItemState = field(repr=False)
+    resulting_version: int = field(repr=False)
+    outcome: str = field(repr=False)
+    reason: str = field(repr=False)
+    evidence_refs_json: str = field(repr=False)
+    budget_cost_delta: int = field(repr=False)
+    attempt_count_delta: int = field(repr=False)
+    repair_count_delta: int = field(repr=False)
+    lease_identity_decision_ref: str = field(repr=False)
+    authorization_decision_ref: str = field(repr=False)
+    dependency_decision_ref: str | None = field(repr=False)
+    global_stop_ref: str = field(repr=False)
+    global_stop_version: int = field(repr=False)
+    schema_id: str = field(repr=False)
+    event_json: str = field(repr=False)
+    event_digest: str = field(repr=False)
+    replay_work_item_json: str = field(repr=False)
+    replay_work_item_digest: str = field(repr=False)
+    created_at: str
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "TransitionEventRecordContract":
+        raw = require_exact_keys(payload, "transition_event_row", TRANSITION_EVENT_ROW_KEYS)
+        schema_id = require_string(raw.get("schema_id"), "transition_event_row.schema_id")
+        if schema_id != TRANSITION_EVENT_SCHEMA_ID:
+            raise _integrity_failure()
+        dependency_decision_ref = raw.get("dependency_decision_ref")
+        if dependency_decision_ref is not None:
+            dependency_decision_ref = require_contract_ref(
+                dependency_decision_ref,
+                "transition_event_row.dependency_decision_ref",
+            )
+        return cls(
+            event_ref=require_contract_ref(raw.get("event_ref"), "transition_event_row.event_ref"),
+            event_sequence=_require_transition_event_sequence(raw.get("event_sequence")),
+            work_item_id=require_contract_ref(raw.get("work_item_id"), "transition_event_row.work_item_id"),
+            lease_id=require_contract_ref(raw.get("lease_id"), "transition_event_row.lease_id"),
+            idempotency_key=require_contract_ref(
+                raw.get("idempotency_key"),
+                "transition_event_row.idempotency_key",
+            ),
+            command_digest=require_digest(raw.get("command_digest"), "transition_event_row.command_digest"),
+            source_state=require_work_item_state(raw.get("source_state"), "transition_event_row.source_state"),
+            source_version=_require_row_non_negative_int(
+                raw.get("source_version"),
+                "transition_event_row.source_version",
+            ),
+            resulting_state=require_work_item_state(
+                raw.get("resulting_state"),
+                "transition_event_row.resulting_state",
+            ),
+            resulting_version=_require_row_non_negative_int(
+                raw.get("resulting_version"),
+                "transition_event_row.resulting_version",
+            ),
+            outcome=require_string(raw.get("outcome"), "transition_event_row.outcome"),
+            reason=require_string(raw.get("reason"), "transition_event_row.reason"),
+            evidence_refs_json=_require_bounded_text(
+                raw.get("evidence_refs_json"),
+                "transition_event_row.evidence_refs_json",
+                max_bytes=_MAX_EVIDENCE_REFS_JSON_BYTES,
+            ),
+            budget_cost_delta=_require_row_non_negative_int(
+                raw.get("budget_cost_delta"),
+                "transition_event_row.budget_cost_delta",
+            ),
+            attempt_count_delta=_require_row_non_negative_int(
+                raw.get("attempt_count_delta"),
+                "transition_event_row.attempt_count_delta",
+            ),
+            repair_count_delta=_require_row_non_negative_int(
+                raw.get("repair_count_delta"),
+                "transition_event_row.repair_count_delta",
+            ),
+            lease_identity_decision_ref=require_contract_ref(
+                raw.get("lease_identity_decision_ref"),
+                "transition_event_row.lease_identity_decision_ref",
+            ),
+            authorization_decision_ref=require_contract_ref(
+                raw.get("authorization_decision_ref"),
+                "transition_event_row.authorization_decision_ref",
+            ),
+            dependency_decision_ref=dependency_decision_ref,
+            global_stop_ref=require_contract_ref(raw.get("global_stop_ref"), "transition_event_row.global_stop_ref"),
+            global_stop_version=_require_row_non_negative_int(
+                raw.get("global_stop_version"),
+                "transition_event_row.global_stop_version",
+            ),
+            schema_id=schema_id,
+            event_json=_require_bounded_canonical_json(raw.get("event_json"), "transition_event_row.event_json"),
+            event_digest=require_digest(raw.get("event_digest"), "transition_event_row.event_digest"),
+            replay_work_item_json=_require_bounded_canonical_json(
+                raw.get("replay_work_item_json"),
+                "transition_event_row.replay_work_item_json",
+            ),
+            replay_work_item_digest=require_digest(
+                raw.get("replay_work_item_digest"),
+                "transition_event_row.replay_work_item_digest",
+            ),
+            created_at=_require_transition_event_created_at(raw.get("created_at")),
+        )
+
+    def reconstruct(self) -> TransitionEventRecordEnvelope:
+        event = TransitionEvent.from_json(self.event_json)
+        _require_equal(self.event_json, event.canonical_json())
+        _require_equal(self.event_digest, event.canonical_digest())
+        self._require_indexed_event_equality(event)
+
+        replay_record = WorkItemRecord.from_json(self.replay_work_item_json)
+        _require_equal(self.replay_work_item_json, replay_record.canonical_json())
+        _require_equal(self.replay_work_item_digest, replay_record.canonical_digest())
+        _require_event_replay_consistency(event=event, replay_record=replay_record)
+        _require_equal(self.created_at, event.lease_runtime.evaluated_at)
+        return TransitionEventRecordEnvelope(
+            event_sequence=self.event_sequence,
+            event=event,
+            replay_record=replay_record,
+            created_at=self.created_at,
+        )
+
+    def _require_indexed_event_equality(self, event: TransitionEvent) -> None:
+        _require_equal(self.event_ref, event.event_ref)
+        _require_equal(self.work_item_id, event.work_item_id)
+        _require_equal(self.lease_id, event.lease_id)
+        _require_equal(self.idempotency_key, event.idempotency_key)
+        _require_equal(self.command_digest, event.command_digest)
+        _require_equal(self.source_state, event.source_state)
+        _require_equal(self.source_version, event.source_version)
+        _require_equal(self.resulting_state, event.resulting_state)
+        _require_equal(self.resulting_version, event.resulting_version)
+        _require_equal(self.outcome, event.outcome.value)
+        _require_equal(self.reason, event.reason)
+        _require_equal(self.evidence_refs_json, canonical_json_bytes(list(event.evidence_refs)).decode("utf-8"))
+        _require_equal(self.budget_cost_delta, event.budget_cost_delta)
+        _require_equal(self.attempt_count_delta, event.attempt_count_delta)
+        _require_equal(self.repair_count_delta, event.repair_count_delta)
+        _require_equal(self.lease_identity_decision_ref, event.lease_identity_decision_ref)
+        _require_equal(self.authorization_decision_ref, event.authorization_decision_ref)
+        _require_equal(self.dependency_decision_ref, event.dependency_decision_ref)
+        _require_equal(self.global_stop_ref, event.global_stop_ref)
+        _require_equal(self.global_stop_version, event.global_stop_version)
+        _require_equal(self.schema_id, event.schema_id)
 
 
 @dataclass(frozen=True)
@@ -648,6 +866,43 @@ def global_stop_current_envelope_from_row(payload: Mapping[str, Any]) -> GlobalS
     return GlobalStopCurrentRecordContract.from_dict(payload).reconstruct()
 
 
+def transition_event_record_envelope_from_row(payload: Mapping[str, Any]) -> TransitionEventRecordEnvelope:
+    result = _transition_event_record_envelope_from_row_or_error(payload)
+    if isinstance(result, SQLiteMutationStoreError):
+        raise result from None
+    return result
+
+
+def match_transition_event_idempotency(
+    existing: TransitionEventRecordEnvelope | None,
+    command: TransitionCommand,
+) -> CommittedTransition | TransitionConflict | None:
+    try:
+        if type(command) is not TransitionCommand:
+            raise _integrity_failure()
+        if existing is None:
+            return None
+        if type(existing) is not TransitionEventRecordEnvelope:
+            raise _integrity_failure()
+        event = existing.event
+        replay_record = existing.replay_record
+        if type(event) is not TransitionEvent:
+            raise _integrity_failure()
+        if type(replay_record) is not WorkItemRecord:
+            raise _integrity_failure()
+        if event.work_item_id != command.work_item_id:
+            raise _integrity_failure()
+        if event.idempotency_key != command.idempotency_key:
+            raise _integrity_failure()
+        if event.command_digest != command.canonical_command_digest:
+            return TransitionConflict(conflict_class="idempotency_key_reuse_conflict")
+        return CommittedTransition(record=replay_record, event=event, replayed=True)
+    except SQLiteMutationStoreError:
+        raise
+    except (TypeError, ValueError):
+        raise _integrity_failure() from None
+
+
 def classify_authorization_model_for_b3(
     decision: AuthorizationDecision,
 ) -> B3AuthorizationModelHandling:
@@ -721,13 +976,40 @@ def encode_sqlite_boolean(value: bool, field_name: str) -> int:
     return 1 if value else 0
 
 
+def _transition_event_record_envelope_from_row_or_error(
+    payload: Mapping[str, Any],
+) -> TransitionEventRecordEnvelope | SQLiteMutationStoreError:
+    try:
+        raw = require_exact_keys(payload, "transition_event_row", TRANSITION_EVENT_ROW_KEYS)
+        return TransitionEventRecordContract.from_dict(raw).reconstruct()
+    except Exception:
+        return _integrity_failure()
+
+
+def _require_event_replay_consistency(*, event: TransitionEvent, replay_record: WorkItemRecord) -> None:
+    _require_equal(replay_record.work_item_id, event.work_item_id)
+    _require_equal(replay_record.lease_id, event.lease_id)
+    _require_equal(replay_record.state, event.resulting_state)
+    _require_equal(replay_record.version, event.resulting_version)
+    CommittedTransition(record=replay_record, event=event, replayed=True)
+    _require_equal(replay_record.budget_consumed, 0)
+    _require_equal(replay_record.budget_limit, 0)
+    _require_equal(event.budget_cost_delta, 0)
+
+
 def _require_exact_canonical_json(text: str, payload: Mapping[str, Any]) -> None:
     _require_equal(text, canonical_json_bytes(payload).decode("utf-8"))
 
 
 def _require_bounded_canonical_json(value: Any, field_name: str) -> str:
+    return _require_bounded_text(value, field_name, max_bytes=_MAX_CANONICAL_JSON_BYTES)
+
+
+def _require_bounded_text(value: Any, field_name: str, *, max_bytes: int) -> str:
     text = require_string(value, field_name)
-    if len(text.encode("utf-8")) > _MAX_CANONICAL_JSON_BYTES:
+    if type(max_bytes) is not int or max_bytes < 1:
+        raise _integrity_failure()
+    if len(text.encode("utf-8")) > max_bytes:
         raise _integrity_failure()
     return text
 
@@ -740,6 +1022,21 @@ def _require_canonical_utc_timestamp(value: Any, field_name: str) -> str:
     if type(value) is not str or value != normalized:
         raise _integrity_failure()
     return normalized
+
+
+def _require_transition_event_created_at(value: Any) -> str:
+    text = _require_canonical_utc_timestamp(value, "transition_event_row.created_at")
+    if (
+        len(text) != 20
+        or text[4] != "-"
+        or text[7] != "-"
+        or text[10] != "T"
+        or text[13] != ":"
+        or text[16] != ":"
+        or text[19] != "Z"
+    ):
+        raise _integrity_failure()
+    return text
 
 
 def require_sqlite_boolean(value: Any, field_name: str) -> bool:
@@ -757,6 +1054,13 @@ def _require_exact_row_int(value: Any, field_name: str, *, expected: int) -> int
     if type(value) is not int or value != expected:
         raise _integrity_failure()
     return value
+
+
+def _require_transition_event_sequence(value: Any) -> int:
+    sequence = _require_row_non_negative_int(value, "transition_event_row.event_sequence")
+    if sequence > SQLITE_SIGNED_INT_MAX:
+        raise _integrity_failure()
+    return sequence
 
 
 def _require_row_non_negative_int(value: Any, field_name: str) -> int:

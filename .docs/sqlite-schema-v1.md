@@ -3,7 +3,9 @@
 Status: B1 initial migration schema with B1.1 live-schema validation, B3a
 canonical persistence contracts, B3b reader prerequisite contracts, and B3b1
 pure full-row envelope contracts. B3b2a query specs and B3b2b private SELECT
-readers use schema 0001 without changing migration 0001.
+readers use schema 0001 without changing migration 0001. B3c0b adds pure/static
+`transition_events` row, replay, idempotency, and sequence contracts against
+the same frozen schema.
 
 Migration `0001_initial` is the authoritative B1 schema installation source and
 is packaged under `ge_nwp_coordinator.sqlite_migrations`. The
@@ -253,6 +255,26 @@ Not stored in the first backend:
 - `event_sequence` and SQL `created_at` are operational metadata. SQL
   `created_at` is not independently part of event JSON, event digest, event
   identity, or replay digest;
+- B3c0b defines the exact ordered schema-0001 full-row contract:
+  `event_ref`, `event_sequence`, `work_item_id`, `lease_id`,
+  `idempotency_key`, `command_digest`, `source_state`, `source_version`,
+  `resulting_state`, `resulting_version`, `outcome`, `reason`,
+  `evidence_refs_json`, `budget_cost_delta`, `attempt_count_delta`,
+  `repair_count_delta`, `lease_identity_decision_ref`,
+  `authorization_decision_ref`, `dependency_decision_ref`, `global_stop_ref`,
+  `global_stop_version`, `schema_id`, `event_json`, `event_digest`,
+  `replay_work_item_json`, `replay_work_item_digest`, and `created_at`;
+- B3c0b full-row reconstruction requires literal canonical event JSON, event
+  digest equality, indexed/event equality, exact canonical `evidence_refs_json`,
+  literal canonical replay `WorkItemRecord` JSON, replay digest equality, replay
+  work item/lease/state/version equality with the event result,
+  `CommittedTransition(..., replayed=True)` consistency, zero replay scalar
+  budget fields, zero event budget-cost delta, and exact created-at/runtime
+  equality;
+- B3c0b defines immutable data-only query specs for future lookup by
+  `(work_item_id, idempotency_key)` with all explicit columns and for future
+  `MAX(event_sequence)` inspection. These specs have no runtime caller in
+  B3c0b and implement no reader;
 - event-owned idempotency and replay snapshot;
 - append-only by schema trigger.
 
@@ -351,6 +373,12 @@ tests. The readers do not read event or history tables, inspect
 idempotency/replay state, seed rows, mutate current-state tables, or require
 migration 0002. Tests use in-memory setup only and do not add a production
 fixture program.
+
+B3c0b uses schema 0001 without changing migration 0001. It adds only pure
+mapping, canonical equality, idempotency-match, and query-spec contracts for
+already fetched or future transition-event rows. It executes no SQL and adds no
+idempotency/event/sequence reader, fixture, transaction capability, mutation, or
+migration 0002.
 
 ## B1 Initialization Guarantees
 
