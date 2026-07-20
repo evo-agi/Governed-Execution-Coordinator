@@ -137,7 +137,7 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3 tests-only coherent fixtures are implemented under `tests/` only",
         "B3c1a implements the runtime mutation slot",
         "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
-        "B3c2 remains future",
+        "B3c2 has since implemented private transaction-internal event/replay idempotency and observed maximum-sequence readers",
         "B3c3 remains future",
         "B3c4 remains future",
         "Each future stage requires a separate implementation patch and standalone audit.",
@@ -312,11 +312,12 @@ def test_nominal_capability_owner_contract_has_no_concrete_runtime() -> None:
     ):
         assert phrase in normalized
 
-    read_scope_tree = ast.parse(_read("src/ge_nwp_coordinator/sqlite_transition_read_scope.py"))
-    class_names = {node.name for node in ast.walk(read_scope_tree) if isinstance(node, ast.ClassDef)}
+    support_source = _read("src/ge_nwp_coordinator/sqlite_transition_select_support.py")
+    support_tree = ast.parse(support_source)
+    class_names = {node.name for node in ast.walk(support_tree) if isinstance(node, ast.ClassDef)}
     assert "_TransitionReadCapability" in class_names
     assert not any(name.endswith("Capability") and name != "_TransitionReadCapability" for name in class_names)
-    assert "runtime_checkable" not in _read("src/ge_nwp_coordinator/sqlite_transition_read_scope.py")
+    assert "runtime_checkable" not in support_source
 
 
 def test_operation_lease_interface_and_one_mutation_policy_are_contract_only() -> None:

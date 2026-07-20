@@ -274,7 +274,9 @@ Not stored in the first backend:
 - B3c0b defines immutable data-only query specs for future lookup by
   `(work_item_id, idempotency_key)` with all explicit columns and for future
   `MAX(event_sequence)` inspection. These specs have no runtime caller in
-  B3c0b and implement no reader;
+  B3c0b. B3c2 consumes them through private transaction-internal readers only,
+  with no apply result ownership, sequence allocation, event insertion,
+  current-state update, commit, or migration 0002;
 - event-owned idempotency and replay snapshot;
 - append-only by schema trigger.
 
@@ -379,6 +381,13 @@ mapping, canonical equality, idempotency-match, and query-spec contracts for
 already fetched or future transition-event rows. It executes no SQL and adds no
 idempotency/event/sequence reader, fixture, transaction capability, mutation, or
 migration 0002.
+
+B3c2 also uses schema 0001 without changing migration 0001. Its private
+idempotency reader relies on the existing `(work_item_id, idempotency_key)`
+unique constraint plus `LIMIT 2` for integrity posture, and its private maximum
+reader observes the existing global `event_sequence` maximum. B3c2 adds no
+index, durable fact, event insertion, current-state update, commit, or migration
+0002.
 
 B3 tests-only coherent fixtures also use schema 0001 without changing migration
 0001. They live under `tests/` only, initialize temporary managed databases,

@@ -1,6 +1,8 @@
 # B3c0b Transition Event Replay Contracts
 
 Status: implemented pure/static contracts; no SQLite execution or mutation.
+B3c2 has since implemented private transaction-internal readers over the
+immutable query specs; B3c0b itself still performs no SQLite execution.
 
 B3c0b implements only the pure transition-event row, replay, idempotency, and
 sequence contracts needed before future B3c readers and mutation code exist. It
@@ -171,8 +173,8 @@ FROM transition_events
 
 The idempotency spec uses explicit ordered columns, exactly two placeholders,
 no `SELECT *`, no join, no subquery, no transaction token, and no global-stop
-table. The maximum-sequence query is operational ordering only. B3c2 remains
-future for readers over these specs.
+table. The maximum-sequence query is operational ordering only. B3c2 consumes
+these specs only through private transaction-internal readers.
 
 ## Sequence Allocation
 
@@ -201,7 +203,8 @@ repair, commit, publication, deployment behavior, migration 0002, or migration
 B3 tests-only coherent fixtures are implemented separately under `tests/` only.
 They may persist only domain-rejected event/replay rows produced by the pure
 evaluator and do not add SQL execution to B3c0b. B3c1 prerequisites are
-contract/static plus B3c1a private authority plumbing only; rollback-only
-controller, nominal capability, and fencing remain future B3c1b work. B3c2
-remains future for idempotency/event/sequence readers. B3c3 remains future for
-context/evaluator dry run. B3c4 remains future for atomic persistence.
+contract/static plus B3c1a/B3c1b private authority and rollback-only
+capability mechanics only. B3c2 adds private idempotency/event/sequence readers
+outside B3c0b and keeps them production-unintegrated. B3c3 remains future for
+idempotency apply-boundary integration and context/evaluator dry run. B3c4
+remains future for atomic persistence.

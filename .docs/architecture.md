@@ -131,6 +131,21 @@ not implement SQL execution, readers, a concrete capability, writer fencing,
 context assembly, evaluator invocation, mutation outcome, admission,
 authorization verification, or migration 0002.
 
+B3c2 implements private transaction-internal transition-event SELECT readers in
+`sqlite_transition_event_readers.py` and a tiny shared private
+`sqlite_transition_select_support.py` module for B3b2b/B3c2 cursor lifecycle,
+capability borrowing, tuple mapping, and safe SQLite SELECT-error
+classification. The idempotency reader validates lookup refs before borrowing,
+uses the immutable B3c0b lookup spec, enforces `LIMIT 2` cardinality, delegates
+full event/replay reconstruction to the B3c0b row adapter, rechecks the
+reconstructed event address, and returns only `None` or an exact hidden
+`TransitionEventRecordEnvelope`. The maximum-sequence reader uses the immutable
+B3c0b aggregate spec, returns only `None` or an exact observed non-negative
+built-in integer, and makes no allocation claim. B3c2 has no production caller,
+no B3b2 context-reader call, no pure matcher or allocator production call, no
+apply-result ownership, no public API/export, no durable mutation, no commit,
+and no migration 0002.
+
 B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
 temporary managed schema-0001 database, directly seed synthetic authoritative
 rows through a test-setup transaction, validate those rows through existing row

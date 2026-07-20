@@ -233,6 +233,8 @@ production admission or authorization, widen public `StateStore`, change
 public `WriterSession` protocols, integrate with public mutation methods,
 modify migration 0001, or add migration 0002.
 
-B3c2 remains future for event, idempotency, and sequence readers.
+B3c2 event, idempotency, and sequence readers are implemented only as private
+transaction-internal SELECT helpers with no production caller. B3c1b still
+does not call them.
 B3c3 remains future for current/context assembly and evaluator dry run.
 B3c4 remains future for atomic transition persistence and commit uncertainty.

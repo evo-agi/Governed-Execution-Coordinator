@@ -12,8 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-import sqlite3
-from typing import Any, Protocol, TypeVar
+from typing import Any, TypeVar
 
 from ge_nwp_coordinator.models import require_contract_ref
 from ge_nwp_coordinator.persistence_contracts import (
@@ -36,31 +35,17 @@ from ge_nwp_coordinator.persistence_contracts import (
     lease_identity_record_envelope_from_row,
     work_item_record_envelope_from_row,
 )
-from ge_nwp_coordinator.sqlite_errors import (
-    SQLiteMutationStoreError,
-    SQLiteMutationStoreErrorCode,
+from ge_nwp_coordinator.sqlite_transition_select_support import (
+    _TransitionReadCapability,
+    _database_integrity_failure,
+    _execute_select_fetch_two,
+    _row_tuple_to_private_mapping,
 )
 
 _SAFE_SQL_IDENTIFIER_FIRST_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _SAFE_SQL_IDENTIFIER_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789_")
 _GLOBAL_STOP_SINGLETON_ID = 1
 _EnvelopeT = TypeVar("_EnvelopeT")
-
-
-class _TransitionReadCapabilityFailureReason(str, Enum):
-    CAPABILITY_UNAVAILABLE = "transition_read_capability_unavailable"
-    CAPABILITY_EXPIRED = "transition_read_capability_expired"
-    PROCESS_MISMATCH = "process_mismatch"
-    THREAD_MISMATCH = "thread_mismatch"
-
-
-class _TransitionReadCapabilityError(RuntimeError):
-    """Safe private B3b2a capability failure with no connection details."""
-
-    def __init__(self, reason: _TransitionReadCapabilityFailureReason | str) -> None:
-        normalized = _TransitionReadCapabilityFailureReason(reason)
-        self.reason = normalized
-        super().__init__(normalized.value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,28 +70,6 @@ class _SelectQuerySpec:
         )
         if self.sql != expected_sql:
             raise ValueError("invalid_select_query_spec")
-
-
-class _TransitionReadCapability(Protocol):
-    """Private future-B3c transaction capability protocol.
-
-    This protocol is not public authority and has no concrete B3b2a
-    implementation. Future B3c must create any implementation only after the
-    B3c0a shared prefix has acquired the B2 operation lease, completed
-    mutation-specific local checks, acquired the shared mutation slot, opened a
-    managed read/write connection, executed `BEGIN IMMEDIATE`, validated managed
-    schema/posture, and completed writer fencing required by final apply
-    ordering. A concrete implementation must bind one opaque transaction epoch,
-    invalidate before commit or rollback, never change or disclose that epoch,
-    reject use after transaction end or restart on the same connection, reject
-    process/thread mismatch, expose no connection property, and open, close,
-    commit, or roll back nothing through this reader interface.
-    `connection.in_transaction` is not transaction identity.
-    """
-
-    def _borrow_connection_for_select(self) -> sqlite3.Connection:
-        """Return the B3c-owned transaction connection for future B3b2b SELECTs."""
-        ...
 
 
 class _MissingRowPolicy(str, Enum):
@@ -203,20 +166,6 @@ _B3B2A_SELECT_QUERY_SPECS = (
     _GLOBAL_STOP_CURRENT_SELECT,
 )
 
-_SQLITE_INTEGRITY_PRIMARY_RESULT_CODES = frozenset(
-    code
-    for code in (
-        getattr(sqlite3, "SQLITE_ERROR", None),
-        getattr(sqlite3, "SQLITE_SCHEMA", None),
-        getattr(sqlite3, "SQLITE_CORRUPT", None),
-        getattr(sqlite3, "SQLITE_NOTADB", None),
-        getattr(sqlite3, "SQLITE_MISMATCH", None),
-        getattr(sqlite3, "SQLITE_CONSTRAINT", None),
-    )
-    if type(code) is int
-)
-
-
 def _read_current_work_item(
     capability: _TransitionReadCapability,
     work_item_id: str,
@@ -302,27 +251,6 @@ def _read_global_stop_current(
     return envelope
 
 
-def _borrow_sqlite_connection_for_select(capability: _TransitionReadCapability) -> sqlite3.Connection:
-    borrowed = _borrow_connection_or_capability_error(capability)
-    if isinstance(borrowed, _TransitionReadCapabilityError):
-        raise borrowed
-    connection = borrowed
-    if not isinstance(connection, sqlite3.Connection):
-        raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
-    return connection
-
-
-def _borrow_connection_or_capability_error(
-    capability: _TransitionReadCapability,
-) -> sqlite3.Connection | _TransitionReadCapabilityError:
-    try:
-        return capability._borrow_connection_for_select()
-    except _TransitionReadCapabilityError:
-        raise
-    except Exception:
-        return _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
-
-
 def _read_one_select_row(
     *,
     capability: _TransitionReadCapability,
@@ -331,25 +259,11 @@ def _read_one_select_row(
     adapter: Callable[[Mapping[str, Any]], _EnvelopeT],
     missing_row_policy: _MissingRowPolicy,
 ) -> _EnvelopeT | None:
-    connection = _borrow_sqlite_connection_for_select(capability)
-    cursor: Any | None = None
-    sqlite_failure: SQLiteMutationStoreError | None = None
-    rows: Any | None = None
-    try:
-        cursor = connection.execute(spec.sql, (lookup_value,))
-        rows = cursor.fetchmany(2)
-    except sqlite3.Error as raw_sqlite_error:
-        sqlite_failure = _classify_sqlite_select_error(raw_sqlite_error)
-    finally:
-        if cursor is not None:
-            close_failure = _close_cursor_safely(cursor)
-            if sqlite_failure is None and close_failure is not None:
-                sqlite_failure = close_failure
-    if sqlite_failure is not None:
-        raise sqlite_failure
-
-    if type(rows) is not list:
-        raise _database_integrity_failure()
+    rows = _execute_select_fetch_two(
+        capability=capability,
+        sql=spec.sql,
+        parameters=(lookup_value,),
+    )
     if len(rows) == 0:
         if missing_row_policy is _MissingRowPolicy.RETURN_NONE:
             return None
@@ -358,41 +272,7 @@ def _read_one_select_row(
         raise _database_integrity_failure()
 
     row = rows[0]
-    row_mapping = _row_tuple_to_private_mapping(spec, row)
+    row_mapping = _row_tuple_to_private_mapping(spec.columns, row)
     del row
     del rows
     return adapter(row_mapping)
-
-
-def _row_tuple_to_private_mapping(spec: _SelectQuerySpec, row: Any) -> dict[str, Any]:
-    if type(row) is not tuple:
-        raise _database_integrity_failure()
-    if len(row) != len(spec.columns):
-        raise _database_integrity_failure()
-    return dict(zip(spec.columns, row, strict=True))
-
-
-def _close_cursor_safely(cursor: Any) -> SQLiteMutationStoreError | None:
-    try:
-        cursor.close()
-    except sqlite3.Error as raw_sqlite_error:
-        return _classify_sqlite_select_error(raw_sqlite_error)
-    return None
-
-
-def _classify_sqlite_select_error(error: sqlite3.Error) -> SQLiteMutationStoreError:
-    primary_code = _sqlite_primary_result_code(error)
-    if primary_code in _SQLITE_INTEGRITY_PRIMARY_RESULT_CODES:
-        return _database_integrity_failure()
-    return SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
-
-
-def _sqlite_primary_result_code(error: sqlite3.Error) -> int | None:
-    code = getattr(error, "sqlite_errorcode", None)
-    if type(code) is not int:
-        return None
-    return code & 0xFF
-
-
-def _database_integrity_failure() -> SQLiteMutationStoreError:
-    return SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)

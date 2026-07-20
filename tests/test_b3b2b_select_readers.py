@@ -43,14 +43,16 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _GLOBAL_STOP_CURRENT_SELECT,
     _LEASE_IDENTITY_SELECT,
     _SelectQuerySpec,
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
     _read_admitted_backlog,
     _read_authorization_receipt,
     _read_current_work_item,
     _read_dependency_receipt,
     _read_global_stop_current,
     _read_lease_identity_record,
+)
+from ge_nwp_coordinator.sqlite_transition_select_support import (
+    _TransitionReadCapabilityError,
+    _TransitionReadCapabilityFailureReason,
 )
 from ge_nwp_coordinator import sqlite_transition_read_scope as read_scope
 from ge_nwp_coordinator.state_machine import (
@@ -65,6 +67,7 @@ from ge_nwp_coordinator.state_machine import (
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 READ_SCOPE_PATH = PACKAGE_DIR / "sqlite_transition_read_scope.py"
+SELECT_SUPPORT_PATH = PACKAGE_DIR / "sqlite_transition_select_support.py"
 CANONICAL_TIMESTAMP = "2026-07-14T00:00:03Z"
 PRIVATE_SQLITE_SENTINEL = "PRIVATE-SQLITE-SENTINEL-DO-NOT-LEAK-314159"
 PRIVATE_CAPABILITY_SENTINEL = "PRIVATE-CAPABILITY-SENTINEL-DO-NOT-LEAK-271828"
@@ -873,6 +876,17 @@ def test_cursor_cleanup_after_success_fetch_failure_and_close_failure() -> None:
     finally:
         connection.close()
 
+    close_error = sqlite3.IntegrityError(PRIVATE_SQLITE_SENTINEL)
+    connection, cursor = _scripted_connection(rows=(), close_error=close_error)
+    assert cursor is not None
+    _, capability = _capability_for(connection)
+    try:
+        _assert_raises_sqlite_mutation_error(lambda: _read_current_work_item(capability, "wi-1"), "mutation_failed")
+        assert cursor.close_count == 1
+        assert connection.close_count == 0
+    finally:
+        connection.close()
+
     fetch_error = _SyntheticSQLiteError(_sqlite_error_code("SQLITE_SCHEMA", 17))
     close_error = _SyntheticSQLiteError(_sqlite_error_code("SQLITE_BUSY", 5))
     connection, cursor = _scripted_connection(fetch_error=fetch_error, close_error=close_error)
@@ -929,13 +943,15 @@ def test_private_readers_have_no_production_call_sites_or_public_exports() -> No
 
 def test_reader_source_has_no_production_capability_factory_transaction_or_mutation_sql() -> None:
     source = READ_SCOPE_PATH.read_text(encoding="utf-8")
+    support_source = SELECT_SUPPORT_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
+    support_tree = ast.parse(support_source)
     class_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
-    assert "_TransitionReadCapability" in class_names
-    assert not any(
-        name.endswith("Capability") and name != "_TransitionReadCapability"
-        for name in class_names
-    )
+    support_class_names = {node.name for node in ast.walk(support_tree) if isinstance(node, ast.ClassDef)}
+    assert "_TransitionReadCapability" not in class_names
+    assert "_TransitionReadCapability" in support_class_names
+    assert not any(name.endswith("Capability") for name in class_names)
+    assert not any(name.endswith("Capability") and name != "_TransitionReadCapability" for name in support_class_names)
 
     for forbidden in (
         "sqlite3.connect",
@@ -990,7 +1006,7 @@ def test_b3b2b_docs_pin_private_unintegrated_reader_scope() -> None:
         "`commit_outcome_unknown` is never produced by B3b2b",
         "The tests-only capability does not prove production transaction authority",
         "B3c1b now implements the nominal concrete capability only inside its private rollback-only writer-fencing controller",
-        "Production reader integration waits for a later B3c slice",
+        "Production integration for B3b2 current/context readers waits for a later B3c slice",
         "No `StateStore` mutation backend, integrated production typed SQLite reader",
     ):
         assert phrase in normalized

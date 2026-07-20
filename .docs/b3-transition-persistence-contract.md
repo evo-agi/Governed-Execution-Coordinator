@@ -11,6 +11,9 @@ mutation slot, operation-lease interfaces, writer-row query and parser
 ownership, fencing taxonomy, nominal capability epoch, cleanup precedence, and
 B3c1a/B3c1b split. B3c1a adds only private WriterSession authority plumbing,
 and B3c1b adds only private rollback-only writer-fencing/capability mechanics.
+B3c2 adds only private transaction-internal transition-event readers and shared
+private SELECT lifecycle support, with no production caller, apply result,
+sequence allocation, mutation, commit, or migration 0002.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -78,6 +81,20 @@ allocation tests. It still adds no SQL execution, idempotency reader, event
 reader, sequence reader, concrete capability, writer fencing,
 context assembler, evaluator integration, event insertion, current-state update,
 admission, authorization verifier, or migration 0002.
+
+B3c2 implements private transaction-internal readers over the B3c0b event query
+specs. `_read_transition_event_for_idempotency(capability, work_item_id,
+idempotency_key)` validates lookup refs before borrowing, executes the exact
+immutable two-parameter `LIMIT 2` query, returns `None` for absence, treats two
+rows as database corruption, delegates one exact tuple row to
+`transition_event_record_envelope_from_row(...)`, and rechecks the reconstructed
+event address before returning the hidden envelope. It does not call the pure
+idempotency matcher or construct any apply result.
+`_read_transition_event_max_sequence(capability)` executes the exact immutable
+aggregate query with no parameters and returns only `None` or an exact observed
+non-negative built-in `int`; it does not call the pure allocator or reserve a
+sequence. Both readers accept only the private transaction read capability and
+are uncalled by production source.
 
 B3 tests-only coherent fixtures live under `tests/` only. They initialize a
 temporary managed schema-0001 database, directly seed synthetic authoritative
@@ -424,8 +441,10 @@ SELECT MAX(event_sequence)
 FROM transition_events
 ```
 
-These specs have no runtime caller in B3c0b. B3c2 remains future for
-idempotency/event/sequence readers over those specs.
+These specs have no runtime caller in B3c0b. B3c2 consumes them only from
+private transaction-internal readers. Exact replay/conflict matching remains
+future B3c3 apply-boundary behavior, and max-sequence allocation plus event
+insertion remain future B3c4 behavior.
 
 ## Error Taxonomy
 

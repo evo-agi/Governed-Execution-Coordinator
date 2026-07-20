@@ -155,6 +155,9 @@ events, update work items, or update global-stop state.
 
 B3c1b implements the private rollback-only transaction controller, writer-row
 query, writer fencing, and nominal transaction capability without production
-integration or durable mutation. B3c2-B3c4 remain future for
-idempotency/event/sequence readers, context/evaluator integration, and durable
-mutation.
+integration or durable mutation. B3c2 now implements private
+transaction-internal idempotency/event/sequence readers only, with no
+production caller and no durable mutation. B3c3/B3c4 remain future for
+idempotency apply-boundary integration, context/evaluator integration,
+sequence allocation, event insertion, current-state CAS, commit, and commit
+uncertainty.

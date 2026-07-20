@@ -46,7 +46,7 @@ def test_no_prohibited_runtime_imports_or_execution_surfaces() -> None:
     assert sqlite_importers == {
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
-        "src/ge_nwp_coordinator/sqlite_transition_read_scope.py",
+        "src/ge_nwp_coordinator/sqlite_transition_select_support.py",
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }

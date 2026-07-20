@@ -99,6 +99,21 @@ SQLite bootstrap/migration infrastructure only:
   hard-linked active database aliases fail closed. It has no B3b2 reader call,
   event/idempotency/sequence reader, context assembly, evaluator invocation,
   durable state mutation, public caller, commit, or migration 0002.
+- B3c2 private transaction-internal transition-event readers, with a tiny
+  shared private SELECT lifecycle support module used by B3b2b and B3c2. B3c2
+  adds `_read_transition_event_for_idempotency(capability, work_item_id,
+  idempotency_key)` and `_read_transition_event_max_sequence(capability)`.
+  These readers accept only the private transaction read capability, require
+  exact built-in `str` idempotency lookup inputs before contract-ref validation
+  or capability borrow, reuse the immutable B3c0b event query specs, delegate
+  event/replay row integrity to the B3c0b adapter, return only `None`/hidden
+  event envelopes or `None`/observed non-negative integer maximums, and remain
+  production-unintegrated. Shared cursor cleanup preserves execute/fetch failure
+  as primary, while close failure after successful fetch is always operational
+  `mutation_failed`. Real-capability fork tests are deadline-bounded and always
+  reap children. They add no matcher or allocator production call, no apply
+  result, no public API, no B3b2 context-reader crossing, no durable mutation, no
+  commit, and no migration 0002.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -216,10 +231,11 @@ invalidation before commit or rollback, missing-row classifications,
 current/expected/context ordering, timestamp point, idempotency/replay
 placement, evaluator placement, sequence and event collision posture, and
 rollback/commit/close precedence. B3 tests-only coherent fixtures now provide
-temporary managed graphs for future B3c tests. B3c remains future for
-implementing the concrete capability, transaction controller, fencing SELECT,
-idempotency/event/sequence readers, runtime replay, context assembly,
-evaluation, and mutation.
+temporary managed graphs for future B3c tests. B3c0b/B3c1/B3c2 now cover the
+pure event contracts, rollback-only nominal capability, and private
+event/idempotency/observed-sequence readers. Runtime replay, current/context
+assembly, evaluator integration, event insertion, current-state mutation,
+commit, and commit uncertainty remain future.
 B3c0b now implements the pure/static event-row and replay contract portion
 that B3c0a left future. It adds no runtime caller: idempotency and
 maximum-sequence SQL are immutable data only, and exact replay is a pure
@@ -234,5 +250,12 @@ keeps future production invocation limited to
 `_SQLiteWriterSession.apply_transition()`, allows coherent tests to invoke that
 same private controller through private imports, and keeps public mutation
 methods `writer_session_mutation_unavailable` with no SQLite contact.
+B3c2 now adds private transaction-internal event/idempotency and observed
+maximum-sequence readers only. It remains production-unintegrated and does not
+own exact replay/conflict outcomes, sequence allocation, current-state loading,
+evaluator integration, durable mutation, commit, or migration 0002. B3c3
+remains future for idempotency apply-boundary integration and evaluator dry
+run; B3c4 remains future for sequence allocation, event insertion,
+current-state CAS, commit, and commit uncertainty.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

@@ -60,7 +60,8 @@ unsupported authorization remains production/default; optional persisted event
 is domain-rejected; no accepted executable transition is proved; B3c1
 prerequisites plus B3c1a private authority plumbing do not make the fixture
 runtime authority; B3c1b rollback-only mechanics are private test-executed
-only; B3c2-B3c4 remain future.
+only; B3c2 event/idempotency/sequence readers are private
+transaction-internal tests only; B3c3/B3c4 remain future.
 
 Unsupported authorization remains production/default:
 
@@ -89,8 +90,8 @@ Tests read the graph back through the existing private B3b2b SELECT readers
 using a clearly tests-only `_TransitionReadCapability` implementation over an
 active test transaction. This proves the existing row readers can reconstruct
 the coherent graph. It does not create production reader integration, a
-concrete transaction capability, writer fencing, idempotency readers, event
-readers, sequence readers, or context assembly.
+concrete transaction capability, writer fencing, idempotency apply integration,
+context assembly, event insertion, sequence allocation, or mutation runtime.
 
 Corruption helpers remain narrowly tests-only, are named with `for_test`, use
 parameterized SQL, and mutate only temporary test databases. Corruption cases
@@ -99,9 +100,9 @@ must fail through existing safe row or binding contracts.
 ## Remaining Work
 
 B3c1a private authority plumbing exists only behind private WriterSession
-helpers; rollback-only controller, nominal transaction capability, and writer
-fencing remain future B3c1b work.
-B3c2 remains future for event/idempotency/sequence readers. B3c3 remains
+helpers, and B3c1b rollback-only controller, nominal transaction capability,
+and writer fencing remain production-unintegrated. B3c2 now implements private
+transaction-internal event/idempotency/sequence readers only. B3c3 remains
 future for context assembly and evaluator dry run. B3c4 remains future for
 atomic persistence, accepted-state CAS, rollback, and commit-uncertainty
 runtime.

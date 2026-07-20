@@ -26,7 +26,7 @@ from ge_nwp_coordinator.sqlite_security import (
     _StateDatabaseAuthorityBindingMismatch,
     _StateDatabaseAuthorityBindingUnavailable,
 )
-from ge_nwp_coordinator.sqlite_transition_read_scope import (
+from ge_nwp_coordinator.sqlite_transition_select_support import (
     _TransitionReadCapabilityError,
     _TransitionReadCapabilityFailureReason,
 )

@@ -38,9 +38,6 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _GLOBAL_STOP_CURRENT_SELECT,
     _LEASE_IDENTITY_SELECT,
     _SelectQuerySpec,
-    _TransitionReadCapability,
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
     _read_admitted_backlog,
     _read_authorization_receipt,
     _read_current_work_item,
@@ -48,11 +45,17 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _read_global_stop_current,
     _read_lease_identity_record,
 )
+from ge_nwp_coordinator.sqlite_transition_select_support import (
+    _TransitionReadCapability,
+    _TransitionReadCapabilityError,
+    _TransitionReadCapabilityFailureReason,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 READ_SCOPE_PATH = PACKAGE_DIR / "sqlite_transition_read_scope.py"
+SELECT_SUPPORT_PATH = PACKAGE_DIR / "sqlite_transition_select_support.py"
 
 EXPECTED_ROW_COLUMNS = {
     "lease_identity_records": (
@@ -243,7 +246,7 @@ def test_ordered_row_columns_are_safe_nonempty_unique_string_tuples() -> None:
 
 
 def test_private_transition_read_capability_is_protocol_only() -> None:
-    source = READ_SCOPE_PATH.read_text(encoding="utf-8")
+    source = SELECT_SUPPORT_PATH.read_text(encoding="utf-8")
     assert getattr(_TransitionReadCapability, "_is_protocol", False) is True
     assert getattr(_TransitionReadCapability, "_is_runtime_protocol", False) is False
     assert "_borrow_connection_for_select" in _TransitionReadCapability.__dict__
@@ -456,9 +459,6 @@ def test_query_spec_type_and_constants_remain_internal_and_unexported() -> None:
     assert not hasattr(read_scope, "__all__")
     for name in (
         "_SelectQuerySpec",
-        "_TransitionReadCapability",
-        "_TransitionReadCapabilityError",
-        "_TransitionReadCapabilityFailureReason",
         "_CURRENT_WORK_ITEM_SELECT",
         "_LEASE_IDENTITY_SELECT",
         "_AUTHORIZATION_RECEIPT_SELECT",
@@ -472,6 +472,13 @@ def test_query_spec_type_and_constants_remain_internal_and_unexported() -> None:
         "_read_dependency_receipt",
         "_read_admitted_backlog",
         "_read_global_stop_current",
+    ):
+        assert name not in ge_nwp_coordinator.__all__
+        assert not hasattr(ge_nwp_coordinator, name)
+    for name in (
+        "_TransitionReadCapability",
+        "_TransitionReadCapabilityError",
+        "_TransitionReadCapabilityFailureReason",
     ):
         assert name not in ge_nwp_coordinator.__all__
         assert not hasattr(ge_nwp_coordinator, name)
@@ -526,7 +533,7 @@ def test_b3b2b_production_module_only_adds_private_bounded_select_readers() -> N
         "_read_global_stop_current",
     } <= function_names
     assert not any(name.startswith("read_") for name in function_names)
-    assert "_borrow_connection_for_select" in function_names
+    assert "_borrow_connection_for_select" not in function_names
 
     for forbidden in (
         "class _TransitionReadScope",
@@ -558,7 +565,7 @@ def test_b3b2a_runtime_import_is_the_only_new_sqlite_importer() -> None:
     assert sqlite_importers == {
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
-        "src/ge_nwp_coordinator/sqlite_transition_read_scope.py",
+        "src/ge_nwp_coordinator/sqlite_transition_select_support.py",
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }

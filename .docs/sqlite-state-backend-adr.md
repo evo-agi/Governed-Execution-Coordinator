@@ -18,7 +18,10 @@ controller construction path, mutation slot, operation-lease interfaces,
 resource-owned state-database filesystem binding, writer-row query ownership, fencing
 taxonomy, nominal capability epoch, cleanup precedence, and B3c1a/B3c1b split.
 B3c1a private WriterSession authority plumbing is documented in
-`.docs/b3c1a-writer-session-authority.md`.
+`.docs/b3c1a-writer-session-authority.md`. B3c2 adds only private
+transaction-internal transition-event readers plus shared SELECT lifecycle
+support; it has no production caller, no mutation, no commit, and no migration
+0002.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -51,6 +54,10 @@ invalidation, rollback, close, and private `_WriterIssuanceMatch` return.
 B3c1 adds no B3b2 reader integration, context
 assembly, evaluator integration, event insertion, current-state update, public
 mutation-method behavior change, commit, or migration 0002.
+B3c2 adds private event/idempotency and observed maximum-sequence readers only.
+It consumes the B3c0b immutable query specs through the B3c1b nominal
+capability seam in tests, does not call the pure matcher or allocator in
+production source, and does not insert events or mutate current state.
 
 ## Decision
 
@@ -262,6 +269,10 @@ equality, created-at/runtime equality, and bounded zero-budget replay posture.
 reading SQLite. The future idempotency lookup remains a data-only query spec:
 `SELECT <all transition event row columns> FROM transition_events WHERE
 work_item_id = ? AND idempotency_key = ? LIMIT 2`.
+B3c2's private idempotency reader consumes that spec only after both lookup
+inputs are exact built-in `str` values and have passed the existing contract-ref
+grammar. That exact-type gate is local to B3c2 and does not alter repo-wide
+string validation, B3b2 inputs, or command construction.
 
 ## Transaction Order
 
@@ -314,6 +325,13 @@ expected-version conflict, or validation conflict.
 B3c0b defines only pure sequence allocation and immutable maximum-sequence SQL
 text. It does not run the maximum-sequence query and does not allocate from
 SQLite.
+B3c2 runs the maximum-sequence query only as a private transaction-internal
+observed-maximum reader. It returns no next sequence and makes no reservation,
+allocation, consumption, or uniqueness claim; future B3c4 owns allocator and
+insert integration.
+B3c2's shared SELECT support treats cursor-close failure after successful fetch
+as operational cleanup failure only. Earlier execute/fetch failure remains
+primary if cleanup also fails.
 
 Global-stop mutation transaction remains future and unimplemented. It shares the
 same pre-SQLite authority prefix as transition mutation:
@@ -417,6 +435,9 @@ the rejected connection also fails, returns no connection, and does not retain
 raw cleanup detail. After a connection has been admitted into the rollback-only
 controller, transaction-resolution close failure remains an independent
 `mutation_failed` cleanup result.
+B3c2 transaction-internal reader tests exercise the nominal capability through a
+deadline-bounded fork proof that always reaps children and observes
+`process_mismatch` before inherited connection use.
 No B3/B4 persistence exists.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical

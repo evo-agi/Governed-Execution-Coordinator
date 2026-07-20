@@ -2,7 +2,10 @@
 
 Status: implemented private capability protocol and immutable query contracts;
 private B3b2b SELECT readers now consume these contracts with no production
-integration.
+integration. B3c2 has since moved the shared capability/error/cursor lifecycle
+mechanics into `sqlite_transition_select_support.py` for B3b2b and B3c2, while
+leaving B3b2 query specs and missing-row policies in
+`sqlite_transition_read_scope.py`.
 
 B3b2a is the first implementation slice after B3b1 pure row contracts. It adds
 only:
@@ -10,7 +13,8 @@ only:
 - ordered schema-0001 row-column tuples in `persistence_contracts.py`;
 - six immutable parameterized `SELECT` specifications in the private
   `sqlite_transition_read_scope.py` module;
-- one private future-B3c transaction capability protocol.
+- one private future-B3c transaction capability protocol, now defined in the
+  shared private SELECT-support module.
 
 B3b2a by itself does not execute SQL, create cursors, fetch rows, classify row
 cardinality, map tuples to private mappings, invoke B3b1 row adapters, classify
@@ -23,7 +27,8 @@ the B3b2a specs only when explicitly invoked by tests and remain absent from
 production call sites.
 B3c1b now implements a private nominal rollback-only transaction capability,
 but its controller does not call these B3b2 readers and still performs no
-state mutation.
+state mutation. B3c2 private event readers share only the mechanical SELECT
+support; they do not call B3b2 context/current readers.
 
 ## Ordered Row Columns
 
@@ -133,13 +138,16 @@ secret. A returned object that is not a `sqlite3.Connection` is rejected as
 checking, process/thread/epoch checks, connection posture mutation, transaction
 start/end, connection open, or connection close.
 
-The shared private helper executes `spec.sql` with exactly one bound parameter,
-calls `fetchmany(2)`, and always attempts cursor cleanup. It never inspects
-`cursor.description`, never mutates `row_factory`, and never returns raw rows,
-tuples, mappings, cursors, or connections. One fetched row must be an exact
-built-in tuple whose length equals `spec.columns`. The reader builds a private
-plain `dict` with `dict(zip(spec.columns, row, strict=True))` and delegates to
-the B3b1 adapter for that row shape.
+The shared private support helper executes `spec.sql` with exactly one bound
+parameter, calls `fetchmany(2)`, and always attempts cursor cleanup. Execute or
+fetch failure remains primary if cleanup also fails. Cleanup failure after a
+successful fetch is always an operational `mutation_failed` cleanup result,
+regardless of SQLite result code. The helper never inspects `cursor.description`,
+never mutates `row_factory`, and never returns raw rows, tuples, mappings,
+cursors, or connections. One fetched row must be an exact built-in tuple whose
+length equals `spec.columns`. The reader builds a private plain `dict` with
+`dict(zip(spec.columns, row, strict=True))` and delegates to the B3b1 adapter for
+that row shape.
 
 Zero rows return `None` for current work item, lease identity, authorization,
 dependency, and admitted backlog. The global-stop current singleton is mandatory
@@ -147,7 +155,8 @@ table-local state, so zero rows raise `database_integrity_failure`. Two rows,
 including any result set with more rows hidden behind `LIMIT 2` and
 `fetchmany(2)`, raise `database_integrity_failure`.
 
-SQLite errors from execute, fetch, and cursor close are classified safely.
+SQLite errors from execute and fetch are classified safely. Cursor-close errors
+after successful fetch are operational cleanup failures only.
 Primary result codes for schema/query/database contradiction, including
 `SQLITE_ERROR`, `SQLITE_SCHEMA`, `SQLITE_CORRUPT`, `SQLITE_NOTADB`,
 `SQLITE_MISMATCH`, and `SQLITE_CONSTRAINT`, map to
@@ -165,9 +174,11 @@ invalidation semantics, one-mutation-per-session policy, writer fencing,
 current/expected/context ordering, missing-row apply-conflict classification,
 cross-record authority binding, transaction timestamp point, rollback/commit/
 close precedence, and event-ref/sequence collision posture. Later B3c stages
-remain future for implementing reader ordering, lease runtime derivation,
-`TransitionContext` construction, evaluator invocation, idempotency/replay,
-expected-version checks, event sequencing, and mutation outcome.
+remain future for implementing current/context reader ordering, lease runtime
+derivation, `TransitionContext` construction, evaluator invocation,
+idempotency/replay apply outcomes, expected-version checks, event sequencing,
+and mutation outcome. B3c2 implements only private event/idempotency and
+observed maximum-sequence readers, with no production caller.
 
 B3b2a/B3b2b must remain absent from package-root exports, public `StateStore`,
 CLI, MCP, connectors, reports, examples, and related repositories. The public

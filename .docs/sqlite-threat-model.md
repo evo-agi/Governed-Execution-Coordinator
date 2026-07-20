@@ -162,6 +162,23 @@ chained, not retained, and no rejected connection is returned. Once a connection
 has been admitted into controller transaction resolution, close failure is an
 independent cleanup failure and maps to `mutation_failed`.
 
+B3c2 private transition-event readers reuse the same closed SELECT posture for
+transaction-internal event/idempotency and observed maximum-sequence reads. They
+accept only `_TransitionReadCapability`, expose no raw rows, JSON, digests,
+SQL, parameters, paths, connection reprs, capability details, proofs, bindings,
+or epochs, and reduce malformed rows, duplicate idempotency rows, wrong lookup
+addresses, and malformed aggregate results to `database_integrity_failure`.
+Operational SQLite failures remain `mutation_failed`. Cursor-close failure after
+successful fetch is operational cleanup failure regardless of result code; if
+execute or fetch failed first, that earlier safe classification remains primary.
+The B3c2 idempotency lookup address must be exact built-in `str` input before
+shared contract-ref validation, capability borrow, or SQL, so string subclasses
+cannot run overridden behavior at this reader boundary. This is not a
+repository-wide string-validation change. Real-capability fork tests are
+deadline-bounded and always reap children. The readers do not call B3b2 context
+readers, pure idempotency matching, pure sequence allocation, or any mutation
+path.
+
 B3a adds no runtime mutation authority. Its threat-model contribution is to
 pin future transition context reconstruction, canonical event/replay digests,
 lease runtime derivation, event-sequence overflow handling, and commit

@@ -225,6 +225,33 @@ global-stop update, public API, migration 0002, admission, authorization,
 worker, service, CLI, MCP, connector, repair, commit, publication, or
 deployment behavior.
 
+B3c2 implements only private transaction-internal transition-event SELECT
+readers in `.docs/b3c2-transition-event-readers.md`: one idempotency-addressed
+event/replay row reader and one observed maximum event-sequence reader, plus a
+tiny shared private SELECT lifecycle support module used by B3b2b and B3c2.
+The readers accept only `_TransitionReadCapability`, reuse the immutable B3c0b
+query specs, delegate event/replay integrity to
+`transition_event_record_envelope_from_row(...)`, return only `None` or an
+exact hidden envelope for idempotency lookup and `None` or an exact observed
+non-negative integer maximum for sequence inspection, and are test-executed
+through both fault-injected private capabilities and the real B3c1b nominal
+capability seam. The B3c2 idempotency reader locally requires exact built-in
+`str` lookup refs before contract-ref validation or capability borrow, without
+changing repository-wide string validation or B3b2 lookup-input semantics.
+Shared SELECT support treats cursor-close failure after successful fetch as
+operational cleanup (`mutation_failed`) while preserving earlier execute/fetch
+failures as primary, and tests-only fork capability probes are
+deadline-bounded and always reap child processes. B3c2 has no production
+caller, no B3b2 context-reader call, no
+matcher or allocator production call, no replay/conflict outcome ownership, no
+sequence reservation or allocation claim, no public API/export/`StateStore`
+widening, no event insertion, no current-state or global-stop update, no
+commit, no migration 0002, and no related-repo consumer. B3c3 remains future
+for idempotency apply-boundary integration, context assembly, expected-version
+handling, timestamp/runtime derivation, and evaluator dry run. B3c4 remains
+future for max-sequence/allocator integration, event insertion, current-state
+CAS, commit, rollback, and commit uncertainty.
+
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production
 initialization, directly seed synthetic authoritative rows through a test setup

@@ -334,7 +334,8 @@ def test_docs_and_static_contracts_record_tests_only_fixture_status() -> None:
         "no accepted executable transition is proved",
         "B3c1 prerequisites plus B3c1a private authority plumbing",
         "B3c1b rollback-only mechanics are private test-executed only",
-        "B3c2-B3c4 remain future",
+        "B3c2 event/idempotency/sequence readers are private transaction-internal tests only",
+        "B3c3/B3c4 remain future",
     ):
         assert phrase in normalized
 

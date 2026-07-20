@@ -397,7 +397,7 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
     assert sqlite_importers == {
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
-        "src/ge_nwp_coordinator/sqlite_transition_read_scope.py",
+        "src/ge_nwp_coordinator/sqlite_transition_select_support.py",
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }

@@ -1,7 +1,9 @@
 # B3b2b Private SELECT Readers
 
 Status: private SELECT readers implemented and test-executed; no production
-integration.
+integration. B3c2 has since extracted the shared capability/error/cursor
+lifecycle mechanics into `sqlite_transition_select_support.py` for B3b2b and
+B3c2.
 
 B3b2b implements six private functions in `sqlite_transition_read_scope.py`:
 
@@ -24,8 +26,8 @@ B3b2b owns only:
 
 - lookup-ref validation before capability borrowing for work item, decision,
   and backlog refs;
-- borrowing a SQLite connection through the private `_TransitionReadCapability`
-  protocol method only;
+- using the shared private SELECT support to borrow a SQLite connection through
+  the private `_TransitionReadCapability` protocol method only;
 - executing one immutable explicit-column parameterized `SELECT ... WHERE ... =
   ? LIMIT 2` spec;
 - calling `fetchmany(2)`;
@@ -33,7 +35,8 @@ B3b2b owns only:
 - requiring one exact built-in tuple with the exact configured column count;
 - constructing one private plain mapping from the ordered column tuple;
 - delegating to the B3b1 single-row adapter for that table;
-- safe SQLite SELECT-error classification and cursor cleanup.
+- safe SQLite SELECT-error classification and cursor cleanup through the shared
+  support module.
 
 B3b2b does not implement a production concrete capability, transaction
 creation, transaction identity, writer fencing, idempotency lookup, replay,
@@ -59,9 +62,11 @@ B3c1b now implements the nominal concrete capability only inside its private
 rollback-only writer-fencing controller, after the B3c0a shared prefix of B2
 operation-lease authority, shared per-session mutation slot, managed read/write
 connection open, `BEGIN IMMEDIATE`, managed validation, writer fencing, one
-opaque transaction epoch, and invalidation before rollback. Production reader
-integration waits for a later B3c slice. The B3c1b controller calls no B3b2
-reader, produces no reader result, and performs no durable state mutation.
+opaque transaction epoch, and invalidation before rollback. Production
+integration for B3b2 current/context readers waits for a later B3c slice. The
+B3c1b controller calls no B3b2 reader, produces no reader result, and performs
+no durable state mutation. B3c2 event readers share only the mechanical SELECT
+support and do not call B3b2 readers.
 
 ## Missing Rows
 
@@ -82,13 +87,16 @@ No reader constructs `TransitionConflict`, `TransitionEvent`,
 
 ## SQLite Errors
 
-SQLite errors from execute, fetch, and cursor close are reduced to
-`SQLiteMutationStoreError` with safe closed classes only. Primary result codes
-for schema/query/database contradiction, including `SQLITE_ERROR`,
-`SQLITE_SCHEMA`, `SQLITE_CORRUPT`, `SQLITE_NOTADB`, `SQLITE_MISMATCH`, and
-`SQLITE_CONSTRAINT`, map to `database_integrity_failure`. All other SQLite
-errors, including closed connections, busy/locked/I/O/full/interrupted, and
-missing or unknown codes, map to `mutation_failed`.
+SQLite errors from execute and fetch are reduced to `SQLiteMutationStoreError`
+with safe closed classes only. Primary result codes for schema/query/database
+contradiction, including `SQLITE_ERROR`, `SQLITE_SCHEMA`, `SQLITE_CORRUPT`,
+`SQLITE_NOTADB`, `SQLITE_MISMATCH`, and `SQLITE_CONSTRAINT`, map to
+`database_integrity_failure`. All other SQLite errors, including closed
+connections, busy/locked/I/O/full/interrupted, and missing or unknown codes, map
+to `mutation_failed`. If execute and fetch succeeded, cursor-close failure is
+not classified through result-code taxonomy; it is always an operational
+`mutation_failed` cleanup failure, and semantic row interpretation does not
+start.
 
 `commit_outcome_unknown` is never produced by B3b2b. Raw SQLite exception text,
 SQL, parameters, rows, canonical JSON, paths, connection reprs, transaction

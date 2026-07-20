@@ -6,7 +6,7 @@ import inspect
 from pathlib import Path
 
 import ge_nwp_coordinator
-from ge_nwp_coordinator.sqlite_transition_read_scope import _TransitionReadCapabilityFailureReason
+from ge_nwp_coordinator.sqlite_transition_select_support import _TransitionReadCapabilityFailureReason
 from ge_nwp_coordinator.sqlite_writer_session import _SQLiteWriterSession
 from ge_nwp_coordinator.state_store import WriterSessionFailureReason
 

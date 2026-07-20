@@ -426,7 +426,9 @@ B3c1b implements the private rollback-only transaction controller, writer
 fencing query, and nominal capability. It remains production-unintegrated and
 performs no B3b2 reader calls or durable mutation.
 
-B3c2 remains future for event/replay/idempotency/sequence readers.
+B3c2 has since implemented private transaction-internal event/replay
+idempotency and observed maximum-sequence readers. They remain
+production-unintegrated, allocate no sequence, and mutate no state.
 
 B3c3 remains future for context assembly and evaluator dry run.
 

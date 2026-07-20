@@ -16,6 +16,9 @@ rollback-only controller posture plus B3c1a private mutation slot,
 operation-lease authority checks, durable-issuance verification, writer
 fencing result vocabulary, nominal capability epoch, cleanup precedence, and
 B3c1a/B3c1b split only.
+B3c2 adds private transaction-internal transition-event SELECT readers and
+shared private SELECT lifecycle support only; it remains production-unintegrated
+and mutates no durable state.
 The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
@@ -188,8 +191,13 @@ generate timestamps, invoke the evaluator, allocate sequences, or mutate state.
 
 B3c0b also defines immutable data-only query specs for future
 `transition_events` idempotency lookup and maximum sequence inspection. Those
-specs have no runtime caller in this tranche. B3c2 remains future for readers
-over the specs.
+specs are now consumed only by B3c2 private transaction-internal readers. The
+idempotency reader returns only `None` or an exact hidden
+`TransitionEventRecordEnvelope`; exact replay and idempotency-key conflict
+remain future B3c3 apply-boundary behavior through the pure matcher. The
+maximum-sequence reader returns only `None` or an exact observed non-negative
+integer maximum; sequence allocation remains future B3c4 behavior through the
+pure allocator.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They use a
 temporary managed schema-0001 database, directly seed synthetic authoritative
@@ -252,7 +260,8 @@ integrated production typed SQLite reader, production fixture insertion helper,
 coordinator service, or executable A2 capability exists in this slice. B3c1a
 adds only private WriterSession authority plumbing, and B3c1b adds only private
 rollback-only writer fencing/capability mechanics; neither changes that runtime
-boundary.
+boundary. B3c2 adds private event/idempotency and observed maximum-sequence
+readers with no production caller and no mutation.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state
