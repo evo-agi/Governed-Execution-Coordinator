@@ -19,6 +19,10 @@ B3c1a/B3c1b split only.
 B3c2 adds private transaction-internal transition-event SELECT readers and
 shared private SELECT lifecycle support only; it remains production-unintegrated
 and mutates no durable state.
+B3c3 adds only private pure/static prerequisite contracts for a future
+rollback-only dry run. It pins result/preflight/binding/timestamp/cleanup
+boundaries but does not implement transaction runtime, reader integration,
+evaluator invocation, durable mutation, commit, or migration 0002.
 The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
@@ -194,10 +198,10 @@ B3c0b also defines immutable data-only query specs for future
 specs are now consumed only by B3c2 private transaction-internal readers. The
 idempotency reader returns only `None` or an exact hidden
 `TransitionEventRecordEnvelope`; exact replay and idempotency-key conflict
-remain future B3c3 apply-boundary behavior through the pure matcher. The
-maximum-sequence reader returns only `None` or an exact observed non-negative
-integer maximum; sequence allocation remains future B3c4 behavior through the
-pure allocator.
+are now pinned as future B3c3 dry-run result contracts through the pure matcher,
+but no transaction caller invokes them yet. The maximum-sequence reader returns
+only `None` or an exact observed non-negative integer maximum; sequence
+allocation remains future B3c4 behavior through the pure allocator.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They use a
 temporary managed schema-0001 database, directly seed synthetic authoritative
@@ -209,10 +213,13 @@ proved. The fixtures do not add production admission, authorization, product
 state initialization, runtime authority, a concrete capability, fencing, context
 assembly, mutation, or migration 0002.
 
-Accepted and domain-rejected transitions commit exactly one `TransitionEvent`.
-The event is the receipt. It carries the complete `LeaseRuntimeDecision`
-mapping, so the transaction timestamp and runtime lease status used by the
-evaluator are covered by event identity and digest. There is no separate result
+Committed accepted and domain-rejected transitions commit exactly one
+`TransitionEvent`. The event is the receipt. B3c3 rollback-only fresh
+evaluation output is explicitly non-durable and non-receipt until B3c4 inserts
+and commits the event. A committed event carries the complete
+`LeaseRuntimeDecision` mapping, so the transaction timestamp and runtime lease
+status used by the evaluator are covered by event identity and digest. There is
+no separate result
 reason or receipt object that can disagree with the event reason.
 
 Future production storage must provide one active authoritative writer session,

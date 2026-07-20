@@ -2,7 +2,8 @@
 
 Status: B2c durable writer issuance, internal writer-session acquisition,
 B3c1a private WriterSession authority plumbing, and B3c1b private
-rollback-only writer-fencing/capability mechanics.
+rollback-only writer-fencing/capability mechanics. B3c3 adds private
+pure/static rollback-only dry-run prerequisite contracts only.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
@@ -15,6 +16,8 @@ private resource-owned mutation slot, mutation lease, operation-lease authority
 checks, and durable-issuance verification. B3c1b implements only the private
 rollback-only writer-fencing/capability mechanics that consume that private
 verification interface.
+B3c3 contracts do not change writer-session public methods and do not add a
+transaction runtime caller.
 
 ## Purpose
 
@@ -527,6 +530,11 @@ remain mutation-unavailable and open no SQLite database. B3c1b implements the
 private operation-lease-only rollback-only controller, writer-fencing query,
 and nominal capability, but has no production caller and does not change public
 mutation behavior.
+B3c3 prerequisite contracts pin that the future dry-run entry point may be
+called only after the operation guard supplies an active operation lease, and
+that command-local preflight must run before mutation-slot acquisition. The
+entry point is not implemented in this tranche, and public mutation methods
+still raise `writer_session_mutation_unavailable`.
 
 ## Non-Goals
 
@@ -551,3 +559,8 @@ do not change B2c writer-session semantics and are not invoked by
 `_SQLiteWriterSession.apply_transition`. They do not alter writer credential,
 proof, lock, close, finalizer, process, fork, cleanup, mutation-unavailable, or
 package-root export behavior.
+B3c3 prerequisite contracts likewise do not alter writer credential, proof,
+lock, close, finalizer, process, fork, cleanup, mutation-unavailable, or
+package-root export behavior. They add no second transaction controller, no
+second capability constructor, no raw connection parameter, no callback, no
+observer, and no public writer-session surface.

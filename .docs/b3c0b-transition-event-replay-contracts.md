@@ -205,6 +205,7 @@ They may persist only domain-rejected event/replay rows produced by the pure
 evaluator and do not add SQL execution to B3c0b. B3c1 prerequisites are
 contract/static plus B3c1a/B3c1b private authority and rollback-only
 capability mechanics only. B3c2 adds private idempotency/event/sequence readers
-outside B3c0b and keeps them production-unintegrated. B3c3 remains future for
-idempotency apply-boundary integration and context/evaluator dry run. B3c4
-remains future for atomic persistence.
+outside B3c0b and keeps them production-unintegrated. B3c3 prerequisite
+contracts now pin the future rollback-only dry-run result and idempotency
+integration boundary, but no B3c3 transaction runtime calls the matcher yet.
+B3c4 remains future for atomic persistence.

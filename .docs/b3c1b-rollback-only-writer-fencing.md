@@ -137,8 +137,9 @@ changed.
 `_WriterIssuanceMatch.STALE_WRITER` is returned only after the durable writer
 row is well formed, B3c1a verification returns `STALE_WRITER`, no capability
 is created, rollback succeeds, and close succeeds. B3c1b does not convert that
-private result to `TransitionConflict("stale_writer_token")`; future
-production apply integration owns that conversion.
+private result to `TransitionConflict("stale_writer_token")`; future B3c3
+dry-run integration owns the first private conversion, and that conversion
+returns only after rollback and close with no idempotency disclosure.
 
 ## Nominal Capability
 
@@ -236,5 +237,10 @@ modify migration 0001, or add migration 0002.
 B3c2 event, idempotency, and sequence readers are implemented only as private
 transaction-internal SELECT helpers with no production caller. B3c1b still
 does not call them.
-B3c3 remains future for current/context assembly and evaluator dry run.
-B3c4 remains future for atomic transition persistence and commit uncertainty.
+B3c3 prerequisite contracts now pin the future rollback-only dry-run result
+algebra, command preflight, pure authority binding, stale-writer conversion,
+timestamp placement, and cleanup/result precedence, but B3c3 runtime remains
+future for reader and matcher integration, current/context assembly execution,
+evaluator dry run, and private result return. B3c4 remains future for atomic
+transition persistence, sequence allocation, CAS, commit, and commit
+uncertainty.

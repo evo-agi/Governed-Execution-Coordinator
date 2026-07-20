@@ -39,6 +39,11 @@ idempotency step: an already fetched `transition_events` row reconstructs one
 canonical `TransitionEvent` and one canonical replay `WorkItemRecord`, and a
 pure event-owned matcher returns miss, exact replay, key-reuse conflict, or
 database-integrity failure without reading SQLite or mutating state.
+B3c3 prerequisite contracts now pin the future rollback-only dry-run result
+algebra that may wrap exact replay, apply conflict, accepted evaluation not
+persisted, or domain-rejected evaluation not persisted. Fresh evaluator output
+in that wrapper is not durable, committed, or a receipt until future B3c4
+inserts the event and commits.
 
 The pure evaluator owns domain rules: target-state support, invariant P1 stage
 availability, typed lease identity/runtime and authorization decision effects,
@@ -132,6 +137,8 @@ counter change, budget effect, or state mutation occurs.
 - No separate result reason can disagree with event reason.
 - Apply conflicts never carry events.
 - Durable domain rejections always carry events.
+- B3c3 dry-run domain rejections carry only non-durable evaluator output; they
+  are not receipts until B3c4 persistence.
 - P1-disabled targets always reject with `stage_not_enabled` after pre-apply
   binding and target-support checks but before contextual domain reasons.
 - Caller code never provides proposed state or proposed event.

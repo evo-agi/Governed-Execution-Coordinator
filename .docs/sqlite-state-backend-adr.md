@@ -21,7 +21,10 @@ B3c1a private WriterSession authority plumbing is documented in
 `.docs/b3c1a-writer-session-authority.md`. B3c2 adds only private
 transaction-internal transition-event readers plus shared SELECT lifecycle
 support; it has no production caller, no mutation, no commit, and no migration
-0002.
+0002. B3c3 adds only private pure/static prerequisite contracts for rollback-only
+dry-run result, preflight, authority binding, timestamp placement, stale-writer
+conversion, cleanup/result precedence, and the B3c3/B3c4 split; it has no
+transaction runtime, reader integration, mutation, commit, or migration 0002.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -58,6 +61,12 @@ B3c2 adds private event/idempotency and observed maximum-sequence readers only.
 It consumes the B3c0b immutable query specs through the B3c1b nominal
 capability seam in tests, does not call the pure matcher or allocator in
 production source, and does not insert events or mutate current state.
+B3c3 adds private pure/static dry-run prerequisite contracts only. It does not
+add the dry-run controller entry point, clock implementation, reader calls,
+matcher integration, current-state loading, expected-version comparison,
+`TransitionContext` construction, evaluator invocation, sequence read or
+allocation, event insertion, state update, CAS, commit, public API, or
+migration 0002.
 
 ## Decision
 
@@ -332,6 +341,10 @@ insert integration.
 B3c2's shared SELECT support treats cursor-close failure after successful fetch
 as operational cleanup failure only. Earlier execute/fetch failure remains
 primary if cleanup also fails.
+B3c3 is limited to the future rollback-only subset of this order through
+evaluator dry run and cleanup. Fresh evaluator output is non-durable and
+non-receipt. B3c3 performs no maximum-sequence read, allocator call, insert,
+CAS, or commit; B3c4 remains the first persistence/commit tranche.
 
 Global-stop mutation transaction remains future and unimplemented. It shares the
 same pre-SQLite authority prefix as transition mutation:
@@ -470,6 +483,11 @@ plus lease-construction unwind. B3c1b adds only private operation-lease-only
 rollback-only writer fencing/capability mechanics and still does not add
 reader integration, context assembly, evaluator integration, state mutation,
 commit, public mutation behavior, or executable A2 behavior.
+B3c3 adds only private pure/static prerequisite contracts and still does not add
+transaction integration, reader calls, matcher calls from transaction code,
+clock runtime, context assembly runtime, evaluator integration, sequence read,
+sequence allocation, state mutation, commit, public mutation behavior, or
+executable A2 behavior.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

@@ -138,7 +138,8 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3c1a implements the runtime mutation slot",
         "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
         "B3c2 has since implemented private transaction-internal event/replay idempotency and observed maximum-sequence readers",
-        "B3c3 remains future",
+        "B3c3 prerequisite contracts are now pinned",
+        "B3c3 remains future for transaction integration",
         "B3c4 remains future",
         "Each future stage requires a separate implementation patch and standalone audit.",
     ):

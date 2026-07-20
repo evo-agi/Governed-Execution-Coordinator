@@ -146,6 +146,22 @@ no B3b2 context-reader call, no pure matcher or allocator production call, no
 apply-result ownership, no public API/export, no durable mutation, no commit,
 and no migration 0002.
 
+B3c3 prerequisite contracts are documented in
+`.docs/b3c3-prerequisite-contract.md` and implemented only as private
+pure/static contracts in `sqlite_transition_dry_run_contracts.py`. They pin the
+future rollback-only transition dry-run result algebra, single B3c1b
+controller with two private entry points, command-local preflight before
+mutation-slot acquisition, stale-writer conversion ownership, pure
+cross-record authority binding, one transaction timestamp placement, evaluator
+exactly-once ownership, rollback/close/result precedence, and the B3c3/B3c4
+ownership split. B3c3 runtime is not implemented: there is no dry-run
+controller entry point, clock implementation, SQLite open, `BEGIN IMMEDIATE`,
+reader integration, matcher call from transaction code, current-state read,
+expected-version comparison, lease-runtime derivation, `TransitionContext`,
+evaluator invocation, sequence read/allocation, write, CAS, commit, public API,
+`StateStore` widening, or migration 0002. Fresh evaluator output is explicitly
+non-durable and non-receipt until B3c4 persists and commits it.
+
 B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
 temporary managed schema-0001 database, directly seed synthetic authoritative
 rows through a test-setup transaction, validate those rows through existing row
@@ -334,10 +350,12 @@ and sequence contracts only. B3 tests-only coherent fixtures add temporary
 managed graphs for future tests only. B3c1 adds prerequisite contract pins and
 B3c1a private WriterSession authority plumbing for production-unintegrated
 rollback-only controller construction, the mutation slot and operation-lease
-interfaces, retained filesystem binding, writer-fencing taxonomy, capability epoch rules, cleanup
-precedence, and the B3c1a/B3c1b split. There
-is still no production transaction controller, concrete capability, reader
-integration, context assembly, evaluator integration, exact replay runtime over
-SQLite, or mutation. B3c concrete transaction capability and atomic transition
-apply, exact replay readers, and fault injection remain future. B4 remains
-future for global-stop persistence.
+interfaces, retained filesystem binding, writer-fencing taxonomy, capability
+epoch rules, cleanup precedence, and the B3c1a/B3c1b split. There is still no
+public or production transaction caller, reader integration, context assembly
+runtime, evaluator integration runtime, exact replay runtime over SQLite, or
+mutation. B3c2 adds private event readers only, and B3c3 adds only private
+pure/static prerequisite contracts for the future rollback-only dry run. B3c4
+atomic transition apply, sequence allocation, event insertion, current-state
+CAS, commit, and commit uncertainty remain future. B4 remains future for
+global-stop persistence.

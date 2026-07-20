@@ -89,7 +89,10 @@ def test_sqlite_modules_do_not_define_state_store_mutations_or_services() -> Non
         "socket",
     )
     for token in forbidden:
-        assert token not in sqlite_sources
+        checked_sources = (
+            sqlite_sources.replace("stale_writer_token", "") if token == "writer_token" else sqlite_sources
+        )
+        assert token not in checked_sources
     assert "def apply_transition(" in writer_session_source
     assert "def apply_global_stop_update(" in writer_session_source
     assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in writer_session_source

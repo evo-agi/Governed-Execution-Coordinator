@@ -114,6 +114,19 @@ SQLite bootstrap/migration infrastructure only:
   reap children. They add no matcher or allocator production call, no apply
   result, no public API, no B3b2 context-reader crossing, no durable mutation, no
   commit, and no migration 0002.
+- B3c3 prerequisite contracts, documented in
+  `.docs/b3c3-prerequisite-contract.md` and implemented only in the private
+  pure/static `sqlite_transition_dry_run_contracts.py` module. They pin the
+  rollback-only dry-run result algebra, future single-controller/two-entry-point
+  ownership, command-local preflight, pure cross-record authority binding,
+  stale-writer conversion ownership, timestamp placement, cleanup/result
+  precedence, and the B3c3/B3c4 split. They add no dry-run controller entry
+  point, mutation-slot acquisition, SQLite open, `BEGIN IMMEDIATE`, reader
+  call, matcher integration, current-state read, expected-version check, clock
+  implementation, lease-runtime derivation, `TransitionContext`, evaluator
+  invocation, sequence read/allocation, durable write, public API/export,
+  `StateStore` widening, commit, or migration 0002. Fresh evaluator output is
+  non-durable and non-receipt until future B3c4 inserts and commits it.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -253,9 +266,10 @@ methods `writer_session_mutation_unavailable` with no SQLite contact.
 B3c2 now adds private transaction-internal event/idempotency and observed
 maximum-sequence readers only. It remains production-unintegrated and does not
 own exact replay/conflict outcomes, sequence allocation, current-state loading,
-evaluator integration, durable mutation, commit, or migration 0002. B3c3
-remains future for idempotency apply-boundary integration and evaluator dry
-run; B3c4 remains future for sequence allocation, event insertion,
-current-state CAS, commit, and commit uncertainty.
+evaluator integration, durable mutation, commit, or migration 0002. B3c3 now
+pins private prerequisite contracts for rollback-only idempotency/context/
+timestamp/evaluator dry-run behavior, but the B3c3 transaction runtime remains
+future and production-unintegrated. B3c4 remains future for sequence
+allocation, event insertion, current-state CAS, commit, and commit uncertainty.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

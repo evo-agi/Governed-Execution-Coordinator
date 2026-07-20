@@ -22,6 +22,11 @@ WriterSession mutation-slot and operation-lease verification plumbing. B3c1b
 has since implemented private rollback-only writer fencing and nominal
 capability mechanics with no B3b2 reader integration, production caller, or
 state mutation.
+B3c2 has since implemented private transaction-internal event/idempotency and
+observed maximum-sequence readers only. B3c3 prerequisite contracts are now
+pinned in `.docs/b3c3-prerequisite-contract.md` and private pure/static
+`sqlite_transition_dry_run_contracts.py` contracts only; B3c3 transaction
+runtime remains unimplemented.
 
 ## Nominal Capability Ownership
 
@@ -430,9 +435,15 @@ B3c2 has since implemented private transaction-internal event/replay
 idempotency and observed maximum-sequence readers. They remain
 production-unintegrated, allocate no sequence, and mutate no state.
 
-B3c3 remains future for context assembly and evaluator dry run.
+B3c3 prerequisite contracts are now pinned for the rollback-only dry-run result
+algebra, future single-controller/two-entry-point ownership, command preflight,
+pure authority binding, stale-writer conversion, timestamp placement, and
+cleanup/result precedence. B3c3 remains future for transaction integration,
+reader and matcher calls, context assembly runtime, evaluator dry-run
+execution, and private result return after rollback/close.
 
-B3c4 remains future for event insertion, accepted-state CAS, rollback, and
+B3c4 remains future for maximum-sequence use, sequence allocation, event
+insertion, accepted-state CAS, commit, rollback/commit resolution, and
 commit-uncertainty runtime.
 
 Each future stage requires a separate implementation patch and standalone audit.

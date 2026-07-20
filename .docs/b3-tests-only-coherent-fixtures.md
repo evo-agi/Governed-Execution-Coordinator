@@ -61,7 +61,8 @@ is domain-rejected; no accepted executable transition is proved; B3c1
 prerequisites plus B3c1a private authority plumbing do not make the fixture
 runtime authority; B3c1b rollback-only mechanics are private test-executed
 only; B3c2 event/idempotency/sequence readers are private
-transaction-internal tests only; B3c3/B3c4 remain future.
+transaction-internal tests only; B3c3 prerequisite contracts are pure/static
+only and B3c3/B3c4 runtime remains future.
 
 Unsupported authorization remains production/default:
 
@@ -102,10 +103,12 @@ must fail through existing safe row or binding contracts.
 B3c1a private authority plumbing exists only behind private WriterSession
 helpers, and B3c1b rollback-only controller, nominal transaction capability,
 and writer fencing remain production-unintegrated. B3c2 now implements private
-transaction-internal event/idempotency/sequence readers only. B3c3 remains
-future for context assembly and evaluator dry run. B3c4 remains future for
-atomic persistence, accepted-state CAS, rollback, and commit-uncertainty
-runtime.
+transaction-internal event/idempotency/sequence readers only. B3c3 prerequisite
+contracts now pin rollback-only dry-run result, preflight, binding, timestamp,
+and cleanup/result boundaries, but B3c3 runtime remains future for reader and
+matcher integration, context assembly execution, evaluator dry run, and result
+return. B3c4 remains future for atomic persistence, accepted-state CAS,
+sequence allocation, commit, and commit-uncertainty runtime.
 
 No migration 0002 is required for this tests-only tranche, and migration 0001
 remains unchanged.

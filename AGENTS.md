@@ -246,11 +246,26 @@ caller, no B3b2 context-reader call, no
 matcher or allocator production call, no replay/conflict outcome ownership, no
 sequence reservation or allocation claim, no public API/export/`StateStore`
 widening, no event insertion, no current-state or global-stop update, no
-commit, no migration 0002, and no related-repo consumer. B3c3 remains future
-for idempotency apply-boundary integration, context assembly, expected-version
-handling, timestamp/runtime derivation, and evaluator dry run. B3c4 remains
-future for max-sequence/allocator integration, event insertion, current-state
-CAS, commit, rollback, and commit uncertainty.
+commit, no migration 0002, and no related-repo consumer.
+
+B3c3 prerequisite contracts are pinned in
+`.docs/b3c3-prerequisite-contract.md` and implemented only as private
+pure/static contracts in `sqlite_transition_dry_run_contracts.py`: the exact
+rollback-only dry-run result algebra, single-controller/two-entry-point future
+ownership, command-local preflight boundary, pure cross-record authority
+binding, stale-writer conversion ownership, transaction timestamp placement,
+rollback/close/result precedence, and B3c3-versus-B3c4 split. The B3c3
+transaction runtime is not implemented: there is no dry-run controller entry
+point, no mutation-slot acquisition, no SQLite open, no `BEGIN IMMEDIATE`, no
+B3b2 or B3c2 reader call, no matcher integration, no current-state read,
+expected-version comparison, real clock capture, lease-runtime derivation,
+`TransitionContext` construction, evaluator invocation, sequence read or
+allocation, event/state/global-stop mutation, CAS, commit, public API/export,
+`StateStore` widening, migration 0002, or related-repo consumer. Fresh
+evaluator output remains explicitly non-durable and non-receipt until future
+B3c4 inserts and commits it. B3c4 remains future for max-sequence/allocator
+integration, event insertion, current-state CAS, commit, rollback/commit
+resolution, and commit uncertainty.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production
