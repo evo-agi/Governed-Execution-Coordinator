@@ -1441,10 +1441,14 @@ def test_b3c2_source_boundaries_are_private_unintegrated_and_read_only() -> None
 
     assert "_read_transition_event_for_idempotency" not in writer_source
     assert "_read_transition_event_max_sequence" not in writer_source
-    assert "_read_transition_event_for_idempotency" not in transaction_source
+    assert "_read_transition_event_for_idempotency" in transaction_source
     assert "_read_transition_event_max_sequence" not in transaction_source
     for path_name, source in all_production_sources.items():
-        if path_name in {"sqlite_transition_event_contracts.py", "sqlite_transition_event_readers.py"}:
+        if path_name in {
+            "sqlite_transition_event_contracts.py",
+            "sqlite_transition_event_readers.py",
+            "sqlite_transition_transaction.py",
+        }:
             continue
         assert "_TRANSITION_EVENT_IDEMPOTENCY_LOOKUP_SELECT" not in source
         assert "_TRANSITION_EVENT_MAX_SEQUENCE_SELECT" not in source

@@ -1,18 +1,18 @@
-# B3c3 Prerequisite Contract
+# B3c3 Prerequisite And Runtime Contract
 
-Status: contract-only / pure-static prerequisite; no B3c3 transaction
-implementation; no public caller; no mutation.
+Status: private prerequisite contracts plus implemented rollback-only
+transition dry-run runtime; no public caller; no durable mutation.
 
-B3c3 pins the private rollback-only transition dry-run boundary that a later
-runtime tranche may execute inside the existing B3c1b controller lifecycle. This
-tranche adds only documentation, private pure result/preflight/binding
-contracts, and tests. It does not modify the live B3c1b controller, acquire a
-mutation slot, open SQLite, execute `BEGIN IMMEDIATE`, call B3b2 or B3c2
-readers, call the idempotency matcher from transaction code, capture the real
-clock, derive lease runtime, construct `TransitionContext`, invoke
-`evaluate_transition`, read maximum sequence, allocate sequence, insert or
-update durable state, commit, change public `WriterSession` methods, widen
-`StateStore`, export package-root symbols, or add migration 0002.
+B3c3 pins and now implements the private rollback-only transition dry-run
+boundary inside the existing B3c1b controller lifecycle. This tranche adds the
+private runtime entry point, command preflight, idempotency/context reader
+ordering, idempotency matching, current-state and expected-version checks,
+authority binding, one private transaction timestamp, lease-runtime derivation,
+`TransitionContext` construction, pure evaluator invocation, private
+non-durable result selection, and rollback-only cleanup. It still does not read
+maximum sequence, allocate sequence, insert or update durable state, commit,
+change public `WriterSession` methods, widen `StateStore`, export package-root
+symbols, or add migration 0002.
 
 ## Controller Ownership
 
@@ -31,7 +31,7 @@ _run_rollback_only_writer_fencing(
 ) -> _WriterIssuanceMatch
 ```
 
-The future B3c3 dry-run entry point is pinned as:
+The B3c3 dry-run entry point is implemented as:
 
 ```python
 _run_rollback_only_transition_dry_run(
@@ -41,9 +41,8 @@ _run_rollback_only_transition_dry_run(
 ) -> _RollbackOnlyTransitionDryRunResult
 ```
 
-The future dry-run entry point is not implemented in this tranche. When it is
-implemented, it must extend the same private controller lifecycle rather than
-introducing a second transaction controller, second nominal capability
+The dry-run entry point extends the same private controller lifecycle rather
+than introducing a second transaction controller, second nominal capability
 constructor, callback, observer, raw `sqlite3.Connection` parameter, generic
 callable hook, generic mode, caller-supplied `TransitionContext`,
 caller-supplied `LeaseRuntimeDecision`, or caller-supplied timestamp.
@@ -52,7 +51,7 @@ capability, or generic mode.
 
 ## Command Preflight
 
-Future B3c3 performs command-local checks before mutation-slot acquisition.
+B3c3 performs command-local checks before mutation-slot acquisition.
 The order is:
 
 1. operation lease acquisition;
@@ -87,7 +86,7 @@ invokes no reader, invokes no evaluator, returns no event, constructs no
 
 ## Dry-Run Ordering
 
-After preflight, future B3c3 uses the B3c1b controller lifecycle:
+After preflight, B3c3 uses the B3c1b controller lifecycle:
 
 1. acquire the mutation slot;
 2. open the resource-owned managed read/write connection;
@@ -112,7 +111,7 @@ After preflight, future B3c3 uses the B3c1b controller lifecycle:
 21. return a private dry-run result only after cleanup succeeds.
 
 Stale writer precedes idempotency disclosure; stale writer before idempotency
-disclosure is a hard ordering boundary. Future B3c3 is the first private
+disclosure is a hard ordering boundary. B3c3 is the first private
 owner that converts `_WriterIssuanceMatch.STALE_WRITER` into
 `_RollbackOnlyTransitionDryRunResult(kind=APPLY_CONFLICT,
 conflict=TransitionConflict("stale_writer_token"))`. That conversion result is
@@ -129,7 +128,7 @@ replay may carry only the existing already-committed
 
 ## Current And Context Reads
 
-After idempotency miss, future B3c3 reads the current work item before any
+After idempotency miss, B3c3 reads the current work item before any
 context row. Zero current rows are `TransitionConflict("work_item_not_found")`.
 Exactly one valid row continues. Expected-version mismatch is
 `TransitionConflict("expected_version_conflict")`. No timestamp or evaluator
@@ -251,15 +250,14 @@ failure, not a validation conflict.
 
 ## Timestamp, Runtime, And Evaluator
 
-Future B3c3 owns exactly this private timestamp source in
+B3c3 owns exactly this private timestamp source in
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`:
 
 ```python
 _utc_transaction_timestamp() -> str
 ```
 
-This function is not implemented in the prerequisite tranche. When implemented,
-it has zero arguments, is module-private, returns exact whole-second UTC
+This function has zero arguments, is module-private, returns exact whole-second UTC
 `YYYY-MM-DDTHH:MM:SSZ`, and may be monkeypatched by tests only at that bounded
 module-private seam. It is called exactly once only after all rows are loaded
 and cross-record binding succeeds, before lease-runtime derivation,
@@ -272,7 +270,7 @@ failure is `SQLiteMutationStoreError(mutation_failed)`, calls no evaluator,
 fabricates no event/result, retains no raw clock exception, and still requires
 rollback and close.
 
-After timestamp capture, future B3c3 derives exactly one
+After timestamp capture, B3c3 derives exactly one
 `derive_lease_runtime_decision(standing_lease, timestamp)`, constructs exactly
 one `TransitionContext` from the persisted lease identity, persisted
 authorization decision, derived lease runtime, authoritative global stop, and
@@ -368,7 +366,7 @@ rollback-or-commit resolution, commit uncertainty, and durable receipts.
 
 ## Production Boundary
 
-B3c3 prerequisite contracts are private and production-unintegrated. Public
+B3c3 contracts and runtime are private and production-unintegrated. Public
 transition and global-stop mutation methods continue to return
 `writer_session_mutation_unavailable` and contact no SQLite database. B3c3 adds
 no `StateStore` method, package-root export, CLI, MCP, connector, report,

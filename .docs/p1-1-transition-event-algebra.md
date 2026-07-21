@@ -39,11 +39,11 @@ idempotency step: an already fetched `transition_events` row reconstructs one
 canonical `TransitionEvent` and one canonical replay `WorkItemRecord`, and a
 pure event-owned matcher returns miss, exact replay, key-reuse conflict, or
 database-integrity failure without reading SQLite or mutating state.
-B3c3 prerequisite contracts now pin the future rollback-only dry-run result
-algebra that may wrap exact replay, apply conflict, accepted evaluation not
-persisted, or domain-rejected evaluation not persisted. Fresh evaluator output
-in that wrapper is not durable, committed, or a receipt until future B3c4
-inserts the event and commits.
+B3c3 now implements the private rollback-only dry-run result algebra that may
+wrap exact replay, apply conflict, accepted evaluation not persisted, or
+domain-rejected evaluation not persisted. Fresh evaluator output in that
+wrapper is not durable, committed, or a receipt until future B3c4 inserts the
+event and commits.
 
 The pure evaluator owns domain rules: target-state support, invariant P1 stage
 availability, typed lease identity/runtime and authorization decision effects,

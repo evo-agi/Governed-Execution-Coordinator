@@ -1952,7 +1952,10 @@ def test_no_b3b2_reader_calls_and_no_durable_mutation_sql(
     finally:
         session.close()
 
-    source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
+    module_source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
+    source = inspect.getsource(transaction_module._run_rollback_only_writer_fencing) + inspect.getsource(
+        transaction_module._RollbackOnlyTransitionTransactionController._run_until_writer_fencing_resolution
+    )
     for forbidden in (
         "INSERT",
         "UPDATE",
@@ -1970,9 +1973,9 @@ def test_no_b3b2_reader_calls_and_no_durable_mutation_sql(
         "_read_global_stop_current",
     ):
         assert forbidden not in source
-    assert source.count("BEGIN IMMEDIATE") == 1
-    assert source.count("ROLLBACK") == 1
-    assert EXPECTED_WRITER_ROW_QUERY in source
+    assert module_source.count("BEGIN IMMEDIATE") == 1
+    assert module_source.count("ROLLBACK") == 1
+    assert EXPECTED_WRITER_ROW_QUERY in module_source
 
 
 def test_public_mutation_methods_remain_unavailable_and_unintegrated(

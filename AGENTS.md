@@ -248,24 +248,28 @@ sequence reservation or allocation claim, no public API/export/`StateStore`
 widening, no event insertion, no current-state or global-stop update, no
 commit, no migration 0002, and no related-repo consumer.
 
-B3c3 prerequisite contracts are pinned in
-`.docs/b3c3-prerequisite-contract.md` and implemented only as private
-pure/static contracts in `sqlite_transition_dry_run_contracts.py`: the exact
-rollback-only dry-run result algebra, single-controller/two-entry-point future
-ownership, command-local preflight boundary, pure cross-record authority
-binding, stale-writer conversion ownership, transaction timestamp placement,
-rollback/close/result precedence, and B3c3-versus-B3c4 split. The B3c3
-transaction runtime is not implemented: there is no dry-run controller entry
-point, no mutation-slot acquisition, no SQLite open, no `BEGIN IMMEDIATE`, no
-B3b2 or B3c2 reader call, no matcher integration, no current-state read,
-expected-version comparison, real clock capture, lease-runtime derivation,
-`TransitionContext` construction, evaluator invocation, sequence read or
-allocation, event/state/global-stop mutation, CAS, commit, public API/export,
-`StateStore` widening, migration 0002, or related-repo consumer. Fresh
-evaluator output remains explicitly non-durable and non-receipt until future
-B3c4 inserts and commits it. B3c4 remains future for max-sequence/allocator
-integration, event insertion, current-state CAS, commit, rollback/commit
-resolution, and commit uncertainty.
+B3c3 contracts are pinned in `.docs/b3c3-prerequisite-contract.md`, and the
+rollback-only runtime is documented in
+`.docs/b3c3-rollback-only-transition-dry-run.md`. B3c3 implements only a
+private, production-unintegrated transition dry run through the existing B3c1
+single transaction controller and nominal capability path. It performs
+command-local preflight before mutation-slot acquisition; opens one
+resource-bound managed SQLite transaction with `BEGIN IMMEDIATE`; fences the
+writer before idempotency disclosure; reads idempotency through B3c2; calls the
+pure matcher exactly once; reads current work item; compares expected version;
+reads B3b2 context rows in the exact order lease identity, admitted backlog,
+authorization, READY dependency when required, and global stop; binds authority
+through the frozen B3c3 helper; captures one private whole-second UTC
+transaction timestamp; derives lease runtime; constructs one
+`TransitionContext`; invokes the pure evaluator exactly once; returns only a
+private non-durable dry-run result after capability invalidation, rollback,
+close, and mutation-slot release. Fresh accepted or domain-rejected evaluator
+output remains explicitly non-durable and non-receipt until future B3c4 inserts
+and commits it. B3c3 performs no maximum-sequence read, sequence allocation,
+event insertion, work-item or global-stop update, CAS, commit,
+`commit_outcome_unknown`, public API/export, `StateStore` widening, migration
+0002, or related-repo consumer. Public mutation methods still raise
+`writer_session_mutation_unavailable`.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

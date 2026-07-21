@@ -215,7 +215,7 @@ open, `BEGIN`, managed-validation, `SELECT`, cursor-close, controller,
 rollback, and connection-close failures produce `mutation_failed` and no enum.
 No rollback-only B3c1 path returns `commit_outcome_unknown`.
 
-`_WriterIssuanceMatch.STALE_WRITER` is an internal private result. Future B3c3
+`_WriterIssuanceMatch.STALE_WRITER` is an internal private result. B3c3
 dry-run integration owns the first private conversion from
 `_WriterIssuanceMatch.STALE_WRITER` to
 `TransitionConflict("stale_writer_token")`, returned only after rollback and
@@ -228,10 +228,9 @@ metadata, or mismatch details. Do not add a second enum, dataclass, union, or
 result model for fenced versus stale outcomes. `_WriterIssuanceMatch` remains
 private and unexported.
 
-B3c3 prerequisite contracts add a separate private dry-run result algebra for
-future rollback-only transition dry runs. That algebra is not a B3c1 fencing
-result model, is not returned by the B3c1b fencing entry point, and has no
-transaction runtime caller in this tranche.
+B3c3 contracts add a separate private dry-run result algebra for rollback-only
+transition dry runs. That algebra is not a B3c1 fencing result model and is not
+returned by the B3c1b fencing entry point.
 
 ## Writer-Row Query
 

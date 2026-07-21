@@ -19,10 +19,11 @@ B3c1a/B3c1b split only.
 B3c2 adds private transaction-internal transition-event SELECT readers and
 shared private SELECT lifecycle support only; it remains production-unintegrated
 and mutates no durable state.
-B3c3 adds only private pure/static prerequisite contracts for a future
-rollback-only dry run. It pins result/preflight/binding/timestamp/cleanup
-boundaries but does not implement transaction runtime, reader integration,
-evaluator invocation, durable mutation, commit, or migration 0002.
+B3c3 adds only a private rollback-only dry run. It implements
+result/preflight/binding/timestamp/cleanup boundaries, idempotency and context
+reader ordering, expected-version checks, lease-runtime/context construction,
+and exactly one pure evaluator invocation, but it does not persist evaluator
+output, mutate durable state, commit, or add migration 0002.
 The code still does not implement a production `StateStore` mutation backend.
 
 The work-item state schema id is:
@@ -198,10 +199,10 @@ B3c0b also defines immutable data-only query specs for future
 specs are now consumed only by B3c2 private transaction-internal readers. The
 idempotency reader returns only `None` or an exact hidden
 `TransitionEventRecordEnvelope`; exact replay and idempotency-key conflict
-are now pinned as future B3c3 dry-run result contracts through the pure matcher,
-but no transaction caller invokes them yet. The maximum-sequence reader returns
-only `None` or an exact observed non-negative integer maximum; sequence
-allocation remains future B3c4 behavior through the pure allocator.
+are now consumed by the private B3c3 rollback-only dry-run runtime through the
+pure matcher. The maximum-sequence reader returns only `None` or an exact
+observed non-negative integer maximum; sequence allocation remains future B3c4
+behavior through the pure allocator.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They use a
 temporary managed schema-0001 database, directly seed synthetic authoritative

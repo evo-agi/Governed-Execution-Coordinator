@@ -1,9 +1,9 @@
 # B3c2 Transition Event Readers
 
 Status: implemented private transaction-internal SELECT readers;
-production-unintegrated; no apply result ownership; no sequence allocation; no
-mutation. B3c3 prerequisite contracts are pinned separately, but no B3c3
-runtime caller invokes these readers yet.
+production-unintegrated; no sequence allocation; no mutation. B3c3 now invokes
+the idempotency reader from the private rollback-only dry-run runtime; the
+maximum-sequence reader remains uncalled until B3c4.
 
 B3c2 adds only private readers for already fenced B3c transactions:
 
@@ -21,8 +21,9 @@ def _read_transition_event_max_sequence(
 
 The readers live in `sqlite_transition_event_readers.py`. They are not package
 exports, `StateStore` methods, `WriterSession` methods, report inputs, CLI
-surfaces, MCP surfaces, connector surfaces, or related-repo APIs. No production
-module calls them in B3c2.
+surfaces, MCP surfaces, connector surfaces, or related-repo APIs. B3c3 calls
+only `_read_transition_event_for_idempotency(...)` from the private
+rollback-only dry-run transaction after writer fencing and capability creation.
 
 ## Shared SELECT Support
 
@@ -81,10 +82,9 @@ The reader never returns `CommittedTransition`, `TransitionConflict`,
 not accept `TransitionCommand` and does not call
 `match_transition_event_idempotency(...)`.
 
-B3c3 prerequisite contracts pin that the future B3c3 runtime is the first
-rollback-only tranche allowed to call this reader and then call the pure B3c0b
-matcher at the apply boundary. That runtime is not implemented here. B3c2 does
-not decide exact replay or idempotency-key reuse conflict policy.
+B3c3 is the first rollback-only tranche allowed to call this reader and then
+call the pure B3c0b matcher at the dry-run boundary. B3c2 still does not decide
+exact replay or idempotency-key reuse conflict policy.
 
 ## Maximum Sequence Reader
 
@@ -163,11 +163,11 @@ Schema 0001 is sufficient. The unique `(work_item_id, idempotency_key)`
 constraint plus `LIMIT 2` gives the intended integrity posture, and global
 `event_sequence` remains the v1 ordering domain. B3c2 adds no migration 0002.
 
-B3c3 prerequisite contracts now pin the future rollback-only dry-run ordering:
-writer fencing precedes idempotency disclosure, the idempotency reader is
-called only after a matching writer and nominal capability exist, the pure
-matcher is called exactly once after the reader, exact replay and key-reuse
-conflict skip current/context/timestamp/evaluator work, and no maximum-sequence
-reader, allocator, write, CAS, or commit belongs to B3c3. B3c4 remains the
-first tranche allowed to consume the observed maximum-sequence reader for
-allocation and durable event insertion.
+B3c3 now implements the rollback-only dry-run ordering: writer fencing precedes
+idempotency disclosure, the idempotency reader is called only after a matching
+writer and nominal capability exist, the pure matcher is called exactly once
+after the reader, exact replay and key-reuse conflict skip
+current/context/timestamp/evaluator work, and no maximum-sequence reader,
+allocator, write, CAS, or commit belongs to B3c3. B3c4 remains the first
+tranche allowed to consume the observed maximum-sequence reader for allocation
+and durable event insertion.

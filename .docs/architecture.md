@@ -146,21 +146,23 @@ no B3b2 context-reader call, no pure matcher or allocator production call, no
 apply-result ownership, no public API/export, no durable mutation, no commit,
 and no migration 0002.
 
-B3c3 prerequisite contracts are documented in
-`.docs/b3c3-prerequisite-contract.md` and implemented only as private
-pure/static contracts in `sqlite_transition_dry_run_contracts.py`. They pin the
-future rollback-only transition dry-run result algebra, single B3c1b
-controller with two private entry points, command-local preflight before
-mutation-slot acquisition, stale-writer conversion ownership, pure
-cross-record authority binding, one transaction timestamp placement, evaluator
-exactly-once ownership, rollback/close/result precedence, and the B3c3/B3c4
-ownership split. B3c3 runtime is not implemented: there is no dry-run
-controller entry point, clock implementation, SQLite open, `BEGIN IMMEDIATE`,
-reader integration, matcher call from transaction code, current-state read,
-expected-version comparison, lease-runtime derivation, `TransitionContext`,
-evaluator invocation, sequence read/allocation, write, CAS, commit, public API,
-`StateStore` widening, or migration 0002. Fresh evaluator output is explicitly
-non-durable and non-receipt until B3c4 persists and commits it.
+B3c3 contracts are documented in `.docs/b3c3-prerequisite-contract.md`, and
+the private rollback-only runtime is documented in
+`.docs/b3c3-rollback-only-transition-dry-run.md`. B3c3 implements only a
+private production-unintegrated dry run through the single B3c1b controller and
+nominal capability path. It performs command-local preflight before
+mutation-slot acquisition; fences the writer before idempotency disclosure;
+reads B3c2 idempotency data; calls the pure matcher exactly once; reads current
+state; compares expected version; reads B3b2 context rows in the order lease
+identity, admitted backlog, authorization, READY dependency when required, and
+global stop; binds authority through the frozen helper; captures one private
+UTC timestamp; derives lease runtime; constructs one `TransitionContext`;
+invokes the evaluator exactly once; and returns only a private non-durable
+result after capability invalidation, rollback, close, and mutation-slot
+release. B3c3 does not read maximum sequence, allocate sequence, write events
+or state, perform CAS, commit, widen public APIs or `StateStore`, or add
+migration 0002. Fresh evaluator output is explicitly non-durable and
+non-receipt until B3c4 persists and commits it.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
 temporary managed schema-0001 database, directly seed synthetic authoritative
@@ -352,10 +354,10 @@ B3c1a private WriterSession authority plumbing for production-unintegrated
 rollback-only controller construction, the mutation slot and operation-lease
 interfaces, retained filesystem binding, writer-fencing taxonomy, capability
 epoch rules, cleanup precedence, and the B3c1a/B3c1b split. There is still no
-public or production transaction caller, reader integration, context assembly
-runtime, evaluator integration runtime, exact replay runtime over SQLite, or
-mutation. B3c2 adds private event readers only, and B3c3 adds only private
-pure/static prerequisite contracts for the future rollback-only dry run. B3c4
-atomic transition apply, sequence allocation, event insertion, current-state
-CAS, commit, and commit uncertainty remain future. B4 remains future for
+public or production transaction caller or mutation. B3c2 adds private event
+readers only, and B3c3 adds only the private rollback-only dry run with reader
+ordering, exact replay/conflict handling, context assembly, timestamp capture,
+and evaluator invocation but no durable persistence. B3c4 atomic transition
+apply, sequence allocation, event insertion, current-state CAS, commit, and
+commit uncertainty remain future. B4 remains future for
 global-stop persistence.

@@ -1768,7 +1768,7 @@ def test_candidate_state_snapshot_validates_raw_keys_before_trusted_lookup() -> 
         assert forbidden not in snapshot_source
 
 
-def test_b3c3_prerequisite_has_no_public_export_or_runtime_controller_entrypoint() -> None:
+def test_b3c3_runtime_entrypoint_remains_private_and_unexported() -> None:
     package_source = (PACKAGE_DIR / "__init__.py").read_text(encoding="utf-8")
     transaction_source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
     writer_source = (PACKAGE_DIR / "sqlite_writer_session.py").read_text(encoding="utf-8")
@@ -1788,22 +1788,26 @@ def test_b3c3_prerequisite_has_no_public_export_or_runtime_controller_entrypoint
         "_BoundTransitionAuthority",
         "_validate_transition_dry_run_preflight",
         "_bind_b3c3_transition_authority",
+        "_run_rollback_only_transition_dry_run",
+        "_utc_transaction_timestamp",
     ):
         assert not hasattr(ge_nwp_coordinator, name)
 
-    assert not hasattr(transaction_module, "_run_rollback_only_transition_dry_run")
-    assert not hasattr(transaction_module, "_utc_transaction_timestamp")
-    assert "_run_rollback_only_transition_dry_run" not in transaction_source
-    assert "_utc_transaction_timestamp" not in transaction_source
-    assert "_validate_transition_dry_run_preflight" not in transaction_source
-    assert "_bind_b3c3_transition_authority" not in transaction_source
+    assert hasattr(transaction_module, "_run_rollback_only_transition_dry_run")
+    assert hasattr(transaction_module, "_utc_transaction_timestamp")
+    assert "_run_rollback_only_transition_dry_run" in transaction_source
+    assert "_utc_transaction_timestamp" in transaction_source
+    assert "_validate_transition_dry_run_preflight" in transaction_source
+    assert "_bind_b3c3_transition_authority" in transaction_source
+    assert "_run_rollback_only_transition_dry_run" not in package_source
+    assert "_run_rollback_only_transition_dry_run" not in writer_source
     assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in writer_source
     assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE.value == "writer_session_mutation_unavailable"
 
 
-def test_b3c3_prerequisite_left_readers_context_evaluator_sequence_and_mutation_unintegrated() -> None:
+def test_b3c3_runtime_integrates_readers_context_and_evaluator_without_b3c4_mutation() -> None:
     transaction_source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
-    for forbidden in (
+    for required in (
         "_read_transition_event_for_idempotency",
         "match_transition_event_idempotency",
         "_read_current_work_item",
@@ -1815,6 +1819,10 @@ def test_b3c3_prerequisite_left_readers_context_evaluator_sequence_and_mutation_
         "TransitionContext",
         "derive_lease_runtime_decision",
         "evaluate_transition",
+    ):
+        assert required in transaction_source
+
+    for forbidden in (
         "_read_transition_event_max_sequence",
         "next_transition_event_sequence",
         "INSERT INTO transition_events",
@@ -1830,7 +1838,7 @@ def test_b3c3_prerequisite_docs_and_schema_boundary_are_pinned() -> None:
     doc = (ROOT / ".docs/b3c3-prerequisite-contract.md").read_text(encoding="utf-8")
     normalized = " ".join(doc.split())
     for phrase in (
-        "Status: contract-only / pure-static prerequisite",
+        "Status: private prerequisite contracts plus implemented rollback-only transition dry-run runtime",
         "_run_rollback_only_writer_fencing",
         "_run_rollback_only_transition_dry_run",
         "one controller class and one capability-construction path",

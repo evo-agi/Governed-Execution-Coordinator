@@ -23,10 +23,11 @@ has since implemented private rollback-only writer fencing and nominal
 capability mechanics with no B3b2 reader integration, production caller, or
 state mutation.
 B3c2 has since implemented private transaction-internal event/idempotency and
-observed maximum-sequence readers only. B3c3 prerequisite contracts are now
-pinned in `.docs/b3c3-prerequisite-contract.md` and private pure/static
-`sqlite_transition_dry_run_contracts.py` contracts only; B3c3 transaction
-runtime remains unimplemented.
+observed maximum-sequence readers only. B3c3 contracts are now pinned in
+`.docs/b3c3-prerequisite-contract.md`, and
+`.docs/b3c3-rollback-only-transition-dry-run.md` documents the implemented
+private rollback-only dry-run runtime. That runtime remains production
+unintegrated and non-durable.
 
 ## Nominal Capability Ownership
 
@@ -435,12 +436,12 @@ B3c2 has since implemented private transaction-internal event/replay
 idempotency and observed maximum-sequence readers. They remain
 production-unintegrated, allocate no sequence, and mutate no state.
 
-B3c3 prerequisite contracts are now pinned for the rollback-only dry-run result
-algebra, future single-controller/two-entry-point ownership, command preflight,
-pure authority binding, stale-writer conversion, timestamp placement, and
-cleanup/result precedence. B3c3 remains future for transaction integration,
-reader and matcher calls, context assembly runtime, evaluator dry-run
-execution, and private result return after rollback/close.
+B3c3 now implements the rollback-only dry-run result algebra, private
+single-controller/two-entry-point ownership, command preflight, pure authority
+binding, stale-writer conversion, timestamp placement, reader and matcher
+calls, context assembly runtime, evaluator dry-run execution, and private
+result return after rollback/close. It remains non-durable and
+production-unintegrated.
 
 B3c4 remains future for maximum-sequence use, sequence allocation, event
 insertion, accepted-state CAS, commit, rollback/commit resolution, and

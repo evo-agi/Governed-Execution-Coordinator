@@ -247,7 +247,7 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
         "Operational open, `BEGIN`, managed-validation, `SELECT`, cursor-close, controller",
         "No rollback-only B3c1 path returns `commit_outcome_unknown`",
         "`_WriterIssuanceMatch.STALE_WRITER` is an internal private result",
-        "Future B3c3 dry-run integration owns the first private conversion",
+        "B3c3 dry-run integration owns the first private conversion",
         "returned only after rollback and close succeed and before any idempotency disclosure",
         "B3c1b itself still does not perform that conversion",
         "must not directly return `TransitionConflict`",
@@ -255,7 +255,7 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
         "`TransitionApplyOutcome`",
         "Do not add a second enum, dataclass, union, or result model for fenced versus stale outcomes",
         "`_WriterIssuanceMatch` remains private and unexported",
-        "B3c3 prerequisite contracts add a separate private dry-run result algebra",
+        "B3c3 contracts add a separate private dry-run result algebra",
         "That algebra is not a B3c1 fencing result model",
     ):
         assert phrase in normalized

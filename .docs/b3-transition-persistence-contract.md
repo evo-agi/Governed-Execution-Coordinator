@@ -13,13 +13,15 @@ B3c1a/B3c1b split. B3c1a adds only private WriterSession authority plumbing,
 and B3c1b adds only private rollback-only writer-fencing/capability mechanics.
 B3c2 adds only private transaction-internal transition-event readers and shared
 private SELECT lifecycle support, with no production caller, apply result,
-sequence allocation, mutation, commit, or migration 0002. B3c3 adds only
-private pure/static prerequisite contracts for rollback-only dry-run results,
-future controller entry-point ownership, command preflight, cross-record
-authority binding, stale-writer conversion, timestamp placement, cleanup/result
-precedence, and the B3c3/B3c4 split; it adds no transaction runtime, reader
-integration, evaluator invocation, sequence read/allocation, write, commit, or
-migration 0002.
+sequence allocation, mutation, commit, or migration 0002. B3c3 adds only a
+private rollback-only transition dry run through the existing B3c1 controller:
+command preflight, stale-writer conversion, idempotency read and pure matcher,
+current/expected checks, B3b2 context-reader ordering, cross-record authority
+binding, one private transaction timestamp, lease-runtime/context construction,
+exactly one pure evaluator call, private non-durable result selection, and
+cleanup/result precedence. It adds no maximum-sequence read, sequence
+allocation, event insert, current-state/global-stop update, CAS, durable write,
+public caller, commit, or migration 0002.
 
 B3a defines the canonical persistence and provenance contracts required before
 work-item transition persistence can be implemented. It does not implement
@@ -124,14 +126,16 @@ query, and nominal capability, but still adds no B3b2 reader integration,
 context assembly, evaluator invocation, event/state mutation, public
 mutation-method behavior change, commit, or migration 0002.
 
-B3c3 prerequisites are documented in
-`.docs/b3c3-prerequisite-contract.md`. They introduce only the private pure
+B3c3 contracts are documented in `.docs/b3c3-prerequisite-contract.md`, and
+the private rollback-only runtime is documented in
+`.docs/b3c3-rollback-only-transition-dry-run.md`. They include the private pure
 `sqlite_transition_dry_run_contracts.py` contracts:
 `_validate_transition_dry_run_preflight(...)`,
 `_RollbackOnlyTransitionDryRunResult`, and
-`_bind_b3c3_transition_authority(...)`. The future dry-run controller entry
-point and `_utc_transaction_timestamp() -> str` are contract-pinned but not
-implemented in this tranche.
+`_bind_b3c3_transition_authority(...)`, plus the private
+`_run_rollback_only_transition_dry_run(...)` entry point and
+`_utc_transaction_timestamp() -> str`. The runtime remains private,
+rollback-only, production-unintegrated, and non-durable.
 
 ## Public Shape
 
@@ -367,14 +371,12 @@ derive `LeaseRuntimeDecision`, construct `TransitionContext`, and invoke the
 pure evaluator exactly once.
 
 B3b2b implements only the private per-table SELECT readers that can load the
-six individual rows when explicitly invoked by tests. B3c3 now pins the private
-pure/static result, preflight, and cross-record authority-binding contracts plus
-the rollback-only dry-run ordering. The B3c3 transaction runtime still remains
-future for reader ordering, missing-row apply-conflict classification,
+six individual rows when explicitly invoked by tests. B3c3 now owns the private
+rollback-only dry-run ordering, missing-row apply-conflict classification,
 idempotency/replay integration, expected-version checks, timestamp capture,
 lease runtime derivation, `TransitionContext` construction, evaluator dry run,
-and rollback-only result return. B3c4 remains future for maximum-sequence use,
-sequence allocation, event insertion, current-state CAS, commit, durable
+and private non-durable result return. B3c4 remains future for maximum-sequence
+use, sequence allocation, event insertion, current-state CAS, commit, durable
 receipts, and commit uncertainty.
 
 B3b1 row contracts retain row `created_at`, `admitted_at`, or `updated_at`
@@ -460,10 +462,10 @@ FROM transition_events
 ```
 
 These specs have no runtime caller in B3c0b. B3c2 consumes them only from
-private transaction-internal readers. B3c3 prerequisite contracts pin exact
-replay/conflict result representation and stale-writer conversion ownership,
-but no transaction code calls the reader or matcher yet. Max-sequence
-allocation plus event insertion remain future B3c4 behavior.
+private transaction-internal readers. B3c3 calls the idempotency reader and
+pure matcher from the private rollback-only dry-run path for exact replay,
+idempotency-key reuse conflict, and miss handling. Max-sequence allocation plus
+event insertion remain future B3c4 behavior.
 
 ## Error Taxonomy
 
@@ -517,7 +519,7 @@ previously. The future typed-reader tranche must validate them transaction-time
 from authoritative rows.
 
 Schema 0001 is sufficient for the bounded B3b reader slice and for B3c3
-rollback-only dry-run prerequisites. No migration 0002 is required for these
+rollback-only dry-run runtime. No migration 0002 is required for these
 prerequisite contracts. Future multidimensional dynamic budget consumption
 accounting requires a separately audited versioned contract and may require
 schema/model evolution, but it must not modify migration 0001.

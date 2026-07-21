@@ -138,8 +138,8 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3c1a implements the runtime mutation slot",
         "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
         "B3c2 has since implemented private transaction-internal event/replay idempotency and observed maximum-sequence readers",
-        "B3c3 prerequisite contracts are now pinned",
-        "B3c3 remains future for transaction integration",
+        "B3c3 contracts are now pinned",
+        "implemented private rollback-only dry-run runtime",
         "B3c4 remains future",
         "Each future stage requires a separate implementation patch and standalone audit.",
     ):
@@ -534,7 +534,7 @@ def test_static_runtime_boundary_still_has_no_b3c_transition_apply_implementatio
     assert "_TRANSITION_EVENT_MAX_SEQUENCE_SELECT" in transition_event_contract_source
     assert "MAX({sequence_column})" in transition_event_contract_source
     assert "MAX(event_sequence" not in sqlite_runtime_sources
-    assert "evaluate_transition" not in sqlite_runtime_sources
+    assert "evaluate_transition" in sqlite_runtime_sources
     assert "INSERT INTO transition_events" not in sqlite_runtime_sources
     assert "UPDATE work_items" not in sqlite_runtime_sources
 

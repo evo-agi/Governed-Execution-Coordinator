@@ -157,8 +157,9 @@ B3c1b implements the private rollback-only transaction controller, writer-row
 query, writer fencing, and nominal transaction capability without production
 integration or durable mutation. B3c2 now implements private
 transaction-internal idempotency/event/sequence readers only, with no
-production caller and no durable mutation. B3c3 prerequisite contracts now pin
-the private rollback-only dry-run result, preflight, authority-binding,
-stale-writer conversion, timestamp placement, and cleanup/result boundaries,
-but B3c3 runtime remains future. B3c4 remains future for sequence allocation,
-event insertion, current-state CAS, commit, and commit uncertainty.
+production caller and no durable mutation. B3c3 now implements the private
+rollback-only dry-run result, preflight, authority-binding, stale-writer
+conversion, timestamp placement, reader/matcher/context/evaluator integration,
+and cleanup/result boundaries, with no durable mutation. B3c4 remains future
+for sequence allocation, event insertion, current-state CAS, commit, and commit
+uncertainty.

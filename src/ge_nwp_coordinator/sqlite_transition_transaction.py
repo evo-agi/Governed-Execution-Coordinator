@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import os
 import sqlite3
 from threading import get_ident
 from typing import Any
 
+from ge_nwp_coordinator.lease import derive_lease_runtime_decision
+from ge_nwp_coordinator.persistence_contracts import (
+    AdmittedBacklogRecordEnvelope,
+    AuthorizationReceiptEnvelope,
+    DependencyReceiptEnvelope,
+    GlobalStopCurrentRecordEnvelope,
+    LeaseIdentityRecordEnvelope,
+    WorkItemRecordEnvelope,
+    match_transition_event_idempotency,
+    normalize_transaction_timestamp,
+)
 from ge_nwp_coordinator.sqlite_connection import _open_bound_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import (
     SQLiteMutationStoreError,
@@ -24,6 +36,22 @@ from ge_nwp_coordinator.sqlite_security import (
     _StateDatabaseAuthorityBindingUnavailable,
     _validate_state_database_authority_binding,
 )
+from ge_nwp_coordinator.sqlite_transition_dry_run_contracts import (
+    _bind_b3c3_transition_authority,
+    _BoundTransitionAuthority,
+    _RollbackOnlyTransitionDryRunResult,
+    _RollbackOnlyTransitionDryRunResultKind,
+    _validate_transition_dry_run_preflight,
+)
+from ge_nwp_coordinator.sqlite_transition_event_readers import _read_transition_event_for_idempotency
+from ge_nwp_coordinator.sqlite_transition_read_scope import (
+    _read_admitted_backlog,
+    _read_authorization_receipt,
+    _read_current_work_item,
+    _read_dependency_receipt,
+    _read_global_stop_current,
+    _read_lease_identity_record,
+)
 from ge_nwp_coordinator.sqlite_transition_select_support import (
     _TransitionReadCapabilityError,
     _TransitionReadCapabilityFailureReason,
@@ -38,7 +66,16 @@ from ge_nwp_coordinator.sqlite_writer_state import (
     _DurableWriterIssuance,
     _parse_writer_ownership_rows,
 )
-from ge_nwp_coordinator.state_store import WriterSessionError
+from ge_nwp_coordinator.state_machine import (
+    DependencyDecision,
+    TransitionCommand,
+    TransitionContext,
+    TransitionEvaluation,
+    TransitionEvaluationKind,
+    WorkItemState,
+    evaluate_transition,
+)
+from ge_nwp_coordinator.state_store import CommittedTransition, TransitionConflict, WriterSessionError
 
 _CONTROLLER_CONSTRUCTION_KEY = object()
 _CAPABILITY_CONSTRUCTION_KEY = object()
@@ -266,32 +303,32 @@ class _RollbackOnlyTransitionTransactionController:
         raise TypeError("invalid controller input")
 
     def run(self) -> _WriterIssuanceMatch:
-        self._require_new_owner()
-        mutation_lease_failed = False
-        mutation_lease_exception: SQLiteMutationStoreError | None = None
-        try:
-            mutation_lease = self._operation_lease._acquire_mutation_lease()
-        except _WriterSessionAuthorityClosed:
-            mutation_lease_exception = _database_integrity_failure()
-            mutation_lease = None
-        except _WriterSessionAuthorityUnavailable:
-            mutation_lease_exception = _mutation_failed()
-            mutation_lease = None
-        except WriterSessionError:
-            raise
-        except Exception:
-            mutation_lease_failed = True
-            mutation_lease = None
-        if mutation_lease_exception is not None:
-            raise mutation_lease_exception
-        if mutation_lease_failed or mutation_lease is None:
+        result = self._run_writer_fencing_transaction()
+        if type(result) is not _WriterIssuanceMatch:
             raise _mutation_failed()
+        return result
+
+    def run_transition_dry_run(
+        self,
+        *,
+        transition_command: TransitionCommand,
+    ) -> _RollbackOnlyTransitionDryRunResult:
+        if type(transition_command) is not TransitionCommand:
+            raise _mutation_failed()
+        result = self._run_transition_dry_run_transaction(transition_command=transition_command)
+        if type(result) is not _RollbackOnlyTransitionDryRunResult:
+            raise _mutation_failed()
+        return result
+
+    def _run_writer_fencing_transaction(self) -> _WriterIssuanceMatch:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
         planned_result: _WriterIssuanceMatch | None = None
         planned_exception: BaseException | None = None
         cleanup_exception: SQLiteMutationStoreError | None = None
         try:
             try:
-                planned_result = self._run_until_resolution()
+                planned_result = self._run_until_writer_fencing_resolution()
             except _WriterSessionAuthorityClosed:
                 planned_exception = _database_integrity_failure()
             except _WriterSessionAuthorityUnavailable:
@@ -314,13 +351,70 @@ class _RollbackOnlyTransitionTransactionController:
             raise _mutation_failed()
         return planned_result
 
+    def _run_transition_dry_run_transaction(
+        self,
+        *,
+        transition_command: TransitionCommand,
+    ) -> _RollbackOnlyTransitionDryRunResult:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: _RollbackOnlyTransitionDryRunResult | None = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                planned_result = self._run_until_transition_dry_run_resolution(transition_command)
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            cleanup_exception = self._resolve()
+        finally:
+            mutation_lease._close()
+
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _acquire_controller_mutation_lease(self) -> Any:
+        mutation_lease_failed = False
+        mutation_lease_exception: SQLiteMutationStoreError | None = None
+        try:
+            mutation_lease = self._operation_lease._acquire_mutation_lease()
+        except _WriterSessionAuthorityClosed:
+            mutation_lease_exception = _database_integrity_failure()
+            mutation_lease = None
+        except _WriterSessionAuthorityUnavailable:
+            mutation_lease_exception = _mutation_failed()
+            mutation_lease = None
+        except WriterSessionError:
+            raise
+        except Exception:
+            mutation_lease_failed = True
+            mutation_lease = None
+        if mutation_lease_exception is not None:
+            raise mutation_lease_exception
+        if mutation_lease_failed or mutation_lease is None:
+            raise _mutation_failed()
+        return mutation_lease
+
     def _require_new_owner(self) -> None:
         if self._state != _CONTROLLER_NEW:
             raise _mutation_failed()
         if self._owner_pid != os.getpid() or self._owner_thread != get_ident():
             raise _mutation_failed()
 
-    def _run_until_resolution(self) -> _WriterIssuanceMatch:
+    def _run_until_writer_fencing_resolution(self) -> _WriterIssuanceMatch:
         binding = self._operation_lease._bound_state_database_for_mutation()
         connection = _open_controller_connection(binding)
         self._connection = connection
@@ -348,6 +442,103 @@ class _RollbackOnlyTransitionTransactionController:
             self._state = _CONTROLLER_FENCED
             return _WriterIssuanceMatch.STALE_WRITER
         raise _mutation_failed()
+
+    def _run_until_transition_dry_run_resolution(
+        self,
+        command: TransitionCommand,
+    ) -> _RollbackOnlyTransitionDryRunResult:
+        fencing = self._run_until_writer_fencing_resolution()
+        if fencing is _WriterIssuanceMatch.STALE_WRITER:
+            return _dry_run_conflict("stale_writer_token")
+        if fencing is not _WriterIssuanceMatch.MATCH:
+            raise _mutation_failed()
+
+        capability = self._capability
+        if type(capability) is not _SQLiteTransitionReadCapability:
+            raise _mutation_failed()
+        existing = _read_transition_event_for_idempotency(
+            capability,
+            command.work_item_id,
+            command.idempotency_key,
+        )
+        matched = match_transition_event_idempotency(existing, command)
+        if type(matched) is CommittedTransition:
+            return _RollbackOnlyTransitionDryRunResult(
+                kind=_RollbackOnlyTransitionDryRunResultKind.EXACT_REPLAY,
+                replayed_transition=matched,
+            )
+        if type(matched) is TransitionConflict:
+            return _RollbackOnlyTransitionDryRunResult(
+                kind=_RollbackOnlyTransitionDryRunResultKind.APPLY_CONFLICT,
+                conflict=matched,
+            )
+        if matched is not None:
+            raise _database_integrity_failure()
+
+        current_envelope = _read_current_work_item(capability, command.work_item_id)
+        if current_envelope is None:
+            return _dry_run_conflict("work_item_not_found")
+        if type(current_envelope) is not WorkItemRecordEnvelope:
+            raise _database_integrity_failure()
+        current_record = current_envelope.record
+        if current_record.version != command.expected_version:
+            return _dry_run_conflict("expected_version_conflict")
+
+        lease_identity_envelope = _read_lease_identity_record(capability, command.lease_identity_decision_ref)
+        if lease_identity_envelope is None:
+            return _dry_run_conflict("validation_failed")
+        if type(lease_identity_envelope) is not LeaseIdentityRecordEnvelope:
+            raise _database_integrity_failure()
+
+        backlog_envelope = _read_admitted_backlog(capability, current_record.backlog_id)
+        if backlog_envelope is None:
+            raise _database_integrity_failure()
+        if type(backlog_envelope) is not AdmittedBacklogRecordEnvelope:
+            raise _database_integrity_failure()
+
+        authorization_envelope = _read_authorization_receipt(capability, command.authorization_decision_ref)
+        if authorization_envelope is None:
+            return _dry_run_conflict("validation_failed")
+        if type(authorization_envelope) is not AuthorizationReceiptEnvelope:
+            raise _database_integrity_failure()
+
+        if command.target_state is WorkItemState.READY:
+            dependency_ref = command.dependency_decision_ref
+            if dependency_ref is None:
+                return _dry_run_conflict("validation_failed")
+            dependency_envelope = _read_dependency_receipt(capability, dependency_ref)
+            if dependency_envelope is None:
+                return _dry_run_conflict("validation_failed")
+            if type(dependency_envelope) is not DependencyReceiptEnvelope:
+                raise _database_integrity_failure()
+            dependency = dependency_envelope.decision
+        else:
+            dependency = DependencyDecision()
+
+        global_stop_envelope = _read_global_stop_current(capability)
+        if type(global_stop_envelope) is not GlobalStopCurrentRecordEnvelope:
+            raise _database_integrity_failure()
+
+        bound = _bind_b3c3_transition_authority(
+            command=command,
+            current_record=current_record,
+            standing_lease=lease_identity_envelope.reconstruction.lease,
+            admitted_backlog=backlog_envelope.backlog,
+            lease_identity=lease_identity_envelope.reconstruction.validation,
+            authorization=authorization_envelope.decision,
+            dependency=dependency,
+            global_stop=global_stop_envelope.state,
+        )
+        if type(bound) is TransitionConflict:
+            return _RollbackOnlyTransitionDryRunResult(
+                kind=_RollbackOnlyTransitionDryRunResultKind.APPLY_CONFLICT,
+                conflict=bound,
+            )
+        if type(bound) is not _BoundTransitionAuthority:
+            raise _database_integrity_failure()
+
+        timestamp = _capture_transaction_timestamp()
+        return _evaluate_bound_transition_for_dry_run(command=command, bound_authority=bound, timestamp=timestamp)
 
     def _resolve(self) -> SQLiteMutationStoreError | None:
         self._state = _CONTROLLER_RESOLVING
@@ -397,6 +588,106 @@ def _run_rollback_only_writer_fencing(
         operation_lease=operation_lease,
     )
     return controller.run()
+
+
+def _run_rollback_only_transition_dry_run(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    transition_command: TransitionCommand,
+) -> _RollbackOnlyTransitionDryRunResult:
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        raise _mutation_failed()
+    checked_command = _validate_transition_dry_run_preflight(transition_command)
+    controller = _RollbackOnlyTransitionTransactionController(
+        key=_CONTROLLER_CONSTRUCTION_KEY,
+        operation_lease=operation_lease,
+    )
+    return controller.run_transition_dry_run(transition_command=checked_command)
+
+
+def _utc_transaction_timestamp() -> str:
+    failed = False
+    timestamp: str | None = None
+    try:
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        timestamp = normalize_transaction_timestamp(now)
+    except Exception:
+        failed = True
+    if failed or timestamp is None:
+        raise _mutation_failed()
+    return timestamp
+
+
+def _capture_transaction_timestamp() -> str:
+    failed = False
+    timestamp: str | None = None
+    try:
+        raw_timestamp = _utc_transaction_timestamp()
+        timestamp = normalize_transaction_timestamp(raw_timestamp)
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        failed = True
+    if failed or timestamp is None:
+        raise _mutation_failed()
+    return timestamp
+
+
+def _evaluate_bound_transition_for_dry_run(
+    *,
+    command: TransitionCommand,
+    bound_authority: _BoundTransitionAuthority,
+    timestamp: str,
+) -> _RollbackOnlyTransitionDryRunResult:
+    context_failed = False
+    context: TransitionContext | None = None
+    try:
+        lease_runtime = derive_lease_runtime_decision(bound_authority.standing_lease, timestamp)
+        context = TransitionContext(
+            lease_identity=bound_authority.lease_identity,
+            authorization=bound_authority.authorization,
+            lease_runtime=lease_runtime,
+            global_stop=bound_authority.global_stop,
+            dependency_decision=bound_authority.dependency,
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        context_failed = True
+    if context_failed or context is None:
+        raise _database_integrity_failure()
+    evaluator_failed = False
+    evaluation: TransitionEvaluation | None = None
+    try:
+        evaluation = evaluate_transition(bound_authority.current_record, command, context)
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        evaluator_failed = True
+    if evaluator_failed:
+        raise _mutation_failed()
+    if type(evaluation) is not TransitionEvaluation:
+        raise _database_integrity_failure()
+    if evaluation.kind is TransitionEvaluationKind.PRE_APPLY_INVALID:
+        raise _database_integrity_failure()
+    if evaluation.kind is TransitionEvaluationKind.ACCEPTED:
+        return _RollbackOnlyTransitionDryRunResult(
+            kind=_RollbackOnlyTransitionDryRunResultKind.ACCEPTED_EVALUATION_NOT_PERSISTED,
+            evaluation=evaluation,
+        )
+    if evaluation.kind is TransitionEvaluationKind.DOMAIN_REJECTED:
+        return _RollbackOnlyTransitionDryRunResult(
+            kind=_RollbackOnlyTransitionDryRunResultKind.DOMAIN_REJECTED_EVALUATION_NOT_PERSISTED,
+            evaluation=evaluation,
+        )
+    raise _database_integrity_failure()
+
+
+def _dry_run_conflict(conflict_class: str) -> _RollbackOnlyTransitionDryRunResult:
+    return _RollbackOnlyTransitionDryRunResult(
+        kind=_RollbackOnlyTransitionDryRunResultKind.APPLY_CONFLICT,
+        conflict=TransitionConflict(conflict_class),
+    )
 
 
 def _create_sqlite_transition_read_capability(

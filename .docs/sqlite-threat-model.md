@@ -6,9 +6,9 @@ implements durable writer issuance and internal writer-session acquisition.
 B3a implements canonical persistence and provenance contracts only. B3c1b adds
 private operation-lease-only rollback-only writer-fencing/capability mechanics
 with no production caller and no durable state mutation. B3c2 adds private
-transaction-internal event readers only. B3c3 adds private pure/static
-rollback-only dry-run prerequisites only; it adds no transaction runtime,
-mutation, commit, or public surface.
+transaction-internal event readers only. B3c3 adds a private rollback-only
+transition dry-run runtime with reader/matcher/context/evaluator integration,
+but still no durable mutation, commit, public caller, or public surface.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
@@ -17,8 +17,8 @@ internal session. B3c1a/B3c1b bind rollback-only transaction setup to the
 WriterSession resource-owned root/lock/database filesystem binding and
 retained common authority lock; a caller cannot supply another database root
 to the private controller. The current code still has no production
-`StateStore` mutation backend. B3a, B3c1b, B3c2, and B3c3 prerequisites do not
-change that.
+`StateStore` mutation backend. B3a, B3c1b, B3c2, and the private B3c3 dry run
+do not change that.
 
 ## First Backend Guarantees
 
@@ -183,18 +183,20 @@ deadline-bounded and always reap children. The readers do not call B3b2 context
 readers, pure idempotency matching, pure sequence allocation, or any mutation
 path.
 
-B3c3 prerequisite contracts add a private repr-safe dry-run result wrapper and
-private repr-hidden bound-authority bundle only. They retain no capability,
-connection, controller, operation lease, mutation lease, epoch, credential,
-proof, filesystem binding, raw row, `TransitionContext`, canonical JSON,
-digest, path, or evaluator internals. Preflight errors expose only closed
-private reason strings. The pure binding helper classifies command/reference
-mismatch as `validation_failed`, authoritative model contradiction as
+B3c3 adds a private repr-safe dry-run result wrapper and private repr-hidden
+bound-authority bundle, and the rollback-only transaction runtime must not
+retain capability, connection, controller, operation lease, mutation lease,
+epoch, credential, proof, filesystem binding, raw row, `TransitionContext`,
+canonical JSON, digest, path, or evaluator internals in returned results or
+safe errors. Preflight errors expose only closed private reason strings. The
+pure binding helper classifies command/reference mismatch as
+`validation_failed`, authoritative model contradiction as
 `database_integrity_failure`, unsupported authorization as fail-closed
 evaluator input, and `operator_policy` authorization as `validation_failed`.
-No B3c3 transaction code exists yet, so no reader, matcher, timestamp, lease
-runtime, context, evaluator, sequence, write, CAS, or commit threat surface is
-added.
+B3c3 adds reader, matcher, timestamp, lease runtime, context, and evaluator
+threat surface only inside one rollback-only private transaction. It adds no
+maximum-sequence read, sequence allocation, write, CAS, commit, public
+mutation behavior, or durable receipt surface.
 
 B3a adds no runtime mutation authority. Its threat-model contribution is to
 pin future transition context reconstruction, canonical event/replay digests,
