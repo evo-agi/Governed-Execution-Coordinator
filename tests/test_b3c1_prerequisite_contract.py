@@ -95,7 +95,7 @@ def test_b3c1_prerequisite_document_status_boundary_and_split_are_static_only() 
         "the smallest safe operation-lease active-authority interface;",
         "the smallest safe operation-lease durable-issuance verification interface;",
         "resource-owned state-database filesystem-authority binding through the operation lease;",
-        "one private nominal rollback-only transaction controller;",
+        "one private nominal transition transaction controller;",
         "one private nominal transaction-read capability;",
         "one fresh existing managed read/write SQLite connection;",
         "`BEGIN IMMEDIATE`;",
@@ -110,14 +110,18 @@ def test_production_unintegrated_posture_reconciles_single_controller_path() -> 
     writer_authority = _normalized(_read(".docs/writer-session-authority.md"))
     for document in (b3c1, b3c0a, writer_authority):
         for phrase in (
-            "created only by one private rollback-only transaction controller",
+            "created only by one private transition transaction controller",
             "There is one controller construction path",
             "Future production invocation may occur only from `_SQLiteWriterSession.apply_transition()`",
-            "During B3c1b, the controller has no production caller",
             "coherent tests may invoke the same private controller directly through private imports",
             "without adding a separate source-level `for_test` factory",
         ):
             assert phrase in document
+        assert (
+            "During B3c1b, the controller has no production caller" in document
+            or "During B3c4b, the controller has no public production caller" in document
+            or "During B3c4b, the controller still has no public production caller" in document
+        )
 
     assert "created only inside `_SQLiteWriterSession.apply_transition()`" not in b3c0a
     assert "created only inside `_SQLiteWriterSession.apply_transition()`" not in writer_authority
@@ -306,9 +310,9 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
     assert not hasattr(ge_nwp_coordinator, "_WriterIssuanceMatch")
     transaction_source = _read("src/ge_nwp_coordinator/sqlite_transition_transaction.py")
     assert "def _run_rollback_only_writer_fencing(" in transaction_source
-    assert "class _RollbackOnlyTransitionTransactionController" in transaction_source
+    assert "class _TransitionTransactionController" in transaction_source
     assert "_run_rollback_only_writer_fencing" not in ge_nwp_coordinator.__all__
-    assert "_RollbackOnlyTransitionTransactionController" not in ge_nwp_coordinator.__all__
+    assert "_TransitionTransactionController" not in ge_nwp_coordinator.__all__
     assert "sqlite_transition_transaction" not in ge_nwp_coordinator.__all__
     assert "sqlite_transition_transaction" not in _read("src/ge_nwp_coordinator/__init__.py")
     assert "class _SQLiteTransitionTransactionController" not in production_source
@@ -374,8 +378,8 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons() -> Non
     normalized = _normalized(section)
     for phrase in (
         "`src/ge_nwp_coordinator/sqlite_transition_transaction.py`",
-        "This module owns one private nominal rollback-only transaction controller",
-        "private nominal rollback-only transaction controller",
+        "This module owns one private nominal transition transaction controller",
+        "private nominal transition transaction controller",
         "private nominal transaction-read capability",
         "no public constructor",
         "no package-root export",
@@ -407,7 +411,8 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons() -> Non
             node.name for node in ast.walk(ast.parse(source)) if isinstance(node, ast.ClassDef)
         )
     assert "_WriterSessionMutationLease" in class_names
-    assert "_RollbackOnlyTransitionTransactionController" in class_names
+    assert "_TransitionTransactionController" in class_names
+    assert "_RollbackOnlyTransitionTransactionController" not in class_names
     assert "_SQLiteTransitionTransactionController" not in class_names
     assert "_SQLiteTransitionReadCapability" in class_names
 

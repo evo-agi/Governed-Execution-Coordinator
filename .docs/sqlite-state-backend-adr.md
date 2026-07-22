@@ -338,15 +338,15 @@ text. It does not run the maximum-sequence query and does not allocate from
 SQLite.
 B3c2 runs the maximum-sequence query only as a private transaction-internal
 observed-maximum reader. It returns no next sequence and makes no reservation,
-allocation, consumption, or uniqueness claim; future B3c4 owns allocator and
-insert integration.
+allocation, consumption, or uniqueness claim; B3c4b owns private allocator and
+insert integration after fresh evaluation.
 B3c2's shared SELECT support treats cursor-close failure after successful fetch
 as operational cleanup failure only. Earlier execute/fetch failure remains
 primary if cleanup also fails.
 B3c3 is limited to the rollback-only subset of this order through evaluator dry
 run and cleanup. Fresh evaluator output is non-durable and
 non-receipt. B3c3 performs no maximum-sequence read, allocator call, insert,
-CAS, or commit; B3c4 remains the first persistence/commit tranche.
+CAS, or commit; B3c4b is the first private persistence/commit tranche.
 
 Global-stop mutation transaction remains future and unimplemented. It shares the
 same pre-SQLite authority prefix as transition mutation:
@@ -495,6 +495,13 @@ planned-write and commit-resolution contracts, SQLite classification, retry,
 proof, and public-boundary pins. It still does not add a production read port,
 mutation execution, private atomic apply, public apply delegation, global-stop
 persistence, executable A2 behavior, schema-ID bump, or migration 0002.
+B3c4b adds private atomic transition apply through the existing controller:
+maximum-sequence read, pure sequence allocation, frozen write-plan consumption,
+transition-event insert, accepted-current CAS, capability invalidation before
+commit, one commit attempt, commit uncertainty classification, and cleanup. It
+still does not add a production read port, public apply delegation,
+global-stop persistence, executable A2 behavior, schema-ID bump, or migration
+0002.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

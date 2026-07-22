@@ -8,7 +8,9 @@ private operation-lease-only rollback-only writer-fencing/capability mechanics
 with no production caller and no durable state mutation. B3c2 adds private
 transaction-internal event readers only. B3c3 adds a private rollback-only
 transition dry-run runtime with reader/matcher/context/evaluator integration,
-but still no durable mutation, commit, public caller, or public surface.
+but still no durable mutation, commit, public caller, or public surface. B3c4b
+adds private atomic transition persistence and commit uncertainty handling,
+still with no public caller or public surface.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
@@ -16,9 +18,11 @@ state-authority lock for administration. B2c implements writer issuance and an
 internal session. B3c1a/B3c1b bind rollback-only transaction setup to the
 WriterSession resource-owned root/lock/database filesystem binding and
 retained common authority lock; a caller cannot supply another database root
-to the private controller. The current code still has no production
-`StateStore` mutation backend. B3a, B3c1b, B3c2, and the private B3c3 dry run
-do not change that.
+to the private controller. B3c4b reuses that same controller path for private
+transition event/current-state persistence. The current code still has no
+public production `StateStore` mutation backend. B3a, B3c1b, B3c2, the private
+B3c3 dry run, and private B3c4b atomic apply do not change public product
+authority.
 
 ## First Backend Guarantees
 
@@ -258,7 +262,9 @@ Before executable A2, add fault-injection coverage for:
 B3c4a adds no new live threat surface: its write contracts are pure/static and
 private, expose no SQL parameters, event contents, replay contents, command
 contents, digests, refs, lease paths, credentials, proofs, state-root paths, or
-raw exception causes in reprs or public errors, and are not imported by runtime
-transaction or public WriterSession code. B3c4b must provide the crash,
+raw exception causes in reprs or public errors, and are consumed only by the
+private B3c4b transaction runtime and tests. B3c4b provides focused crash,
 rollback, commit-uncertainty, restart, process, thread, fork, and capability
-fault-injection proof pinned by the B3c4a proof matrix.
+fault-injection proof pinned by the B3c4a proof matrix. B3c4b adds no public
+WriterSession delegation, no global-stop mutation, no schema migration, and no
+related-repository authority.

@@ -126,8 +126,8 @@ SQLite bootstrap/migration infrastructure only:
   precedence. It adds no maximum-sequence read, sequence allocation, event
   insert, current-state/global-stop update, CAS, durable write, public
   API/export, `StateStore` widening, commit, or migration 0002. Fresh evaluator
-  output is non-durable and non-receipt until future B3c4 inserts and commits
-  it.
+  output is non-durable and non-receipt in B3c3; B3c4b is the first private
+  tranche that can persist and commit it through the atomic path.
 - B3c4a contracts, documented in
   `.docs/b3c4a-transition-write-and-commit-contracts.md`, add only private
   pure/static write specifications and commit-resolution contracts for future
@@ -139,6 +139,19 @@ SQLite bootstrap/migration infrastructure only:
   executes no SQL, inserts no event, updates no work item, reads or allocates no
   sequence, integrates no controller, changes no public WriterSession behavior,
   adds no package export, and requires no schema-ID bump or migration 0002.
+- B3c4b private atomic transition persistence, documented in
+  `.docs/b3c4b-private-atomic-transition-persistence.md`, consumes those
+  frozen B3c4a contracts through the existing single transaction controller
+  and nominal-capability path. It is still private and production-unintegrated:
+  public `apply_transition()` remains `writer_session_mutation_unavailable`.
+  Fresh accepted or domain-rejected evaluations read the observed maximum
+  transition-event sequence, allocate the next sequence, insert one transition
+  event, update the current work item only by accepted CAS, invalidate the
+  capability before one commit attempt, and return committed results only after
+  successful commit and cleanup. Commit-attempt exceptions collapse to
+  `commit_outcome_unknown`; caller retry is by the same idempotency key and
+  digest. It adds no global-stop mutation, public export, `StateStore` widening,
+  schema-ID bump, or migration 0002.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -258,9 +271,10 @@ placement, evaluator placement, sequence and event collision posture, and
 rollback/commit/close precedence. B3 tests-only coherent fixtures now provide
 temporary managed graphs for future B3c tests. B3c0b/B3c1/B3c2 now cover the
 pure event contracts, rollback-only nominal capability, and private
-event/idempotency/observed-sequence readers. Runtime replay, current/context
-assembly, evaluator integration, event insertion, current-state mutation,
-commit, and commit uncertainty remain future.
+event/idempotency/observed-sequence readers. B3c3 adds runtime replay,
+current/context assembly, and evaluator integration for rollback-only dry run.
+B3c4b adds private event insertion, accepted current-state mutation, commit,
+and commit uncertainty. Public delegation remains future B3c4c.
 B3c0b now implements the pure/static event-row and replay contract portion
 that B3c0a left future. It adds no runtime caller: idempotency and
 maximum-sequence SQL are immutable data only, and exact replay is a pure
@@ -280,8 +294,10 @@ maximum-sequence readers only. It remains production-unintegrated and does not
 own exact replay/conflict outcomes, sequence allocation, current-state loading,
 evaluator integration, durable mutation, commit, or migration 0002. B3c3 now
 implements private rollback-only idempotency/context/timestamp/evaluator
-dry-run behavior, still production-unintegrated and non-durable. B3c4 remains
-future for maximum-sequence integration, sequence allocation, event insertion,
-current-state CAS, commit, and commit uncertainty.
+dry-run behavior, still production-unintegrated and non-durable. B3c4a freezes
+the pure write plan. B3c4b now implements private atomic transition
+persistence, still production-unintegrated and unreachable from public
+`WriterSession.apply_transition()`. B3c4c remains future for public
+delegation, and B4 remains future for global-stop mutation.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

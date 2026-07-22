@@ -160,6 +160,7 @@ transaction-internal idempotency/event/sequence readers only, with no
 production caller and no durable mutation. B3c3 now implements the private
 rollback-only dry-run result, preflight, authority-binding, stale-writer
 conversion, timestamp placement, reader/matcher/context/evaluator integration,
-and cleanup/result boundaries, with no durable mutation. B3c4 remains future
-for sequence allocation, event insertion, current-state CAS, commit, and commit
-uncertainty.
+and cleanup/result boundaries, with no durable mutation. B3c4b now implements
+private sequence allocation, event insertion, accepted current-state CAS,
+commit, and commit uncertainty through the same controller, still with no
+public WriterSession delegation.

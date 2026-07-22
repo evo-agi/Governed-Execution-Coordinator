@@ -360,8 +360,12 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
 and evaluator invocation but no durable persistence. B3c4a adds only
 pure/static transition write specifications, value builders, a private planned
 write plan, commit-resolution state vocabulary, SQLite classification, retry,
-proof, and public-integration boundary contracts. B3c4b private atomic apply
-and B3c4c public `_SQLiteWriterSession.apply_transition()` delegation remain
-future, including sequence allocation, event insertion, current-state CAS,
-commit, and commit uncertainty runtime. B4 remains future for global-stop
-persistence.
+proof, and public-integration boundary contracts. B3c4b now implements private
+atomic transition persistence through that same controller path: fresh
+evaluations read maximum event sequence, allocate the next sequence, consume
+the frozen write plan, insert one event, CAS-update accepted current state,
+invalidate capability, and attempt exactly one commit with
+`commit_outcome_unknown` on commit-attempt exceptions. It remains
+production-unintegrated and has no public caller. B3c4c public
+`_SQLiteWriterSession.apply_transition()` delegation remains future. B4 remains
+future for global-stop persistence.

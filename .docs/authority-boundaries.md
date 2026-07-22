@@ -44,9 +44,11 @@ mutation authority: mutation authority belongs to an opaque backend-created
 `WriterSession`, not to safe writer metadata or a durable SQLite row. B2c
 acquires an internal session for a managed database, but its mutation methods
 fail locally with `writer_session_mutation_unavailable`; it does not persist
-transition or global-stop events. Stale-writer conflicts are future
-apply-boundary failures and never disclose idempotency status or return
-transition events. Closed-session and process-mismatch failures are
+transition or global-stop events through public methods. B3c4b adds private
+transition persistence through a production-unintegrated transaction entry only;
+public `WriterSession.apply_transition()` still does not call it. Stale-writer
+conflicts are private apply-boundary failures and never disclose idempotency
+status or return transition events. Closed-session and process-mismatch failures are
 session-local failures before the apply boundary; they are not durable apply
 conflicts.
 
@@ -58,8 +60,9 @@ mutation-store error classes only. It does not create admission, executable
 authorization, SQLite transition mutation, global-stop mutation, service,
 worker, repair, commit, publication, or related-repo authority.
 
-Transition events are durable receipts for future accepted or domain-rejected
-commands. Apply conflicts are not receipts and do not provide acceptance,
+Transition events are durable receipts for accepted or domain-rejected commands
+only after B3c4b private atomic commit succeeds. Apply conflicts are not
+receipts and do not provide acceptance,
 authorization, publication, or product truth.
 
 B1 SQLite bootstrap and migration operations are operator-local administrative

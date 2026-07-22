@@ -1,9 +1,10 @@
 # B3c2 Transition Event Readers
 
 Status: implemented private transaction-internal SELECT readers;
-production-unintegrated; no sequence allocation; no mutation. B3c3 now invokes
-the idempotency reader from the private rollback-only dry-run runtime; the
-maximum-sequence reader remains uncalled until B3c4.
+production-unintegrated; no sequence allocation; no mutation. B3c3 invokes the
+idempotency reader from the private rollback-only dry-run runtime. B3c4b now
+invokes the maximum-sequence reader only after a fresh accepted or
+domain-rejected evaluation inside the private atomic apply path.
 
 B3c2 adds only private readers for already fenced B3c transactions:
 
@@ -105,8 +106,9 @@ The signed SQLite maximum is a valid observed maximum. Only
 `event_sequence_exhausted` decision. B3c2 does not call that allocator and does
 not return a next, reserved, allocated, consumed, or unique sequence.
 
-B3c4 is the first tranche allowed to call this reader, call the pure allocator,
-and insert a transition event.
+B3c4b is the first tranche allowed to call this reader, call the pure
+allocator, and insert a transition event. That call remains private and
+production-unintegrated.
 
 ## Capability And Transaction Ownership
 
@@ -168,11 +170,11 @@ idempotency disclosure, the idempotency reader is called only after a matching
 writer and nominal capability exist, the pure matcher is called exactly once
 after the reader, exact replay and key-reuse conflict skip
 current/context/timestamp/evaluator work, and no maximum-sequence reader,
-allocator, write, CAS, or commit belongs to B3c3. B3c4 remains the first
-tranche allowed to consume the observed maximum-sequence reader for allocation
-and durable event insertion.
+allocator, write, CAS, or commit belongs to B3c3. B3c4b now consumes the
+observed maximum-sequence reader for allocation and durable event insertion on
+fresh evaluations only.
 B3c4a has since pinned only the pure/static write-side specifications and
-contracts that B3c4b must use after this reader returns an observed maximum.
+contracts that B3c4b uses after this reader returns an observed maximum.
 B3c4a itself does not call `_read_transition_event_max_sequence`, does not call
 `next_transition_event_sequence`, does not allocate a sequence, and does not
 insert or update rows.

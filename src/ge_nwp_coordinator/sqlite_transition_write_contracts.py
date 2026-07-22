@@ -707,11 +707,38 @@ _TRANSITION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH = (
     _TransitionCommitResolutionState.COMMIT_OUTCOME_UNKNOWN,
     _TransitionCommitResolutionState.CLOSED,
 )
-_TRANSITION_COMMIT_RESOLUTION_PRECOMMIT_FAILURE_PATH = (
+_TRANSITION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH = (
     _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
+    _TransitionCommitResolutionState.FENCED,
+    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
+    _TransitionCommitResolutionState.PLANNED_OUTCOME,
     _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
     _TransitionCommitResolutionState.ROLLBACK_RESOLVED,
     _TransitionCommitResolutionState.CLOSED,
+)
+_TRANSITION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH = (
+    _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
+    _TransitionCommitResolutionState.FENCED,
+    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
+    _TransitionCommitResolutionState.PLANNED_OUTCOME,
+    _TransitionCommitResolutionState.WRITES_PERFORMED,
+    _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
+    _TransitionCommitResolutionState.ROLLBACK_RESOLVED,
+    _TransitionCommitResolutionState.CLOSED,
+)
+_B3C4A_COMMIT_RESOLUTION_GRAPH_SCOPE = (
+    "successful_commit_resolution_milestones_after_graph_covered_transaction_authority",
+    "not_complete_operational_cleanup_model",
+    "stale_writer_pre_capability_outside_graph",
+    "other_pre_capability_failures_outside_graph",
+    "pre_capability_exits_cannot_claim_capability_states",
+    "capability_invalidation_failure_cannot_claim_capability_invalidated",
+    "rollback_failure_cannot_claim_rollback_resolved",
+    "close_failure_cannot_force_closed_milestone",
+    "successful_capability_invalidation_before_rollback_resolved",
+    "successful_capability_invalidation_before_commit_attempt_started",
+    "no_direct_rollback_edge_bypasses_capability_invalidation",
+    "b3c4b_runtime_enforcement_future",
 )
 _TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS = frozenset(
     {
@@ -720,6 +747,7 @@ _TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS = frozenset(
         (_TransitionCommitResolutionState.FENCED, _TransitionCommitResolutionState.CAPABILITY_ACTIVE),
         (_TransitionCommitResolutionState.CAPABILITY_ACTIVE, _TransitionCommitResolutionState.PLANNED_OUTCOME),
         (_TransitionCommitResolutionState.CAPABILITY_ACTIVE, _TransitionCommitResolutionState.CAPABILITY_INVALIDATED),
+        (_TransitionCommitResolutionState.PLANNED_OUTCOME, _TransitionCommitResolutionState.CAPABILITY_INVALIDATED),
         (_TransitionCommitResolutionState.PLANNED_OUTCOME, _TransitionCommitResolutionState.WRITES_PERFORMED),
         (_TransitionCommitResolutionState.WRITES_PERFORMED, _TransitionCommitResolutionState.CAPABILITY_INVALIDATED),
         (_TransitionCommitResolutionState.CAPABILITY_INVALIDATED, _TransitionCommitResolutionState.ROLLBACK_RESOLVED),

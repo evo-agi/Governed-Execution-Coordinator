@@ -17,10 +17,11 @@ symbols, or add migration 0002.
 ## Controller Ownership
 
 B3c3 preserves one controller class and one capability-construction path. The
-single private controller remains `_RollbackOnlyTransitionTransactionController`
+single private controller is now `_TransitionTransactionController`
 in `src/ge_nwp_coordinator/sqlite_transition_transaction.py`; the single
 nominal read capability remains constructed only by that controller's existing
-private helper and construction key.
+private helper and construction key. B3c4b later adds a private atomic entry to
+this same class; B3c3's rollback-only entry behavior is unchanged.
 
 The unchanged fencing-only entry point remains:
 
@@ -328,8 +329,9 @@ are `database_integrity_failure` with no raw payload leakage.
 Fresh evaluator output is non-durable; fresh evaluator output is non-durable
 and non-receipt in B3c3. A newly evaluated accepted or
 domain-rejected event must never be represented as `CommittedTransition`, must
-never be called committed, and is not a receipt until future B3c4 inserts and
-commits it. `PRE_APPLY_INVALID` is not a dry-run result and becomes
+never be called committed, and is not a receipt in B3c3. B3c4b is the first
+private tranche that can persist and commit that output. `PRE_APPLY_INVALID`
+is not a dry-run result and becomes
 `database_integrity_failure`.
 
 The wrapper has no serializer, canonical mapping, digest, report method,
@@ -360,11 +362,11 @@ released after the close attempt. B3c3 never returns
 `commit_outcome_unknown`.
 
 No sequence read or allocation occurs in B3c3. No writes, CAS, or COMMIT occur
-in B3c3. B3c4 remains the first persistence/commit tranche and owns observed
-maximum-sequence use, allocator call, event insertion, current-state CAS,
-rollback-or-commit resolution, commit uncertainty, and durable receipts.
-B3c4a now implements only the prerequisite pure/static contracts for that
-future persistence tranche: event-insert and accepted-CAS specs, value
+in B3c3. B3c4b is the first private persistence/commit tranche and owns
+observed maximum-sequence use, allocator call, event insertion, current-state
+CAS, rollback-or-commit resolution, commit uncertainty, and durable receipts.
+B3c4a now implements only the prerequisite pure/static contracts for B3c4b:
+event-insert and accepted-CAS specs, value
 builders, private planned write plan, commit-resolution vocabulary, SQLite
 classification matrix, retry contract, proof matrix, and public-integration
 boundary. B3c4a does not integrate with the B3c3 runtime, mutate SQLite, or

@@ -131,11 +131,11 @@ B3c3 does not read maximum event sequence, call
 `next_transition_event_sequence`, allocate a sequence, insert transition
 events, update work items, update global-stop state, perform CAS, commit,
 edit migration 0001, add migration 0002, bump schema IDs, implement admission,
-implement operator authorization, or widen public behavior. B3c4 remains the
-first owner of maximum-sequence integration, sequence allocation, event
-insertion, state CAS/update, commit, rollback/commit resolution, and commit
-uncertainty.
+implement operator authorization, or widen public behavior. B3c4b is now the
+first owner of private maximum-sequence integration, sequence allocation, event
+insertion, accepted state CAS/update, commit, rollback/commit resolution, and
+commit uncertainty.
 B3c4a now freezes the pure/static write and commit-resolution contracts that
-future B3c4b must consume. It does not change this rollback-only dry-run path:
-no maximum-sequence read, allocation, insert, CAS, commit, public apply
-integration, schema edit, or migration 0002 is added here.
+B3c4b consumes. It does not change this rollback-only dry-run path: no
+maximum-sequence read, allocation, insert, CAS, commit, public apply
+integration, schema edit, or migration 0002 is added to the dry-run entry.

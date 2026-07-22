@@ -1954,7 +1954,7 @@ def test_no_b3b2_reader_calls_and_no_durable_mutation_sql(
 
     module_source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
     source = inspect.getsource(transaction_module._run_rollback_only_writer_fencing) + inspect.getsource(
-        transaction_module._RollbackOnlyTransitionTransactionController._run_until_writer_fencing_resolution
+        transaction_module._TransitionTransactionController._run_until_writer_fencing_resolution
     )
     for forbidden in (
         "INSERT",
@@ -1974,7 +1974,7 @@ def test_no_b3b2_reader_calls_and_no_durable_mutation_sql(
     ):
         assert forbidden not in source
     assert module_source.count("BEGIN IMMEDIATE") == 1
-    assert module_source.count("ROLLBACK") == 1
+    assert module_source.count('connection.execute("ROLLBACK")') == 1
     assert EXPECTED_WRITER_ROW_QUERY in module_source
 
 
@@ -2013,7 +2013,7 @@ def test_public_mutation_methods_remain_unavailable_and_unintegrated(
         session.close()
 
     assert "_run_rollback_only_writer_fencing" not in ge_nwp_coordinator.__all__
-    assert "_RollbackOnlyTransitionTransactionController" not in ge_nwp_coordinator.__all__
+    assert "_TransitionTransactionController" not in ge_nwp_coordinator.__all__
     assert "_SQLiteTransitionReadCapability" not in ge_nwp_coordinator.__all__
     assert not hasattr(ge_nwp_coordinator, "_run_rollback_only_writer_fencing")
     assert not hasattr(ge_nwp_coordinator, "_SQLiteTransitionReadCapability")
@@ -2034,7 +2034,7 @@ def test_invalid_private_inputs_and_constructor_keys_fail_safely(tmp_path: Path)
             _assert_safe_mutation_error(bad_operation.value, "mutation_failed")
 
             with pytest.raises(SQLiteMutationStoreError) as bad_controller_key:
-                transaction_module._RollbackOnlyTransitionTransactionController(
+                transaction_module._TransitionTransactionController(
                     key=object(),
                     operation_lease=operation,
                 )
@@ -2109,10 +2109,12 @@ def test_new_module_is_private_unexported_and_static_shape_is_closed() -> None:
     tree = ast.parse(source)
     class_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
     function_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
-    assert "_RollbackOnlyTransitionTransactionController" in class_names
+    assert "_TransitionTransactionController" in class_names
+    assert "_RollbackOnlyTransitionTransactionController" not in class_names
     assert "_SQLiteTransitionReadCapability" in class_names
     assert "_TransactionCapabilityState" in class_names
     assert "_run_rollback_only_writer_fencing" in function_names
+    assert "_run_atomic_transition_apply" in function_names
     assert "def for_test" not in source
     assert "controller_for_test" not in source
     assert "capability_for_test" not in source

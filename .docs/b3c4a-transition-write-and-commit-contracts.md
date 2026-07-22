@@ -2,7 +2,7 @@
 
 B3c4a is a pure/static prerequisite tranche for B3c4 durable transition
 persistence. It freezes write specifications, value builders, a private planned
-transition-write container, commit-resolution state vocabulary, future SQLite
+transition-write container, commit-resolution state vocabulary, SQLite
 classification, retry, proof, public-integration, and B4-separation contracts.
 It performs no SQLite mutation, opens no database handle, integrates no
 transaction controller, attempts no commit, and changes no public
@@ -11,7 +11,7 @@ transaction controller, attempts no commit, and changes no public
 B3c4 remains split as:
 
 - B3c4a: pure/static write and commit contracts only;
-- B3c4b: future private atomic transition apply through the one transaction
+- B3c4b: private atomic transition apply through the one transaction
   controller;
 - B3c4c: future public `_SQLiteWriterSession.apply_transition(command)`
   delegation only.
@@ -232,19 +232,69 @@ Fresh apply path:
 -> writes_performed -> capability_invalidated -> commit_attempt_started
 -> commit_succeeded OR commit_outcome_unknown -> closed`.
 
-Definite pre-commit failure:
+Successful post-capability rollback paths:
 
-`transaction_active -> capability_invalidated if created -> rollback_resolved
-if transaction active -> closed -> safe error escape`.
+Before a write plan exists, replay, idempotency conflict, current-row conflicts,
+validation conflicts, evaluator failure, sequence overflow, and equivalent
+post-capability pre-plan exits reuse the replay/conflict path:
+
+`transaction_active -> fenced -> capability_active -> capability_invalidated
+-> rollback_resolved -> closed`.
+
+After a plan exists but before writes complete, event INSERT failure, accepted
+CAS failure before `writes_performed`, and equivalent planned-outcome failures
+use:
+
+`transaction_active -> fenced -> capability_active -> planned_outcome
+-> capability_invalidated -> rollback_resolved -> closed`.
+
+After writes complete but before commit attempt begins, equivalent definite
+post-write pre-commit failures use:
+
+`transaction_active -> fenced -> capability_active -> planned_outcome
+-> writes_performed -> capability_invalidated -> rollback_resolved -> closed`.
+
+The allowed edge set therefore includes
+`planned_outcome -> capability_invalidated`. It does not include
+`transaction_active -> capability_invalidated`,
+`capability_active -> rollback_resolved`,
+`planned_outcome -> rollback_resolved`,
+`writes_performed -> rollback_resolved`, or any direct rollback edge that
+bypasses successful capability invalidation.
+
+Scope:
+
+The graph records successful commit-resolution milestones after transaction
+authority has entered a graph-covered path. It is not a complete model of every
+operational cleanup attempt. Stale writer is the currently proved
+pre-capability conflict exit and remains outside the graph. Managed validation,
+writer-row read, fencing verification, or other failures before capability
+creation likewise cannot fabricate `capability_active` or
+`capability_invalidated`. Pre-capability cleanup is operational cleanup outside
+the successful capability-resolution graph; B3c4b remains responsible for safe
+rollback, close, and error taxonomy on those paths.
+
+Authority-cleanup failures remain outside the successful graph. Failed
+capability invalidation must not claim `capability_invalidated`; failed rollback
+must not claim `rollback_resolved`; close failure where successful closure
+cannot truthfully be claimed must not force a later graph milestone merely to
+reach a terminal enum value. Operational rollback and close may still be
+attempted after cleanup failure, but those attempts do not retroactively
+establish missing successful graph milestones. B3c4b must enforce the graph for
+successful state transitions and must not fabricate transitions on cleanup
+failure.
 
 B3c4a does not implement these transitions against a live controller. B3c4b
-must invalidate the capability before commit attempt, must not roll back after
-commit attempt in a way that claims non-commit, and must not infer commit
-success from connection state alone.
+consumes this vocabulary in the private transaction controller and remains
+responsible for enforcing graph-covered successful milestones without
+fabricating cleanup milestones on failure. B3c4b must invalidate the capability
+before commit attempt, must not roll back after commit attempt in a way that
+claims non-commit, and must not infer commit success from connection state
+alone.
 
 ## SQLite Classification
 
-Future B3c4b classification is pinned as:
+B3c4b classification is pinned as:
 
 | Step | Condition | Result |
 | --- | --- | --- |
@@ -271,7 +321,7 @@ public exceptions, reprs, notes, or payloads.
 ## Sequence Placement
 
 B3c4a does not read maximum sequence and does not allocate sequence from a
-database. Future B3c4b must order fresh evaluator output as:
+database. B3c4b orders fresh evaluator output as:
 
 1. call `_read_transition_event_max_sequence(capability)` exactly once;
 2. call `next_transition_event_sequence(maximum)` exactly once;
@@ -280,7 +330,7 @@ database. Future B3c4b must order fresh evaluator output as:
 
 No maximum-sequence read occurs for stale writer, exact replay, idempotency
 conflict, work-item not found, expected-version conflict, validation conflict,
-or pre-evaluation errors. `None -> 0`; future sequence is maximum plus one;
+or pre-evaluation errors. `None -> 0`; next sequence is maximum plus one;
 allocator overflow is `event_sequence_exhausted`. Accepted and domain-rejected
 events consume sequence only if committed. Rolled-back sequences may be reused;
 committed sequences are never reused. Event sequence remains operational
@@ -300,19 +350,20 @@ evaluator invocation, maximum-sequence read, sequence allocation, and writes.
 
 ## Public Boundary
 
-B3c4c, not B3c4a, makes `_SQLiteWriterSession.apply_transition(command)`
-functional. That later method must enter the existing operation guard, delegate
-to one private atomic entry, contain no SQL, accept no context, timestamp,
+B3c4c, not B3c4a or B3c4b, makes
+`_SQLiteWriterSession.apply_transition(command)` functional. That later method
+must enter the existing operation guard, delegate to one private atomic entry,
+contain no SQL, accept no context, timestamp,
 capability, or row data from the caller, and expose only existing
 `TransitionApplyOutcome`, `WriterSessionError`, and closed mutation-store
 errors.
 
 `apply_global_stop_update()` remains unavailable until B4. No public database
-reader/store is added, and `StateStore` is not widened by B3c4a.
+reader/store is added, and `StateStore` is not widened by B3c4a or B3c4b.
 
 ## Proof Matrix
 
-B3c4b must prove:
+B3c4b focused tests prove:
 
 - sequence 0;
 - sequence increment;
@@ -339,8 +390,9 @@ B3c4b must prove:
 - process/thread/fork/capability behavior;
 - public method later delegates only.
 
-B3c4a tests may prove only pure values, static SQL, private state vocabulary,
-contract matrices, and adapter round trips. Test rows prove
+B3c4a tests prove only pure values, static SQL, private state vocabulary,
+contract matrices, and adapter round trips. B3c4b tests prove private runtime
+persistence through temporary managed databases. Test rows prove
 persistence-contract mechanics only. They are not admission, not authorization,
 not runtime authority, not executable transition proof, and not product state
 initialization.

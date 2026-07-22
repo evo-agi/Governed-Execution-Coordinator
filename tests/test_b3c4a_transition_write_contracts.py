@@ -1075,12 +1075,103 @@ def test_commit_resolution_state_vocabulary_and_lifecycle_paths_are_closed() -> 
         state.COMMIT_OUTCOME_UNKNOWN,
         state.CLOSED,
     )
+    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH == (
+        state.TRANSACTION_ACTIVE,
+        state.FENCED,
+        state.CAPABILITY_ACTIVE,
+        state.PLANNED_OUTCOME,
+        state.CAPABILITY_INVALIDATED,
+        state.ROLLBACK_RESOLVED,
+        state.CLOSED,
+    )
+    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH == (
+        state.TRANSACTION_ACTIVE,
+        state.FENCED,
+        state.CAPABILITY_ACTIVE,
+        state.PLANNED_OUTCOME,
+        state.WRITES_PERFORMED,
+        state.CAPABILITY_INVALIDATED,
+        state.ROLLBACK_RESOLVED,
+        state.CLOSED,
+    )
+    assert not hasattr(write_contracts, "_TRANSITION_COMMIT_RESOLUTION_PRECOMMIT_FAILURE_PATH")
     assert (state.COMMIT_ATTEMPT_STARTED, state.COMMIT_OUTCOME_UNKNOWN) in (
         write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
     )
     assert (state.COMMIT_SUCCEEDED, state.COMMIT_OUTCOME_UNKNOWN) not in (
         write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
     )
+
+
+def test_commit_resolution_paths_are_composed_only_of_allowed_edges() -> None:
+    state = write_contracts._TransitionCommitResolutionState
+    allowed = write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+    path_names = tuple(
+        sorted(
+            name
+            for name in vars(write_contracts)
+            if name.startswith("_TRANSITION_COMMIT_RESOLUTION_") and name.endswith("_PATH")
+        )
+    )
+
+    assert path_names == (
+        "_TRANSITION_COMMIT_RESOLUTION_FRESH_SUCCESS_PATH",
+        "_TRANSITION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH",
+        "_TRANSITION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH",
+        "_TRANSITION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH",
+        "_TRANSITION_COMMIT_RESOLUTION_REPLAY_CONFLICT_PATH",
+    )
+    for name in path_names:
+        path = getattr(write_contracts, name)
+        for current, next_state in zip(path, path[1:]):
+            assert (current, next_state) in allowed, name
+
+    assert (state.PLANNED_OUTCOME, state.CAPABILITY_INVALIDATED) in allowed
+    assert (state.CAPABILITY_ACTIVE, state.ROLLBACK_RESOLVED) not in allowed
+    assert (state.PLANNED_OUTCOME, state.ROLLBACK_RESOLVED) not in allowed
+    assert (state.WRITES_PERFORMED, state.ROLLBACK_RESOLVED) not in allowed
+    assert (state.TRANSACTION_ACTIVE, state.CAPABILITY_INVALIDATED) not in allowed
+    assert (state.FENCED, state.ROLLBACK_RESOLVED) not in allowed
+    for member in state:
+        assert (member, member) not in allowed
+    assert all(current is not state.CLOSED for current, _next_state in allowed)
+
+
+def test_commit_resolution_graph_scope_remains_static_and_excludes_cleanup_failures() -> None:
+    state = write_contracts._TransitionCommitResolutionState
+    scope = write_contracts._B3C4A_COMMIT_RESOLUTION_GRAPH_SCOPE
+    source = WRITE_CONTRACTS_PATH.read_text()
+    transaction_source = TRANSACTION_MODULE_PATH.read_text()
+    doc = (ROOT / ".docs/b3c4a-transition-write-and-commit-contracts.md").read_text()
+    normalized_doc = " ".join(doc.split())
+
+    assert "stale_writer_pre_capability_outside_graph" in scope
+    assert "other_pre_capability_failures_outside_graph" in scope
+    assert "pre_capability_exits_cannot_claim_capability_states" in scope
+    assert "capability_invalidation_failure_cannot_claim_capability_invalidated" in scope
+    assert "rollback_failure_cannot_claim_rollback_resolved" in scope
+    assert "close_failure_cannot_force_closed_milestone" in scope
+    assert "no_direct_rollback_edge_bypasses_capability_invalidation" in scope
+    assert "b3c4b_runtime_enforcement_future" in scope
+    assert (state.CAPABILITY_ACTIVE, state.ROLLBACK_RESOLVED) not in (
+        write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+    )
+    assert "Stale writer is the currently proved" in normalized_doc
+    assert "pre-capability conflict exit and remains outside the graph" in normalized_doc
+    assert "other failures before capability" in normalized_doc
+    assert "cannot fabricate `capability_active`" in normalized_doc
+    assert "capability invalidation must not claim `capability_invalidated`" in normalized_doc
+    assert "rollback must not claim `rollback_resolved`" in normalized_doc
+    assert "must not force a later graph milestone" in normalized_doc
+    assert "do not retroactively establish missing successful graph milestones" in normalized_doc
+    assert "must not fabricate transitions on cleanup failure" in normalized_doc
+    assert "class _TransitionCommitResolutionState" in source
+    assert source.count("class _TransitionCommitResolutionState") == 1
+    assert source.count("_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS") == 1
+    assert source.count("_B3C4A_COMMIT_RESOLUTION_GRAPH_SCOPE") == 1
+    assert "_TransitionCommitResolutionState" in transaction_source
+    assert "_run_atomic_transition_apply" in transaction_source
+    assert "apply_transition" not in transaction_source
 
 
 def test_error_retry_public_and_b4_contract_matrices_pin_future_b3c4b_and_b3c4c() -> None:
@@ -1144,21 +1235,25 @@ def test_new_module_has_no_runtime_io_or_public_exports() -> None:
                 }
 
 
-def test_b3c4a_is_not_imported_by_runtime_and_public_apply_remains_unavailable() -> None:
+def test_b3c4a_is_consumed_only_by_private_b3c4b_runtime_and_public_apply_remains_unavailable() -> None:
     source_files = [path for path in PACKAGE_DIR.glob("*.py") if path.name != "sqlite_transition_write_contracts.py"]
     for path in source_files:
+        if path.name == "sqlite_transition_transaction.py":
+            continue
         assert "sqlite_transition_write_contracts" not in path.read_text(), path
 
     transaction_source = TRANSACTION_MODULE_PATH.read_text()
-    assert "INSERT INTO transition_events" not in transaction_source
-    assert "UPDATE work_items" not in transaction_source
-    assert "_read_transition_event_max_sequence" not in transaction_source
-    assert "next_transition_event_sequence" not in transaction_source
-    assert "connection.execute(\"COMMIT\")" not in transaction_source
+    assert "sqlite_transition_write_contracts" in transaction_source
+    assert "_read_transition_event_max_sequence" in transaction_source
+    assert "next_transition_event_sequence" in transaction_source
+    assert 'connection.execute("COMMIT")' in transaction_source
+    assert "_run_atomic_transition_apply" in transaction_source
+    assert "apply_transition" not in transaction_source
 
     writer_source = WRITER_SESSION_PATH.read_text()
     apply_transition_source = inspect.getsource(writer_session_module._SQLiteWriterSession.apply_transition)
     assert "sqlite_transition_write_contracts" not in writer_source
+    assert "_run_atomic_transition_apply" not in writer_source
     assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE.name in apply_transition_source
     assert "transition_command" in apply_transition_source
     assert "raise WriterSessionError" in apply_transition_source

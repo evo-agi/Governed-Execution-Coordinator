@@ -20,7 +20,8 @@ capability, open SQLite from transition or global-stop apply, execute
 `BEGIN IMMEDIATE`, call B3b2 readers, assemble context, invoke the evaluator,
 insert events, update work-item or global-stop state, change public
 mutation-method behavior, modify migration 0001, or add migration 0002.
-B3c1b implements only the private rollback-only transaction controller, one
+B3c1b implements only the private rollback-only form of the transition
+transaction controller, one
 fresh managed read/write SQLite connection opened only through that retained
 private binding, `BEGIN IMMEDIATE`, post-begin binding revalidation, managed
 validation, bounded writer-row `SELECT`, parser reuse, writer fencing through
@@ -42,7 +43,7 @@ The B3c1 boundary is limited to:
 2. the smallest safe operation-lease active-authority interface;
 3. the smallest safe operation-lease durable-issuance verification interface;
 4. resource-owned state-database filesystem-authority binding through the operation lease;
-5. one private nominal rollback-only transaction controller;
+5. one private nominal transition transaction controller;
 6. one private nominal transaction-read capability;
 7. one fresh existing managed read/write SQLite connection;
 8. `BEGIN IMMEDIATE`;
@@ -62,10 +63,10 @@ uncertainty; production admission or authorization; and executable A2 behavior.
 
 ## Production Reachability
 
-The future nominal transaction capability is created only by one private
-rollback-only transaction controller. There is one controller construction
-path. The controller construction path is the only path that may construct the
-nominal capability.
+The nominal transaction capability is created only by one private transition
+transaction controller. There is one controller construction path. The
+controller construction path is the only path that may construct the nominal
+capability.
 
 Future production invocation may occur only from
 `_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
@@ -328,7 +329,7 @@ The private module is:
 
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`
 
-This module owns one private nominal rollback-only transaction controller
+This module owns one private nominal transition transaction controller
 and one private nominal transaction-read capability. The capability has no
 public constructor, no package-root export, no finalizer, no independent close,
 no public connection property, and no `WriterSession` metadata, credential,
@@ -449,6 +450,6 @@ B3c4a has since added only private pure/static write and commit-resolution
 contracts in `.docs/b3c4a-transition-write-and-commit-contracts.md`. It does
 not change the B3c1 one-controller construction path, mutation slot,
 operation-lease authority, rollback-only controller runtime, or public
-WriterSession behavior. B3c4b remains future for evolving that one controller
-into private atomic transition apply; B3c4c remains future for public
-delegation.
+WriterSession behavior. B3c4b has since evolved that one controller into
+private atomic transition apply without adding a public caller; B3c4c remains
+future for public delegation.

@@ -42,8 +42,8 @@ database-integrity failure without reading SQLite or mutating state.
 B3c3 now implements the private rollback-only dry-run result algebra that may
 wrap exact replay, apply conflict, accepted evaluation not persisted, or
 domain-rejected evaluation not persisted. Fresh evaluator output in that
-wrapper is not durable, committed, or a receipt until future B3c4 inserts the
-event and commits.
+wrapper is not durable, committed, or a receipt in B3c3; B3c4b is the first
+private path that can insert the event and commit it.
 
 The pure evaluator owns domain rules: target-state support, invariant P1 stage
 availability, typed lease identity/runtime and authorization decision effects,
@@ -138,11 +138,11 @@ counter change, budget effect, or state mutation occurs.
 - Apply conflicts never carry events.
 - Durable domain rejections always carry events.
 - B3c3 dry-run domain rejections carry only non-durable evaluator output; they
-  are not receipts until B3c4 persistence.
+  are not receipts until B3c4b private atomic persistence commits them.
 - B3c4a write plans may contain a private planned
   `CommittedTransition(replayed=False)`, but that planned value is not a
-  receipt and cannot escape before a future B3c4b successful commit. B3c4a
-  changes no public apply behavior.
+  receipt and cannot escape before a B3c4b successful commit. B3c4a and B3c4b
+  change no public apply behavior.
 - P1-disabled targets always reject with `stage_not_enabled` after pre-apply
   binding and target-support checks but before contextual domain reasons.
 - Caller code never provides proposed state or proposed event.

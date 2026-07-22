@@ -264,8 +264,9 @@ transaction timestamp; derives lease runtime; constructs one
 `TransitionContext`; invokes the pure evaluator exactly once; returns only a
 private non-durable dry-run result after capability invalidation, rollback,
 close, and mutation-slot release. Fresh accepted or domain-rejected evaluator
-output remains explicitly non-durable and non-receipt until future B3c4 inserts
-and commits it. B3c3 performs no maximum-sequence read, sequence allocation,
+output remains explicitly non-durable and non-receipt in the B3c3 dry run;
+B3c4b is the first private tranche that can persist and commit it. B3c3
+performs no maximum-sequence read, sequence allocation,
 event insertion, work-item or global-stop update, CAS, commit,
 `commit_outcome_unknown`, public API/export, `StateStore` widening, migration
 0002, or related-repo consumer. Public mutation methods still raise
@@ -283,8 +284,28 @@ B3c4c public-integration boundary. It adds no SQLite mutation execution, no
 controller integration, no maximum-sequence read or allocation integration, no
 COMMIT, no public `WriterSession.apply_transition()` behavior change, no
 package-root export, no `StateStore` widening, no global-stop mutation, no
-schema-ID bump, and no migration 0002. Fresh planned outcomes are private
-grammar only and are not durable receipts until future B3c4b commits them.
+schema-ID bump, and no migration 0002. B3c4a fresh planned outcomes are
+private grammar only and are not durable receipts unless the B3c4b private
+atomic runtime successfully commits the frozen plan.
+
+B3c4b contracts are pinned in
+`.docs/b3c4b-private-atomic-transition-persistence.md`. B3c4b implements only
+private atomic transition persistence through the existing single transaction
+controller and nominal-capability path. It shares the B3c3 read/evaluate
+sequence, reads observed maximum event sequence only for fresh evaluations,
+allocates the next sequence through the pure allocator, consumes the frozen
+B3c4a write plan, inserts one transition event, CAS-updates the current work
+item only for accepted transitions, invalidates the capability before commit,
+attempts exactly one commit, returns fresh committed outcomes only after
+successful commit and cleanup, and returns `commit_outcome_unknown` after any
+commit-attempt exception. Replay and conflicts roll back and perform no write.
+B3c4b remains private and production-unintegrated: public
+`_SQLiteWriterSession.apply_transition()` still raises
+`writer_session_mutation_unavailable`; there is no public API/export,
+`StateStore` widening, global-stop mutation, schema-ID bump, migration 0002,
+worker, service, CLI, MCP, connector, repair, publication, or related-repo
+consumer. B3c4c remains future for public transition delegation. B4 remains
+future for persistent global-stop updates.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

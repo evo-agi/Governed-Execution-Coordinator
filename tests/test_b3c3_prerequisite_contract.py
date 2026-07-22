@@ -1807,6 +1807,15 @@ def test_b3c3_runtime_entrypoint_remains_private_and_unexported() -> None:
 
 def test_b3c3_runtime_integrates_readers_context_and_evaluator_without_b3c4_mutation() -> None:
     transaction_source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
+    dry_run_source = "\n".join(
+        (
+            inspect.getsource(transaction_module._run_rollback_only_transition_dry_run),
+            inspect.getsource(transaction_module._TransitionTransactionController._run_transition_dry_run_transaction),
+            inspect.getsource(transaction_module._TransitionTransactionController._run_until_transition_resolution),
+            inspect.getsource(transaction_module._evaluate_bound_transition),
+            inspect.getsource(transaction_module._dry_run_result_from_transition_resolution),
+        )
+    )
     for required in (
         "_read_transition_event_for_idempotency",
         "match_transition_event_idempotency",
@@ -1820,18 +1829,24 @@ def test_b3c3_runtime_integrates_readers_context_and_evaluator_without_b3c4_muta
         "derive_lease_runtime_decision",
         "evaluate_transition",
     ):
-        assert required in transaction_source
+        assert required in dry_run_source
 
     for forbidden in (
         "_read_transition_event_max_sequence",
         "next_transition_event_sequence",
+        "_transition_write_plan",
+        "_execute_transition_event_insert",
+        "_execute_accepted_work_item_cas",
         "INSERT INTO transition_events",
         "UPDATE work_items",
         "UPDATE global_stop_current",
         ".commit(",
         "COMMIT",
     ):
-        assert forbidden not in transaction_source
+        assert forbidden not in dry_run_source
+
+    assert "_run_atomic_transition_apply" in transaction_source
+    assert "_read_transition_event_max_sequence" in transaction_source
 
 
 def test_b3c3_prerequisite_docs_and_schema_boundary_are_pinned() -> None:
@@ -1846,7 +1861,7 @@ def test_b3c3_prerequisite_docs_and_schema_boundary_are_pinned() -> None:
         "stale writer before idempotency disclosure",
         "fresh evaluator output is non-durable",
         "_utc_transaction_timestamp() -> str",
-        "B3c4 remains the first persistence/commit tranche",
+        "B3c4b is the first private persistence/commit tranche",
         "No sequence read or allocation occurs in B3c3",
         "No writes, CAS, or COMMIT occur in B3c3",
         "preflight error constructor accepts only the exact private reason enum",

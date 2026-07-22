@@ -62,8 +62,9 @@ prerequisites plus B3c1a private authority plumbing do not make the fixture
 runtime authority; B3c1b rollback-only mechanics are private test-executed
 only; B3c2 event/idempotency/sequence readers are private
 transaction-internal tests only; B3c3 rollback-only dry-run runtime remains
-private, production-unintegrated, and non-durable; B3c4 atomic persistence
-remains future.
+private, production-unintegrated, and non-durable; B3c4b private atomic
+persistence is test-executed through the same temporary managed graphs and
+remains production-unintegrated.
 
 Unsupported authorization remains production/default:
 
@@ -107,9 +108,10 @@ and writer fencing remain production-unintegrated. B3c2 now implements private
 transaction-internal event/idempotency/sequence readers only. B3c3 now
 implements private rollback-only dry-run result, preflight, binding,
 timestamp, reader and matcher integration, context assembly execution,
-evaluator dry run, and result return. B3c4 remains future for atomic
-persistence, accepted-state CAS,
-sequence allocation, commit, and commit-uncertainty runtime.
+evaluator dry run, and result return. B3c4b now implements private atomic
+persistence, accepted-state CAS, sequence allocation, commit, and
+commit-uncertainty runtime through the existing controller. B3c4c remains
+future for public delegation and B4 remains future for global-stop mutation.
 
 No migration 0002 is required for this tests-only tranche, and migration 0001
 remains unchanged.

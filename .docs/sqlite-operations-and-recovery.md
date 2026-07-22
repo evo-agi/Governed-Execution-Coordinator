@@ -4,7 +4,9 @@ Status: B2b bootstrap/inspection/validation/migration implementation plus the
 shared state-authority advisory lock for initialize/migrate administration.
 B2c adds durable writer issuance and internal writer-session acquisition. B3a
 adds contract-only future transition persistence rules. B3c1b adds private
-rollback-only writer fencing with no public mutation runtime.
+rollback-only writer fencing with no public mutation runtime. B3c4b adds
+private atomic transition persistence with commit uncertainty handling, still
+with no public mutation runtime.
 
 ## Filesystem Posture
 
@@ -175,10 +177,11 @@ Closed public classes are `database_integrity_failure`,
 SQLite exception text, paths, canonical JSON, rows, proof material, proof
 digests, credentials, endpoints, or secrets.
 
-`mutation_failed` means rollback/no commit is definite.
-`commit_outcome_unknown` means the future caller must retry with the same
-idempotency key; exact replay resolves whether the prior attempt committed.
-B3a does not implement commit, rollback, idempotency, or replay runtime.
+`mutation_failed` means rollback/no commit is definite before a commit attempt.
+`commit_outcome_unknown` means a B3c4b private caller must retry with the same
+idempotency key and digest; exact replay resolves whether the prior attempt
+committed. B3a itself does not implement commit, rollback, idempotency, or
+replay runtime.
 
 ## Backup
 
@@ -246,12 +249,14 @@ read safe durable writer issuance metadata, but such a read would not prove
 liveness, would not return proof or proof digest, and would not authorize
 mutation.
 
-## B3c4a Recovery Boundary
+## B3c4a/B3c4b Recovery Boundary
 
-B3c4a pins the future transition apply recovery contract without executing it.
-Commit-attempt exceptions in B3c4b must produce only
+B3c4a pins the transition apply recovery contract without executing it.
+B3c4b privately executes that contract. Commit-attempt exceptions produce only
 `commit_outcome_unknown`; close failure after commit success must not reverse a
 committed result; close failure after uncertainty must not change uncertainty;
 and retry after uncertainty must use the same work item, idempotency key, and
 canonical command digest. B3c4a itself performs no transaction, no insert, no
-CAS, no rollback, no commit, no hidden retry, and no artifact recovery.
+CAS, no rollback, no commit, no hidden retry, and no artifact recovery. B3c4b
+adds no hidden retry, no public recovery report, and no B4 global-stop recovery
+behavior.

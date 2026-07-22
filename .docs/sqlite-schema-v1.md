@@ -435,13 +435,13 @@ The migration also does not seed executable authorization. The reserved
 a future authorization tranche defines and implements an accepted insertion and
 verification path.
 
-## B3c4a Schema Decision
+## B3c4a/B3c4b Schema Decision
 
 B3c4a confirms schema 0001 is sufficient for the pure/static transition write
-contracts needed before B3c4b. Existing `transition_events` columns carry event
+contracts consumed by B3c4b. Existing `transition_events` columns carry event
 identity, global event sequence, work-item/idempotency uniqueness,
 canonical event JSON/digest, replay work-item JSON/digest, created-at
 timestamp, and accepted/domain-rejected consistency. Existing `work_items`
 columns support the accepted current-state CAS by work-item id and source
-version. B3c4a adds no correctness-required durable fact, no schema-ID bump,
-no migration 0002, and no edit to migration 0001.
+version. B3c4a adds no correctness-required durable fact, and B3c4b adds no
+schema-ID bump, no migration 0002, and no edit to migration 0001.

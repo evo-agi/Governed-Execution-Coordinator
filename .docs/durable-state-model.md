@@ -201,8 +201,8 @@ idempotency reader returns only `None` or an exact hidden
 `TransitionEventRecordEnvelope`; exact replay and idempotency-key conflict
 are now consumed by the private B3c3 rollback-only dry-run runtime through the
 pure matcher. The maximum-sequence reader returns only `None` or an exact
-observed non-negative integer maximum; sequence allocation remains future B3c4
-behavior through the pure allocator.
+observed non-negative integer maximum; B3c4b now performs private sequence
+allocation through the pure allocator only after fresh evaluation.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They use a
 temporary managed schema-0001 database, directly seed synthetic authoritative
@@ -300,11 +300,13 @@ enforcement.
 
 P1 does not terminate processes or cancel workers because P1 starts no worker.
 
-## B3c4a Boundary
+## B3c4a/B3c4b Boundary
 
-B3c4a does not yet make the future SQLite backend durable for transitions. It
-pins the exact transition-event insert grammar, accepted-current CAS grammar,
-adapter round-trip value construction, planned-versus-committed result
+B3c4a pins the exact transition-event insert grammar, accepted-current CAS
+grammar, adapter round-trip value construction, planned-versus-committed result
 boundary, commit uncertainty, retry, and B3c4c public delegation constraints.
-B3c4b remains future for private atomic apply, and B3c4c remains future for
-public `_SQLiteWriterSession.apply_transition()` delegation.
+B3c4b now makes those contracts durable only through the private atomic
+transition apply path. It remains production-unintegrated, has no public
+caller, does not widen `StateStore`, and does not implement global-stop
+mutation. B3c4c remains future for public
+`_SQLiteWriterSession.apply_transition()` delegation.

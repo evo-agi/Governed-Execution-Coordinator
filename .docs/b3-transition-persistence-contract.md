@@ -375,9 +375,11 @@ six individual rows when explicitly invoked by tests. B3c3 now owns the private
 rollback-only dry-run ordering, missing-row apply-conflict classification,
 idempotency/replay integration, expected-version checks, timestamp capture,
 lease runtime derivation, `TransitionContext` construction, evaluator dry run,
-and private non-durable result return. B3c4 remains future for maximum-sequence
-use, sequence allocation, event insertion, current-state CAS, commit, durable
-receipts, and commit uncertainty.
+and private non-durable result return. B3c4b now owns the private atomic
+persistence continuation for fresh evaluations: maximum-sequence use, sequence
+allocation, event insertion, accepted current-state CAS, commit, durable
+receipts, and commit uncertainty. B3c4c remains future for public
+`WriterSession.apply_transition()` delegation.
 
 B3b1 row contracts retain row `created_at`, `admitted_at`, or `updated_at`
 values only in internal typed timestamp envelopes. They validate exact UTC
@@ -409,14 +411,14 @@ B3c0b preserves the pure `next_transition_event_sequence(...)` behavior:
 `None -> 0`, non-negative integer maximum -> maximum plus one, bools/negative
 values/non-integers as integrity failures, and signed SQLite integer maximum as
 `event_sequence_exhausted`. It also defines immutable data-only SQL text for
-future maximum-sequence inspection. No B3c0b code runs that query.
+B3c4b maximum-sequence inspection. No B3c0b code runs that query.
 
-Future apply captures no new timestamp for exact replay, idempotency conflict,
+B3c4b private apply captures no new timestamp for exact replay, idempotency conflict,
 work-item not found, expected-version conflict, or validation conflict. After
 all prerequisite rows are loaded and cross-bound successfully, it uses one
 transaction UTC timestamp for event `created_at`, accepted work-item
 `updated_at`, and lease runtime derivation. It is exact
-`YYYY-MM-DDTHH:MM:SSZ`. Future `transition_events.created_at` must equal
+`YYYY-MM-DDTHH:MM:SSZ`. `transition_events.created_at` must equal
 `TransitionEvent.lease_runtime.evaluated_at`: the SQL column is derived
 transaction metadata, while the same semantic timestamp is integrity-bound
 inside event JSON, event digest, and event identity through `lease_runtime`.
@@ -464,8 +466,9 @@ FROM transition_events
 These specs have no runtime caller in B3c0b. B3c2 consumes them only from
 private transaction-internal readers. B3c3 calls the idempotency reader and
 pure matcher from the private rollback-only dry-run path for exact replay,
-idempotency-key reuse conflict, and miss handling. Max-sequence allocation plus
-event insertion remain future B3c4 behavior.
+idempotency-key reuse conflict, and miss handling. B3c4b uses the max-sequence
+reader only after a fresh accepted or domain-rejected evaluation, then
+allocates once and writes once through the frozen B3c4a plan.
 
 ## Error Taxonomy
 
@@ -502,9 +505,9 @@ subset: rollback failure supersedes a planned replay, apply conflict, accepted
 evaluation, or domain-rejected evaluation with `mutation_failed`; close failure
 after rollback also supersedes any planned dry-run result with
 `mutation_failed`; no dry-run result is returned before cleanup; and
-`commit_outcome_unknown` is never produced by B3c3. Future B3c4 owns commit
-attempts, durable receipt insertion, commit uncertainty, and event-ref or
-event-sequence uniqueness handling after idempotency miss.
+`commit_outcome_unknown` is never produced by B3c3. B3c4b owns private commit
+attempts, durable receipt insertion, commit uncertainty, and event-ref,
+event-sequence, or idempotency uniqueness handling after idempotency miss.
 
 ## Admission Boundary And First Proof
 
@@ -542,5 +545,7 @@ public boundary in `.docs/b3c4a-transition-write-and-commit-contracts.md`.
 B3c4a remains pure/static: it performs no SQLite mutation, no maximum-sequence
 read or allocation integration, no controller integration, no commit, no public
 WriterSession behavior change, no schema-ID bump, and no migration 0002.
-B3c4b remains future for private atomic persistence; B3c4c remains future for
-public delegation.
+B3c4b now implements private atomic persistence through the existing single
+transaction controller and nominal-capability path, while remaining
+production-unintegrated and unreachable from public `WriterSession` methods.
+B3c4c remains future for public delegation.

@@ -336,7 +336,7 @@ def test_docs_and_static_contracts_record_tests_only_fixture_status() -> None:
         "B3c1b rollback-only mechanics are private test-executed only",
         "B3c2 event/idempotency/sequence readers are private transaction-internal tests only",
         "B3c3 rollback-only dry-run runtime remains private",
-        "B3c4 atomic persistence remains future",
+        "B3c4b now implements private atomic persistence",
     ):
         assert phrase in normalized
 

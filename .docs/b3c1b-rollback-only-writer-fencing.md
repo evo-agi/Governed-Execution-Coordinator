@@ -60,11 +60,13 @@ namespace attack.
 
 ## Controller
 
-`_RollbackOnlyTransitionTransactionController` is private and single-use. The
-only construction path is the module-private entry point using a
-module-private construction key. Tests invoke that same private entry point by
-private import; there is no source-level `for_test` controller or alternate
-factory.
+`_TransitionTransactionController` is private and single-use. The only
+construction path is the module-private entry point using a module-private
+construction key. Tests invoke that same private entry point by private import;
+there is no source-level `for_test` controller or alternate factory. B3c1b uses
+only its rollback-before-commit entries; B3c4b later adds the private atomic
+apply entry to this same controller without adding a second controller or
+capability path.
 
 The controller:
 
@@ -242,12 +244,11 @@ B3c3 now implements the private rollback-only dry-run result algebra, command
 preflight, pure authority binding, stale-writer conversion, timestamp
 placement, reader and matcher integration, current/context assembly execution,
 evaluator dry run, and private result return after rollback/close. B3c3 remains
-non-durable and production-unintegrated. B3c4 remains future for atomic
-transition persistence, sequence allocation, CAS, commit, and commit
-uncertainty.
+non-durable and production-unintegrated. B3c4b now implements private atomic
+transition persistence, sequence allocation, accepted CAS, commit, and commit
+uncertainty through the same controller while remaining production-unintegrated.
 B3c4a now freezes only private pure/static write specs, value builders, a
 private planned write plan, and commit-resolution contracts. It does not call
-or modify the B3c1b rollback-only controller, does not create a second
-controller or capability path, does not commit, and does not change public
-WriterSession behavior. B3c4b remains the future private atomic controller
-tranche.
+or modify the B3c1b rollback-only entry behavior, does not create a second
+controller or capability path, does not commit by itself, and does not change
+public WriterSession behavior. B3c4c remains future for public delegation.

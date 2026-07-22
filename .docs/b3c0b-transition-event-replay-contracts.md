@@ -208,10 +208,10 @@ capability mechanics only. B3c2 adds private idempotency/event/sequence readers
 outside B3c0b and keeps them production-unintegrated. B3c3 now calls the
 idempotency reader and pure matcher from the private rollback-only dry-run
 runtime for exact replay, idempotency-key reuse conflict, and miss handling.
-B3c4 remains future for atomic persistence.
+B3c4b now implements private atomic persistence.
 B3c4a now supplies the private pure/static write-side counterpart to these
 read contracts: exact event-insert SQL, event/replay value construction, and
 adapter round-trip proof through `transition_event_record_envelope_from_row`.
 It does not execute the SQL, allocate sequence, insert rows, update current
-state, commit, or alter the event/replay grammar. B3c4b remains future for
-using the observed maximum-sequence reader and allocator inside a transaction.
+state, commit, or alter the event/replay grammar. B3c4b consumes the observed
+maximum-sequence reader and allocator inside the private transaction runtime.

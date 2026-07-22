@@ -28,6 +28,11 @@ observed maximum-sequence readers only. B3c3 contracts are now pinned in
 `.docs/b3c3-rollback-only-transition-dry-run.md` documents the implemented
 private rollback-only dry-run runtime. That runtime remains production
 unintegrated and non-durable.
+B3c4a has since frozen the private write-plan contracts, and B3c4b has since
+implemented private atomic transition persistence through the same single
+controller and nominal-capability path. B3c4b remains production-unintegrated:
+public `apply_transition()` is still unavailable until B3c4c, and global-stop
+mutation remains future B4 work.
 
 ## Nominal Capability Ownership
 
@@ -36,15 +41,14 @@ one private nominal transaction-read capability. The concrete class is not
 trusted through structural Protocol conformance, is not a public reader, and is
 not package-root exported.
 
-The concrete capability is created only by one private rollback-only
-transaction controller. There is one controller construction path, and that
-controller path is the only path that may construct the nominal capability.
-Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
-production caller; coherent tests may invoke the same private controller
-directly through private imports without adding a separate source-level
-`for_test` factory. Direct private test invocation is not public or production
-authority.
+The concrete capability is created only by one private transition transaction
+controller. There is one controller construction path, and that controller path
+is the only path that may construct the nominal capability. Future production
+invocation may occur only from `_SQLiteWriterSession.apply_transition()`. During
+B3c4b, the controller still has no public production caller; coherent tests may
+invoke the same private controller directly through private imports without
+adding a separate source-level `for_test` factory. Direct private test
+invocation is not public or production authority.
 
 Capability creation occurs only while one valid `_WriterSessionOperationLease`
 is active and only after:
@@ -67,7 +71,7 @@ transaction on the same connection. The capability is invalidated before commit
 or rollback, invalidation is permanent, and the object must not escape the
 controller lifecycle.
 
-In B3c1, `_SQLiteWriterSession.apply_transition()` and
+Through B3c4b, `_SQLiteWriterSession.apply_transition()` and
 `_SQLiteWriterSession.apply_global_stop_update()` remain
 `writer_session_mutation_unavailable` and contact no SQLite database.
 
@@ -401,10 +405,11 @@ regenerate an alternate event ref. If sequence allocation or insertion collides
 after an idempotency miss, B3c fails safely with `database_integrity_failure`;
 it does not allocate a replacement sequence outside the transaction.
 
-Sequence allocation remains future SQL work. Accepted and domain-rejected events
-consume sequence numbers. Replay and apply conflicts do not. Rolled-back
-sequence numbers may be reused; committed sequence numbers are never reused.
-Signed SQLite maximum overflow remains `event_sequence_exhausted`.
+B3c4b now implements private sequence allocation after fresh evaluation.
+Accepted and domain-rejected events consume sequence numbers. Replay and apply
+conflicts do not. Rolled-back sequence numbers may be reused; committed
+sequence numbers are never reused. Signed SQLite maximum overflow remains
+`event_sequence_exhausted`.
 
 ## Later Stages
 
@@ -446,9 +451,13 @@ production-unintegrated.
 B3c4a now freezes only the pure/static write specifications, value builders,
 private write plan, commit-resolution state vocabulary, SQLite classification
 matrix, retry contract, proof matrix, and B3c4c public-integration boundary
-needed for that future runtime. B3c4a performs no SQL execution and changes no
-public behavior. B3c4b remains future for maximum-sequence use, sequence
-allocation, event insertion, accepted-state CAS, commit, rollback/commit
-resolution, and commit-uncertainty runtime.
+needed for B3c4b. B3c4a performs no SQL execution and changes no public
+behavior.
+
+B3c4b now implements private maximum-sequence use, sequence allocation, event
+insertion, accepted-state CAS, commit, rollback/commit resolution, and
+commit-uncertainty runtime. It remains production-unintegrated and does not
+change public behavior. B3c4c remains future for public transition apply
+delegation, and B4 remains future for global-stop persistence.
 
 Each future stage requires a separate implementation patch and standalone audit.

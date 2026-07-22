@@ -4,14 +4,15 @@ Status: B2c durable writer issuance, internal writer-session acquisition,
 B3c1a private WriterSession authority plumbing, and B3c1b private
 rollback-only writer-fencing/capability mechanics. B3c3 adds a private
 rollback-only transition dry-run runtime but no public writer-session mutation
-behavior.
+behavior. B3c4b adds private atomic transition persistence but still no public
+writer-session mutation behavior.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
-updates, and an internal concrete `WriterSession`. No `StateStore` mutation
-backend, transition persistence, global-stop
-persistence, worker, service, scheduler, executable authorization, repair,
-commit, publication, or deployment behavior exists.
+updates, and an internal concrete `WriterSession`. No public `StateStore`
+mutation backend, public transition apply, global-stop persistence, worker,
+service, scheduler, executable authorization, repair, publication, or
+deployment behavior exists.
 B2c implements an internal concrete `WriterSession`. B3c1a implements only the
 private resource-owned mutation slot, mutation lease, operation-lease authority
 checks, and durable-issuance verification. B3c1b implements only the private
@@ -125,14 +126,17 @@ rollback, and reject old epochs after transaction end or restart on the same
 connection.
 B3c0a additionally pins that the concrete capability is nominal. B3c1
 prerequisites in `.docs/b3c1-prerequisite-contract.md` reconcile production
-reachability: the capability is created only by one private rollback-only
-transaction controller. There is one controller construction path. Future
-production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
-production caller, and coherent tests may invoke the same private controller
-directly through private imports without adding a separate source-level
-`for_test` factory. The controller entry point accepts only the active
-operation lease; it derives the private state-database filesystem binding from
+reachability: the capability is created only by one private transition
+transaction controller. B3c4b renames that class to
+`_TransitionTransactionController` and adds the private atomic entry without a
+second controller or capability constructor. There is one controller
+construction path. Future production invocation may occur only from
+`_SQLiteWriterSession.apply_transition()`.
+During B3c4b, the controller has no public production caller, and coherent
+tests may invoke the same private controller directly through private imports
+without adding a separate source-level `for_test` factory. The controller entry
+points accept only the active operation lease; they derive the private
+state-database filesystem binding from
 the WriterSession resource after mutation-slot acquisition. That binding
 contains the exact CoordinatorStateLocation, state-root identity,
 authority-lock-file identity, and single-link database-file identity captured
@@ -538,11 +542,11 @@ raise `writer_session_mutation_unavailable` and have no production call into
 that private dry-run path.
 B3c4a does not change writer-session authority. It adds only private
 pure/static transition write and commit-resolution contracts and is not
-imported by `_SQLiteWriterSession`. Public `apply_transition(command)` still
-enters the existing operation guard and raises
-`writer_session_mutation_unavailable`; public `apply_global_stop_update()`
-remains unavailable until B4. B3c4b remains future for private atomic apply,
-and B3c4c remains future for public delegation.
+imported by `_SQLiteWriterSession`. B3c4b consumes those contracts only from
+the private transaction module. Public `apply_transition(command)` still enters
+the existing operation guard and raises `writer_session_mutation_unavailable`;
+public `apply_global_stop_update()` remains unavailable until B4. B3c4c
+remains future for public delegation.
 
 ## Non-Goals
 

@@ -818,18 +818,22 @@ def test_public_non_integration_boundaries_remain_closed() -> None:
 
 def test_static_b3c3_runtime_gates() -> None:
     source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
-    dry_run_source = inspect.getsource(
-        transaction_module._RollbackOnlyTransitionTransactionController._run_until_transition_dry_run_resolution
+    dry_run_source = (
+        inspect.getsource(transaction_module._TransitionTransactionController._run_transition_dry_run_transaction)
+        + inspect.getsource(transaction_module._TransitionTransactionController._run_until_transition_resolution)
+        + inspect.getsource(transaction_module._evaluate_bound_transition)
     )
 
     assert "_read_transition_event_for_idempotency" in source
     assert "match_transition_event_idempotency" in source
-    assert "_read_transition_event_max_sequence" not in source
-    assert "next_transition_event_sequence" not in source
-    assert "MAX(event_sequence)" not in source
+    assert "_read_transition_event_max_sequence" not in dry_run_source
+    assert "next_transition_event_sequence" not in dry_run_source
+    assert "MAX(event_sequence)" not in dry_run_source
     assert "_run_rollback_only_writer_fencing" in source
     assert "_run_rollback_only_transition_dry_run" in source
-    assert source.count("class _RollbackOnlyTransitionTransactionController") == 1
+    assert "_run_atomic_transition_apply" in source
+    assert source.count("class _TransitionTransactionController") == 1
+    assert "_RollbackOnlyTransitionTransactionController" not in source
     assert source.count("def _create_sqlite_transition_read_capability") == 1
     for forbidden in (
         "Callable",
@@ -846,7 +850,7 @@ def test_static_b3c3_runtime_gates() -> None:
         ".commit(",
         "COMMIT",
     ):
-        assert forbidden not in source
+        assert forbidden not in dry_run_source
     order = [
         dry_run_source.index("_read_transition_event_for_idempotency"),
         dry_run_source.index("match_transition_event_idempotency"),
@@ -858,6 +862,6 @@ def test_static_b3c3_runtime_gates() -> None:
         dry_run_source.index("_read_global_stop_current"),
         dry_run_source.index("_bind_b3c3_transition_authority"),
         dry_run_source.index("_capture_transaction_timestamp"),
-        dry_run_source.index("_evaluate_bound_transition_for_dry_run"),
+        dry_run_source.index("_evaluate_bound_transition"),
     ]
     assert order == sorted(order)
