@@ -137,13 +137,13 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3 tests-only coherent fixtures are implemented under `tests/` only",
         "B3c1a implements the runtime mutation slot",
         "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
-        "B3c2 has since implemented private transaction-internal event/replay idempotency and observed maximum-sequence readers",
-        "B3c3 contracts are now pinned",
-        "implemented private rollback-only dry-run runtime",
-        "B3c4 remains future",
-        "Each future stage requires a separate implementation patch and standalone audit.",
-    ):
-        assert phrase in normalized
+            "B3c2 has since implemented private transaction-internal event/replay idempotency and observed maximum-sequence readers",
+            "B3c3 contracts are now pinned",
+            "implemented private rollback-only dry-run runtime",
+            "B3c4a now freezes only the pure/static write specifications",
+            "Each future stage requires a separate implementation patch and standalone audit.",
+        ):
+            assert phrase in normalized
 
     for path in (
         "AGENTS.md",
@@ -480,7 +480,7 @@ def test_static_runtime_boundary_still_has_no_b3c_transition_apply_implementatio
     sqlite_runtime_sources = "\n".join(
         path.read_text(encoding="utf-8")
         for path in PACKAGE_DIR.glob("sqlite_*.py")
-        if path.name != "sqlite_transition_event_contracts.py"
+        if path.name not in {"sqlite_transition_event_contracts.py", "sqlite_transition_write_contracts.py"}
     )
     transition_event_contract_source = _read("src/ge_nwp_coordinator/sqlite_transition_event_contracts.py")
 

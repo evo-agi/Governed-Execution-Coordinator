@@ -444,3 +444,11 @@ Each slice requires an implementation-only prompt, a standalone
 provenance-bound audit, and a separate commit. No fresh source snapshot is
 required between accepted B3c1a and B3c1b commits unless evidence conflicts.
 A fresh snapshot is required only after accepted B3c1b.
+
+B3c4a has since added only private pure/static write and commit-resolution
+contracts in `.docs/b3c4a-transition-write-and-commit-contracts.md`. It does
+not change the B3c1 one-controller construction path, mutation slot,
+operation-lease authority, rollback-only controller runtime, or public
+WriterSession behavior. B3c4b remains future for evolving that one controller
+into private atomic transition apply; B3c4c remains future for public
+delegation.

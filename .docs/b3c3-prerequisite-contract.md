@@ -363,6 +363,12 @@ No sequence read or allocation occurs in B3c3. No writes, CAS, or COMMIT occur
 in B3c3. B3c4 remains the first persistence/commit tranche and owns observed
 maximum-sequence use, allocator call, event insertion, current-state CAS,
 rollback-or-commit resolution, commit uncertainty, and durable receipts.
+B3c4a now implements only the prerequisite pure/static contracts for that
+future persistence tranche: event-insert and accepted-CAS specs, value
+builders, private planned write plan, commit-resolution vocabulary, SQLite
+classification matrix, retry contract, proof matrix, and public-integration
+boundary. B3c4a does not integrate with the B3c3 runtime, mutate SQLite, or
+return durable receipts.
 
 ## Production Boundary
 

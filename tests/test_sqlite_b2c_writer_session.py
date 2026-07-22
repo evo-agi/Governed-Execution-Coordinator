@@ -1525,7 +1525,11 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
     assert not hasattr(ge_nwp_coordinator, "_WriterSessionOperationLease")
     assert not hasattr(ge_nwp_coordinator, "_PrivateWriterCredential")
 
-    source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src").rglob("*.py")
+        if path.name != "sqlite_transition_write_contracts.py"
+    )
     for forbidden in (
         "def current_writer",
         "def read_latest_writer_issuance",

@@ -269,7 +269,10 @@ coordinator service, or executable A2 capability exists in this slice. B3c1a
 adds only private WriterSession authority plumbing, and B3c1b adds only private
 rollback-only writer fencing/capability mechanics; neither changes that runtime
 boundary. B3c2 adds private event/idempotency and observed maximum-sequence
-readers with no production caller and no mutation.
+readers with no production caller and no mutation. B3c4a adds only private
+pure/static transition write specifications, value builders, planned-write and
+commit-resolution contracts, with no SQLite mutation, controller integration,
+public WriterSession behavior change, schema-ID bump, or migration 0002.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state
@@ -296,3 +299,12 @@ commit eligibility, and local-commit completion. Report failure cannot disable
 enforcement.
 
 P1 does not terminate processes or cancel workers because P1 starts no worker.
+
+## B3c4a Boundary
+
+B3c4a does not yet make the future SQLite backend durable for transitions. It
+pins the exact transition-event insert grammar, accepted-current CAS grammar,
+adapter round-trip value construction, planned-versus-committed result
+boundary, commit uncertainty, retry, and B3c4c public delegation constraints.
+B3c4b remains future for private atomic apply, and B3c4c remains future for
+public `_SQLiteWriterSession.apply_transition()` delegation.

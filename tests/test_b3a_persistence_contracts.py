@@ -653,7 +653,11 @@ def test_event_sequence_timestamp_and_mutation_error_contracts_are_safe() -> Non
 
 
 def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface() -> None:
-    source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py"))
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py")
+        if path.name != "sqlite_transition_write_contracts.py"
+    )
     for forbidden in (
         "INSERT INTO transition_events",
         "INSERT INTO global_stop_events",

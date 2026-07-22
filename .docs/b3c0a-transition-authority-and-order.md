@@ -443,8 +443,12 @@ calls, context assembly runtime, evaluator dry-run execution, and private
 result return after rollback/close. It remains non-durable and
 production-unintegrated.
 
-B3c4 remains future for maximum-sequence use, sequence allocation, event
-insertion, accepted-state CAS, commit, rollback/commit resolution, and
-commit-uncertainty runtime.
+B3c4a now freezes only the pure/static write specifications, value builders,
+private write plan, commit-resolution state vocabulary, SQLite classification
+matrix, retry contract, proof matrix, and B3c4c public-integration boundary
+needed for that future runtime. B3c4a performs no SQL execution and changes no
+public behavior. B3c4b remains future for maximum-sequence use, sequence
+allocation, event insertion, accepted-state CAS, commit, rollback/commit
+resolution, and commit-uncertainty runtime.
 
 Each future stage requires a separate implementation patch and standalone audit.

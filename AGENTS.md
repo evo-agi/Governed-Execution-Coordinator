@@ -271,6 +271,21 @@ event insertion, work-item or global-stop update, CAS, commit,
 0002, or related-repo consumer. Public mutation methods still raise
 `writer_session_mutation_unavailable`.
 
+B3c4a contracts are pinned in
+`.docs/b3c4a-transition-write-and-commit-contracts.md`, and the implementation
+is limited to the private pure/static
+`sqlite_transition_write_contracts.py` module plus tests. B3c4a freezes the
+exact transition-event insert specification, accepted work-item CAS
+specification, event/replay and accepted-current value builders, private
+planned write plan, commit-resolution state vocabulary, SQLite
+classification matrix, retry-after-uncertainty contract, proof matrix, and
+B3c4c public-integration boundary. It adds no SQLite mutation execution, no
+controller integration, no maximum-sequence read or allocation integration, no
+COMMIT, no public `WriterSession.apply_transition()` behavior change, no
+package-root export, no `StateStore` widening, no global-stop mutation, no
+schema-ID bump, and no migration 0002. Fresh planned outcomes are private
+grammar only and are not durable receipts until future B3c4b commits them.
+
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production
 initialization, directly seed synthetic authoritative rows through a test setup

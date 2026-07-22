@@ -357,7 +357,11 @@ epoch rules, cleanup precedence, and the B3c1a/B3c1b split. There is still no
 public or production transaction caller or mutation. B3c2 adds private event
 readers only, and B3c3 adds only the private rollback-only dry run with reader
 ordering, exact replay/conflict handling, context assembly, timestamp capture,
-and evaluator invocation but no durable persistence. B3c4 atomic transition
-apply, sequence allocation, event insertion, current-state CAS, commit, and
-commit uncertainty remain future. B4 remains future for
-global-stop persistence.
+and evaluator invocation but no durable persistence. B3c4a adds only
+pure/static transition write specifications, value builders, a private planned
+write plan, commit-resolution state vocabulary, SQLite classification, retry,
+proof, and public-integration boundary contracts. B3c4b private atomic apply
+and B3c4c public `_SQLiteWriterSession.apply_transition()` delegation remain
+future, including sequence allocation, event insertion, current-state CAS,
+commit, and commit uncertainty runtime. B4 remains future for global-stop
+persistence.

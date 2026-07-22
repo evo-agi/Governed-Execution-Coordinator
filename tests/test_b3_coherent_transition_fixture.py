@@ -345,7 +345,11 @@ def test_migration_boundary_related_surfaces_and_repo_artifacts_remain_frozen() 
     assert hashlib.sha256(MIGRATION_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
     assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
 
-    source_paths = tuple((ROOT / "src/ge_nwp_coordinator").glob("*.py"))
+    source_paths = tuple(
+        path
+        for path in (ROOT / "src/ge_nwp_coordinator").glob("*.py")
+        if path.name != "sqlite_transition_write_contracts.py"
+    )
     source = "\n".join(path.read_text(encoding="utf-8") for path in source_paths)
     for forbidden in (
         "CoherentTransitionFixture",

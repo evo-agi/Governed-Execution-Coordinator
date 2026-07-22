@@ -70,6 +70,7 @@ def _source_files() -> dict[str, str]:
     return {
         path.name: path.read_text(encoding="utf-8")
         for path in PACKAGE_DIR.glob("*.py")
+        if path.name != "sqlite_transition_write_contracts.py"
     }
 
 

@@ -245,3 +245,13 @@ There is no B2a latest-writer read API. A future administrative observer may
 read safe durable writer issuance metadata, but such a read would not prove
 liveness, would not return proof or proof digest, and would not authorize
 mutation.
+
+## B3c4a Recovery Boundary
+
+B3c4a pins the future transition apply recovery contract without executing it.
+Commit-attempt exceptions in B3c4b must produce only
+`commit_outcome_unknown`; close failure after commit success must not reverse a
+committed result; close failure after uncertainty must not change uncertainty;
+and retry after uncertainty must use the same work item, idempotency key, and
+canonical command digest. B3c4a itself performs no transaction, no insert, no
+CAS, no rollback, no commit, no hidden retry, and no artifact recovery.

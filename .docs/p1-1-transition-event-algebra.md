@@ -139,6 +139,10 @@ counter change, budget effect, or state mutation occurs.
 - Durable domain rejections always carry events.
 - B3c3 dry-run domain rejections carry only non-durable evaluator output; they
   are not receipts until B3c4 persistence.
+- B3c4a write plans may contain a private planned
+  `CommittedTransition(replayed=False)`, but that planned value is not a
+  receipt and cannot escape before a future B3c4b successful commit. B3c4a
+  changes no public apply behavior.
 - P1-disabled targets always reject with `stage_not_enabled` after pre-apply
   binding and target-support checks but before contextual domain reasons.
 - Caller code never provides proposed state or proposed event.

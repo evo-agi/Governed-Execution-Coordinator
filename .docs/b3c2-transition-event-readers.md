@@ -171,3 +171,8 @@ current/context/timestamp/evaluator work, and no maximum-sequence reader,
 allocator, write, CAS, or commit belongs to B3c3. B3c4 remains the first
 tranche allowed to consume the observed maximum-sequence reader for allocation
 and durable event insertion.
+B3c4a has since pinned only the pure/static write-side specifications and
+contracts that B3c4b must use after this reader returns an observed maximum.
+B3c4a itself does not call `_read_transition_event_max_sequence`, does not call
+`next_transition_event_sequence`, does not allocate a sequence, and does not
+insert or update rows.

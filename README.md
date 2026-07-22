@@ -128,6 +128,17 @@ SQLite bootstrap/migration infrastructure only:
   API/export, `StateStore` widening, commit, or migration 0002. Fresh evaluator
   output is non-durable and non-receipt until future B3c4 inserts and commits
   it.
+- B3c4a contracts, documented in
+  `.docs/b3c4a-transition-write-and-commit-contracts.md`, add only private
+  pure/static write specifications and commit-resolution contracts for future
+  durable transition persistence. B3c4a freezes the exact
+  `transition_events` insert SQL, accepted `work_items` CAS SQL, event and CAS
+  value builders, private write plan, commit-resolution state vocabulary,
+  SQLite classification matrix, retry-after-uncertainty contract, B3c4b proof
+  matrix, and B3c4c public-integration boundary. It imports no SQLite runtime,
+  executes no SQL, inserts no event, updates no work item, reads or allocates no
+  sequence, integrates no controller, changes no public WriterSession behavior,
+  adds no package export, and requires no schema-ID bump or migration 0002.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through

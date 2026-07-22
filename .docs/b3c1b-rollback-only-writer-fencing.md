@@ -245,3 +245,9 @@ evaluator dry run, and private result return after rollback/close. B3c3 remains
 non-durable and production-unintegrated. B3c4 remains future for atomic
 transition persistence, sequence allocation, CAS, commit, and commit
 uncertainty.
+B3c4a now freezes only private pure/static write specs, value builders, a
+private planned write plan, and commit-resolution contracts. It does not call
+or modify the B3c1b rollback-only controller, does not create a second
+controller or capability path, does not commit, and does not change public
+WriterSession behavior. B3c4b remains the future private atomic controller
+tranche.

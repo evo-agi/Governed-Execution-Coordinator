@@ -254,3 +254,11 @@ Before executable A2, add fault-injection coverage for:
 - backup/restore validation;
 - corruption quarantine;
 - stale writer after crash and restart.
+
+B3c4a adds no new live threat surface: its write contracts are pure/static and
+private, expose no SQL parameters, event contents, replay contents, command
+contents, digests, refs, lease paths, credentials, proofs, state-root paths, or
+raw exception causes in reprs or public errors, and are not imported by runtime
+transaction or public WriterSession code. B3c4b must provide the crash,
+rollback, commit-uncertainty, restart, process, thread, fork, and capability
+fault-injection proof pinned by the B3c4a proof matrix.

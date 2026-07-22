@@ -490,6 +490,11 @@ matcher calls from transaction code, clock runtime, context assembly runtime,
 and evaluator integration. It still does not add sequence read, sequence
 allocation, state mutation, commit, public mutation behavior, or executable A2
 behavior.
+B3c4a adds only private pure/static transition write specs, value builders,
+planned-write and commit-resolution contracts, SQLite classification, retry,
+proof, and public-boundary pins. It still does not add a production read port,
+mutation execution, private atomic apply, public apply delegation, global-stop
+persistence, executable A2 behavior, schema-ID bump, or migration 0002.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

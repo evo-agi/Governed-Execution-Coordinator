@@ -536,6 +536,13 @@ the operation guard supplies an active operation lease, and command-local
 preflight runs before mutation-slot acquisition. Public mutation methods still
 raise `writer_session_mutation_unavailable` and have no production call into
 that private dry-run path.
+B3c4a does not change writer-session authority. It adds only private
+pure/static transition write and commit-resolution contracts and is not
+imported by `_SQLiteWriterSession`. Public `apply_transition(command)` still
+enters the existing operation guard and raises
+`writer_session_mutation_unavailable`; public `apply_global_stop_update()`
+remains unavailable until B4. B3c4b remains future for private atomic apply,
+and B3c4c remains future for public delegation.
 
 ## Non-Goals
 

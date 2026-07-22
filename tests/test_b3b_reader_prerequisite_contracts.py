@@ -371,7 +371,11 @@ def test_b3b_prerequisite_docs_pin_zero_cost_schema_and_internal_timestamp_contr
 
 def test_b3b_prerequisite_boundary_has_no_reader_fixture_export_or_schema_change() -> None:
     package_dir = ROOT / "src/ge_nwp_coordinator"
-    source = "\n".join(path.read_text(encoding="utf-8") for path in package_dir.rglob("*.py"))
+    source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in package_dir.rglob("*.py")
+        if path.name != "sqlite_transition_write_contracts.py"
+    )
     helper_source = inspect.getsource(validate_b3_work_item_authority_binding)
 
     assert "sqlite3" not in (package_dir / "persistence_contracts.py").read_text(encoding="utf-8")

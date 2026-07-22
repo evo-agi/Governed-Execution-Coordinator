@@ -531,3 +531,16 @@ READY dependency receipts, exact replay, and safe current-state read-back. It
 does not prove admission, accepted operator-policy authority, executable
 authorization, an accepted transition, worker execution, service behavior,
 global-stop mutation, repair, commit, publication, or related-repo authority.
+
+## B3c4a Write-Contract Boundary
+
+B3c4a is now the prerequisite write-contract tranche for B3c4. It freezes the
+private transition-event insert spec, accepted work-item CAS spec, event and
+CAS value builders, private planned write plan, commit-resolution vocabulary,
+SQLite error matrix, retry-after-uncertainty contract, proof matrix, and B3c4c
+public boundary in `.docs/b3c4a-transition-write-and-commit-contracts.md`.
+B3c4a remains pure/static: it performs no SQLite mutation, no maximum-sequence
+read or allocation integration, no controller integration, no commit, no public
+WriterSession behavior change, no schema-ID bump, and no migration 0002.
+B3c4b remains future for private atomic persistence; B3c4c remains future for
+public delegation.

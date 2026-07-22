@@ -135,3 +135,7 @@ implement operator authorization, or widen public behavior. B3c4 remains the
 first owner of maximum-sequence integration, sequence allocation, event
 insertion, state CAS/update, commit, rollback/commit resolution, and commit
 uncertainty.
+B3c4a now freezes the pure/static write and commit-resolution contracts that
+future B3c4b must consume. It does not change this rollback-only dry-run path:
+no maximum-sequence read, allocation, insert, CAS, commit, public apply
+integration, schema edit, or migration 0002 is added here.
