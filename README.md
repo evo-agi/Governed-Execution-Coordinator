@@ -142,8 +142,7 @@ SQLite bootstrap/migration infrastructure only:
 - B3c4b private atomic transition persistence, documented in
   `.docs/b3c4b-private-atomic-transition-persistence.md`, consumes those
   frozen B3c4a contracts through the existing single transaction controller
-  and nominal-capability path. It is still private and production-unintegrated:
-  public `apply_transition()` remains `writer_session_mutation_unavailable`.
+  and nominal-capability path. B3c4b remains the sole atomic transaction owner.
   Fresh accepted or domain-rejected evaluations read the observed maximum
   transition-event sequence, allocate the next sequence, insert one transition
   event, update the current work item only by accepted CAS, invalidate the
@@ -152,16 +151,17 @@ SQLite bootstrap/migration infrastructure only:
   `commit_outcome_unknown`; caller retry is by the same idempotency key and
   digest. It adds no global-stop mutation, public export, `StateStore` widening,
   schema-ID bump, or migration 0002.
-- B3c4c prerequisite contracts, documented in
-  `.docs/b3c4c-prerequisite-contract.md`, add only the public command-local
-  transition-apply preflight vocabulary and freeze the future public
-  private-to-public mapping, operation-guard precedence, function-local import,
-  import/load failure, and no-generic delegate-catch-all contracts. Public
-  `apply_transition()` and `apply_global_stop_update()` still raise
-  `writer_session_mutation_unavailable`; no private atomic delegate call, SQL,
-  transaction, event, `TransitionApplyOutcome` change, `StateStore` widening,
-  global-stop persistence, B4 behavior, schema-ID bump, or migration 0002 is
-  added.
+- B3c4c public transition delegation, documented in
+  `.docs/b3c4c-public-transition-delegation.md` and
+  `.docs/b3c4c-prerequisite-contract.md`, adds only the public command-local
+  transition-apply preflight vocabulary and make public `apply_transition()`
+  delegate through the existing operation guard to the B3c4b atomic entry.
+  The public wrapper uses a bounded function-local import, maps only the two
+  exact private preflight reasons, performs no SQL or transaction work itself,
+  and has no generic delegate catch-all. Public `apply_global_stop_update()`
+  still raises `writer_session_mutation_unavailable`; no
+  `TransitionApplyOutcome` change, `StateStore` widening, global-stop
+  persistence, B4 behavior, schema-ID bump, or migration 0002 is added.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -284,10 +284,8 @@ pure event contracts, rollback-only nominal capability, and private
 event/idempotency/observed-sequence readers. B3c3 adds runtime replay,
 current/context assembly, and evaluator integration for rollback-only dry run.
 B3c4b adds private event insertion, accepted current-state mutation, commit,
-and commit uncertainty. Public delegation remains future B3c4c.
-B3c4c prerequisite work now adds only public preflight exception vocabulary and
-the future delegation/import/error contract; public delegation itself remains
-future B3c4c.
+and commit uncertainty. B3c4c now adds operation-guarded public transition
+delegation to that private atomic entry.
 B3c0b now implements the pure/static event-row and replay contract portion
 that B3c0a left future. It adds no runtime caller: idempotency and
 maximum-sequence SQL are immutable data only, and exact replay is a pure
@@ -309,9 +307,9 @@ evaluator integration, durable mutation, commit, or migration 0002. B3c3 now
 implements private rollback-only idempotency/context/timestamp/evaluator
 dry-run behavior, still production-unintegrated and non-durable. B3c4a freezes
 the pure write plan. B3c4b now implements private atomic transition
-persistence, still production-unintegrated and unreachable from public
-`WriterSession.apply_transition()`. B3c4c prerequisite public preflight
-vocabulary exists, but runtime delegation remains future, and B4 remains future
-for global-stop mutation.
+persistence, and B3c4c makes public `WriterSession.apply_transition()` delegate
+to it without moving SQL, transaction, sequence, event, context, evaluator, or
+mutation-slot ownership into the public wrapper. B4 remains future for
+global-stop mutation.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

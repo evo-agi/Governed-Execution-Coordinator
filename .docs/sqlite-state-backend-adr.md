@@ -26,10 +26,10 @@ stale-writer conversion, idempotency read/match, current/expected checks,
 context-reader ordering, authority binding, timestamp placement,
 lease-runtime/context construction, evaluator invocation, and cleanup/result
 precedence; it has no durable mutation, public caller, commit, or migration
-0002. B3c4c prerequisite work adds only public command-local preflight
-exception vocabulary and future delegation/import/error contracts; it adds no
-public transition execution, backend mutation behavior, schema-ID bump, or
-migration 0002.
+0002. B3c4c adds public operation-guarded transition delegation to the B3c4b
+private atomic entry plus exact public preflight mapping; it adds no public
+SQLite ownership, global-stop persistence, executable A2 behavior, schema-ID
+bump, or migration 0002.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -502,14 +502,14 @@ B3c4b adds private atomic transition apply through the existing controller:
 maximum-sequence read, pure sequence allocation, frozen write-plan consumption,
 transition-event insert, accepted-current CAS, capability invalidation before
 commit, one commit attempt, commit uncertainty classification, and cleanup. It
-still does not add a production read port, public apply delegation,
-global-stop persistence, executable A2 behavior, schema-ID bump, or migration
-0002.
-B3c4c prerequisite work adds only public preflight exception vocabulary and
-future public-wrapper contracts. Public transition apply still raises
-`writer_session_mutation_unavailable`; no delegate import, SQL, transaction,
-sequence, event, CAS, write-plan behavior, global-stop persistence, executable
-A2 behavior, schema-ID bump, or migration 0002 is added.
+still does not add a production read port, global-stop persistence, executable
+A2 behavior, schema-ID bump, or migration 0002.
+B3c4c adds only public operation-guarded transition delegation to the B3c4b
+private atomic entry. The public wrapper owns bounded local import,
+private-to-public preflight mapping, and pre-delegate import/load failure
+classification only; it adds no SQL, transaction, sequence, event, CAS,
+write-plan behavior, global-stop persistence, executable A2 behavior, schema-ID
+bump, or migration 0002.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

@@ -365,9 +365,9 @@ atomic transition persistence through that same controller path: fresh
 evaluations read maximum event sequence, allocate the next sequence, consume
 the frozen write plan, insert one event, CAS-update accepted current state,
 invalidate capability, and attempt exactly one commit with
-`commit_outcome_unknown` on commit-attempt exceptions. It remains
-production-unintegrated and has no public caller. B3c4c prerequisite work adds
-only public command-local preflight exception vocabulary and freezes the future
-private-to-public preflight mapping plus function-local import/delegation
-contract. Public `_SQLiteWriterSession.apply_transition()` delegation remains
-future. B4 remains future for global-stop persistence.
+`commit_outcome_unknown` on commit-attempt exceptions. B3c4c now makes public
+`_SQLiteWriterSession.apply_transition()` delegate to that B3c4b entry through
+the existing operation guard, with only bounded local import and exact preflight
+mapping in the public wrapper. SQL, transaction, sequence, event, current-state
+CAS, context, evaluator, capability, and mutation-slot ownership remain in the
+private atomic path. B4 remains future for global-stop persistence.

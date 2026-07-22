@@ -42,18 +42,17 @@ Writer-session authority is mutation fencing contract shape plus B2c internal
 SQLite acquisition. B2a removes standalone reconstructable public-token
 mutation authority: mutation authority belongs to an opaque backend-created
 `WriterSession`, not to safe writer metadata or a durable SQLite row. B2c
-acquires an internal session for a managed database, but its mutation methods
-fail locally with `writer_session_mutation_unavailable`; it does not persist
-transition or global-stop events through public methods. B3c4b adds private
-transition persistence through a production-unintegrated transaction entry only;
-public `WriterSession.apply_transition()` still does not call it. The B3c4c
-prerequisite adds only public command-local preflight exception vocabulary and
-the future private-to-public mapping contract; it does not add delegation,
-SQLite access, or a public mutation backend. Stale-writer conflicts are private
-apply-boundary failures and never disclose idempotency status or return
-transition events. Closed-session and process-mismatch failures are
-session-local failures before the apply boundary; they are not durable apply
-conflicts.
+acquires an internal session for a managed database. B3c4c makes public
+`WriterSession.apply_transition(command)` delegate through the existing
+operation guard to the B3c4b private atomic transition entry. The public wrapper
+does not own SQL, transaction control, event or current-state writes, sequence
+allocation, context assembly, evaluator invocation, capability construction, or
+mutation-slot acquisition. Public `apply_global_stop_update()` still fails
+locally with `writer_session_mutation_unavailable`; B4 remains future. Stale
+writer conflicts are private apply-boundary failures and never disclose
+idempotency status or return transition events. Closed-session and
+process-mismatch failures are session-local failures before the apply boundary;
+they are not durable apply conflicts.
 
 B3a changes the transition method shape to `apply_transition(command)` and
 requires future transition context to be reconstructed inside the fenced store

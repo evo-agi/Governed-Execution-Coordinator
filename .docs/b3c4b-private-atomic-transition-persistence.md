@@ -1,22 +1,20 @@
 # B3c4b Private Atomic Transition Persistence
 
-Status: implemented private atomic transition persistence runtime;
-production-unintegrated; no public caller; no global-stop mutation. B3c4c
-prerequisite public preflight vocabulary exists, but public transition
-delegation remains future.
+Status: implemented private atomic transition persistence runtime; now invoked
+only by the B3c4c public WriterSession wrapper; no global-stop mutation.
 
 B3c4b is the first Coordinator tranche that may durably persist a work-item
 transition, but only through the existing private transaction-controller and
 nominal-capability authority path in
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`.
 
-Public `_SQLiteWriterSession.apply_transition()` still raises
-`writer_session_mutation_unavailable` and does not enter this path. B3c4c
-prerequisite work adds only public command-local preflight exception vocabulary
-and freezes the future private-to-public preflight mapping, function-local
-import, import/load failure, and no-generic delegate-catch-all contracts.
-B3c4c runtime delegation remains future. `apply_global_stop_update()` remains
-unavailable until B4.
+Public `_SQLiteWriterSession.apply_transition()` enters its existing operation
+guard and delegates to this private atomic entry through the B3c4c
+function-local import boundary. B3c4c owns only the public wrapper, exact
+private-to-public preflight mapping, import/load failure classification, and
+no-generic delegate-catch-all boundary. This B3c4b module remains the sole owner
+of transaction-state-aware SQLite mutation and `commit_outcome_unknown`
+classification. `apply_global_stop_update()` remains unavailable until B4.
 
 ## Single Controller
 
@@ -41,7 +39,7 @@ _run_rollback_only_transition_dry_run(
 ) -> _RollbackOnlyTransitionDryRunResult
 ```
 
-B3c4b adds one private production-unintegrated entry:
+B3c4b adds one private atomic entry:
 
 ```python
 _run_atomic_transition_apply(
@@ -51,11 +49,12 @@ _run_atomic_transition_apply(
 ) -> TransitionApplyOutcome
 ```
 
-No public API, package export, `StateStore` widening, CLI, MCP, connector,
-worker, scheduler, service, report, or related repository calls this entry.
-Only the B3c4c prerequisite public preflight vocabulary is exported by the
-package root; no private delegate, controller, capability, write plan, or SQLite
-type is exported.
+Only `_SQLiteWriterSession.apply_transition()` calls this entry, and it passes
+only the active operation lease and caller command. No package export,
+`StateStore` widening, CLI, MCP, connector, worker, scheduler, service, report,
+or related repository calls it. Only the B3c4c public preflight vocabulary is
+exported by the package root; no private delegate, controller, capability, write
+plan, or SQLite type is exported.
 
 ## Preflight And Shared Resolution
 

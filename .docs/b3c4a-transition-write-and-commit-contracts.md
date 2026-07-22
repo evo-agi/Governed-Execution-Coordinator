@@ -13,7 +13,7 @@ B3c4 remains split as:
 - B3c4a: pure/static write and commit contracts only;
 - B3c4b: private atomic transition apply through the one transaction
   controller;
-- B3c4c: future public `_SQLiteWriterSession.apply_transition(command)`
+- B3c4c: public `_SQLiteWriterSession.apply_transition(command)`
   delegation only.
 
 B3c4a does not create a schema ID bump, does not edit migration 0001, and adds
@@ -351,20 +351,18 @@ evaluator invocation, maximum-sequence read, sequence allocation, and writes.
 ## Public Boundary
 
 B3c4c, not B3c4a or B3c4b, makes
-`_SQLiteWriterSession.apply_transition(command)` functional. That later method
-must enter the existing operation guard, delegate to one private atomic entry,
-contain no SQL, accept no context, timestamp,
+`_SQLiteWriterSession.apply_transition(command)` functional. That method
+enters the existing operation guard, delegates to one private atomic entry,
+contains no SQL, accepts no context, timestamp,
 capability, or row data from the caller, and expose only
 `TransitionApplyOutcome`, `TransitionApplyPreflightError`,
 `WriterSessionError`, and closed mutation-store errors.
 
-B3c4c prerequisite work adds only the public command-local
-`TransitionApplyPreflightError` and
-`TransitionApplyPreflightFailureReason` vocabulary plus the future
-private-to-public preflight mapping and function-local import contract. It does
-not make public transition apply functional. The future public wrapper must not
-use a broad delegate-execution catch-all that can turn commit uncertainty into
-definite `mutation_failed`.
+B3c4c adds only the public command-local `TransitionApplyPreflightError` and
+`TransitionApplyPreflightFailureReason` vocabulary, the exact private-to-public
+preflight mapping, the function-local import boundary, and the guarded public
+delegate call. The public wrapper does not use a broad delegate-execution
+catch-all that can turn commit uncertainty into definite `mutation_failed`.
 
 `apply_global_stop_update()` remains unavailable until B4. No public database
 reader/store is added, and `StateStore` is not widened by B3c4a or B3c4b.

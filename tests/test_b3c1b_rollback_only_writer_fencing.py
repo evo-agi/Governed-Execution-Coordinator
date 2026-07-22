@@ -36,7 +36,12 @@ from ge_nwp_coordinator.sqlite_writer_session import (
     _WriterIssuanceMatch,
     acquire_sqlite_writer_session,
 )
-from ge_nwp_coordinator.state_store import WriterSessionError, WriterSessionFailureReason
+from ge_nwp_coordinator.state_store import (
+    TransitionApplyPreflightError,
+    TransitionApplyPreflightFailureReason,
+    WriterSessionError,
+    WriterSessionFailureReason,
+)
 import ge_nwp_coordinator.sqlite_migration as migration_module
 import ge_nwp_coordinator.sqlite_transition_read_scope as read_scope
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
@@ -1978,7 +1983,7 @@ def test_no_b3b2_reader_calls_and_no_durable_mutation_sql(
     assert EXPECTED_WRITER_ROW_QUERY in module_source
 
 
-def test_public_mutation_methods_remain_unavailable_and_unintegrated(
+def test_public_transition_preflight_delegates_without_rollback_only_fencing_entry(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2000,9 +2005,9 @@ def test_public_mutation_methods_remain_unavailable_and_unintegrated(
     monkeypatch.setattr(transaction_module, "_open_bound_existing_sqlite_connection", fail_sqlite_open)
     monkeypatch.setattr(writer_module, "open_existing_sqlite_connection", fail_sqlite_open)
     try:
-        with pytest.raises(WriterSessionError) as transition_error:
+        with pytest.raises(TransitionApplyPreflightError) as transition_error:
             session.apply_transition(None)  # type: ignore[arg-type]
-        assert transition_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
 
         with pytest.raises(WriterSessionError) as global_stop_error:
             session.apply_global_stop_update(None, None)  # type: ignore[arg-type]

@@ -1206,17 +1206,72 @@ def test_crash_restart_readback_and_retry_after_reacquisition(
             restarted.close()
 
 
-def test_public_export_state_store_schema_and_b4_boundaries_remain_closed(tmp_path: Path) -> None:
+def test_public_caller_export_state_store_schema_and_b4_boundaries_remain_closed(tmp_path: Path) -> None:
     assert "_run_atomic_transition_apply" not in PACKAGE_EXPORT_PATH.read_text(encoding="utf-8")
-    assert "_run_atomic_transition_apply" not in WRITER_SESSION_PATH.read_text(encoding="utf-8")
     assert "_run_atomic_transition_apply" not in STATE_STORE_PATH.read_text(encoding="utf-8")
-    assert "sqlite_transition_write_contracts" not in WRITER_SESSION_PATH.read_text(encoding="utf-8")
     assert not hasattr(ge_nwp_coordinator, "_run_atomic_transition_apply")
     assert not list(MIGRATION_DIR.glob("0002*"))
 
+    writer_source = WRITER_SESSION_PATH.read_text(encoding="utf-8")
+    writer_tree = ast.parse(writer_source)
+    sqlite_session = next(
+        node for node in ast.walk(writer_tree)
+        if isinstance(node, ast.ClassDef) and node.name == "_SQLiteWriterSession"
+    )
+    public_apply = next(
+        node for node in sqlite_session.body
+        if isinstance(node, ast.FunctionDef) and node.name == "apply_transition"
+    )
+    public_apply_source = ast.get_source_segment(writer_source, public_apply)
+    assert public_apply_source is not None
+    assert writer_source.count("_run_atomic_transition_apply") == 2
+    assert public_apply_source.count("_run_atomic_transition_apply") == 2
+    assert "sqlite_transition_write_contracts" not in writer_source
+    assert "sqlite3" not in public_apply_source
+    assert "BEGIN" not in public_apply_source
+    assert "COMMIT" not in public_apply_source
+    assert "ROLLBACK" not in public_apply_source
+    assert "_TransitionTransactionController" not in public_apply_source
+    assert "_create_sqlite_transition_read_capability" not in public_apply_source
+    assert "_read_transition_event_max_sequence" not in public_apply_source
+    assert "next_transition_event_sequence" not in public_apply_source
+    assert "_transition_write_plan" not in public_apply_source
+    assert "_acquire_mutation_lease" not in public_apply_source
+
+    delegate_calls = [
+        (class_node.name, function_node.name)
+        for class_node in ast.walk(writer_tree)
+        if isinstance(class_node, ast.ClassDef)
+        for function_node in class_node.body
+        if isinstance(function_node, ast.FunctionDef)
+        for node in ast.walk(function_node)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_run_atomic_transition_apply"
+    ]
+    assert delegate_calls == [("_SQLiteWriterSession", "apply_transition")]
+    delegate_call = next(
+        node for node in ast.walk(public_apply)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_run_atomic_transition_apply"
+    )
+    assert delegate_call.args == []
+    assert [keyword.arg for keyword in delegate_call.keywords] == [
+        "operation_lease",
+        "transition_command",
+    ]
+
+    production_call_paths = [
+        path.name for path in PACKAGE_DIR.glob("*.py")
+        if path.name != "sqlite_transition_transaction.py"
+        and "_run_atomic_transition_apply" in path.read_text(encoding="utf-8")
+    ]
+    assert production_call_paths == ["sqlite_writer_session.py"]
+
     with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
         with pytest.raises(WriterSessionError) as exc_info:
-            fixture.writer_session.apply_transition(fixture.command)
+            fixture.writer_session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
         assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
         assert transition_event_count_for_test(fixture) == 0
         assert global_stop_event_count_for_test(fixture) == 0

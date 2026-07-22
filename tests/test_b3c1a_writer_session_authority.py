@@ -17,7 +17,12 @@ import ge_nwp_coordinator.sqlite_writer_session as writer_module
 from ge_nwp_coordinator.sqlite_migration import initialize_database
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator.sqlite_writer_state import _DurableWriterIssuance, _parse_writer_ownership_rows
-from ge_nwp_coordinator.state_store import WriterSessionError, WriterSessionFailureReason
+from ge_nwp_coordinator.state_store import (
+    TransitionApplyPreflightError,
+    TransitionApplyPreflightFailureReason,
+    WriterSessionError,
+    WriterSessionFailureReason,
+)
 from test_sqlite_b2c_writer_session import (
     _join_thread,
     _location,
@@ -482,7 +487,7 @@ def test_durable_issuance_verification_match_stale_and_private_failures(
     session.close()
 
 
-def test_public_boundary_exports_and_mutation_methods_remain_unavailable(
+def test_public_boundary_exports_and_global_stop_remain_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -495,12 +500,11 @@ def test_public_boundary_exports_and_mutation_methods_remain_unavailable(
         raise AssertionError("public mutation method opened SQLite")
 
     monkeypatch.setattr(writer_module, "open_existing_sqlite_connection", fail_if_sqlite_opens)
-    with pytest.raises(WriterSessionError) as transition_error:
+    with pytest.raises(TransitionApplyPreflightError) as transition_error:
         session.apply_transition(None)  # type: ignore[arg-type]
-    _assert_writer_error(
-        transition_error,
-        WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE,
-    )
+    assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
+    assert transition_error.value.__cause__ is None
+    assert transition_error.value.__context__ is None
     with pytest.raises(WriterSessionError) as global_stop_error:
         session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
     _assert_writer_error(
@@ -547,5 +551,8 @@ def test_public_boundary_exports_and_mutation_methods_remain_unavailable(
     for source in (transition_source, global_stop_source):
         assert "operation_guard" in source
         assert "_acquire_mutation_lease" not in source
-        assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in source
         assert "open_existing_sqlite_connection" not in source
+    assert "_run_atomic_transition_apply" in transition_source
+    assert "TransitionApplyPreflightError" in transition_source
+    assert "_run_atomic_transition_apply" not in global_stop_source
+    assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in global_stop_source

@@ -10,6 +10,7 @@ import pytest
 
 import ge_nwp_coordinator
 import ge_nwp_coordinator.sqlite_writer_session as writer_session_module
+from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import initialize_database
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
@@ -39,9 +40,6 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
     ),
     "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py": (
         "8b5a6a0ffc54833e33707efb10d7a9fe8ff35489f220d46ac235e1cde0addfbb"
-    ),
-    "src/ge_nwp_coordinator/sqlite_writer_session.py": (
-        "89de01901e4ae052bdbf41e5c92ba7e2588539721fb28ebf840f29e132ef63f1"
     ),
 }
 
@@ -144,7 +142,7 @@ def test_state_store_and_writer_session_public_shapes_are_unchanged() -> None:
     ]
 
 
-def test_public_sqlite_writer_methods_remain_mutation_unavailable_and_do_not_open_sqlite(
+def test_public_sqlite_transition_preflight_and_global_stop_unavailable_do_not_open_sqlite(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -161,9 +159,11 @@ def test_public_sqlite_writer_methods_remain_mutation_unavailable_and_do_not_ope
     monkeypatch.setattr(writer_session_module, "open_existing_sqlite_connection", fail_if_sqlite_opens)
 
     try:
-        with pytest.raises(WriterSessionError) as transition_error:
+        with pytest.raises(TransitionApplyPreflightError) as transition_error:
             session.apply_transition(None)  # type: ignore[arg-type]
-        assert transition_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
+        assert transition_error.value.__cause__ is None
+        assert transition_error.value.__context__ is None
 
         with pytest.raises(WriterSessionError) as global_stop_error:
             session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
@@ -174,13 +174,14 @@ def test_public_sqlite_writer_methods_remain_mutation_unavailable_and_do_not_ope
     assert sqlite_open_calls == 0
 
 
-def test_frozen_runtime_sources_are_unchanged_for_prerequisite_tranche() -> None:
+def test_private_runtime_sources_remain_frozen_and_public_wrapper_imports_are_bounded() -> None:
     for path, expected in EXPECTED_FROZEN_SOURCE_SHA256.items():
         assert _sha256(path) == expected
 
     writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
-    assert "_run_atomic_transition_apply" not in writer_source
-    assert "sqlite_transition_dry_run_contracts" not in writer_source
+    assert writer_source.count("_run_atomic_transition_apply") == 2
+    assert writer_source.count("sqlite_transition_dry_run_contracts") == 1
+    assert "from ge_nwp_coordinator.sqlite_transition_transaction import _run_atomic_transition_apply" in writer_source
     assert "sqlite_transition_write_contracts" not in writer_source
 
 
@@ -195,10 +196,43 @@ def test_docs_pin_exact_private_to_public_preflight_mapping() -> None:
         "exact-gate the private reason",
         "raise the public error outside the active `except` block",
         "no private `__context__` survives",
-        "An unrecognized or forged private reason is an internal implementation contradiction.",
+        "internal private-contract integrity contradiction",
         "`validation_failed` remains reserved",
     ):
         assert phrase in normalized
+
+
+def test_docs_pin_malformed_private_preflight_database_integrity_classification() -> None:
+    prerequisite = _read(".docs/b3c4c-prerequisite-contract.md")
+    implementation = _read(".docs/b3c4c-public-transition-delegation.md")
+    writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
+    normalized_prerequisite = " ".join(prerequisite.split())
+    normalized_implementation = " ".join(implementation.split())
+
+    for normalized in (normalized_prerequisite, normalized_implementation):
+        for phrase in (
+            "malformed private preflight object or reason",
+            "SQLiteMutationStoreError(database_integrity_failure)",
+            "internal private-contract integrity contradiction",
+            "must not become a third public preflight reason",
+            "must not fall back to `TransitionApplyPreflightFailureReason.INVALID_COMMAND`",
+            "`TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND`",
+            "no cause, context, notes",
+            "distinct from import/load failure",
+            "which remains `SQLiteMutationStoreError(mutation_failed)`",
+            "`commit_outcome_unknown`",
+            "passes through unchanged",
+        ):
+            assert phrase in normalized
+
+    assert SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE.value == "database_integrity_failure"
+    assert SQLiteMutationStoreErrorCode.MUTATION_FAILED.value == "mutation_failed"
+    assert "SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE" in writer_source
+    assert "SQLiteMutationStoreErrorCode.MUTATION_FAILED" in writer_source
+    assert "TransitionApplyPreflightFailureReason.INVALID_COMMAND" in writer_source
+    assert "TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND" in writer_source
+    assert "except Exception" in writer_source
+    assert "except BaseException" not in inspect.getsource(writer_session_module._SQLiteWriterSession.apply_transition)
 
 
 def test_docs_pin_operation_guard_precedence_and_function_local_import_contract() -> None:
@@ -253,9 +287,10 @@ def test_docs_pin_public_result_error_matrix_and_no_b4_schema_behavior() -> None
         "| unsupported local command | `TransitionApplyPreflightError` |",
         "| session lifecycle or slot failure | `WriterSessionError` |",
         "| store, sequence, or commit failure | `SQLiteMutationStoreError` |",
-        "`_SQLiteWriterSession.apply_transition()` still enters",
-        "`writer_session_mutation_unavailable`",
+        "`_SQLiteWriterSession.apply_transition()` now enters",
+        "`_run_atomic_transition_apply`",
         "`_SQLiteWriterSession.apply_global_stop_update()` still enters",
+        "`writer_session_mutation_unavailable`",
         "B4 remains future for global-stop persistence",
         "schema-ID bump",
         "migration 0002",

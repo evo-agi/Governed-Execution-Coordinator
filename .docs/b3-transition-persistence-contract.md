@@ -378,9 +378,8 @@ lease runtime derivation, `TransitionContext` construction, evaluator dry run,
 and private non-durable result return. B3c4b now owns the private atomic
 persistence continuation for fresh evaluations: maximum-sequence use, sequence
 allocation, event insertion, accepted current-state CAS, commit, durable
-receipts, and commit uncertainty. B3c4c prerequisite public preflight
-vocabulary exists, but public `WriterSession.apply_transition()` delegation
-remains future.
+receipts, and commit uncertainty. B3c4c now adds only operation-guarded public
+`WriterSession.apply_transition()` delegation to that B3c4b private atomic path.
 
 B3b1 row contracts retain row `created_at`, `admitted_at`, or `updated_at`
 values only in internal typed timestamp envelopes. They validate exact UTC
@@ -510,10 +509,10 @@ after rollback also supersedes any planned dry-run result with
 attempts, durable receipt insertion, commit uncertainty, and event-ref,
 event-sequence, or idempotency uniqueness handling after idempotency miss.
 
-B3c4c prerequisite work adds the public command-local
+B3c4c adds the public command-local
 `TransitionApplyPreflightError` and
-`TransitionApplyPreflightFailureReason` vocabulary for future public transition
-apply preflight mapping. `transition_dry_run_invalid_command` maps only to
+`TransitionApplyPreflightFailureReason` vocabulary for public transition apply
+preflight mapping. `transition_dry_run_invalid_command` maps only to
 `TransitionApplyPreflightFailureReason.INVALID_COMMAND`;
 `transition_dry_run_unsupported_command` maps only to
 `TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND`. These local
@@ -563,6 +562,7 @@ read or allocation integration, no controller integration, no commit, no public
 WriterSession behavior change, no schema-ID bump, and no migration 0002.
 B3c4b now implements private atomic persistence through the existing single
 transaction controller and nominal-capability path, while remaining
-production-unintegrated and unreachable from public `WriterSession` methods.
-B3c4c prerequisite work adds only public preflight exception vocabulary and the
-future delegation/import/error contract. Public delegation remains future.
+the sole owner of SQL, transaction control, sequence allocation, event insertion,
+accepted-current CAS, context assembly, evaluator invocation, capability
+construction, mutation-slot acquisition, and commit uncertainty. B3c4c adds the
+public operation-guarded delegation/import/error mapping wrapper only.

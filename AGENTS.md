@@ -299,27 +299,27 @@ item only for accepted transitions, invalidates the capability before commit,
 attempts exactly one commit, returns fresh committed outcomes only after
 successful commit and cleanup, and returns `commit_outcome_unknown` after any
 commit-attempt exception. Replay and conflicts roll back and perform no write.
-B3c4b remains private and production-unintegrated: public
-`_SQLiteWriterSession.apply_transition()` still raises
-`writer_session_mutation_unavailable`; there is no public API/export,
-`StateStore` widening, global-stop mutation, schema-ID bump, migration 0002,
-worker, service, CLI, MCP, connector, repair, publication, or related-repo
-consumer. B3c4c remains future for public transition delegation. B4 remains
-future for persistent global-stop updates.
+B3c4b owns private atomic transition persistence: there is no public
+API/export, `StateStore` widening, global-stop mutation, schema-ID bump,
+migration 0002, worker, service, CLI, MCP, connector, repair, publication, or
+related-repo consumer in that private runtime. B3c4c is the public transition
+delegation tranche only; B4 remains future for persistent global-stop updates.
 
-B3c4c prerequisite contracts are pinned in
-`.docs/b3c4c-prerequisite-contract.md`. They add only the public
-command-local transition-apply preflight vocabulary
-`TransitionApplyPreflightFailureReason` and `TransitionApplyPreflightError`,
-plus the future private-to-public preflight mapping, operation-guard
-precedence, function-local import, import/load failure, and no-generic
-delegate-catch-all contracts. Public `_SQLiteWriterSession.apply_transition()`
-and `apply_global_stop_update()` still raise
-`writer_session_mutation_unavailable`; no private atomic delegate call, SQL,
-transaction, event, current-state update, `TransitionApplyOutcome` change,
-`StateStore` widening, schema-ID bump, migration 0002, global-stop persistence,
-B4 behavior, worker, service, CLI, MCP, connector, publication, or
-related-repo authority exists.
+B3c4c public transition delegation contracts are pinned in
+`.docs/b3c4c-public-transition-delegation.md`, building on
+`.docs/b3c4c-prerequisite-contract.md`. `_SQLiteWriterSession.apply_transition()`
+now enters the existing operation guard, performs a bounded function-local import
+of the B3c4b private atomic entry and private preflight types, maps only the two
+exact private preflight reasons to `TransitionApplyPreflightError`, delegates
+exactly once with the operation lease and caller command by identity, and returns
+or propagates the private result/error unchanged otherwise. The public wrapper
+contains no SQL, transaction, sequence, event, CAS, context, evaluator,
+capability, mutation-lease, or generic delegate catch-all logic; B3c4b remains
+the sole atomic transaction owner and `commit_outcome_unknown` passes through.
+`apply_global_stop_update()` still raises `writer_session_mutation_unavailable`;
+there is no `TransitionApplyOutcome` change, `StateStore` widening, schema-ID
+bump, migration 0002, global-stop persistence, B4 behavior, worker, service,
+CLI, MCP, connector, publication, or related-repo authority.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

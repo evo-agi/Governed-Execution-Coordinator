@@ -22,7 +22,11 @@ import weakref
 
 from ge_nwp_coordinator.global_stop import GlobalStopCommand, GlobalStopOperatorDecision
 from ge_nwp_coordinator.sqlite_connection import _open_bound_existing_sqlite_connection, open_existing_sqlite_connection
-from ge_nwp_coordinator.sqlite_errors import SQLiteStateError
+from ge_nwp_coordinator.sqlite_errors import (
+    SQLiteMutationStoreError,
+    SQLiteMutationStoreErrorCode,
+    SQLiteStateError,
+)
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import (
     DatabaseClassification,
@@ -50,6 +54,8 @@ from ge_nwp_coordinator.state_store import (
     MAX_WRITER_GENERATION,
     SafeWriterMetadata,
     TransitionApplyOutcome,
+    TransitionApplyPreflightError,
+    TransitionApplyPreflightFailureReason,
     WRITER_ISSUANCE_PROOF_DOMAIN,
     WriterSession,
     WriterSessionError,
@@ -921,8 +927,58 @@ class _SQLiteWriterSession(WriterSession):
         self,
         transition_command: TransitionCommand,
     ) -> TransitionApplyOutcome:
-        with self._resource.operation_guard(self):
-            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)
+        # B3c4c replaces the earlier WRITER_SESSION_MUTATION_UNAVAILABLE transition stub here.
+        with self._resource.operation_guard(self) as operation_lease:
+            import_failed = False
+            try:
+                from ge_nwp_coordinator.sqlite_transition_dry_run_contracts import (
+                    _TransitionDryRunPreflightError,
+                    _TransitionDryRunPreflightFailureReason,
+                )
+                from ge_nwp_coordinator.sqlite_transition_transaction import _run_atomic_transition_apply
+            except Exception:
+                import_failed = True
+            if import_failed:
+                raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+
+            caught_private_preflight: BaseException | None = None
+            public_preflight_reason: TransitionApplyPreflightFailureReason | None = None
+            private_preflight_integrity_failed = False
+            try:
+                return _run_atomic_transition_apply(
+                    operation_lease=operation_lease,
+                    transition_command=transition_command,
+                )
+            except _TransitionDryRunPreflightError as exc:
+                caught_private_preflight = exc
+
+            if caught_private_preflight is not None:
+                private_preflight_reason: object | None = None
+                reason_extraction_failed = False
+                if type(caught_private_preflight) is not _TransitionDryRunPreflightError:
+                    private_preflight_integrity_failed = True
+                else:
+                    try:
+                        private_preflight_reason = object.__getattribute__(caught_private_preflight, "reason")
+                    except Exception:
+                        reason_extraction_failed = True
+                    if reason_extraction_failed:
+                        private_preflight_integrity_failed = True
+                    elif type(private_preflight_reason) is not _TransitionDryRunPreflightFailureReason:
+                        private_preflight_integrity_failed = True
+                    elif private_preflight_reason is _TransitionDryRunPreflightFailureReason.INVALID_COMMAND:
+                        public_preflight_reason = TransitionApplyPreflightFailureReason.INVALID_COMMAND
+                    elif private_preflight_reason is _TransitionDryRunPreflightFailureReason.UNSUPPORTED_COMMAND:
+                        public_preflight_reason = TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND
+                    else:
+                        private_preflight_integrity_failed = True
+                caught_private_preflight = None
+                private_preflight_reason = None
+            if public_preflight_reason is not None:
+                raise TransitionApplyPreflightError(public_preflight_reason)
+            if private_preflight_integrity_failed:
+                raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)
+            raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
 
     def apply_global_stop_update(
         self,

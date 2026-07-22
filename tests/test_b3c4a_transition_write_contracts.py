@@ -1253,10 +1253,11 @@ def test_b3c4a_is_consumed_only_by_private_b3c4b_runtime_and_public_apply_remain
     writer_source = WRITER_SESSION_PATH.read_text()
     apply_transition_source = inspect.getsource(writer_session_module._SQLiteWriterSession.apply_transition)
     assert "sqlite_transition_write_contracts" not in writer_source
-    assert "_run_atomic_transition_apply" not in writer_source
+    assert writer_source.count("_run_atomic_transition_apply") == 2
     assert WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE.name in apply_transition_source
     assert "transition_command" in apply_transition_source
-    assert "raise WriterSessionError" in apply_transition_source
+    assert "TransitionApplyPreflightError" in apply_transition_source
+    assert "_acquire_mutation_lease" not in apply_transition_source
 
     assert "sqlite_transition_write_contracts" not in PACKAGE_EXPORT_PATH.read_text()
     assert not list(MIGRATION_DIR.glob("0002*"))

@@ -36,7 +36,13 @@ from ge_nwp_coordinator.state_authority_lock import (
     StateAuthorityLockErrorReason,
     acquire_state_authority_lock,
 )
-from ge_nwp_coordinator.state_store import MAX_WRITER_GENERATION, WriterSessionError, WriterSessionFailureReason
+from ge_nwp_coordinator.state_store import (
+    MAX_WRITER_GENERATION,
+    TransitionApplyPreflightError,
+    TransitionApplyPreflightFailureReason,
+    WriterSessionError,
+    WriterSessionFailureReason,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -687,9 +693,9 @@ def test_session_lifecycle_context_manager_and_mutation_unavailable_boundary(
         raise AssertionError("mutation path opened SQLite")
 
     monkeypatch.setattr(writer_module, "open_existing_sqlite_connection", fail_if_sqlite_opens)
-    with pytest.raises(WriterSessionError) as mutation_error:
+    with pytest.raises(TransitionApplyPreflightError) as mutation_error:
         active.apply_transition(None)  # type: ignore[arg-type]
-    assert mutation_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+    assert mutation_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
     with pytest.raises(WriterSessionError) as global_stop_error:
         active.apply_global_stop_update(None, None)  # type: ignore[arg-type]
     assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
@@ -1222,7 +1228,7 @@ def test_abandoned_operation_lease_and_wrapper_cleanup_converges(tmp_path: Path)
     assert _run_writer_attempt(location) == "acquired:2"
 
 
-def test_mutation_unavailable_methods_enter_and_exit_operation_guard(
+def test_public_mutation_methods_enter_and_exit_operation_guard(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1249,9 +1255,9 @@ def test_mutation_unavailable_methods_enter_and_exit_operation_guard(
             return self._lease.__exit__(exc_type, exc, traceback)
 
     monkeypatch.setattr(resource, "operation_guard", TrackingGuard)
-    with pytest.raises(WriterSessionError) as transition_error:
+    with pytest.raises(TransitionApplyPreflightError) as transition_error:
         session.apply_transition(None)  # type: ignore[arg-type]
-    assert transition_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+    assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
     with pytest.raises(WriterSessionError) as global_stop_error:
         session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
     assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE

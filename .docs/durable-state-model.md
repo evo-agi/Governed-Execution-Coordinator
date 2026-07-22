@@ -306,10 +306,9 @@ B3c4a pins the exact transition-event insert grammar, accepted-current CAS
 grammar, adapter round-trip value construction, planned-versus-committed result
 boundary, commit uncertainty, retry, and B3c4c public delegation constraints.
 B3c4b now makes those contracts durable only through the private atomic
-transition apply path. It remains production-unintegrated, has no public
-caller, does not widen `StateStore`, and does not implement global-stop
-mutation. B3c4c prerequisite work adds only public command-local preflight
-exception vocabulary and freezes the future private-to-public preflight mapping,
-function-local import, import/load failure, no-generic delegate-catch-all, and
-session-precedence contracts. Public `_SQLiteWriterSession.apply_transition()`
-delegation remains future.
+transition apply path. B3c4c now makes public
+`_SQLiteWriterSession.apply_transition()` delegate to that private atomic path
+through the existing operation guard, exact preflight mapping, and bounded
+function-local import. It does not widen `StateStore`, change
+`TransitionApplyOutcome`, move SQL or transaction ownership into
+`sqlite_writer_session.py`, or implement global-stop mutation.

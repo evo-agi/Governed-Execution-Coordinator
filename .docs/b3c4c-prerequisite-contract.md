@@ -1,22 +1,22 @@
 # B3c4c Public Preflight And Delegation Prerequisite Contract
 
-Status: implemented public exception vocabulary and future delegation contract
-only. Public transition apply is still unavailable.
+Status: implemented public exception vocabulary and delegation contract.
+B3c4c public transition delegation is now implemented in
+`.docs/b3c4c-public-transition-delegation.md`.
 
 This tranche exists because the private B3c4b atomic transition entry can raise
 the private B3c3 command-local preflight error before mutation-slot acquisition
-or database access. A future public `_SQLiteWriterSession.apply_transition()`
-must not leak that private type, private reason enum, traceback, or module path.
+or database access. Public `_SQLiteWriterSession.apply_transition()` must not
+leak that private type, private reason enum, traceback, or module path.
 
 The public prerequisite adds exactly two package-root exports:
 
 - `TransitionApplyPreflightFailureReason`;
 - `TransitionApplyPreflightError`.
 
-It does not make public transition execution functional, does not change
-`TransitionApplyOutcome`, does not widen `StateStore`, does not change
-`WriterSession` method signatures, does not add SQL or transaction runtime, and
-does not implement global-stop persistence.
+It does not change `TransitionApplyOutcome`, does not widen `StateStore`, does
+not change `WriterSession` method signatures, does not add SQL or transaction
+runtime to the public wrapper, and does not implement global-stop persistence.
 
 ## Public Vocabulary
 
@@ -52,7 +52,7 @@ a durable event, or a receipt.
 
 ## Private-To-Public Mapping
 
-The future public B3c4c implementation maps private B3c3 preflight reasons
+The B3c4c public implementation maps private B3c3 preflight reasons
 exactly:
 
 | Private reason | Public reason |
@@ -60,27 +60,45 @@ exactly:
 | `transition_dry_run_invalid_command` | `TransitionApplyPreflightFailureReason.INVALID_COMMAND` |
 | `transition_dry_run_unsupported_command` | `TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND` |
 
-The future public method must catch only the exact private preflight error type
+The public method must catch only the exact private preflight error type
 for this mapping, exact-gate the private reason, construct the public error from
 one of the two exact public enum constants, and raise the public error outside
 the active `except` block so no private `__context__` survives.
 
-An unrecognized or forged private reason is an internal implementation
-contradiction. It must not become a new public reason and must not leak the
-private value.
+Any malformed, forged, subclassed, missing, inaccessible, or unrecognized
+private preflight error or reason is an internal private-contract integrity
+contradiction. Its exact public classification is:
+
+```text
+SQLiteMutationStoreError(database_integrity_failure)
+```
+
+It must not become a third public preflight reason, must not fall back to
+`TransitionApplyPreflightFailureReason.INVALID_COMMAND` or
+`TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND`, and must not leak
+the private error, private reason, inaccessible attribute failure, module path,
+or any hostile value. The store error is raised outside every active private
+preflight handler and outside any extraction-failure handler, with no cause,
+context, notes, or internal detail.
 
 Invalid and unsupported commands occur only after the operation guard succeeds
 and before mutation-slot acquisition or database access. They create no
 `TransitionConflict`, event, sequence, write, rollback, or COMMIT. They do not
 participate in idempotency or retry semantics.
 
+The malformed-private-preflight classification is distinct from import/load
+failure before delegate invocation, which remains
+`SQLiteMutationStoreError(mutation_failed)`; from valid public preflight errors,
+which remain `TransitionApplyPreflightError`; and from delegate-owned
+`commit_outcome_unknown`, which passes through unchanged.
+
 `validation_failed` remains reserved for locally valid typed command/context
 values whose authoritative persisted bindings fail inside the fenced apply
 boundary. It is not the public mapping for command-local preflight failure.
 
-## Future Delegation And Import Shape
+## Delegation And Import Shape
 
-The future B3c4c public method shape is:
+The B3c4c public method shape is:
 
 1. acquire the existing WriterSession operation guard;
 2. inside that active guard, perform one bounded function-local import of:
@@ -112,7 +130,7 @@ SQLiteMutationStoreError(mutation_failed)
 ```
 
 No delegate or COMMIT has begun on that path, so non-commit is definite. The
-future implementation must sanitize this failure outside the caught exception
+implementation must sanitize this failure outside the caught exception
 context and expose no module path, traceback, private sentinel, SQL, parameter,
 digest, command value, path, credential, proof, or endpoint.
 
@@ -143,7 +161,7 @@ mapping before delegate invocation.
 
 ## Session-Local Precedence
 
-Future public precedence is:
+Public precedence is:
 
 1. WriterSession operation guard:
    closed session, process mismatch or fork-invalid session, inactive authority,
@@ -161,7 +179,7 @@ fails.
 
 ## Public Result And Error Matrix
 
-Future public outcomes are exactly:
+Public outcomes are exactly:
 
 | Case | Public result or error |
 | --- | --- |
@@ -175,6 +193,7 @@ Future public outcomes are exactly:
 | fenced validation conflict | `TransitionConflict` |
 | invalid local command | `TransitionApplyPreflightError` |
 | unsupported local command | `TransitionApplyPreflightError` |
+| malformed private preflight object or reason | `SQLiteMutationStoreError(database_integrity_failure)` |
 | session lifecycle or slot failure | `WriterSessionError` |
 | store, sequence, or commit failure | `SQLiteMutationStoreError` |
 
@@ -184,14 +203,16 @@ path may escape.
 
 ## Current Runtime Boundary
 
-After this prerequisite, `_SQLiteWriterSession.apply_transition()` still enters
-the existing operation guard and raises `writer_session_mutation_unavailable`.
+After B3c4c, `_SQLiteWriterSession.apply_transition()` now enters the existing
+operation guard, uses bounded function-local private imports, delegates exactly
+once to `_run_atomic_transition_apply`, and maps only the two exact private
+preflight reasons to public `TransitionApplyPreflightError`.
 `_SQLiteWriterSession.apply_global_stop_update()` still enters the existing
 operation guard and raises `writer_session_mutation_unavailable`.
 
-No production source imports the private atomic delegate from
-`sqlite_writer_session.py`. No public method contacts SQLite. B3c4c runtime
-delegation remains future. B4 remains future for global-stop persistence.
+`sqlite_writer_session.py` contains no SQL or transaction grammar and does not
+acquire the mutation lease. B3c4b remains the sole atomic transaction owner. B4
+remains future for global-stop persistence.
 
 This tranche proves no production admission, authorization, worker,
 orchestration, publication, related-repository authority, executable A2
