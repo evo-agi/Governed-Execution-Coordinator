@@ -26,7 +26,10 @@ stale-writer conversion, idempotency read/match, current/expected checks,
 context-reader ordering, authority binding, timestamp placement,
 lease-runtime/context construction, evaluator invocation, and cleanup/result
 precedence; it has no durable mutation, public caller, commit, or migration
-0002.
+0002. B3c4c prerequisite work adds only public command-local preflight
+exception vocabulary and future delegation/import/error contracts; it adds no
+public transition execution, backend mutation behavior, schema-ID bump, or
+migration 0002.
 
 B0 selects one private local SQLite database as the first production state
 backend architecture for the future NWP Coordinator. B1/B1.1 implements
@@ -502,6 +505,11 @@ commit, one commit attempt, commit uncertainty classification, and cleanup. It
 still does not add a production read port, public apply delegation,
 global-stop persistence, executable A2 behavior, schema-ID bump, or migration
 0002.
+B3c4c prerequisite work adds only public preflight exception vocabulary and
+future public-wrapper contracts. Public transition apply still raises
+`writer_session_mutation_unavailable`; no delegate import, SQL, transaction,
+sequence, event, CAS, write-plan behavior, global-stop persistence, executable
+A2 behavior, schema-ID bump, or migration 0002 is added.
 
 The tests-only coherent fixture graph initializes a temporary managed database,
 directly seeds synthetic authoritative rows through a test transaction,

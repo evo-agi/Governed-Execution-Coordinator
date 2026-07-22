@@ -5,7 +5,10 @@ B3c1a private WriterSession authority plumbing, and B3c1b private
 rollback-only writer-fencing/capability mechanics. B3c3 adds a private
 rollback-only transition dry-run runtime but no public writer-session mutation
 behavior. B3c4b adds private atomic transition persistence but still no public
-writer-session mutation behavior.
+writer-session mutation behavior. B3c4c prerequisite work adds only public
+command-local transition-apply preflight vocabulary and future
+delegation/import/error contracts; public writer-session mutation behavior
+remains unavailable.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
@@ -153,7 +156,8 @@ surface.
 | Layer | Owner | Examples | Boundary | Result semantics |
 | --- | --- | --- | --- | --- |
 | WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_close_during_operation`, `writer_session_mutation_in_progress`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
-| Atomic apply conflict | Future fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found`, `validation_failed` | Requires a session that passed local lifecycle checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
+| Transition apply preflight failure | Future public transition wrapper | `transition_apply_invalid_command`, `transition_apply_unsupported_command` | After operation-guard success and before mutation-slot acquisition or SQLite access | No event, no apply conflict, no durable record, no idempotency participation, no rollback, and no COMMIT. |
+| Atomic apply conflict | Future fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found`, `validation_failed` | Requires a session that passed local lifecycle checks and command-local preflight checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
 | Domain result | Pure evaluator reached through the atomic boundary | accepted event or domain-rejected event | Reached only after session and apply checks pass | Exactly one accepted or domain-rejected event is the durable receipt. |
 
 `writer_session_closed`, `writer_session_process_mismatch`,
@@ -167,6 +171,9 @@ generation or issuance proof is rejected.
 `validation_failed` is reserved for locally valid typed command/context values
 whose authoritative persisted bindings fail inside the fenced atomic boundary.
 It is not a parser, session-lifecycle, or mutation-unavailable catch-all.
+B3c4c prerequisite preflight failures use
+`TransitionApplyPreflightError`, not `TransitionConflict`, `WriterSessionError`,
+or `SQLiteMutationStoreError`.
 
 Writer-acquisition failures use a separate closed vocabulary:
 
@@ -207,7 +214,10 @@ Future `WriterSession` mutation calls use this order:
    Transition checks include exact `TransitionCommand` type/digest,
    non-READY dependency ref null, and zero budget cost. Global-stop checks retain
    the future typed command/operator-decision local checks without widening B4
-   semantics.
+   semantics. B3c4c maps the transition private preflight reasons exactly to
+   `TransitionApplyPreflightFailureReason.INVALID_COMMAND` or
+   `TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND`. These checks run
+   only after operation-guard success and before mutation-slot acquisition.
 
 4. In B3c1a private plumbing and future B3/B4 mutation runtime, acquire the
    shared per-session mutation slot.
@@ -546,7 +556,8 @@ imported by `_SQLiteWriterSession`. B3c4b consumes those contracts only from
 the private transaction module. Public `apply_transition(command)` still enters
 the existing operation guard and raises `writer_session_mutation_unavailable`;
 public `apply_global_stop_update()` remains unavailable until B4. B3c4c
-remains future for public delegation.
+prerequisite public preflight vocabulary exists, but public delegation remains
+future.
 
 ## Non-Goals
 

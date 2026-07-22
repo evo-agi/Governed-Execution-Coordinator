@@ -366,6 +366,8 @@ evaluations read maximum event sequence, allocate the next sequence, consume
 the frozen write plan, insert one event, CAS-update accepted current state,
 invalidate capability, and attempt exactly one commit with
 `commit_outcome_unknown` on commit-attempt exceptions. It remains
-production-unintegrated and has no public caller. B3c4c public
-`_SQLiteWriterSession.apply_transition()` delegation remains future. B4 remains
-future for global-stop persistence.
+production-unintegrated and has no public caller. B3c4c prerequisite work adds
+only public command-local preflight exception vocabulary and freezes the future
+private-to-public preflight mapping plus function-local import/delegation
+contract. Public `_SQLiteWriterSession.apply_transition()` delegation remains
+future. B4 remains future for global-stop persistence.

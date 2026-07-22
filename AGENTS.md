@@ -307,6 +307,20 @@ worker, service, CLI, MCP, connector, repair, publication, or related-repo
 consumer. B3c4c remains future for public transition delegation. B4 remains
 future for persistent global-stop updates.
 
+B3c4c prerequisite contracts are pinned in
+`.docs/b3c4c-prerequisite-contract.md`. They add only the public
+command-local transition-apply preflight vocabulary
+`TransitionApplyPreflightFailureReason` and `TransitionApplyPreflightError`,
+plus the future private-to-public preflight mapping, operation-guard
+precedence, function-local import, import/load failure, and no-generic
+delegate-catch-all contracts. Public `_SQLiteWriterSession.apply_transition()`
+and `apply_global_stop_update()` still raise
+`writer_session_mutation_unavailable`; no private atomic delegate call, SQL,
+transaction, event, current-state update, `TransitionApplyOutcome` change,
+`StateStore` widening, schema-ID bump, migration 0002, global-stop persistence,
+B4 behavior, worker, service, CLI, MCP, connector, publication, or
+related-repo authority exists.
+
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production
 initialization, directly seed synthetic authoritative rows through a test setup

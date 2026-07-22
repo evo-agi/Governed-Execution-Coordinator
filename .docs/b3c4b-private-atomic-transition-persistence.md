@@ -1,7 +1,9 @@
 # B3c4b Private Atomic Transition Persistence
 
 Status: implemented private atomic transition persistence runtime;
-production-unintegrated; no public caller; no global-stop mutation.
+production-unintegrated; no public caller; no global-stop mutation. B3c4c
+prerequisite public preflight vocabulary exists, but public transition
+delegation remains future.
 
 B3c4b is the first Coordinator tranche that may durably persist a work-item
 transition, but only through the existing private transaction-controller and
@@ -10,8 +12,11 @@ nominal-capability authority path in
 
 Public `_SQLiteWriterSession.apply_transition()` still raises
 `writer_session_mutation_unavailable` and does not enter this path. B3c4c
-remains the future public delegation tranche. `apply_global_stop_update()`
-remains unavailable until B4.
+prerequisite work adds only public command-local preflight exception vocabulary
+and freezes the future private-to-public preflight mapping, function-local
+import, import/load failure, and no-generic delegate-catch-all contracts.
+B3c4c runtime delegation remains future. `apply_global_stop_update()` remains
+unavailable until B4.
 
 ## Single Controller
 
@@ -48,6 +53,9 @@ _run_atomic_transition_apply(
 
 No public API, package export, `StateStore` widening, CLI, MCP, connector,
 worker, scheduler, service, report, or related repository calls this entry.
+Only the B3c4c prerequisite public preflight vocabulary is exported by the
+package root; no private delegate, controller, capability, write plan, or SQLite
+type is exported.
 
 ## Preflight And Shared Resolution
 

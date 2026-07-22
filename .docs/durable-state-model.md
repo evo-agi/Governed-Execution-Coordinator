@@ -308,5 +308,8 @@ boundary, commit uncertainty, retry, and B3c4c public delegation constraints.
 B3c4b now makes those contracts durable only through the private atomic
 transition apply path. It remains production-unintegrated, has no public
 caller, does not widen `StateStore`, and does not implement global-stop
-mutation. B3c4c remains future for public
-`_SQLiteWriterSession.apply_transition()` delegation.
+mutation. B3c4c prerequisite work adds only public command-local preflight
+exception vocabulary and freezes the future private-to-public preflight mapping,
+function-local import, import/load failure, no-generic delegate-catch-all, and
+session-precedence contracts. Public `_SQLiteWriterSession.apply_transition()`
+delegation remains future.

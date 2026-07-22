@@ -46,9 +46,12 @@ acquires an internal session for a managed database, but its mutation methods
 fail locally with `writer_session_mutation_unavailable`; it does not persist
 transition or global-stop events through public methods. B3c4b adds private
 transition persistence through a production-unintegrated transaction entry only;
-public `WriterSession.apply_transition()` still does not call it. Stale-writer
-conflicts are private apply-boundary failures and never disclose idempotency
-status or return transition events. Closed-session and process-mismatch failures are
+public `WriterSession.apply_transition()` still does not call it. The B3c4c
+prerequisite adds only public command-local preflight exception vocabulary and
+the future private-to-public mapping contract; it does not add delegation,
+SQLite access, or a public mutation backend. Stale-writer conflicts are private
+apply-boundary failures and never disclose idempotency status or return
+transition events. Closed-session and process-mismatch failures are
 session-local failures before the apply boundary; they are not durable apply
 conflicts.
 

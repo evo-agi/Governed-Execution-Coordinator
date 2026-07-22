@@ -49,6 +49,26 @@ class WriterSessionError(RuntimeError):
         super().__init__(normalized.value)
 
 
+class TransitionApplyPreflightFailureReason(str, Enum):
+    INVALID_COMMAND = "transition_apply_invalid_command"
+    UNSUPPORTED_COMMAND = "transition_apply_unsupported_command"
+
+
+class TransitionApplyPreflightError(RuntimeError):
+    """Safe command-local failure raised before transition apply begins."""
+
+    __slots__ = ("reason",)
+
+    def __init__(self, reason: TransitionApplyPreflightFailureReason) -> None:
+        if type(reason) is not TransitionApplyPreflightFailureReason:
+            raise ValueError("invalid_field_type:transition_apply_preflight.reason") from None
+        self.reason = reason
+        super().__init__(reason.value)
+
+    def __repr__(self) -> str:
+        return "<TransitionApplyPreflightError>"
+
+
 @dataclass(frozen=True)
 class SafeWriterMetadata:
     """Safe writer issuance metadata, not live mutation authority."""
