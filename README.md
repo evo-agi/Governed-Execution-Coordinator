@@ -159,10 +159,7 @@ SQLite bootstrap/migration infrastructure only:
   delegate through the existing operation guard to the B3c4b atomic entry.
   The public wrapper uses a bounded function-local import, maps only the two
   exact private preflight reasons, performs no SQL or transaction work itself,
-  and has no generic delegate catch-all. Public `apply_global_stop_update()`
-  still raises `writer_session_mutation_unavailable`; no
-  `TransitionApplyOutcome` change, `StateStore` widening, global-stop
-  persistence, B4 behavior, schema-ID bump, or migration 0002 is added.
+  and has no generic delegate catch-all.
 - B4a global-stop prerequisite contracts, documented in
   `.docs/b4a-global-stop-prerequisite-contracts.md`, add only public
   global-stop preflight vocabulary, private no-I/O command and typed-decision
@@ -171,7 +168,6 @@ SQLite bootstrap/migration infrastructure only:
   receipt-binding taxonomy, and pure/static write grammar for global-stop
   persistence. B4a does not provision operator-decision
   receipts, execute global-stop mutation SQL, begin or commit a transaction,
-  make `apply_global_stop_update()` functional, add a public delegation path,
   change transition apply, widen StateStore/outcome types, or require schema-ID
   bump or migration 0002.
 - B4b private atomic global-stop persistence, documented in
@@ -180,8 +176,17 @@ SQLite bootstrap/migration infrastructure only:
   commit-resolution graph as transition persistence. It verifies only
   already-persisted operator-decision receipts, persists accepted or
   domain-rejected events atomically, updates the singleton only by accepted CAS,
-  preserves commit uncertainty and explicit retry semantics, and keeps public
-  `apply_global_stop_update()` unavailable.
+  and preserves commit uncertainty and explicit retry semantics.
+- B4c public global-stop delegation, documented in
+  `.docs/b4c-public-global-stop-delegation.md`, makes public
+  `apply_global_stop_update()` a guarded adapter to the B4b atomic entry. The
+  public wrapper enters the existing operation guard, performs bounded
+  function-local imports, maps only the two exact private global-stop preflight
+  reasons, classifies malformed private state as database integrity failure,
+  maps pre-delegate import/load failure to mutation failure, and has no generic
+  delegate catch-all. It adds no receipt provisioning, SQL, transaction
+  ownership, `StateStore` widening, schema-ID bump, migration 0002, worker,
+  service, scheduler, publication, or cross-repository authority.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -330,7 +335,9 @@ the pure write plan. B3c4b now implements private atomic transition
 persistence, and B3c4c makes public `WriterSession.apply_transition()` delegate
 to it without moving SQL, transaction, sequence, event, context, evaluator, or
 mutation-slot ownership into the public wrapper. B4a now freezes prerequisite
-global-stop contracts, and B4b adds private global-stop persistence only; public
-global-stop delegation remains future B4c.
+global-stop contracts, B4b adds private global-stop persistence, and B4c makes
+public `WriterSession.apply_global_stop_update()` delegate to it without moving
+SQL, receipt verification, evaluator, sequence, write, rollback, COMMIT, or
+uncertainty ownership into the public wrapper.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

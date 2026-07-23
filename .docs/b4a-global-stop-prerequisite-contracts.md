@@ -6,10 +6,12 @@ persisted-row reconstruction contracts, transaction-internal SELECT readers,
 table-local sequence allocation, receipt binding taxonomy, and pure write
 grammar only.
 
-B4a does not execute a global-stop mutation, insert a global-stop event, update
+B4a itself does not execute a global-stop mutation, insert a global-stop event, update
 `global_stop_current`, begin a transaction, roll back, commit, make
 `WriterSession.apply_global_stop_update(...)` functional, or provision
-operator-decision receipts.
+operator-decision receipts. B4b later implements private atomic global-stop
+persistence, and B4c later implements guarded public global-stop delegation
+without changing B4a's prerequisite ownership.
 
 ## Authority Boundary
 
@@ -44,8 +46,8 @@ serializer, no canonicalization, no digest, no internal detail, and no hostile
 input rendering.
 
 These names do not widen `GlobalStopApplyOutcome`, `StateStore`, or the
-`WriterSession` method signature. `apply_global_stop_update(...)` still raises
-`writer_session_mutation_unavailable` after the existing session-local guard.
+`WriterSession` method signature. B4c now maps the private B4a preflight
+vocabulary to these public reasons from the guarded public adapter.
 
 ## Private Preflight
 
@@ -57,7 +59,7 @@ subclasses and malformed exact shells, and never calls caller-owned serializers,
 digest methods, filesystem, clock, random, network, SQLite, controller,
 capability, operation lease, or mutation slot.
 
-Future B4c maps private preflight as follows:
+B4c maps private preflight as follows:
 
 | Private condition | Future public/store classification |
 | --- | --- |
@@ -248,5 +250,5 @@ Agent authority, connector authority, CLI authority, app authority, channel
 authority, schema migration, schema-id bump, service, queue consumer, daemon,
 or global product run truth.
 
-B4b private atomic persistence is implemented. B4c public guarded delegation
-and receipt provisioning remain future work.
+B4b private atomic persistence is implemented. B4c public guarded delegation is
+implemented. Receipt provisioning remains future governed work.

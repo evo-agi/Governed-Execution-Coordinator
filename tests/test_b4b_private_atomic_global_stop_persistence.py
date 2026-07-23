@@ -755,7 +755,9 @@ def test_global_stop_and_transition_mutations_share_one_prompt_mutation_slot(
                 assert fixture.writer_session._resource._mutation_slot is None
 
 
-def test_public_boundaries_static_neutralization_and_no_b4c_delegation(tmp_path: Path) -> None:
+def test_public_boundaries_static_neutralization_and_b4c_adapter_keeps_private_exports_closed(
+    tmp_path: Path,
+) -> None:
     source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
     writer_source = WRITER_SESSION_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -779,15 +781,15 @@ def test_public_boundaries_static_neutralization_and_no_b4c_delegation(tmp_path:
     assert source.count("class _CoordinatorMutationTransactionController") == 1
     assert source.count("_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS") == 2
     assert mutation_contracts._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS is transaction_module._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
-    assert "_run_atomic_global_stop_apply" not in writer_source
+    assert "_run_atomic_global_stop_apply" in writer_source
     assert "_run_atomic_global_stop_apply" not in PACKAGE_EXPORT_PATH.read_text(encoding="utf-8")
     assert not hasattr(ge_nwp_coordinator, "_run_atomic_global_stop_apply")
     assert not list(MIGRATION_DIR.glob("0002*"))
 
     with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
-        with pytest.raises(WriterSessionError) as exc_info:
-            fixture.writer_session.apply_global_stop_update(_command(), _decision())
-        assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        result = fixture.writer_session.apply_global_stop_update(_command(), _decision())
+        assert type(result) is GlobalStopConflict
+        assert result.conflict_class == "validation_failed"
         assert global_stop_event_count_for_test(fixture) == 0
 
 

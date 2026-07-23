@@ -112,11 +112,11 @@ evaluator dry run, and result return. B3c4b now implements private atomic
 persistence, accepted-state CAS, sequence allocation, commit, and
 commit-uncertainty runtime through the existing controller. B3c4c implements
 public transition delegation. B4a defines global-stop receipt/read/write
-contracts, and B4b implements private atomic global-stop persistence. B4c
-remains future for guarded public global-stop delegation. Tests-only seeded
-receipt evidence proves verification and persistence mechanics only, not
-production operator-policy authorization; receipt provisioning remains outside
-the B4 apply transaction.
+contracts, B4b implements private atomic global-stop persistence, and B4c
+implements guarded public global-stop delegation. Tests-only seeded receipt
+evidence proves verification, public delegation, and persistence mechanics
+only, not production operator-policy authorization; receipt provisioning
+remains outside the B4 apply transaction.
 
 No migration 0002 is required for this tests-only tranche, and migration 0001
 remains unchanged.

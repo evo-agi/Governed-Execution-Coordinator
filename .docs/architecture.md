@@ -374,5 +374,11 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
   remain in the private atomic path. B4a now adds prerequisite global-stop
   contracts, readers, sequence allocation, receipt binding, and pure/static
   write grammar only. B4b now adds private global-stop persistence through the
-  same neutral mutation controller while public global-stop delegation remains
-  future B4c.
+  same neutral mutation controller. B4c now makes public
+  `_SQLiteWriterSession.apply_global_stop_update()` delegate to that B4b entry
+  through the existing operation guard, with only bounded local import and exact
+  preflight mapping in the public wrapper. SQL, receipt verification, evaluator,
+  sequence, write, rollback, COMMIT, and uncertainty ownership remain in the
+  private atomic path. Receipt provisioning remains reopened, and no worker,
+  service, scheduler, admission, orchestration, publication, or cross-repo
+  authority exists.

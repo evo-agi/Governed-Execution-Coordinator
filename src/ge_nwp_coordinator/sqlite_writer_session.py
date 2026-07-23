@@ -1,10 +1,9 @@
 """Internal SQLite writer issuance, session lifecycle, and delegation boundary.
 
 This module owns WriterSession lifecycle and operation authority, but not
-SQLite mutation grammar or direct SQL storage. Public transition apply delegates
-to the one private neutral mutation transaction authority, private transition
-and global-stop persistence both exist, and public global-stop delegation
-remains unavailable until B4c.
+SQLite mutation grammar or direct SQL storage. Public transition and global-stop
+apply delegate to the one private neutral mutation transaction authority, while
+mutation grammar and durable write ownership remain private.
 """
 
 from __future__ import annotations
@@ -52,6 +51,8 @@ from ge_nwp_coordinator.sqlite_writer_state import (
 from ge_nwp_coordinator.state_authority_lock import StateAuthorityLock, acquire_state_authority_lock
 from ge_nwp_coordinator.state_machine import TransitionCommand
 from ge_nwp_coordinator.state_store import (
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     GlobalStopApplyOutcome,
     MAX_WRITER_GENERATION,
     SafeWriterMetadata,
@@ -987,8 +988,59 @@ class _SQLiteWriterSession(WriterSession):
         global_stop_command: GlobalStopCommand,
         typed_operator_decision: GlobalStopOperatorDecision,
     ) -> GlobalStopApplyOutcome:
-        with self._resource.operation_guard(self):
-            raise WriterSessionError(WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE)
+        # B4c replaces the earlier WRITER_SESSION_MUTATION_UNAVAILABLE global-stop stub here.
+        with self._resource.operation_guard(self) as operation_lease:
+            import_failed = False
+            try:
+                from ge_nwp_coordinator.sqlite_global_stop_preflight_contracts import (
+                    _GlobalStopApplyPreflightError,
+                    _GlobalStopApplyPreflightFailureReason,
+                )
+                from ge_nwp_coordinator.sqlite_transition_transaction import _run_atomic_global_stop_apply
+            except Exception:
+                import_failed = True
+            if import_failed:
+                raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+
+            caught_private_preflight: BaseException | None = None
+            public_preflight_reason: GlobalStopApplyPreflightFailureReason | None = None
+            private_preflight_integrity_failed = False
+            try:
+                return _run_atomic_global_stop_apply(
+                    operation_lease=operation_lease,
+                    global_stop_command=global_stop_command,
+                    typed_operator_decision=typed_operator_decision,
+                )
+            except _GlobalStopApplyPreflightError as exc:
+                caught_private_preflight = exc
+
+            if caught_private_preflight is not None:
+                private_preflight_reason: object | None = None
+                reason_extraction_failed = False
+                if type(caught_private_preflight) is not _GlobalStopApplyPreflightError:
+                    private_preflight_integrity_failed = True
+                else:
+                    try:
+                        private_preflight_reason = object.__getattribute__(caught_private_preflight, "reason")
+                    except Exception:
+                        reason_extraction_failed = True
+                    if reason_extraction_failed:
+                        private_preflight_integrity_failed = True
+                    elif type(private_preflight_reason) is not _GlobalStopApplyPreflightFailureReason:
+                        private_preflight_integrity_failed = True
+                    elif private_preflight_reason is _GlobalStopApplyPreflightFailureReason.INVALID_COMMAND:
+                        public_preflight_reason = GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
+                    elif private_preflight_reason is _GlobalStopApplyPreflightFailureReason.INVALID_OPERATOR_DECISION:
+                        public_preflight_reason = GlobalStopApplyPreflightFailureReason.INVALID_OPERATOR_DECISION
+                    else:
+                        private_preflight_integrity_failed = True
+                caught_private_preflight = None
+                private_preflight_reason = None
+            if public_preflight_reason is not None:
+                raise GlobalStopApplyPreflightError(public_preflight_reason)
+            if private_preflight_integrity_failed:
+                raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)
+            raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
 
     def close(self) -> None:
         self._resource.close_from_owner()

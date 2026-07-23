@@ -322,10 +322,10 @@ or propagates the private result/error unchanged otherwise. The public wrapper
 contains no SQL, transaction, sequence, event, CAS, context, evaluator,
 capability, mutation-lease, or generic delegate catch-all logic; B3c4b remains
 the sole atomic transaction owner and `commit_outcome_unknown` passes through.
-`apply_global_stop_update()` still raises `writer_session_mutation_unavailable`;
-there is no `TransitionApplyOutcome` change, `StateStore` widening, schema-ID
-bump, migration 0002, global-stop persistence, B4 behavior, worker, service,
-CLI, MCP, connector, publication, or related-repo authority.
+Global-stop public delegation remains outside B3c4c; there is no
+`TransitionApplyOutcome` change, `StateStore` widening, schema-ID bump,
+migration 0002, B4 behavior, worker, service, CLI, MCP, connector,
+publication, or related-repo authority in that tranche.
 
 B4a global-stop prerequisite contracts are pinned in
 `.docs/b4a-global-stop-prerequisite-contracts.md`. B4a adds only
@@ -335,7 +335,7 @@ global-stop event/replay row contracts, transaction-internal reader specs and
 readers that gain only the B4b private transaction caller, table-local global-stop event sequence
 allocation, receipt-binding taxonomy, and pure/static write grammar. B4a does
 not provision decision receipts, make `apply_global_stop_update()`
-functional, widen `GlobalStopApplyOutcome` or `StateStore`, change
+functional by itself, widen `GlobalStopApplyOutcome` or `StateStore`, change
 transition apply behavior, add schema-ID bump or migration 0002, or add worker,
 service, CLI, MCP, connector, publication, or related-repo authority. Receipt
 provisioning remains a separately governed operator/repo-policy integration
@@ -351,14 +351,29 @@ transition entries and public transition behavior; adds only the private
 operator-decision receipt rows; persists accepted and domain-rejected
 global-stop events atomically; CAS-updates the global-stop singleton only for
 accepted evaluations; preserves commit uncertainty and explicit retry
-semantics; and keeps public `apply_global_stop_update()` unavailable. B4b does
+semantics. B4b does
 not insert, provision, upsert, update, delete, import, register, or manufacture
 operator-decision receipts; does not treat caller-supplied typed decisions as
 authority; does not add a second controller, capability, mutation slot,
-connection path, or commit state machine; does not add public B4c delegation;
-does not modify schema or migrations; and does not add cross-repository
-authority. Tests may seed receipt rows only as temporary tests-only evidence of
-verification and persistence mechanics, not production operator authorization.
+connection path, or commit state machine; does not modify schema or migrations;
+and does not add cross-repository authority. Tests may seed receipt rows only as
+temporary tests-only evidence of verification and persistence mechanics, not
+production operator authorization.
+
+B4c public global-stop delegation contracts are pinned in
+`.docs/b4c-public-global-stop-delegation.md`. B4c makes public
+`_SQLiteWriterSession.apply_global_stop_update(...)` functional only as an
+operation-guarded adapter to the B4b private atomic entry. It performs bounded
+function-local imports, maps only the two exact private global-stop preflight
+reasons to public global-stop preflight reasons, classifies malformed private
+preflight state as `database_integrity_failure`, maps import/load failure before
+delegate invocation to `mutation_failed`, delegates exactly once with the
+operation lease, caller command, and caller typed decision by identity, and has
+no generic delegate catch-all. B4c does not add SQL, receipt provisioning,
+receipt verification, evaluator logic, sequence ownership, write planning,
+rollback, COMMIT, uncertainty handling, public exports, `StateStore` widening,
+schema or migration changes, worker, service, CLI, MCP, connector,
+publication, or related-repository authority.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

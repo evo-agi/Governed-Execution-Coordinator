@@ -6,8 +6,10 @@ B2c adds durable writer issuance and internal writer-session acquisition. B3a
 adds contract-only future transition persistence rules. B3c1b adds private
 rollback-only writer fencing with no public mutation runtime. B3c4b adds
 private atomic transition persistence with commit uncertainty handling, B3c4c
-adds public transition delegation, and B4b adds private global-stop persistence
-while public global-stop delegation remains unavailable.
+adds public transition delegation, B4b adds private global-stop persistence,
+and B4c adds guarded public global-stop delegation. Receipt provisioning remains
+separate, and no worker, service, scheduler, orchestration, publication, or
+cross-repository authority exists.
 
 ## Filesystem Posture
 

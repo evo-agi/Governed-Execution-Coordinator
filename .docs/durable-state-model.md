@@ -326,8 +326,8 @@ sequence allocation, receipt binding, and pure/static write grammar in
 `.docs/b4a-global-stop-prerequisite-contracts.md`. It does not execute a
 global-stop mutation, begin or commit a transaction, insert events, update the
 singleton, provision operator-decision receipts, make
-`apply_global_stop_update()` functional, widen `GlobalStopApplyOutcome`, or add
-schema migration 0002.
+`apply_global_stop_update()` functional by itself, widen
+`GlobalStopApplyOutcome`, or add schema migration 0002.
 
 ## B4b Boundary
 
@@ -338,5 +338,8 @@ persistence. It verifies only already-persisted immutable
 domain-rejected global-stop event atomically, CAS-updates `global_stop_current`
 only on accepted evaluations, and preserves commit uncertainty and explicit
 retry semantics. It does not provision receipts, treat caller-supplied typed
-decisions as authority, make `apply_global_stop_update()` functional, widen
-`GlobalStopApplyOutcome` or `StateStore`, or add migration 0002.
+decisions as authority, widen `GlobalStopApplyOutcome` or `StateStore`, or add
+migration 0002. B4c now makes public `apply_global_stop_update()` a guarded
+adapter to the B4b private entry without moving SQL, receipt verification,
+evaluator, sequence, write, rollback, COMMIT, or uncertainty ownership into
+`WriterSession`.

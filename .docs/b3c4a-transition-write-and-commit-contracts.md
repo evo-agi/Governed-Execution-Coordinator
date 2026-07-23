@@ -366,11 +366,11 @@ preflight mapping, the function-local import boundary, and the guarded public
 delegate call. The public wrapper does not use a broad delegate-execution
 catch-all that can turn commit uncertainty into definite `mutation_failed`.
 
-`apply_global_stop_update()` remains unavailable through B4b and until B4c.
-B4b now implements private atomic global-stop persistence through the one
-neutral Coordinator mutation authority, but B4c remains the future guarded
-public global-stop delegation tranche. No public database reader/store is added,
-and `StateStore` is not widened by B4b.
+`apply_global_stop_update()` remained unavailable through B4b. B4b now
+implements private atomic global-stop persistence through the one neutral
+Coordinator mutation authority, and B4c now implements guarded public
+global-stop delegation as an adapter to that private entry. No public database
+reader/store is added, and `StateStore` is not widened by B4b or B4c.
 
 ## Proof Matrix
 

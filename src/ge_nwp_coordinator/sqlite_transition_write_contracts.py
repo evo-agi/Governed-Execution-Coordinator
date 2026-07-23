@@ -722,7 +722,7 @@ _B3C4C_PUBLIC_INTEGRATION_BOUNDARY = (
     "public_apply_contains_no_sql",
     "public_apply_accepts_no_context_timestamp_capability",
     "public_apply_exposes_existing_apply_outcomes_and_errors",
-    "apply_global_stop_update_unavailable_until_b4c",
+    "apply_global_stop_update_guarded_delegation_to_one_private_atomic_entry",
     "no_public_database_reader_or_store",
     "no_state_store_widening",
 )
@@ -730,5 +730,5 @@ _B4_SEPARATION_CONTRACT = (
     "no_global_stop_event_insert",
     "no_global_stop_current_update",
     "no_operator_decision_mutation",
-    "b4b_private_global_stop_persistence_exists_b4c_public_delegation_future",
+    "b4b_private_global_stop_persistence_preserved_b4c_guarded_public_delegation_exists",
 )

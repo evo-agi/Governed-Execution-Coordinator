@@ -1,7 +1,7 @@
 # B4b Private Atomic Global-Stop Persistence
 
-Status: implemented private atomic global-stop persistence runtime; no public
-global-stop delegation.
+Status: implemented private atomic global-stop persistence runtime. B4c now
+adds guarded public global-stop delegation as an adapter to this private entry.
 
 B4b adds exactly one private global-stop mutation entry through the existing
 Coordinator mutation authority in
@@ -17,11 +17,11 @@ _run_atomic_global_stop_apply(
 ```
 
 No package-root export, `StateStore` widening, CLI, MCP, connector, worker,
-service, scheduler, report, related-repository caller, schema-ID bump,
-migration `0002`, or public `WriterSession.apply_global_stop_update(...)`
-behavior change is added. Public global-stop apply still enters only the
-existing operation guard and raises `writer_session_mutation_unavailable`.
-B4c remains the future public guarded delegation tranche.
+service, scheduler, report, related-repository caller, schema-ID bump, or
+migration `0002` is added. B4c changes public
+`WriterSession.apply_global_stop_update(...)` only by making it a guarded
+adapter to this private entry; SQL, receipt verification, evaluation, sequence,
+write, rollback, COMMIT, and uncertainty ownership stay here.
 
 ## Neutral Mutation Authority
 
@@ -186,12 +186,21 @@ parent authority remains valid; capability expiry is permanent after rollback
 or commit cleanup; and old transaction epochs cannot revive on the same
 connection.
 
+## B4c Public Adapter
+
+B4c public global-stop delegation enters the existing operation guard, performs
+bounded function-local imports, maps only the exact private B4a preflight
+reasons to the public global-stop preflight vocabulary, classifies malformed
+private preflight state as `database_integrity_failure`, maps pre-delegate
+import/load failure to `mutation_failed`, and delegates once to
+`_run_atomic_global_stop_apply(...)`. It has no generic delegate catch-all and
+preserves `commit_outcome_unknown` exactly.
+
 ## Non-Claims
 
-B4b adds no receipt provisioner, public global-stop delegation, schema change,
-migration `0002`, public database reader/store, `GlobalStopApplyOutcome`
-change, transition behavior change, worker behavior, scheduling, service loop,
-repair, local commit behavior, publication, CLI/MCP/connector behavior,
-Bridge authority, Control Plane authority, Execution Substrate authority,
-Infrastructure Manager authority, Maintenance Agent authority, or
-related-repository authority.
+B4b and B4c add no receipt provisioner, schema change, migration `0002`, public
+database reader/store, `GlobalStopApplyOutcome` change, transition behavior
+change, worker behavior, scheduling, service loop, repair, local commit
+behavior, publication, CLI/MCP/connector behavior, Bridge authority, Control
+Plane authority, Execution Substrate authority, Infrastructure Manager
+authority, Maintenance Agent authority, or related-repository authority.

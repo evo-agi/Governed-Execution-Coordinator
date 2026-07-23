@@ -37,6 +37,8 @@ from ge_nwp_coordinator.sqlite_writer_session import (
     acquire_sqlite_writer_session,
 )
 from ge_nwp_coordinator.state_store import (
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     TransitionApplyPreflightError,
     TransitionApplyPreflightFailureReason,
     WriterSessionError,
@@ -2009,9 +2011,9 @@ def test_public_transition_preflight_delegates_without_rollback_only_fencing_ent
             session.apply_transition(None)  # type: ignore[arg-type]
         assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
 
-        with pytest.raises(WriterSessionError) as global_stop_error:
+        with pytest.raises(GlobalStopApplyPreflightError) as global_stop_error:
             session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-        assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert global_stop_error.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
         assert controller_calls == 0
         assert sqlite_calls == 0
     finally:

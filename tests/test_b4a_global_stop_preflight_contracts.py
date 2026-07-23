@@ -22,17 +22,12 @@ from ge_nwp_coordinator.sqlite_global_stop_preflight_contracts import (
     _bind_global_stop_operator_decision_receipt,
     _validate_global_stop_apply_preflight,
 )
-from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
-from ge_nwp_coordinator.sqlite_migration import initialize_database
-from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator.state_store import (
     GlobalStopApplyPreflightError,
     GlobalStopApplyPreflightFailureReason,
     GlobalStopConflict,
     GlobalStopApplyOutcome,
     WriterSession,
-    WriterSessionError,
-    WriterSessionFailureReason,
 )
 
 
@@ -225,22 +220,12 @@ def test_receipt_binding_taxonomy_never_uses_caller_decision_as_authority() -> N
     assert malformed.value.error_class == "database_integrity_failure"
 
 
-def test_public_method_remains_unavailable_and_writer_signature_is_unchanged(tmp_path: Path) -> None:
-    location = CoordinatorStateLocation.from_trusted_root(tmp_path / "state")
-    initialize_database(location)
-    session = acquire_sqlite_writer_session(location)
-    try:
-        with pytest.raises(WriterSessionError) as exc_info:
-            session.apply_global_stop_update(_command(), _decision())
-        assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
-    finally:
-        session.close()
-
+def test_public_method_signature_is_unchanged_and_b4c_adapter_owns_mapping() -> None:
     assert list(inspect.signature(WriterSession.apply_global_stop_update).parameters) == [
         "self",
         "global_stop_command",
         "typed_operator_decision",
     ]
     writer_source = (ROOT / "src/ge_nwp_coordinator/sqlite_writer_session.py").read_text(encoding="utf-8")
-    assert "_run_atomic_global_stop_apply" not in writer_source
-    assert "GlobalStopApplyPreflightError" not in writer_source
+    assert "_run_atomic_global_stop_apply" in writer_source
+    assert "GlobalStopApplyPreflightError" in writer_source

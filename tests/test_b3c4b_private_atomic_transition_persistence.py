@@ -35,6 +35,8 @@ from ge_nwp_coordinator.state_machine import (
 )
 from ge_nwp_coordinator.state_store import (
     CommittedTransition,
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     TransitionConflict,
     WriterSessionError,
     WriterSessionFailureReason,
@@ -1270,9 +1272,9 @@ def test_public_caller_export_state_store_schema_and_b4_boundaries_remain_closed
     assert production_call_paths == ["sqlite_writer_session.py"]
 
     with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
-        with pytest.raises(WriterSessionError) as exc_info:
+        with pytest.raises(GlobalStopApplyPreflightError) as exc_info:
             fixture.writer_session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-        assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert exc_info.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
         assert transition_event_count_for_test(fixture) == 0
         assert global_stop_event_count_for_test(fixture) == 0
 

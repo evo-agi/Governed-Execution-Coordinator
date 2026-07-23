@@ -7,15 +7,16 @@ rollback-only transition dry-run runtime but no public writer-session mutation
 behavior. B3c4b adds private atomic transition persistence. B3c4c adds
 operation-guarded public transition delegation, public command-local
 transition-apply preflight vocabulary, exact private-to-public mapping, and the
-bounded import/error boundary. Public global-stop mutation behavior remains
-unavailable.
+bounded import/error boundary. B4b adds private atomic global-stop persistence,
+and B4c adds operation-guarded public global-stop delegation with the same
+bounded import/error boundary.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
 updates, and an internal concrete `WriterSession`. Private transition
 persistence and B4b private global-stop persistence exist through the neutral
-mutation authority, and public transition delegation exists. Public global-stop
-delegation remains unavailable until B4c. No general public `StateStore`
+mutation authority, public transition delegation exists, and public global-stop
+delegation exists as a guarded adapter. No general public `StateStore`
 mutation backend, worker, service, scheduler, executable authorization, repair,
 publication, or deployment behavior exists.
 B2c implements an internal concrete `WriterSession`. B3c1a implements only the
@@ -77,14 +78,14 @@ public errors, reports, metadata, equality, hashing, or repr output.
 SQLite session is internal. It owns the advisory-lock object, owns the private
 credential, is bound to the acquiring process, and has an
 active/closing/cleaning/closed lifecycle. Public `apply_transition()` is guarded
-delegation into private atomic persistence. Public
-`apply_global_stop_update()` still fails locally with
-`writer_session_mutation_unavailable` until B4c; B4b private persistence has no
-public global-stop caller.
+delegation into private atomic transition persistence. Public
+`apply_global_stop_update()` is guarded delegation into private B4b atomic
+global-stop persistence.
 B3c1a implements the private slot that uses
 `writer_session_mutation_in_progress` for a second concurrent private mutation
-attempt on the same session. Public mutation methods still do not acquire that
-slot.
+attempt on the same session. Public wrappers do not acquire that slot
+themselves; the private neutral mutation runtime acquires and releases it after
+local preflight succeeds.
 
 ### SafeWriterMetadata
 
@@ -137,8 +138,9 @@ reachability: the capability is created only by one private transaction
 controller, now `_CoordinatorMutationTransactionController`, without a second
 controller or capability constructor. There is one controller construction path.
 Public production invocation for transitions occurs only from
-`_SQLiteWriterSession.apply_transition()`; B4b adds a private global-stop entry
-with no public caller. Coherent tests may invoke the same private controller
+`_SQLiteWriterSession.apply_transition()`. B4c public global-stop invocation
+occurs only from `_SQLiteWriterSession.apply_global_stop_update()` into the B4b
+private global-stop entry. Coherent tests may invoke the same private controller
 directly through private imports without adding a separate source-level
 `for_test` factory. The controller entry points accept only the active operation
 lease; they derive the private
@@ -160,7 +162,7 @@ surface.
 | --- | --- | --- | --- | --- |
 | WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_close_during_operation`, `writer_session_mutation_in_progress`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
 | Transition apply preflight failure | B3c4c public transition wrapper | `transition_apply_invalid_command`, `transition_apply_unsupported_command` | After operation-guard success and before mutation-slot acquisition or SQLite access | No event, no apply conflict, no durable record, no idempotency participation, no rollback, and no COMMIT. |
-| Global-stop apply preflight failure | B4a public vocabulary; future B4c wrapper | `global_stop_apply_invalid_command`, `global_stop_apply_invalid_operator_decision` | Future B4c only, after operation-guard success and before mutation-slot acquisition or SQLite access | No event, no apply conflict, no durable record, no idempotency participation, no rollback, and no COMMIT. In B4a the public method remains `writer_session_mutation_unavailable`. |
+| Global-stop apply preflight failure | B4c public global-stop wrapper | `global_stop_apply_invalid_command`, `global_stop_apply_invalid_operator_decision` | After operation-guard success and before mutation-slot acquisition or SQLite access | No event, no apply conflict, no durable record, no idempotency participation, no rollback, and no COMMIT. |
 | Atomic apply conflict | B3c4b fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found`, `validation_failed` | Requires a session that passed local lifecycle checks and command-local preflight checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
 | Domain result | Pure evaluator reached through the atomic boundary | accepted event or domain-rejected event | Reached only after session and apply checks pass | Exactly one accepted or domain-rejected event is the durable receipt. |
 
@@ -179,8 +181,8 @@ B3c4c public preflight failures use
 `TransitionApplyPreflightError`, not `TransitionConflict`, `WriterSessionError`,
 or `SQLiteMutationStoreError`.
 B4a defines `GlobalStopApplyPreflightError` and
-`GlobalStopApplyPreflightFailureReason` for future B4c only. Those names do not
-make `apply_global_stop_update()` functional in B4a.
+`GlobalStopApplyPreflightFailureReason`; B4c maps the private B4a preflight
+vocabulary to those public reasons from the guarded public wrapper.
 
 Writer-acquisition failures use a separate closed vocabulary:
 
@@ -217,18 +219,17 @@ Future `WriterSession` mutation calls use this order:
    occurs. The private operation guard is entered and exited around this local
    failure to pin future B3/B4 close-versus-apply ordering.
 
-3. In B3c4c for transition, perform mutation-specific local command-shape
+3. In B3c4c for transition and B4c for global stop, perform mutation-specific local command-shape
    checks through the private preflight boundary.
 
    Transition checks include exact `TransitionCommand` type/digest,
-   non-READY dependency ref null, and zero budget cost. Global-stop checks retain
-   the B4a typed command/operator-decision local checks without making public
-   global-stop apply callable. B3c4c maps the transition private preflight reasons exactly to
+   non-READY dependency ref null, and zero budget cost. Global-stop checks use
+   the B4a typed command/operator-decision local checks. B3c4c maps the transition private preflight reasons exactly to
    `TransitionApplyPreflightFailureReason.INVALID_COMMAND` or
    `TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND`. These checks run
    only after operation-guard success and before mutation-slot acquisition.
 
-   Future B4c maps B4a private global-stop preflight reasons exactly to
+   B4c maps B4a private global-stop preflight reasons exactly to
    `GlobalStopApplyPreflightFailureReason.INVALID_COMMAND` or
    `GlobalStopApplyPreflightFailureReason.INVALID_OPERATOR_DECISION`; malformed
    private preflight objects remain mutation-store integrity failures, and
@@ -575,8 +576,11 @@ transaction module. B3c4c makes public
 function-local imports, map only the exact private preflight reasons, and
 delegate exactly once to the B3c4b atomic entry with the operation lease and
 caller command. B4b adds private global-stop persistence through the same
-mutation authority but no public caller. Public `apply_global_stop_update()`
-remains unavailable until B4c.
+mutation authority. B4c makes public `apply_global_stop_update()` enter the
+existing operation guard, perform bounded function-local imports, map only the
+two exact private global-stop preflight reasons, and delegate exactly once to
+the B4b atomic entry with the operation lease, caller command, and caller typed
+operator decision.
 
 ## Non-Goals
 

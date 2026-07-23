@@ -9,8 +9,11 @@ with no production caller and no durable state mutation. B3c2 adds private
 transaction-internal event readers only. B3c3 adds a private rollback-only
 transition dry-run runtime with reader/matcher/context/evaluator integration,
 but still no durable mutation, commit, public caller, or public surface. B3c4b
-adds private atomic transition persistence and commit uncertainty handling,
-still with no public caller or public surface.
+adds private atomic transition persistence and commit uncertainty handling.
+B3c4c adds guarded public transition delegation. B4b adds private atomic
+global-stop persistence, and B4c adds guarded public global-stop delegation.
+Receipt provisioning remains separate, and no worker, service, scheduler,
+publication, or cross-repository authority exists.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared

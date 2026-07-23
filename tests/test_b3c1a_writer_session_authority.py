@@ -18,6 +18,8 @@ from ge_nwp_coordinator.sqlite_migration import initialize_database
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator.sqlite_writer_state import _DurableWriterIssuance, _parse_writer_ownership_rows
 from ge_nwp_coordinator.state_store import (
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     TransitionApplyPreflightError,
     TransitionApplyPreflightFailureReason,
     WriterSessionError,
@@ -487,7 +489,7 @@ def test_durable_issuance_verification_match_stale_and_private_failures(
     session.close()
 
 
-def test_public_boundary_exports_and_global_stop_remain_closed(
+def test_public_boundary_exports_and_global_stop_remain_guarded_delegation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -505,12 +507,9 @@ def test_public_boundary_exports_and_global_stop_remain_closed(
     assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
     assert transition_error.value.__cause__ is None
     assert transition_error.value.__context__ is None
-    with pytest.raises(WriterSessionError) as global_stop_error:
+    with pytest.raises(GlobalStopApplyPreflightError) as global_stop_error:
         session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-    _assert_writer_error(
-        global_stop_error,
-        WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE,
-    )
+    assert global_stop_error.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
     assert sqlite_open_calls == 0
     session.close()
 
@@ -555,4 +554,5 @@ def test_public_boundary_exports_and_global_stop_remain_closed(
     assert "_run_atomic_transition_apply" in transition_source
     assert "TransitionApplyPreflightError" in transition_source
     assert "_run_atomic_transition_apply" not in global_stop_source
-    assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in global_stop_source
+    assert "_run_atomic_global_stop_apply" in global_stop_source
+    assert "GlobalStopApplyPreflightError" in global_stop_source

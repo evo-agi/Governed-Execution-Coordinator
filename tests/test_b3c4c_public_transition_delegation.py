@@ -31,6 +31,8 @@ from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_sessi
 from ge_nwp_coordinator.state_machine import TransitionCommand, TransitionEventOutcome, WorkItemState
 from ge_nwp_coordinator.state_store import (
     CommittedTransition,
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     TransitionApplyPreflightError,
     TransitionApplyPreflightFailureReason,
     TransitionConflict,
@@ -38,6 +40,7 @@ from ge_nwp_coordinator.state_store import (
     WriterSessionFailureReason,
 )
 from test_b3c1b_rollback_only_writer_fencing import _replace_writer_row
+from test_b4b_private_atomic_global_stop_persistence import _command, _decision
 from test_sqlite_b2c_writer_session import _run_writer_attempt, _wait_for_child_result
 
 
@@ -944,7 +947,7 @@ def test_closed_delegate_errors_and_unexpected_exceptions_are_not_translated(
         assert exc_info.value is unexpected
 
 
-def test_global_stop_public_apply_remains_unavailable_without_transaction_import(
+def test_global_stop_public_apply_uses_b4c_preflight_after_operation_guard(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -955,19 +958,27 @@ def test_global_stop_public_apply_remains_unavailable_without_transaction_import
     original_import = builtins.__import__
 
     def fail_private_import(name: str, globals: object = None, locals: object = None, fromlist: object = (), level: int = 0) -> object:
-        if name == "ge_nwp_coordinator.sqlite_transition_transaction":
+        if name in {
+            "ge_nwp_coordinator.sqlite_global_stop_preflight_contracts",
+            "ge_nwp_coordinator.sqlite_transition_transaction",
+        }:
             private_imports.append(name)
             raise AssertionError("global-stop public method imported transition transaction")
         return original_import(name, globals, locals, fromlist, level)
 
     try:
-        monkeypatch.setattr(builtins, "__import__", fail_private_import)
-        with pytest.raises(WriterSessionError) as exc_info:
+        with pytest.raises(GlobalStopApplyPreflightError) as exc_info:
             session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-        assert exc_info.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert exc_info.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
         assert private_imports == []
         assert _operation_count(session._resource) == 0
         assert session._resource._mutation_slot is None
+
+        monkeypatch.setattr(builtins, "__import__", fail_private_import)
+        with pytest.raises(SQLiteMutationStoreError) as import_error:
+            session.apply_global_stop_update(_command(), _decision())
+        _assert_mutation_error(import_error.value, SQLiteMutationStoreErrorCode.MUTATION_FAILED.value)
+        assert private_imports == ["ge_nwp_coordinator.sqlite_global_stop_preflight_contracts"]
     finally:
         session.close()
 
@@ -1142,5 +1153,5 @@ def test_static_public_transition_method_is_guarded_delegation_without_sql_or_tr
         assert all(not (start <= line <= end) for start, end in handler_ranges)
 
     assert "_run_atomic_transition_apply" not in global_stop_source
-    assert "sqlite_transition_transaction" not in global_stop_source
-    assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in global_stop_source
+    assert "_run_atomic_global_stop_apply" in global_stop_source
+    assert "sqlite_transition_transaction" in global_stop_source

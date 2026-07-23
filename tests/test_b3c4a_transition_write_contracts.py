@@ -1181,7 +1181,7 @@ def test_commit_resolution_graph_scope_remains_static_and_excludes_cleanup_failu
     assert "apply_transition" not in transaction_source
 
 
-def test_error_retry_public_and_b4_contract_matrices_pin_future_b3c4b_and_b3c4c() -> None:
+def test_error_retry_public_and_b4_contract_matrices_pin_current_b3c4b_b3c4c_and_b4c() -> None:
     matrix = write_contracts._B3C4A_SQLITE_CLASSIFICATION_MATRIX
     retry = write_contracts._B3C4A_RETRY_AFTER_COMMIT_UNCERTAINTY_CONTRACT
     proof = write_contracts._B3C4B_REQUIRED_PROOF_MATRIX
@@ -1203,10 +1203,11 @@ def test_error_retry_public_and_b4_contract_matrices_pin_future_b3c4b_and_b3c4c(
     assert "no_partial_event_or_current_state_row" in proof
     assert "process_thread_fork_capability_behavior" in proof
     assert "public_apply_delegates_to_one_private_atomic_entry" in public
-    assert "apply_global_stop_update_unavailable_until_b4c" in public
-    assert "apply_global_stop_update_unavailable_until_b4" not in public
+    assert "apply_global_stop_update_guarded_delegation_to_one_private_atomic_entry" in public
+    assert "apply_global_stop_update_unavailable_until_b4c" not in public
     assert "no_global_stop_event_insert" in b4
-    assert "b4b_private_global_stop_persistence_exists_b4c_public_delegation_future" in b4
+    assert "b4b_private_global_stop_persistence_preserved_b4c_guarded_public_delegation_exists" in b4
+    assert "b4b_private_global_stop_persistence_exists_b4c_public_delegation_future" not in b4
     assert "b4_remains_future_global_stop_persistence_tranche" not in b4
 
 
@@ -1244,7 +1245,7 @@ def test_new_module_has_no_runtime_io_or_public_exports() -> None:
                 }
 
 
-def test_b3c4a_is_consumed_only_by_private_b3c4b_runtime_and_public_apply_remains_unavailable() -> None:
+def test_b3c4a_is_consumed_only_by_private_b3c4b_runtime_and_current_public_boundaries() -> None:
     source_files = [path for path in PACKAGE_DIR.glob("*.py") if path.name != "sqlite_transition_write_contracts.py"]
     for path in source_files:
         if path.name == "sqlite_transition_transaction.py":
@@ -1305,7 +1306,7 @@ def test_docs_pin_b3c4a_boundary_and_follow_on_tranches() -> None:
         "B3c4c",
         "commit_outcome_unknown",
         "no migration 0002",
-        "B4c remains",
+        "B4c now implements",
         "not admission",
         "not authorization",
     ):

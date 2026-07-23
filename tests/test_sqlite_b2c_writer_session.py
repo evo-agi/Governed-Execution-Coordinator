@@ -37,6 +37,8 @@ from ge_nwp_coordinator.state_authority_lock import (
     acquire_state_authority_lock,
 )
 from ge_nwp_coordinator.state_store import (
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     MAX_WRITER_GENERATION,
     TransitionApplyPreflightError,
     TransitionApplyPreflightFailureReason,
@@ -696,9 +698,9 @@ def test_session_lifecycle_context_manager_and_mutation_unavailable_boundary(
     with pytest.raises(TransitionApplyPreflightError) as mutation_error:
         active.apply_transition(None)  # type: ignore[arg-type]
     assert mutation_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
-    with pytest.raises(WriterSessionError) as global_stop_error:
+    with pytest.raises(GlobalStopApplyPreflightError) as global_stop_error:
         active.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-    assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+    assert global_stop_error.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
     assert calls == 0
     active.close()
     with pytest.raises(WriterSessionError) as closed_mutation:
@@ -1258,9 +1260,9 @@ def test_public_mutation_methods_enter_and_exit_operation_guard(
     with pytest.raises(TransitionApplyPreflightError) as transition_error:
         session.apply_transition(None)  # type: ignore[arg-type]
     assert transition_error.value.reason is TransitionApplyPreflightFailureReason.INVALID_COMMAND
-    with pytest.raises(WriterSessionError) as global_stop_error:
+    with pytest.raises(GlobalStopApplyPreflightError) as global_stop_error:
         session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-    assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+    assert global_stop_error.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
     assert entered == 2
     assert exited == 2
     assert _operation_count(resource) == 0

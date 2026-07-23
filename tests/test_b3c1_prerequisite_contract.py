@@ -133,6 +133,8 @@ def test_production_unintegrated_posture_reconciles_single_controller_path() -> 
             "During B3c1b, the controller has no production caller" in document
             or "B4b adds a private global-stop entry with no public caller" in document
             or "B4b adds only a private global-stop entry" in document
+            or "B4c public global-stop invocation occurs only from `_SQLiteWriterSession.apply_global_stop_update()`"
+            in document
         )
 
     assert "created only inside `_SQLiteWriterSession.apply_transition()`" not in b3c0a

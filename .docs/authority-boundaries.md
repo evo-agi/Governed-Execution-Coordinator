@@ -47,11 +47,15 @@ acquires an internal session for a managed database. B3c4c makes public
 operation guard to the B3c4b private atomic transition entry. The public wrapper
 does not own SQL, transaction control, event or current-state writes, sequence
 allocation, context assembly, evaluator invocation, capability construction, or
-mutation-slot acquisition. Public `apply_global_stop_update()` still fails
-locally with `writer_session_mutation_unavailable`. B4a defines
+mutation-slot acquisition. B4c guarded public global-stop delegation exists:
+public `apply_global_stop_update()` enters the same operation guard, performs
+bounded function-local loading, maps the exact private global-stop preflight
+vocabulary to the public vocabulary, and delegates once to B4b private atomic
+global-stop persistence. B4a defines
 receipt/read/event/replay/sequence/write contracts, and B4b implements private
 atomic global-stop persistence without provisioning operator-decision receipts.
-B4c remains future guarded public delegation. Receipt provisioning remains a
+B4c adds no SQL, receipt verification, evaluator, sequence, write, rollback, or
+commit ownership to `WriterSession`. Receipt provisioning remains a
 separately governed operator/repo-policy integration seam, and no public,
 orchestration, worker, service, connector, CLI, or cross-repository authority is
 added. Stale

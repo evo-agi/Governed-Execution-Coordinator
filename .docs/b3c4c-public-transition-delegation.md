@@ -118,7 +118,7 @@ capability construction, mutation-lease acquisition, state-root input, mutable
 delegate registry, callback injection, package-root indirection, or generic
 delegate catch-all.
 
-`_SQLiteWriterSession.apply_global_stop_update()` still enters the operation
-guard and raises `writer_session_mutation_unavailable`. B4b adds only a private
-global-stop persistence entry; B4c remains future for public global-stop
-delegation.
+`_SQLiteWriterSession.apply_global_stop_update()` now enters the operation
+guard and, after B4c, delegates once to the B4b private global-stop persistence
+entry through its own bounded function-local import and preflight mapping
+boundary. Public transition delegation remains unchanged.

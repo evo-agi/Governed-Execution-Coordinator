@@ -16,6 +16,8 @@ from ge_nwp_coordinator.sqlite_migration import initialize_database
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator.state_store import (
     CommittedTransition,
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     StateStore,
     TransitionApplyOutcome,
     TransitionApplyPreflightError,
@@ -39,7 +41,7 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "b26e9612383cb94ffbaf3393d5ada90ec708c4511c6151a3867acce03380768c"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py": (
-        "2904ad805b412300bf759cc451be303cd1eb070dc60a3dc2b7f7a2c5a9938863"
+        "5512294de5030b94936dc43caec659a16c5617633dcafac28cbffed6dc878760"
     ),
 }
 
@@ -142,7 +144,7 @@ def test_state_store_and_writer_session_public_shapes_are_unchanged() -> None:
     ]
 
 
-def test_public_sqlite_transition_preflight_and_global_stop_unavailable_do_not_open_sqlite(
+def test_public_sqlite_transition_and_global_stop_preflight_do_not_open_sqlite(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -165,9 +167,9 @@ def test_public_sqlite_transition_preflight_and_global_stop_unavailable_do_not_o
         assert transition_error.value.__cause__ is None
         assert transition_error.value.__context__ is None
 
-        with pytest.raises(WriterSessionError) as global_stop_error:
+        with pytest.raises(GlobalStopApplyPreflightError) as global_stop_error:
             session.apply_global_stop_update(None, None)  # type: ignore[arg-type]
-        assert global_stop_error.value.reason is WriterSessionFailureReason.WRITER_SESSION_MUTATION_UNAVAILABLE
+        assert global_stop_error.value.reason is GlobalStopApplyPreflightFailureReason.INVALID_COMMAND
     finally:
         session.close()
 
@@ -290,9 +292,8 @@ def test_docs_pin_public_result_error_matrix_and_no_b4_schema_behavior() -> None
         "`_SQLiteWriterSession.apply_transition()` now enters",
         "`_run_atomic_transition_apply`",
         "`_SQLiteWriterSession.apply_global_stop_update()` still enters",
-        "`writer_session_mutation_unavailable`",
-        "B4b adds only a private global-stop persistence entry",
-        "B4c remains future for public global-stop delegation",
+        "delegates once to the B4b private atomic global-stop entry",
+        "B4c adds guarded public global-stop delegation",
         "schema-ID bump",
         "migration 0002",
     ):

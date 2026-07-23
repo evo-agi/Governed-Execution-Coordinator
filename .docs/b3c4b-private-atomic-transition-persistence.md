@@ -16,8 +16,8 @@ function-local import boundary. B3c4c owns only the public wrapper, exact
 private-to-public preflight mapping, import/load failure classification, and
 no-generic delegate-catch-all boundary. This B3c4b module remains the sole owner
 of transaction-state-aware SQLite mutation and `commit_outcome_unknown`
-classification. `apply_global_stop_update()` remains unavailable after B4b;
-B4c owns any future public global-stop delegation.
+classification. `apply_global_stop_update()` remained unavailable after B4b;
+B4c now owns guarded public global-stop delegation.
 
 ## Single Controller
 

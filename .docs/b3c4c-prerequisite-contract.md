@@ -209,12 +209,16 @@ operation guard, uses bounded function-local private imports, delegates exactly
 once to `_run_atomic_transition_apply`, and maps only the two exact private
 preflight reasons to public `TransitionApplyPreflightError`.
 `_SQLiteWriterSession.apply_global_stop_update()` still enters the existing
-operation guard and raises `writer_session_mutation_unavailable`.
+operation guard; after B4c it performs bounded function-local imports, maps the
+exact private global-stop preflight reasons, and delegates once to the B4b
+private atomic global-stop entry.
 
 `sqlite_writer_session.py` contains no SQL or transaction grammar and does not
 acquire the mutation lease. The private mutation transaction module remains the
-sole atomic transaction owner. B4b adds only a private global-stop persistence
-entry; B4c remains future for public global-stop delegation.
+sole atomic transaction owner. B4b adds private global-stop persistence, and
+B4c adds guarded public global-stop delegation without moving SQL, receipt
+verification, evaluator, sequence, write, rollback, COMMIT, or uncertainty
+ownership into the public wrapper.
 
 This tranche proves no production admission, authorization, worker,
 orchestration, publication, related-repository authority, executable A2
