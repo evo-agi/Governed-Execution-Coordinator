@@ -1,11 +1,13 @@
 # B3c4b Private Atomic Transition Persistence
 
 Status: implemented private atomic transition persistence runtime; now invoked
-only by the B3c4c public WriterSession wrapper; no global-stop mutation.
+only by the B3c4c public WriterSession wrapper. B4b reuses the same neutral
+controller for private global-stop persistence without changing public
+transition behavior.
 
 B3c4b is the first Coordinator tranche that may durably persist a work-item
-transition, but only through the existing private transaction-controller and
-nominal-capability authority path in
+transition, but only through the existing private mutation transaction
+controller and nominal-capability authority path in
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`.
 
 Public `_SQLiteWriterSession.apply_transition()` enters its existing operation
@@ -14,15 +16,17 @@ function-local import boundary. B3c4c owns only the public wrapper, exact
 private-to-public preflight mapping, import/load failure classification, and
 no-generic delegate-catch-all boundary. This B3c4b module remains the sole owner
 of transaction-state-aware SQLite mutation and `commit_outcome_unknown`
-classification. `apply_global_stop_update()` remains unavailable until B4.
+classification. `apply_global_stop_update()` remains unavailable after B4b;
+B4c owns any future public global-stop delegation.
 
 ## Single Controller
 
-B3c4b renames the one private controller to
-`_TransitionTransactionController`. The old rollback-only class name is gone;
-there is no compatibility alias. The controller still has one construction
-key, one mutation-lease path, one bound-connection open path, one
-writer-fencing path, and one nominal capability constructor.
+B3c4b used one private controller, later neutralized by B4b as
+`_CoordinatorMutationTransactionController`. The old transition-named and
+rollback-only class names are gone; there is no compatibility alias. The
+controller still has one construction key, one mutation-lease path, one
+bound-connection open path, one writer-fencing path, and one nominal capability
+constructor.
 
 The existing private rollback-only entries remain:
 
@@ -156,17 +160,18 @@ Cleanup failure before a commit attempt is `mutation_failed` and supersedes
 planned replay, conflict, fresh output, or earlier definite safe errors under
 the existing B3c1/B3c3 cleanup precedence.
 
-B3c4b now mechanically enforces the accepted B3c4a.1 resolution graph for
-successful commit-resolution milestones. The sole edge owner is the frozen
-B3c4a `_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS` constant imported by
-the transaction runtime; the runtime does not copy that set or define a second
-graph. Constructor initialization to `new` is the only non-edge assignment.
-After construction, the controller records each successful graph milestone only
-through `_set_resolution_state(...)`, which exact-gates the retained current
-enum value, exact-gates the requested next enum value, checks the frozen
-allowed edge before assignment, and exposes no state names, edge names,
-controller detail, SQL, rows, model data, paths, credentials, proofs, process
-or thread data, or private sentinels on failure.
+B3c4b mechanically enforced the accepted B3c4a.1 resolution graph for
+successful commit-resolution milestones. B4b moves the sole edge owner to
+`sqlite_mutation_transaction_contracts.py` as
+`_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS`; the transaction runtime
+imports that set and does not copy it or define a second graph. Constructor
+initialization to `new` is the only non-edge assignment. After construction, the
+controller records each successful graph milestone only through
+`_set_resolution_state(...)`, which exact-gates the retained current enum value,
+exact-gates the requested next enum value, checks the frozen allowed edge before
+assignment, and exposes no state names, edge names, controller detail, SQL,
+rows, model data, paths, credentials, proofs, process or thread data, or
+private sentinels on failure.
 
 Replay, exact idempotency conflict, missing current row, expected-version
 conflict, validation conflict, evaluator failure, sequence overflow, and
@@ -274,7 +279,7 @@ Same key with a different canonical digest remains an idempotency conflict.
 
 ## Non-Goals
 
-B3c4b does not implement public writer-session delegation, persistent
+B3c4b does not implement public writer-session delegation by itself, public
 global-stop mutation, admission, authorization verification, worker execution,
 scheduling, service loops, repair, local commit behavior, publication,
 Bridge/Codex invocation, CLI/MCP/connector behavior, related-repository

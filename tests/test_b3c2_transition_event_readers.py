@@ -35,8 +35,8 @@ from ge_nwp_coordinator.sqlite_transition_event_readers import (
     _read_transition_event_max_sequence,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
 )
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
 from ge_nwp_coordinator.sqlite_writer_session import _WriterIssuanceMatch
@@ -128,7 +128,7 @@ class _TestsOnlyTransitionReadCapabilityEpoch:
 
     def _connection_for_generation(self, generation: int) -> sqlite3.Connection:
         if not self._active or generation != self._generation:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         return self._connection
 
 
@@ -303,7 +303,7 @@ def _assert_sqlite_mutation_error(
         "replay_work_item_digest",
         "SELECT ",
         "coordinator-state.sqlite",
-        "_SQLiteTransitionReadCapability",
+        "_SQLiteMutationReadCapability",
         "credential",
         "proof",
         "epoch",
@@ -338,7 +338,7 @@ def _assert_safe_validation_error(
         PRIVATE_REF_SENTINEL,
         "SELECT ",
         "coordinator-state.sqlite",
-        "_SQLiteTransitionReadCapability",
+        "_SQLiteMutationReadCapability",
         "credential",
         "proof",
         "epoch",
@@ -400,7 +400,7 @@ def _forged_envelope(event: object) -> TransitionEventRecordEnvelope:
 
 
 def _run_real_controller_with_probe(session: object, monkeypatch: pytest.MonkeyPatch, probe: Callable[[object], None]) -> object:
-    original_create = transaction_module._create_sqlite_transition_read_capability
+    original_create = transaction_module._create_sqlite_mutation_read_capability
     captured: list[object] = []
 
     def capture_create(**kwargs: object) -> object:
@@ -409,7 +409,7 @@ def _run_real_controller_with_probe(session: object, monkeypatch: pytest.MonkeyP
         probe(capability)
         return capability
 
-    monkeypatch.setattr(transaction_module, "_create_sqlite_transition_read_capability", capture_create)
+    monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", capture_create)
     with session._resource.operation_guard(session) as operation:
         result = transaction_module._run_rollback_only_writer_fencing(operation_lease=operation)
     assert result is _WriterIssuanceMatch.MATCH
@@ -417,7 +417,7 @@ def _run_real_controller_with_probe(session: object, monkeypatch: pytest.MonkeyP
     return captured[0]
 
 
-def _assert_capability_error(exc: _TransitionReadCapabilityError, reason: _TransitionReadCapabilityFailureReason) -> None:
+def _assert_capability_error(exc: _MutationReadCapabilityError, reason: _MutationReadCapabilityFailureReason) -> None:
     assert exc.reason is reason
     assert str(exc) == reason.value
     assert exc.args == (reason.value,)
@@ -630,7 +630,7 @@ def test_bounded_child_result_helper_times_out_kills_reaps_and_redacts() -> None
             PRIVATE_CAPABILITY_SENTINEL,
             PRIVATE_SQLITE_SENTINEL,
             "coordinator-state.sqlite",
-            "_SQLiteTransitionReadCapability",
+            "_SQLiteMutationReadCapability",
             "epoch",
             "binding",
         ):
@@ -1166,9 +1166,9 @@ def test_idempotency_reader_fetch_and_close_precedence(
 
 def test_unknown_capability_exception_is_sanitized(tmp_path: Path) -> None:
     row = _valid_event_row(tmp_path)
-    with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+    with pytest.raises(_MutationReadCapabilityError) as exc_info:
         _lookup_event(row, _UnknownExceptionCapability())
-    _assert_capability_error(exc_info.value, _TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+    _assert_capability_error(exc_info.value, _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
     rendered = _render_exception_graph(exc_info.value)
     assert PRIVATE_CAPABILITY_SENTINEL not in rendered
 
@@ -1282,9 +1282,9 @@ def test_real_nominal_capability_reads_empty_transition_events_and_expires(
 
         capability = _run_real_controller_with_probe(fixture.writer_session, monkeypatch, probe)
         assert summary == {"idempotency": None, "max": None}
-        with pytest.raises(_TransitionReadCapabilityError) as expired:
+        with pytest.raises(_MutationReadCapabilityError) as expired:
             _read_transition_event_max_sequence(capability)  # type: ignore[arg-type]
-        _assert_capability_error(expired.value, _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+        _assert_capability_error(expired.value, _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
 
 
 def test_real_nominal_capability_reads_domain_rejected_event_and_max(
@@ -1307,13 +1307,13 @@ def test_real_nominal_capability_reads_domain_rejected_event_and_max(
         capability = _run_real_controller_with_probe(fixture.writer_session, monkeypatch, probe)
         assert summary["envelope"] == expected
         assert summary["max"] == expected.event_sequence
-        with pytest.raises(_TransitionReadCapabilityError) as expired:
+        with pytest.raises(_MutationReadCapabilityError) as expired:
             _read_transition_event_for_idempotency(
                 capability,  # type: ignore[arg-type]
                 fixture.command.work_item_id,
                 fixture.command.idempotency_key,
             )
-        _assert_capability_error(expired.value, _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+        _assert_capability_error(expired.value, _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
 
 
 def test_real_nominal_capability_rejects_wrong_thread_and_child_process(
@@ -1323,7 +1323,7 @@ def test_real_nominal_capability_rejects_wrong_thread_and_child_process(
     if not hasattr(os, "fork"):
         pytest.skip("fork is not available")
     with make_coherent_transition_fixture_for_test(tmp_path, existing_event=True) as fixture:
-        wrong_thread_errors: list[_TransitionReadCapabilityError] = []
+        wrong_thread_errors: list[_MutationReadCapabilityError] = []
         child_results: list[str] = []
         parent_results_after_child: list[int | None] = []
 
@@ -1331,7 +1331,7 @@ def test_real_nominal_capability_rejects_wrong_thread_and_child_process(
             def borrow_in_thread() -> None:
                 try:
                     _read_transition_event_max_sequence(capability)  # type: ignore[arg-type]
-                except _TransitionReadCapabilityError as exc:
+                except _MutationReadCapabilityError as exc:
                     wrong_thread_errors.append(exc)
 
             thread = threading.Thread(target=borrow_in_thread)
@@ -1346,7 +1346,7 @@ def test_real_nominal_capability_rejects_wrong_thread_and_child_process(
                 try:
                     try:
                         _read_transition_event_max_sequence(capability)  # type: ignore[arg-type]
-                    except _TransitionReadCapabilityError as exc:
+                    except _MutationReadCapabilityError as exc:
                         result = exc.reason.value
                     else:
                         result = "unexpected-success"
@@ -1360,12 +1360,12 @@ def test_real_nominal_capability_rejects_wrong_thread_and_child_process(
 
         capability = _run_real_controller_with_probe(fixture.writer_session, monkeypatch, probe)
         assert len(wrong_thread_errors) == 1
-        _assert_capability_error(wrong_thread_errors[0], _TransitionReadCapabilityFailureReason.THREAD_MISMATCH)
-        assert child_results == [_TransitionReadCapabilityFailureReason.PROCESS_MISMATCH.value]
+        _assert_capability_error(wrong_thread_errors[0], _MutationReadCapabilityFailureReason.THREAD_MISMATCH)
+        assert child_results == [_MutationReadCapabilityFailureReason.PROCESS_MISMATCH.value]
         assert parent_results_after_child == [0]
-        with pytest.raises(_TransitionReadCapabilityError) as expired:
+        with pytest.raises(_MutationReadCapabilityError) as expired:
             _read_transition_event_max_sequence(capability)  # type: ignore[arg-type]
-        _assert_capability_error(expired.value, _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+        _assert_capability_error(expired.value, _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
 
 
 def test_real_nominal_capability_from_transaction_a_cannot_read_during_transaction_b(
@@ -1379,9 +1379,9 @@ def test_real_nominal_capability_from_transaction_a_cannot_read_during_transacti
         captured_a.append(_run_real_controller_with_probe(fixture.writer_session, monkeypatch, lambda capability: None))
 
         def probe_b(capability: object) -> None:
-            with pytest.raises(_TransitionReadCapabilityError) as expired:
+            with pytest.raises(_MutationReadCapabilityError) as expired:
                 _read_transition_event_max_sequence(captured_a[0])  # type: ignore[arg-type]
-            _assert_capability_error(expired.value, _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            _assert_capability_error(expired.value, _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
             observed_b.append(_read_transition_event_max_sequence(capability))  # type: ignore[arg-type]
 
         _run_real_controller_with_probe(fixture.writer_session, monkeypatch, probe_b)
@@ -1403,9 +1403,9 @@ def test_b3c2_source_boundaries_are_private_unintegrated_and_read_only() -> None
     for name in (
         "_read_transition_event_for_idempotency",
         "_read_transition_event_max_sequence",
-        "_TransitionReadCapability",
-        "_TransitionReadCapabilityError",
-        "_TransitionReadCapabilityFailureReason",
+        "_MutationReadCapability",
+        "_MutationReadCapabilityError",
+        "_MutationReadCapabilityFailureReason",
     ):
         assert name not in ge_nwp_coordinator.__all__
         assert name not in package_source

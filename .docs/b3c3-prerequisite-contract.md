@@ -17,7 +17,7 @@ symbols, or add migration 0002.
 ## Controller Ownership
 
 B3c3 preserves one controller class and one capability-construction path. The
-single private controller is now `_TransitionTransactionController`
+single private controller is now `_CoordinatorMutationTransactionController`
 in `src/ge_nwp_coordinator/sqlite_transition_transaction.py`; the single
 nominal read capability remains constructed only by that controller's existing
 private helper and construction key. B3c4b later adds a private atomic entry to

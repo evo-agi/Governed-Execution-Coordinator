@@ -52,7 +52,7 @@ those tuples.
 
 B3b2b implements the six private SELECT readers over those specs. They validate
 lookup refs before borrowing, borrow only through the private
-`_TransitionReadCapability` method, execute parameterized `SELECT ... LIMIT 2`,
+`_MutationReadCapability` method, execute parameterized `SELECT ... LIMIT 2`,
 call `fetchmany(2)`, classify zero/one/multiple cardinality, map exactly one
 built-in tuple to a private mapping, delegate to B3b1 adapters, classify SQLite
 SELECT failures safely, and close cursors without closing the connection. Tests

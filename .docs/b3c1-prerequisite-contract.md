@@ -43,8 +43,8 @@ The B3c1 boundary is limited to:
 2. the smallest safe operation-lease active-authority interface;
 3. the smallest safe operation-lease durable-issuance verification interface;
 4. resource-owned state-database filesystem-authority binding through the operation lease;
-5. one private nominal transition transaction controller;
-6. one private nominal transaction-read capability;
+5. one private nominal Coordinator mutation transaction controller;
+6. one private nominal mutation-read capability;
 7. one fresh existing managed read/write SQLite connection;
 8. `BEGIN IMMEDIATE`;
 9. managed schema and connection-posture validation;
@@ -63,17 +63,17 @@ uncertainty; production admission or authorization; and executable A2 behavior.
 
 ## Production Reachability
 
-The nominal transaction capability is created only by one private transition
-transaction controller. There is one controller construction path. The
+The nominal transaction capability is created only by one private Coordinator
+mutation transaction controller. There is one controller construction path. The
 controller construction path is the only path that may construct the nominal
 capability.
 
-Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`. During B3c1b, the controller has no
-production caller; coherent tests may invoke the same private controller
-directly through private imports without adding a separate source-level
-`for_test` factory. Direct private test invocation is not a public or
-production authority route.
+Public transition invocation may occur only from
+`_SQLiteWriterSession.apply_transition()`. B4b adds a private global-stop entry
+with no public caller. During B3c1b, the controller has no production caller;
+coherent tests may invoke the same private controller directly through private
+imports without adding a separate source-level `for_test` factory. Direct
+private test invocation is not a public or production authority route.
 
 `_SQLiteWriterSession.apply_transition()` and
 `_SQLiteWriterSession.apply_global_stop_update()` remain
@@ -329,23 +329,23 @@ The private module is:
 
 `src/ge_nwp_coordinator/sqlite_transition_transaction.py`
 
-This module owns one private nominal transition transaction controller
-and one private nominal transaction-read capability. The capability has no
+This module owns one private nominal Coordinator mutation transaction
+controller and one private nominal mutation-read capability. The capability has no
 public constructor, no package-root export, no finalizer, no independent close,
 no public connection property, and no `WriterSession` metadata, credential,
 proof, digest, lock, descriptor, operation identity, process identity, thread
 identity, raw row, path, endpoint, or secret.
 
 The capability is created only by the controller after successful writer
-fencing. Structural `_TransitionReadCapability` conformance is not authority.
+fencing. Structural `_MutationReadCapability` conformance is not authority.
 
 Each transaction has one opaque epoch. The epoch is private, identity-only, not
 serializable, not comparable outside the controller, not public, and never
 included in errors or outputs. The capability is same-process and same-thread
 only. Transaction end or permanent invalidation classifies later borrow as
-`transition_read_capability_expired`. Absent controller or absent connection
-classifies as `transition_read_capability_unavailable`. Arbitrary internal
-borrow failure is sanitized to `transition_read_capability_unavailable`.
+`mutation_read_capability_expired`. Absent controller or absent connection
+classifies as `mutation_read_capability_unavailable`. Arbitrary internal
+borrow failure is sanitized to `mutation_read_capability_unavailable`.
 Process mismatch is `process_mismatch`; thread mismatch is `thread_mismatch`.
 
 The capability is invalidated before rollback. Invalidation is permanent.

@@ -1,4 +1,4 @@
-"""Private transaction SELECT support for B3b2/B3c readers."""
+"""Private transaction SELECT support for Coordinator mutation readers."""
 
 from __future__ import annotations
 
@@ -9,29 +9,29 @@ from typing import Any, Protocol
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError, SQLiteMutationStoreErrorCode
 
 
-class _TransitionReadCapabilityFailureReason(str, Enum):
-    CAPABILITY_UNAVAILABLE = "transition_read_capability_unavailable"
-    CAPABILITY_EXPIRED = "transition_read_capability_expired"
+class _MutationReadCapabilityFailureReason(str, Enum):
+    CAPABILITY_UNAVAILABLE = "mutation_read_capability_unavailable"
+    CAPABILITY_EXPIRED = "mutation_read_capability_expired"
     PROCESS_MISMATCH = "process_mismatch"
     THREAD_MISMATCH = "thread_mismatch"
 
 
-class _TransitionReadCapabilityError(RuntimeError):
+class _MutationReadCapabilityError(RuntimeError):
     """Safe private transaction-read capability failure with no connection details."""
 
-    def __init__(self, reason: _TransitionReadCapabilityFailureReason | str) -> None:
-        normalized = _TransitionReadCapabilityFailureReason(reason)
+    def __init__(self, reason: _MutationReadCapabilityFailureReason | str) -> None:
+        normalized = _MutationReadCapabilityFailureReason(reason)
         self.reason = normalized
         super().__init__(normalized.value)
 
 
-class _TransitionReadCapability(Protocol):
-    """Private B3c-owned transaction capability protocol.
+class _MutationReadCapability(Protocol):
+    """Private Coordinator mutation transaction capability protocol.
 
     Protocol conformance is not authority. Concrete capability authority is
-    owned by the B3c transaction controller after operation-lease validation,
-    managed transaction start, managed validation, writer fencing, and opaque
-    epoch creation.
+    owned by the Coordinator mutation transaction controller after
+    operation-lease validation, managed transaction start, managed validation,
+    writer fencing, and opaque epoch creation.
     """
 
     def _borrow_connection_for_select(self) -> sqlite3.Connection:
@@ -55,7 +55,7 @@ _SQLITE_INTEGRITY_PRIMARY_RESULT_CODES = frozenset(
 
 def _execute_select_fetch_two(
     *,
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     sql: str,
     parameters: tuple[object, ...],
 ) -> list[object]:
@@ -90,25 +90,25 @@ def _row_tuple_to_private_mapping(columns: tuple[str, ...], row: object) -> dict
     return dict(zip(columns, row, strict=True))
 
 
-def _borrow_sqlite_connection_for_select(capability: _TransitionReadCapability) -> sqlite3.Connection:
+def _borrow_sqlite_connection_for_select(capability: _MutationReadCapability) -> sqlite3.Connection:
     borrowed = _borrow_connection_or_capability_error(capability)
-    if isinstance(borrowed, _TransitionReadCapabilityError):
+    if isinstance(borrowed, _MutationReadCapabilityError):
         raise borrowed
     connection = borrowed
     if not isinstance(connection, sqlite3.Connection):
-        raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+        raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
     return connection
 
 
 def _borrow_connection_or_capability_error(
-    capability: _TransitionReadCapability,
-) -> sqlite3.Connection | _TransitionReadCapabilityError:
+    capability: _MutationReadCapability,
+) -> sqlite3.Connection | _MutationReadCapabilityError:
     try:
         return capability._borrow_connection_for_select()
-    except _TransitionReadCapabilityError:
+    except _MutationReadCapabilityError:
         raise
     except Exception:
-        return _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+        return _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
 
 
 def _close_cursor_safely(cursor: Any) -> SQLiteMutationStoreError | None:

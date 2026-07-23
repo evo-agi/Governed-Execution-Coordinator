@@ -90,8 +90,8 @@ SQLite connection, or public serialization surface.
 ## Readback
 
 Tests read the graph back through the existing private B3b2b SELECT readers
-using a clearly tests-only `_TransitionReadCapability` implementation over an
-active test transaction. This proves the existing row readers can reconstruct
+using a clearly tests-only capability shaped for `_MutationReadCapability` over
+an active test transaction. This proves the existing row readers can reconstruct
 the coherent graph. It does not create production reader integration, a
 concrete transaction capability, writer fencing, idempotency apply integration,
 context assembly, event insertion, sequence allocation, or mutation runtime.
@@ -110,8 +110,13 @@ implements private rollback-only dry-run result, preflight, binding,
 timestamp, reader and matcher integration, context assembly execution,
 evaluator dry run, and result return. B3c4b now implements private atomic
 persistence, accepted-state CAS, sequence allocation, commit, and
-commit-uncertainty runtime through the existing controller. B3c4c remains
-future for public delegation and B4 remains future for global-stop mutation.
+commit-uncertainty runtime through the existing controller. B3c4c implements
+public transition delegation. B4a defines global-stop receipt/read/write
+contracts, and B4b implements private atomic global-stop persistence. B4c
+remains future for guarded public global-stop delegation. Tests-only seeded
+receipt evidence proves verification and persistence mechanics only, not
+production operator-policy authorization; receipt provisioning remains outside
+the B4 apply transaction.
 
 No migration 0002 is required for this tests-only tranche, and migration 0001
 remains unchanged.

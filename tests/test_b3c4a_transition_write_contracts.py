@@ -10,6 +10,7 @@ import traceback
 import pytest
 
 import ge_nwp_coordinator
+import ge_nwp_coordinator.sqlite_mutation_transaction_contracts as mutation_contracts
 import ge_nwp_coordinator.sqlite_writer_session as writer_session_module
 import ge_nwp_coordinator.sqlite_transition_write_contracts as write_contracts
 from ge_nwp_coordinator.canonicalization import canonical_json_bytes
@@ -49,6 +50,7 @@ from ge_nwp_coordinator.state_store import CommittedTransition, WriterSessionFai
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 WRITE_CONTRACTS_PATH = PACKAGE_DIR / "sqlite_transition_write_contracts.py"
+MUTATION_CONTRACTS_PATH = PACKAGE_DIR / "sqlite_mutation_transaction_contracts.py"
 TRANSACTION_MODULE_PATH = PACKAGE_DIR / "sqlite_transition_transaction.py"
 WRITER_SESSION_PATH = PACKAGE_DIR / "sqlite_writer_session.py"
 PACKAGE_EXPORT_PATH = PACKAGE_DIR / "__init__.py"
@@ -1041,7 +1043,7 @@ def test_event_builder_ignores_hostile_shadowed_serializers_and_redacts_failures
 
 
 def test_commit_resolution_state_vocabulary_and_lifecycle_paths_are_closed() -> None:
-    state = write_contracts._TransitionCommitResolutionState
+    state = mutation_contracts._MutationCommitResolutionState
 
     assert tuple(member.value for member in state) == (
         "new",
@@ -1057,7 +1059,7 @@ def test_commit_resolution_state_vocabulary_and_lifecycle_paths_are_closed() -> 
         "rollback_resolved",
         "closed",
     )
-    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_REPLAY_CONFLICT_PATH == (
+    assert mutation_contracts._MUTATION_COMMIT_RESOLUTION_REPLAY_CONFLICT_ROLLBACK_PATH == (
         state.TRANSACTION_ACTIVE,
         state.FENCED,
         state.CAPABILITY_ACTIVE,
@@ -1065,17 +1067,17 @@ def test_commit_resolution_state_vocabulary_and_lifecycle_paths_are_closed() -> 
         state.ROLLBACK_RESOLVED,
         state.CLOSED,
     )
-    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_FRESH_SUCCESS_PATH[-3:] == (
+    assert mutation_contracts._MUTATION_COMMIT_RESOLUTION_FRESH_SUCCESS_PATH[-3:] == (
         state.COMMIT_ATTEMPT_STARTED,
         state.COMMIT_SUCCEEDED,
         state.CLOSED,
     )
-    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH[-3:] == (
+    assert mutation_contracts._MUTATION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH[-3:] == (
         state.COMMIT_ATTEMPT_STARTED,
         state.COMMIT_OUTCOME_UNKNOWN,
         state.CLOSED,
     )
-    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH == (
+    assert mutation_contracts._MUTATION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH == (
         state.TRANSACTION_ACTIVE,
         state.FENCED,
         state.CAPABILITY_ACTIVE,
@@ -1084,7 +1086,7 @@ def test_commit_resolution_state_vocabulary_and_lifecycle_paths_are_closed() -> 
         state.ROLLBACK_RESOLVED,
         state.CLOSED,
     )
-    assert write_contracts._TRANSITION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH == (
+    assert mutation_contracts._MUTATION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH == (
         state.TRANSACTION_ACTIVE,
         state.FENCED,
         state.CAPABILITY_ACTIVE,
@@ -1094,35 +1096,37 @@ def test_commit_resolution_state_vocabulary_and_lifecycle_paths_are_closed() -> 
         state.ROLLBACK_RESOLVED,
         state.CLOSED,
     )
-    assert not hasattr(write_contracts, "_TRANSITION_COMMIT_RESOLUTION_PRECOMMIT_FAILURE_PATH")
+    assert not hasattr(mutation_contracts, "_MUTATION_COMMIT_RESOLUTION_PRECOMMIT_FAILURE_PATH")
     assert (state.COMMIT_ATTEMPT_STARTED, state.COMMIT_OUTCOME_UNKNOWN) in (
-        write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+        mutation_contracts._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
     )
     assert (state.COMMIT_SUCCEEDED, state.COMMIT_OUTCOME_UNKNOWN) not in (
-        write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+        mutation_contracts._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
     )
+    assert not hasattr(write_contracts, "_MutationCommitResolutionState")
+    assert not hasattr(write_contracts, "_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS")
 
 
 def test_commit_resolution_paths_are_composed_only_of_allowed_edges() -> None:
-    state = write_contracts._TransitionCommitResolutionState
-    allowed = write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+    state = mutation_contracts._MutationCommitResolutionState
+    allowed = mutation_contracts._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
     path_names = tuple(
         sorted(
             name
-            for name in vars(write_contracts)
-            if name.startswith("_TRANSITION_COMMIT_RESOLUTION_") and name.endswith("_PATH")
+            for name in vars(mutation_contracts)
+            if name.startswith("_MUTATION_COMMIT_RESOLUTION_") and name.endswith("_PATH")
         )
     )
 
     assert path_names == (
-        "_TRANSITION_COMMIT_RESOLUTION_FRESH_SUCCESS_PATH",
-        "_TRANSITION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH",
-        "_TRANSITION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH",
-        "_TRANSITION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH",
-        "_TRANSITION_COMMIT_RESOLUTION_REPLAY_CONFLICT_PATH",
+        "_MUTATION_COMMIT_RESOLUTION_FRESH_SUCCESS_PATH",
+        "_MUTATION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH",
+        "_MUTATION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH",
+        "_MUTATION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH",
+        "_MUTATION_COMMIT_RESOLUTION_REPLAY_CONFLICT_ROLLBACK_PATH",
     )
     for name in path_names:
-        path = getattr(write_contracts, name)
+        path = getattr(mutation_contracts, name)
         for current, next_state in zip(path, path[1:]):
             assert (current, next_state) in allowed, name
 
@@ -1138,9 +1142,10 @@ def test_commit_resolution_paths_are_composed_only_of_allowed_edges() -> None:
 
 
 def test_commit_resolution_graph_scope_remains_static_and_excludes_cleanup_failures() -> None:
-    state = write_contracts._TransitionCommitResolutionState
-    scope = write_contracts._B3C4A_COMMIT_RESOLUTION_GRAPH_SCOPE
+    state = mutation_contracts._MutationCommitResolutionState
+    scope = mutation_contracts._MUTATION_COMMIT_RESOLUTION_GRAPH_SCOPE
     source = WRITE_CONTRACTS_PATH.read_text()
+    mutation_source = MUTATION_CONTRACTS_PATH.read_text()
     transaction_source = TRANSACTION_MODULE_PATH.read_text()
     doc = (ROOT / ".docs/b3c4a-transition-write-and-commit-contracts.md").read_text()
     normalized_doc = " ".join(doc.split())
@@ -1152,9 +1157,9 @@ def test_commit_resolution_graph_scope_remains_static_and_excludes_cleanup_failu
     assert "rollback_failure_cannot_claim_rollback_resolved" in scope
     assert "close_failure_cannot_force_closed_milestone" in scope
     assert "no_direct_rollback_edge_bypasses_capability_invalidation" in scope
-    assert "b3c4b_runtime_enforcement_future" in scope
+    assert "single_mutation_runtime_enforcement" in scope
     assert (state.CAPABILITY_ACTIVE, state.ROLLBACK_RESOLVED) not in (
-        write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+        mutation_contracts._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
     )
     assert "Stale writer is the currently proved" in normalized_doc
     assert "pre-capability conflict exit and remains outside the graph" in normalized_doc
@@ -1165,11 +1170,13 @@ def test_commit_resolution_graph_scope_remains_static_and_excludes_cleanup_failu
     assert "must not force a later graph milestone" in normalized_doc
     assert "do not retroactively establish missing successful graph milestones" in normalized_doc
     assert "must not fabricate transitions on cleanup failure" in normalized_doc
-    assert "class _TransitionCommitResolutionState" in source
-    assert source.count("class _TransitionCommitResolutionState") == 1
-    assert source.count("_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS") == 1
-    assert source.count("_B3C4A_COMMIT_RESOLUTION_GRAPH_SCOPE") == 1
-    assert "_TransitionCommitResolutionState" in transaction_source
+    assert "class _MutationCommitResolutionState" not in source
+    assert "_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS" not in source
+    assert "class _MutationCommitResolutionState" in mutation_source
+    assert mutation_source.count("class _MutationCommitResolutionState") == 1
+    assert mutation_source.count("_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS") == 1
+    assert mutation_source.count("_MUTATION_COMMIT_RESOLUTION_GRAPH_SCOPE") == 1
+    assert "_MutationCommitResolutionState" in transaction_source
     assert "_run_atomic_transition_apply" in transaction_source
     assert "apply_transition" not in transaction_source
 
@@ -1196,9 +1203,11 @@ def test_error_retry_public_and_b4_contract_matrices_pin_future_b3c4b_and_b3c4c(
     assert "no_partial_event_or_current_state_row" in proof
     assert "process_thread_fork_capability_behavior" in proof
     assert "public_apply_delegates_to_one_private_atomic_entry" in public
-    assert "apply_global_stop_update_unavailable_until_b4" in public
+    assert "apply_global_stop_update_unavailable_until_b4c" in public
+    assert "apply_global_stop_update_unavailable_until_b4" not in public
     assert "no_global_stop_event_insert" in b4
-    assert "b4_remains_future_global_stop_persistence_tranche" in b4
+    assert "b4b_private_global_stop_persistence_exists_b4c_public_delegation_future" in b4
+    assert "b4_remains_future_global_stop_persistence_tranche" not in b4
 
 
 def test_new_module_has_no_runtime_io_or_public_exports() -> None:
@@ -1296,7 +1305,7 @@ def test_docs_pin_b3c4a_boundary_and_follow_on_tranches() -> None:
         "B3c4c",
         "commit_outcome_unknown",
         "no migration 0002",
-        "B4 remains",
+        "B4c remains",
         "not admission",
         "not authorization",
     ):

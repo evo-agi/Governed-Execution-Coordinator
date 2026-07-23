@@ -16,7 +16,8 @@ The public prerequisite adds exactly two package-root exports:
 
 It does not change `TransitionApplyOutcome`, does not widen `StateStore`, does
 not change `WriterSession` method signatures, does not add SQL or transaction
-runtime to the public wrapper, and does not implement global-stop persistence.
+runtime to the public wrapper, and does not implement public global-stop
+persistence.
 
 ## Public Vocabulary
 
@@ -211,8 +212,9 @@ preflight reasons to public `TransitionApplyPreflightError`.
 operation guard and raises `writer_session_mutation_unavailable`.
 
 `sqlite_writer_session.py` contains no SQL or transaction grammar and does not
-acquire the mutation lease. B3c4b remains the sole atomic transaction owner. B4
-remains future for global-stop persistence.
+acquire the mutation lease. The private mutation transaction module remains the
+sole atomic transaction owner. B4b adds only a private global-stop persistence
+entry; B4c remains future for public global-stop delegation.
 
 This tranche proves no production admission, authorization, worker,
 orchestration, publication, related-repository authority, executable A2

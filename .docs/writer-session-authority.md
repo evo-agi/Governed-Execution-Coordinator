@@ -12,9 +12,12 @@ unavailable.
 B2b implements the common advisory lock and integrates it with SQLite
 initialize/migrate administration. B2c adds durable generation issuance,
 private proof generation and verification, `writer_ownership` acquisition
-updates, and an internal concrete `WriterSession`. No public `StateStore`
-mutation backend, global-stop persistence, worker, service, scheduler,
-executable authorization, repair, publication, or deployment behavior exists.
+updates, and an internal concrete `WriterSession`. Private transition
+persistence and B4b private global-stop persistence exist through the neutral
+mutation authority, and public transition delegation exists. Public global-stop
+delegation remains unavailable until B4c. No general public `StateStore`
+mutation backend, worker, service, scheduler, executable authorization, repair,
+publication, or deployment behavior exists.
 B2c implements an internal concrete `WriterSession`. B3c1a implements only the
 private resource-owned mutation slot, mutation lease, operation-lease authority
 checks, and durable-issuance verification. B3c1b implements only the private
@@ -73,9 +76,11 @@ public errors, reports, metadata, equality, hashing, or repr output.
 `WriterSession` is the opaque live mutation capability. In B2c the concrete
 SQLite session is internal. It owns the advisory-lock object, owns the private
 credential, is bound to the acquiring process, and has an
-active/closing/cleaning/closed lifecycle. Mutation methods exist on the session
-surface but fail locally with
-`writer_session_mutation_unavailable` until B3/B4 implement storage.
+active/closing/cleaning/closed lifecycle. Public `apply_transition()` is guarded
+delegation into private atomic persistence. Public
+`apply_global_stop_update()` still fails locally with
+`writer_session_mutation_unavailable` until B4c; B4b private persistence has no
+public global-stop caller.
 B3c1a implements the private slot that uses
 `writer_session_mutation_in_progress` for a second concurrent private mutation
 attempt on the same session. Public mutation methods still do not acquire that
@@ -114,30 +119,29 @@ outside `WriterSession`. There is no `current_writer()` read surface and no
 `read_latest_writer_issuance()` read surface. Direct SQLite inspection remains
 test-only under temporary roots.
 
-B3b2a adds a private `_TransitionReadCapability` protocol for future
-B3c-managed transition transactions, but it is not writer authority, not public
-read authority, not a `StateStore` method, not a database handle for callers,
-and not a concrete production capability. B3b2b consumes that protocol from
-private SELECT readers and verifies only that the borrowed object is a
-`sqlite3.Connection`; this helper check is not an authority check and does not
-prove transaction identity. `connection.in_transaction` is not transaction
-identity and does not prove `BEGIN IMMEDIATE`, writer fencing, private proof
-possession, or B2 operation guard ownership. Future B3c must create one
-concrete opaque epoch only after those gates, invalidate it before commit or
-rollback, and reject old epochs after transaction end or restart on the same
+B3b2a added a private reader-capability protocol now neutralized as
+`_MutationReadCapability` for Coordinator mutation transactions, but it is not
+writer authority, not public read authority, not a `StateStore` method, not a
+database handle for callers, and not a concrete production capability. B3b2b
+consumes that protocol from private SELECT readers and verifies only that the
+borrowed object is a `sqlite3.Connection`; this helper check is not an authority
+check and does not prove transaction identity. `connection.in_transaction` is
+not transaction identity and does not prove `BEGIN IMMEDIATE`, writer fencing,
+private proof possession, or B2 operation guard ownership. The concrete runtime
+creates one opaque epoch only after those gates, invalidates it before commit or
+rollback, and rejects old epochs after transaction end or restart on the same
 connection.
 B3c0a additionally pins that the concrete capability is nominal. B3c1
 prerequisites in `.docs/b3c1-prerequisite-contract.md` reconcile production
-reachability: the capability is created only by one private transition
-transaction controller. B3c4b renames that class to
-`_TransitionTransactionController` and adds the private atomic entry without a
-second controller or capability constructor. There is one controller
-construction path. Future production invocation may occur only from
-`_SQLiteWriterSession.apply_transition()`.
-During B3c4b, the controller has no public production caller, and coherent
-tests may invoke the same private controller directly through private imports
-without adding a separate source-level `for_test` factory. The controller entry
-points accept only the active operation lease; they derive the private
+reachability: the capability is created only by one private transaction
+controller, now `_CoordinatorMutationTransactionController`, without a second
+controller or capability constructor. There is one controller construction path.
+Public production invocation for transitions occurs only from
+`_SQLiteWriterSession.apply_transition()`; B4b adds a private global-stop entry
+with no public caller. Coherent tests may invoke the same private controller
+directly through private imports without adding a separate source-level
+`for_test` factory. The controller entry points accept only the active operation
+lease; they derive the private
 state-database filesystem binding from
 the WriterSession resource after mutation-slot acquisition. That binding
 contains the exact CoordinatorStateLocation, state-root identity,
@@ -230,8 +234,9 @@ Future `WriterSession` mutation calls use this order:
    private preflight objects remain mutation-store integrity failures, and
    import/load failures remain mutation failures.
 
-4. In B3c1a private plumbing and B3c4b transition mutation runtime, acquire the
-   shared per-session mutation slot.
+4. In B3c1a private plumbing, B3c4b transition mutation runtime, and B4b
+   private global-stop mutation runtime, acquire the shared per-session mutation
+   slot.
 
    If another mutation transaction is active on the same session, fail locally
    with `writer_session_mutation_in_progress`. No SQLite connection opens, no
@@ -562,14 +567,16 @@ preflight runs before mutation-slot acquisition. Public mutation methods still
 raise `writer_session_mutation_unavailable` and have no production call into
 that private dry-run path.
 B3c4a does not change writer-session authority. It adds only private
-pure/static transition write and commit-resolution contracts and is not
-imported by `_SQLiteWriterSession`. B3c4b consumes those contracts only from
-the private transaction module. B3c4c makes public
+pure/static transition write and the then-transition-owned commit-resolution
+contracts later neutralized by B4b; it is not imported by
+`_SQLiteWriterSession`. B3c4b consumes those contracts only from the private
+transaction module. B3c4c makes public
 `apply_transition(command)` enter the existing operation guard, perform bounded
 function-local imports, map only the exact private preflight reasons, and
 delegate exactly once to the B3c4b atomic entry with the operation lease and
-caller command. Public `apply_global_stop_update()` remains unavailable until
-B4.
+caller command. B4b adds private global-stop persistence through the same
+mutation authority but no public caller. Public `apply_global_stop_update()`
+remains unavailable until B4c.
 
 ## Non-Goals
 

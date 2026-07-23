@@ -10,13 +10,13 @@ B3c2 adds only private readers for already fenced B3c transactions:
 
 ```python
 def _read_transition_event_for_idempotency(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     work_item_id: str,
     idempotency_key: str,
 ) -> TransitionEventRecordEnvelope | None: ...
 
 def _read_transition_event_max_sequence(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
 ) -> int | None: ...
 ```
 
@@ -28,12 +28,13 @@ rollback-only dry-run transaction after writer fencing and capability creation.
 
 ## Shared SELECT Support
 
-`sqlite_transition_select_support.py` owns only mechanical transaction-SELECT
-support shared by B3b2b and B3c2:
+`sqlite_transition_select_support.py` owns only mechanical Coordinator mutation
+transaction-SELECT support shared by B3b2b, B3c2, and B4a/B4b global-stop
+readers:
 
-- `_TransitionReadCapability`;
-- `_TransitionReadCapabilityError`;
-- `_TransitionReadCapabilityFailureReason`;
+- `_MutationReadCapability`;
+- `_MutationReadCapabilityError`;
+- `_MutationReadCapabilityFailureReason`;
 - safe capability connection borrowing;
 - cursor execute, `fetchmany(2)`, and close lifecycle;
 - SQLite SELECT error classification;
@@ -112,7 +113,7 @@ production-unintegrated.
 
 ## Capability And Transaction Ownership
 
-Both readers accept only `_TransitionReadCapability`. They do not accept raw
+Both readers accept only `_MutationReadCapability`. They do not accept raw
 `sqlite3.Connection`, `CoordinatorStateLocation`, filesystem binding,
 `WriterSession`, operation lease, mutation lease, controller, or epoch objects.
 
@@ -122,7 +123,7 @@ close. The B3c2 readers never begin, commit, roll back, close a connection, or
 invalidate a capability.
 
 Tests prove the readers work through the real B3c1b rollback-only controller by
-monkeypatching only `_create_sqlite_transition_read_capability` to invoke the
+monkeypatching only `_create_sqlite_mutation_read_capability` to invoke the
 readers while the transaction is active, then returning the real capability to
 the controller. The controller still invalidates, rolls back, closes, and
 releases normally, and the captured capability is expired after cleanup. The

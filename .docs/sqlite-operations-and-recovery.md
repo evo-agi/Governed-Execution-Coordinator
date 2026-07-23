@@ -5,8 +5,9 @@ shared state-authority advisory lock for initialize/migrate administration.
 B2c adds durable writer issuance and internal writer-session acquisition. B3a
 adds contract-only future transition persistence rules. B3c1b adds private
 rollback-only writer fencing with no public mutation runtime. B3c4b adds
-private atomic transition persistence with commit uncertainty handling, still
-with no public mutation runtime.
+private atomic transition persistence with commit uncertainty handling, B3c4c
+adds public transition delegation, and B4b adds private global-stop persistence
+while public global-stop delegation remains unavailable.
 
 ## Filesystem Posture
 
@@ -161,8 +162,9 @@ before releasing resources, waits for any private operation guard to exit,
 lets exactly one cleanup owner enter cleaning, best-effort overwrites and drops
 the private proof, closes the common lock, then publishes closed. Concurrent
 explicit close callers wait for closed. Close performs no SQLite update, delete,
-release marker, or generation reset. Mutation methods currently enter the
-private guard and then fail locally with
+release marker, or generation reset. Public transition mutation now delegates
+through the private guarded path; public global-stop mutation currently enters
+the private guard and then fails locally with
 `writer_session_mutation_unavailable`.
 
 ## B3a Future Mutation Error Contract
@@ -178,10 +180,9 @@ SQLite exception text, paths, canonical JSON, rows, proof material, proof
 digests, credentials, endpoints, or secrets.
 
 `mutation_failed` means rollback/no commit is definite before a commit attempt.
-`commit_outcome_unknown` means a B3c4b private caller must retry with the same
-idempotency key and digest; exact replay resolves whether the prior attempt
-committed. B3a itself does not implement commit, rollback, idempotency, or
-replay runtime.
+`commit_outcome_unknown` means the caller must retry with the same idempotency
+key and digest; exact replay resolves whether the prior attempt committed. B3a
+itself does not implement commit, rollback, idempotency, or replay runtime.
 
 ## Backup
 

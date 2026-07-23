@@ -27,7 +27,7 @@ B3b2b owns only:
 - lookup-ref validation before capability borrowing for work item, decision,
   and backlog refs;
 - using the shared private SELECT support to borrow a SQLite connection through
-  the private `_TransitionReadCapability` protocol method only;
+  the private `_MutationReadCapability` protocol method only;
 - executing one immutable explicit-column parameterized `SELECT ... WHERE ... =
   ? LIMIT 2` spec;
 - calling `fetchmany(2)`;
@@ -47,14 +47,14 @@ worker/service behavior, or migration 0002.
 
 ## Capability
 
-`_TransitionReadCapability` remains structural shape only. Protocol conformance
-is not authority. The B3b2b helper calls only
+`_MutationReadCapability` remains structural shape only. Protocol conformance is
+not authority. The B3b2b helper calls only
 `_borrow_connection_for_select()` and requires the returned object to be a
 `sqlite3.Connection`; a wrong returned type fails safely with
-`transition_read_capability_unavailable`. Safe capability-expired,
+`mutation_read_capability_unavailable`. Safe capability-expired,
 process-mismatch, and thread-mismatch errors raised by a future B3c capability
 are preserved unchanged. Any other ordinary exception raised while borrowing is
-converted to `transition_read_capability_unavailable` after the raw exception has
+converted to `mutation_read_capability_unavailable` after the raw exception has
 left active exception context, so raw exception text, capability details, notes,
 causes, contexts, and traceback content do not survive on the safe error.
 

@@ -2,7 +2,7 @@
 
 B3c4a is a pure/static prerequisite tranche for B3c4 durable transition
 persistence. It freezes write specifications, value builders, a private planned
-transition-write container, commit-resolution state vocabulary, SQLite
+transition-write container, then-transition-owned commit-resolution state vocabulary, SQLite
 classification, retry, proof, public-integration, and B4-separation contracts.
 It performs no SQLite mutation, opens no database handle, integrates no
 transaction controller, attempts no commit, and changes no public
@@ -206,7 +206,8 @@ produce `SQLiteMutationStoreError(database_integrity_failure)`.
 
 ## Commit Resolution
 
-B3c4a pins the future private state vocabulary:
+B3c4a pinned the private state vocabulary later moved by B4b to the neutral
+`sqlite_mutation_transaction_contracts.py` module:
 
 - `new`;
 - `transaction_active`;
@@ -284,13 +285,14 @@ establish missing successful graph milestones. B3c4b must enforce the graph for
 successful state transitions and must not fabricate transitions on cleanup
 failure.
 
-B3c4a does not implement these transitions against a live controller. B3c4b
-consumes this vocabulary in the private transaction controller and remains
-responsible for enforcing graph-covered successful milestones without
-fabricating cleanup milestones on failure. B3c4b must invalidate the capability
-before commit attempt, must not roll back after commit attempt in a way that
-claims non-commit, and must not infer commit success from connection state
-alone.
+B3c4a did not implement these transitions against a live controller. B3c4b
+consumed this vocabulary in the private transaction controller. B4b preserves
+the exact vocabulary and edge semantics under neutral mutation names so both
+transition and global-stop private apply use one graph. The live runtime
+remains responsible for enforcing graph-covered successful milestones without
+fabricating cleanup milestones on failure, invalidating the capability before
+commit attempt, avoiding rollback after commit attempt in a way that claims
+non-commit, and never inferring commit success from connection state alone.
 
 ## SQLite Classification
 
@@ -364,8 +366,11 @@ preflight mapping, the function-local import boundary, and the guarded public
 delegate call. The public wrapper does not use a broad delegate-execution
 catch-all that can turn commit uncertainty into definite `mutation_failed`.
 
-`apply_global_stop_update()` remains unavailable until B4. No public database
-reader/store is added, and `StateStore` is not widened by B3c4a or B3c4b.
+`apply_global_stop_update()` remains unavailable through B4b and until B4c.
+B4b now implements private atomic global-stop persistence through the one
+neutral Coordinator mutation authority, but B4c remains the future guarded
+public global-stop delegation tranche. No public database reader/store is added,
+and `StateStore` is not widened by B4b.
 
 ## Proof Matrix
 
@@ -411,6 +416,8 @@ no repair, no repository commit, no publication, no Bridge/Codex invocation,
 no Connector, CLI, or MCP execution, and no related-repository lifecycle
 authority.
 
-B4 remains the sole future persistent global-stop tranche. After B3c4 and B4,
-the Coordinator durable-state program should freeze before cross-repository
-integration continues elsewhere.
+B3c4a transition write contracts still do not own global-stop event or CAS
+grammar, even though B4b private persistence now exists elsewhere. Receipt
+provisioning remains a separately governed reopened seam and is not supplied by
+B4b. After B4c is complete and audited, the Coordinator durable-state program
+may freeze before cross-repository integration resumes elsewhere.

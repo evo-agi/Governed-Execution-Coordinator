@@ -1,4 +1,4 @@
-"""Private transition transaction controller for fenced Coordinator mutations."""
+"""Private Coordinator mutation transaction controller for fenced mutations."""
 
 from __future__ import annotations
 
@@ -9,15 +9,27 @@ import sqlite3
 from threading import get_ident
 from typing import Any
 
+from ge_nwp_coordinator.global_stop import (
+    GlobalStopCommand,
+    GlobalStopEvaluation,
+    GlobalStopEvaluationKind,
+    GlobalStopEvent,
+    GlobalStopOperatorDecision,
+    GlobalStopState,
+    evaluate_global_stop_update,
+)
 from ge_nwp_coordinator.lease import derive_lease_runtime_decision
 from ge_nwp_coordinator.persistence_contracts import (
     AdmittedBacklogRecordEnvelope,
     AuthorizationReceiptEnvelope,
     DependencyReceiptEnvelope,
     GlobalStopCurrentRecordEnvelope,
+    GlobalStopOperatorDecisionReceiptEnvelope,
     LeaseIdentityRecordEnvelope,
     WorkItemRecordEnvelope,
+    match_global_stop_event_idempotency,
     match_transition_event_idempotency,
+    next_global_stop_event_sequence,
     next_transition_event_sequence,
     normalize_transaction_timestamp,
 )
@@ -36,6 +48,27 @@ from ge_nwp_coordinator.sqlite_security import (
     _StateDatabaseAuthorityBindingMismatch,
     _StateDatabaseAuthorityBindingUnavailable,
     _validate_state_database_authority_binding,
+)
+from ge_nwp_coordinator.sqlite_global_stop_preflight_contracts import (
+    _bind_global_stop_operator_decision_receipt,
+    _validate_global_stop_apply_preflight,
+)
+from ge_nwp_coordinator.sqlite_global_stop_readers import (
+    _read_global_stop_event_for_idempotency,
+    _read_global_stop_event_max_sequence,
+    _read_global_stop_operator_decision_receipt,
+)
+from ge_nwp_coordinator.sqlite_global_stop_write_contracts import (
+    _ACCEPTED_GLOBAL_STOP_CURRENT_CAS_SPEC,
+    _GLOBAL_STOP_EVENT_INSERT_SPEC,
+    _AcceptedGlobalStopCurrentCasValues,
+    _GlobalStopEventInsertValues,
+    _GlobalStopWritePlan,
+    _global_stop_write_plan,
+)
+from ge_nwp_coordinator.sqlite_mutation_transaction_contracts import (
+    _MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS,
+    _MutationCommitResolutionState,
 )
 from ge_nwp_coordinator.sqlite_transition_dry_run_contracts import (
     _bind_b3c3_transition_authority,
@@ -59,8 +92,8 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _read_lease_identity_record,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
 )
 from ge_nwp_coordinator.sqlite_writer_session import (
     _WriterIssuanceMatch,
@@ -75,9 +108,7 @@ from ge_nwp_coordinator.sqlite_writer_state import (
 from ge_nwp_coordinator.sqlite_transition_write_contracts import (
     _ACCEPTED_WORK_ITEM_CAS_SPEC,
     _TRANSITION_EVENT_INSERT_SPEC,
-    _TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS,
     _AcceptedWorkItemCasValues,
-    _TransitionCommitResolutionState,
     _TransitionEventInsertValues,
     _TransitionWritePlan,
     _transition_write_plan,
@@ -94,7 +125,10 @@ from ge_nwp_coordinator.state_machine import (
     evaluate_transition,
 )
 from ge_nwp_coordinator.state_store import (
+    CommittedGlobalStopUpdate,
     CommittedTransition,
+    GlobalStopApplyOutcome,
+    GlobalStopConflict,
     TransitionApplyOutcome,
     TransitionConflict,
     WriterSessionError,
@@ -203,7 +237,41 @@ class _FreshTransitionEvaluation:
         return "<_FreshTransitionEvaluation>"
 
 
-class _TransactionCapabilityState:
+@dataclass(frozen=True, slots=True, repr=False)
+class _FreshGlobalStopEvaluation:
+    """Private fresh global-stop evaluator output awaiting durable write planning."""
+
+    source_state: GlobalStopState = field(repr=False)
+    evaluation: GlobalStopEvaluation = field(repr=False)
+    transaction_timestamp: str
+
+    def __post_init__(self) -> None:
+        source_state = _require_initialized_global_stop_state_for_mutation(self.source_state)
+        evaluation = _require_initialized_global_stop_evaluation_for_mutation(self.evaluation)
+        timestamp = normalize_transaction_timestamp(self.transaction_timestamp)
+        if evaluation.kind is GlobalStopEvaluationKind.PRE_APPLY_INVALID:
+            raise _database_integrity_failure()
+        if evaluation.kind not in (GlobalStopEvaluationKind.ACCEPTED, GlobalStopEvaluationKind.DOMAIN_REJECTED):
+            raise _database_integrity_failure()
+        event = evaluation.event
+        if type(event) is not GlobalStopEvent:
+            raise _database_integrity_failure()
+        if event.source_version != source_state.version:
+            raise _database_integrity_failure()
+        if evaluation.kind is GlobalStopEvaluationKind.ACCEPTED:
+            if evaluation.state.version != source_state.version + 1:
+                raise _database_integrity_failure()
+        elif evaluation.state != source_state:
+            raise _database_integrity_failure()
+        object.__setattr__(self, "source_state", source_state)
+        object.__setattr__(self, "evaluation", evaluation)
+        object.__setattr__(self, "transaction_timestamp", timestamp)
+
+    def __repr__(self) -> str:
+        return "<_FreshGlobalStopEvaluation>"
+
+
+class _MutationCapabilityState:
     """Controller-owned mutable state for one transaction epoch."""
 
     __slots__ = ("_active", "_connection", "_connection_identity", "_epoch", "_permanently_expired")
@@ -219,7 +287,7 @@ class _TransactionCapabilityState:
         self._permanently_expired = False
 
     def __repr__(self) -> str:
-        return "<_TransactionCapabilityState>"
+        return "<_MutationCapabilityState>"
 
     def __reduce__(self) -> object:
         raise TypeError("invalid capability input")
@@ -235,12 +303,12 @@ class _TransactionCapabilityState:
 
     def borrow(self, *, epoch: object, connection_identity: int) -> sqlite3.Connection:
         if self._permanently_expired or not self._active:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         if epoch is not self._epoch:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         connection = self._connection
         if type(connection) is not sqlite3.Connection or id(connection) != connection_identity:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
         unavailable = False
         try:
             in_transaction = connection.in_transaction
@@ -248,14 +316,14 @@ class _TransactionCapabilityState:
             unavailable = True
             in_transaction = False
         if unavailable:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
         if in_transaction is not True:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         return connection
 
 
-class _SQLiteTransitionReadCapability:
-    """Nominal private transition-read capability for one active transaction."""
+class _SQLiteMutationReadCapability:
+    """Nominal private mutation-read capability for one active transaction."""
 
     __slots__ = ("_connection_identity", "_epoch", "_owner_pid", "_owner_thread", "_state")
     __hash__ = object.__hash__
@@ -268,11 +336,11 @@ class _SQLiteTransitionReadCapability:
         epoch: object,
         owner_pid: int,
         owner_thread: int,
-        state: _TransactionCapabilityState,
+        state: _MutationCapabilityState,
     ) -> None:
         if key is not _CAPABILITY_CONSTRUCTION_KEY:
             raise ValueError("invalid capability input")
-        if type(connection) is not sqlite3.Connection or type(state) is not _TransactionCapabilityState:
+        if type(connection) is not sqlite3.Connection or type(state) is not _MutationCapabilityState:
             raise ValueError("invalid capability input")
         if type(owner_pid) is not int or type(owner_thread) is not int:
             raise ValueError("invalid capability input")
@@ -283,34 +351,34 @@ class _SQLiteTransitionReadCapability:
         self._owner_thread = owner_thread
 
     def __repr__(self) -> str:
-        return "<_SQLiteTransitionReadCapability>"
+        return "<_SQLiteMutationReadCapability>"
 
     def __reduce__(self) -> object:
         raise TypeError("invalid capability input")
 
     def _borrow_connection_for_select(self) -> sqlite3.Connection:
         if self._owner_pid != os.getpid():
-            raise _capability_error(_TransitionReadCapabilityFailureReason.PROCESS_MISMATCH)
+            raise _capability_error(_MutationReadCapabilityFailureReason.PROCESS_MISMATCH)
         if self._owner_thread != get_ident():
-            raise _capability_error(_TransitionReadCapabilityFailureReason.THREAD_MISMATCH)
+            raise _capability_error(_MutationReadCapabilityFailureReason.THREAD_MISMATCH)
         state = self._state
-        if type(state) is not _TransactionCapabilityState:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+        if type(state) is not _MutationCapabilityState:
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
         unavailable = False
         try:
             connection = state.borrow(epoch=self._epoch, connection_identity=self._connection_identity)
-        except _TransitionReadCapabilityError:
+        except _MutationReadCapabilityError:
             raise
         except Exception:
             unavailable = True
             connection = None
         if unavailable or type(connection) is not sqlite3.Connection:
-            raise _capability_error(_TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+            raise _capability_error(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
         return connection
 
 
-class _TransitionTransactionController:
-    """Private single-use transaction controller for transition mutation entries."""
+class _CoordinatorMutationTransactionController:
+    """Private single-use transaction controller for Coordinator mutation entries."""
 
     __slots__ = (
         "_capability",
@@ -341,16 +409,16 @@ class _TransitionTransactionController:
         self._owner_pid = os.getpid()
         self._owner_thread = get_ident()
         self._state = _CONTROLLER_NEW
-        self._resolution_state = _TransitionCommitResolutionState.NEW
+        self._resolution_state = _MutationCommitResolutionState.NEW
         self._commit_attempt_started = False
         self._connection: sqlite3.Connection | None = None
         self._transaction_began = False
         self._epoch: object | None = None
-        self._capability_state: _TransactionCapabilityState | None = None
-        self._capability: _SQLiteTransitionReadCapability | None = None
+        self._capability_state: _MutationCapabilityState | None = None
+        self._capability: _SQLiteMutationReadCapability | None = None
 
     def __repr__(self) -> str:
-        return "<_TransitionTransactionController>"
+        return "<_CoordinatorMutationTransactionController>"
 
     def __reduce__(self) -> object:
         raise TypeError("invalid controller input")
@@ -382,6 +450,24 @@ class _TransitionTransactionController:
             raise _mutation_failed()
         result = self._run_atomic_transition_apply_transaction(transition_command=transition_command)
         if type(result) not in (CommittedTransition, TransitionConflict):
+            raise _mutation_failed()
+        return result
+
+    def run_atomic_global_stop_apply(
+        self,
+        *,
+        global_stop_command: GlobalStopCommand,
+        typed_operator_decision: GlobalStopOperatorDecision,
+    ) -> GlobalStopApplyOutcome:
+        if type(global_stop_command) is not GlobalStopCommand:
+            raise _mutation_failed()
+        if type(typed_operator_decision) is not GlobalStopOperatorDecision:
+            raise _mutation_failed()
+        result = self._run_atomic_global_stop_apply_transaction(
+            global_stop_command=global_stop_command,
+            typed_operator_decision=typed_operator_decision,
+        )
+        if type(result) not in (CommittedGlobalStopUpdate, GlobalStopConflict):
             raise _mutation_failed()
         return result
 
@@ -496,6 +582,53 @@ class _TransitionTransactionController:
             raise _mutation_failed()
         return planned_result
 
+    def _run_atomic_global_stop_apply_transaction(
+        self,
+        *,
+        global_stop_command: GlobalStopCommand,
+        typed_operator_decision: GlobalStopOperatorDecision,
+    ) -> GlobalStopApplyOutcome:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: GlobalStopApplyOutcome | None = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                resolution = self._run_until_global_stop_resolution(
+                    global_stop_command,
+                    typed_operator_decision,
+                )
+                if type(resolution) is _FreshGlobalStopEvaluation:
+                    planned_result = self._commit_fresh_global_stop(resolution)
+                elif type(resolution) in (CommittedGlobalStopUpdate, GlobalStopConflict):
+                    planned_result = resolution
+                    cleanup_exception = self._resolve_rollback_before_commit()
+                else:
+                    planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
     def _acquire_controller_mutation_lease(self) -> Any:
         mutation_lease_failed = False
         mutation_lease_exception: SQLiteMutationStoreError | None = None
@@ -521,7 +654,7 @@ class _TransitionTransactionController:
     def _require_new_owner(self) -> None:
         if self._state != _CONTROLLER_NEW:
             raise _mutation_failed()
-        if self._resolution_state is not _TransitionCommitResolutionState.NEW:
+        if self._resolution_state is not _MutationCommitResolutionState.NEW:
             raise _mutation_failed()
         if self._owner_pid != os.getpid() or self._owner_thread != get_ident():
             raise _mutation_failed()
@@ -533,17 +666,17 @@ class _TransitionTransactionController:
         _begin_immediate(connection)
         self._transaction_began = True
         self._state = _CONTROLLER_TRANSACTION_ACTIVE
-        self._set_resolution_state(_TransitionCommitResolutionState.TRANSACTION_ACTIVE)
+        self._set_resolution_state(_MutationCommitResolutionState.TRANSACTION_ACTIVE)
         _validate_bound_database_for_mutation(binding)
         _validate_managed_connection_for_mutation(connection)
         issuance = _read_writer_ownership_for_fencing(connection)
         result = self._operation_lease._verify_durable_writer_issuance(issuance)
         if result is _WriterIssuanceMatch.MATCH:
             self._state = _CONTROLLER_FENCED
-            self._set_resolution_state(_TransitionCommitResolutionState.FENCED)
+            self._set_resolution_state(_MutationCommitResolutionState.FENCED)
             self._epoch = object()
-            self._capability_state = _TransactionCapabilityState(connection=connection, epoch=self._epoch)
-            self._capability = _create_sqlite_transition_read_capability(
+            self._capability_state = _MutationCapabilityState(connection=connection, epoch=self._epoch)
+            self._capability = _create_sqlite_mutation_read_capability(
                 connection=connection,
                 epoch=self._epoch,
                 owner_pid=self._owner_pid,
@@ -551,11 +684,11 @@ class _TransitionTransactionController:
                 state=self._capability_state,
             )
             self._state = _CONTROLLER_CAPABILITY_ACTIVE
-            self._set_resolution_state(_TransitionCommitResolutionState.CAPABILITY_ACTIVE)
+            self._set_resolution_state(_MutationCommitResolutionState.CAPABILITY_ACTIVE)
             return _WriterIssuanceMatch.MATCH
         if result is _WriterIssuanceMatch.STALE_WRITER:
             self._state = _CONTROLLER_FENCED
-            self._set_resolution_state(_TransitionCommitResolutionState.FENCED)
+            self._set_resolution_state(_MutationCommitResolutionState.FENCED)
             return _WriterIssuanceMatch.STALE_WRITER
         raise _mutation_failed()
 
@@ -570,7 +703,7 @@ class _TransitionTransactionController:
             raise _mutation_failed()
 
         capability = self._capability
-        if type(capability) is not _SQLiteTransitionReadCapability:
+        if type(capability) is not _SQLiteMutationReadCapability:
             raise _mutation_failed()
         existing = _read_transition_event_for_idempotency(
             capability,
@@ -652,6 +785,66 @@ class _TransitionTransactionController:
             transaction_timestamp=timestamp,
         )
 
+    def _run_until_global_stop_resolution(
+        self,
+        command: GlobalStopCommand,
+        typed_operator_decision: GlobalStopOperatorDecision,
+    ) -> CommittedGlobalStopUpdate | GlobalStopConflict | _FreshGlobalStopEvaluation:
+        fencing = self._run_until_writer_fencing_resolution()
+        if fencing is _WriterIssuanceMatch.STALE_WRITER:
+            return GlobalStopConflict("stale_writer_token")
+        if fencing is not _WriterIssuanceMatch.MATCH:
+            raise _mutation_failed()
+
+        capability = self._capability
+        if type(capability) is not _SQLiteMutationReadCapability:
+            raise _mutation_failed()
+        existing = _read_global_stop_event_for_idempotency(capability, command.idempotency_key)
+        matched = match_global_stop_event_idempotency(existing, command)
+        if type(matched) is CommittedGlobalStopUpdate:
+            return matched
+        if type(matched) is GlobalStopConflict:
+            return matched
+        if matched is not None:
+            raise _database_integrity_failure()
+
+        current_envelope = _read_global_stop_current(capability)
+        if type(current_envelope) is not GlobalStopCurrentRecordEnvelope:
+            raise _database_integrity_failure()
+        current_state = current_envelope.state
+        if type(current_state) is not GlobalStopState:
+            raise _database_integrity_failure()
+        if current_state.version != command.expected_version:
+            return GlobalStopConflict("expected_version_conflict")
+
+        receipt_envelope = _read_global_stop_operator_decision_receipt(
+            capability,
+            command.operator_decision_ref,
+        )
+        if receipt_envelope is not None and type(receipt_envelope) is not GlobalStopOperatorDecisionReceiptEnvelope:
+            raise _database_integrity_failure()
+        bound_decision = _bind_global_stop_operator_decision_receipt(
+            command=command,
+            typed_operator_decision=typed_operator_decision,
+            receipt=receipt_envelope,
+        )
+        if type(bound_decision) is GlobalStopConflict:
+            return bound_decision
+        if type(bound_decision) is not GlobalStopOperatorDecision:
+            raise _database_integrity_failure()
+
+        evaluation = _evaluate_bound_global_stop_update(
+            state=current_state,
+            command=command,
+            operator_decision=bound_decision,
+        )
+        timestamp = _capture_transaction_timestamp()
+        return _FreshGlobalStopEvaluation(
+            source_state=current_state,
+            evaluation=evaluation,
+            transaction_timestamp=timestamp,
+        )
+
     def _commit_fresh_transition(
         self,
         fresh: _FreshTransitionEvaluation,
@@ -660,9 +853,9 @@ class _TransitionTransactionController:
             raise _database_integrity_failure()
         capability = self._capability
         connection = self._connection
-        if type(capability) is not _SQLiteTransitionReadCapability or type(connection) is not sqlite3.Connection:
+        if type(capability) is not _SQLiteMutationReadCapability or type(connection) is not sqlite3.Connection:
             raise _mutation_failed()
-        if self._resolution_state is not _TransitionCommitResolutionState.CAPABILITY_ACTIVE:
+        if self._resolution_state is not _MutationCommitResolutionState.CAPABILITY_ACTIVE:
             raise _mutation_failed()
 
         maximum_sequence = _read_transition_event_max_sequence(capability)
@@ -675,18 +868,63 @@ class _TransitionTransactionController:
         )
         plan = _require_exact_transition_write_plan(plan)
         planned_transition = _require_fresh_planned_transition(plan.planned_transition)
-        self._set_resolution_state(_TransitionCommitResolutionState.PLANNED_OUTCOME)
+        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
 
         _execute_transition_event_insert(connection, plan.event_insert)
         if plan.accepted_work_item_cas is not None:
             _execute_accepted_work_item_cas(connection, plan.accepted_work_item_cas)
-        self._set_resolution_state(_TransitionCommitResolutionState.WRITES_PERFORMED)
+        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
 
+        committed = self._commit_after_fresh_writes(connection, planned_transition)
+        if type(committed) is not CommittedTransition:
+            raise _database_integrity_failure()
+        return committed
+
+    def _commit_fresh_global_stop(
+        self,
+        fresh: _FreshGlobalStopEvaluation,
+    ) -> CommittedGlobalStopUpdate:
+        if type(fresh) is not _FreshGlobalStopEvaluation:
+            raise _database_integrity_failure()
+        capability = self._capability
+        connection = self._connection
+        if type(capability) is not _SQLiteMutationReadCapability or type(connection) is not sqlite3.Connection:
+            raise _mutation_failed()
+        if self._resolution_state is not _MutationCommitResolutionState.CAPABILITY_ACTIVE:
+            raise _mutation_failed()
+
+        maximum_sequence = _read_global_stop_event_max_sequence(capability)
+        event_sequence = next_global_stop_event_sequence(maximum_sequence)
+        plan = _global_stop_write_plan(
+            fresh.evaluation,
+            source_state=fresh.source_state,
+            event_sequence=event_sequence,
+            transaction_timestamp=fresh.transaction_timestamp,
+        )
+        plan = _require_exact_global_stop_write_plan(plan)
+        planned_update = _require_fresh_planned_global_stop_update(plan.planned_update)
+        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+
+        _execute_global_stop_event_insert(connection, plan.event_insert)
+        if plan.accepted_global_stop_current_cas is not None:
+            _execute_accepted_global_stop_current_cas(connection, plan.accepted_global_stop_current_cas)
+        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+
+        committed = self._commit_after_fresh_writes(connection, planned_update)
+        if type(committed) is not CommittedGlobalStopUpdate:
+            raise _database_integrity_failure()
+        return committed
+
+    def _commit_after_fresh_writes(
+        self,
+        connection: sqlite3.Connection,
+        planned_result: object,
+    ) -> object:
         invalidation_failure = self._invalidate_capability_for_resolution()
         if invalidation_failure is not None:
             raise invalidation_failure
-        self._set_resolution_state(_TransitionCommitResolutionState.CAPABILITY_INVALIDATED)
-        self._set_resolution_state(_TransitionCommitResolutionState.COMMIT_ATTEMPT_STARTED)
+        self._set_resolution_state(_MutationCommitResolutionState.CAPABILITY_INVALIDATED)
+        self._set_resolution_state(_MutationCommitResolutionState.COMMIT_ATTEMPT_STARTED)
         self._commit_attempt_started = True
         try:
             commit_failure = _commit_transaction(connection)
@@ -700,19 +938,19 @@ class _TransitionTransactionController:
         self._transaction_began = False
         if commit_failure is not None:
             try:
-                self._set_resolution_state(_TransitionCommitResolutionState.COMMIT_OUTCOME_UNKNOWN)
+                self._set_resolution_state(_MutationCommitResolutionState.COMMIT_OUTCOME_UNKNOWN)
             except SQLiteMutationStoreError:
                 pass
             self._close_after_commit_resolution()
             raise commit_failure
 
         try:
-            self._set_resolution_state(_TransitionCommitResolutionState.COMMIT_SUCCEEDED)
+            self._set_resolution_state(_MutationCommitResolutionState.COMMIT_SUCCEEDED)
         except SQLiteMutationStoreError:
             self._close_after_commit_resolution()
-            return planned_transition
+            return planned_result
         self._close_after_commit_resolution()
-        return planned_transition
+        return planned_result
 
     def _resolve_rollback_before_commit(self) -> SQLiteMutationStoreError | None:
         if self._commit_attempt_started:
@@ -720,7 +958,7 @@ class _TransitionTransactionController:
             return _commit_outcome_unknown()
         self._state = _CONTROLLER_RESOLVING
         cleanup_failure: SQLiteMutationStoreError | None = None
-        capability_invalidated = self._resolution_state is _TransitionCommitResolutionState.CAPABILITY_INVALIDATED
+        capability_invalidated = self._resolution_state is _MutationCommitResolutionState.CAPABILITY_INVALIDATED
         rollback_resolved = False
         if self._capability is not None:
             invalidation_failure = self._invalidate_capability_for_resolution()
@@ -728,7 +966,7 @@ class _TransitionTransactionController:
                 cleanup_failure = invalidation_failure
             else:
                 try:
-                    self._set_resolution_state(_TransitionCommitResolutionState.CAPABILITY_INVALIDATED)
+                    self._set_resolution_state(_MutationCommitResolutionState.CAPABILITY_INVALIDATED)
                     capability_invalidated = True
                 except SQLiteMutationStoreError as exc:
                     cleanup_failure = exc
@@ -741,7 +979,7 @@ class _TransitionTransactionController:
                 cleanup_failure = rollback_failure
             elif capability_invalidated:
                 try:
-                    self._set_resolution_state(_TransitionCommitResolutionState.ROLLBACK_RESOLVED)
+                    self._set_resolution_state(_MutationCommitResolutionState.ROLLBACK_RESOLVED)
                     rollback_resolved = True
                 except SQLiteMutationStoreError as exc:
                     cleanup_failure = exc
@@ -755,7 +993,7 @@ class _TransitionTransactionController:
                 cleanup_failure = close_failure
             elif rollback_resolved:
                 try:
-                    self._set_resolution_state(_TransitionCommitResolutionState.CLOSED)
+                    self._set_resolution_state(_MutationCommitResolutionState.CLOSED)
                 except SQLiteMutationStoreError as exc:
                     cleanup_failure = exc
             self._connection = None
@@ -767,7 +1005,7 @@ class _TransitionTransactionController:
         if capability is None:
             return None
         try:
-            invalidation_failure = _invalidate_sqlite_transition_read_capability(
+            invalidation_failure = _invalidate_sqlite_mutation_read_capability(
                 capability,
                 state=self._capability_state,
                 epoch=self._epoch,
@@ -792,17 +1030,17 @@ class _TransitionTransactionController:
         self._state = _CONTROLLER_CLOSED
         if close_succeeded:
             try:
-                self._set_resolution_state(_TransitionCommitResolutionState.CLOSED)
+                self._set_resolution_state(_MutationCommitResolutionState.CLOSED)
             except SQLiteMutationStoreError:
                 pass
 
-    def _set_resolution_state(self, state: _TransitionCommitResolutionState) -> None:
+    def _set_resolution_state(self, state: _MutationCommitResolutionState) -> None:
         current_state = self._resolution_state
-        if type(current_state) is not _TransitionCommitResolutionState:
+        if type(current_state) is not _MutationCommitResolutionState:
             raise _database_integrity_failure()
-        if type(state) is not _TransitionCommitResolutionState:
+        if type(state) is not _MutationCommitResolutionState:
             raise _database_integrity_failure()
-        if (current_state, state) not in _TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS:
+        if (current_state, state) not in _MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS:
             raise _database_integrity_failure()
         self._resolution_state = state
 
@@ -813,7 +1051,7 @@ def _run_rollback_only_writer_fencing(
 ) -> _WriterIssuanceMatch:
     if type(operation_lease) is not _WriterSessionOperationLease:
         raise _mutation_failed()
-    controller = _TransitionTransactionController(
+    controller = _CoordinatorMutationTransactionController(
         key=_CONTROLLER_CONSTRUCTION_KEY,
         operation_lease=operation_lease,
     )
@@ -828,7 +1066,7 @@ def _run_rollback_only_transition_dry_run(
     if type(operation_lease) is not _WriterSessionOperationLease:
         raise _mutation_failed()
     checked_command = _validate_transition_dry_run_preflight(transition_command)
-    controller = _TransitionTransactionController(
+    controller = _CoordinatorMutationTransactionController(
         key=_CONTROLLER_CONSTRUCTION_KEY,
         operation_lease=operation_lease,
     )
@@ -843,11 +1081,33 @@ def _run_atomic_transition_apply(
     if type(operation_lease) is not _WriterSessionOperationLease:
         raise _mutation_failed()
     checked_command = _validate_transition_dry_run_preflight(transition_command)
-    controller = _TransitionTransactionController(
+    controller = _CoordinatorMutationTransactionController(
         key=_CONTROLLER_CONSTRUCTION_KEY,
         operation_lease=operation_lease,
     )
     return controller.run_atomic_transition_apply(transition_command=checked_command)
+
+
+def _run_atomic_global_stop_apply(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    global_stop_command: GlobalStopCommand,
+    typed_operator_decision: GlobalStopOperatorDecision,
+) -> GlobalStopApplyOutcome:
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        raise _mutation_failed()
+    preflight = _validate_global_stop_apply_preflight(
+        global_stop_command,
+        typed_operator_decision,
+    )
+    controller = _CoordinatorMutationTransactionController(
+        key=_CONTROLLER_CONSTRUCTION_KEY,
+        operation_lease=operation_lease,
+    )
+    return controller.run_atomic_global_stop_apply(
+        global_stop_command=preflight.command,
+        typed_operator_decision=preflight.typed_operator_decision,
+    )
 
 
 def _utc_transaction_timestamp() -> str:
@@ -920,6 +1180,138 @@ def _evaluate_bound_transition(
     raise _database_integrity_failure()
 
 
+def _evaluate_bound_global_stop_update(
+    *,
+    state: GlobalStopState,
+    command: GlobalStopCommand,
+    operator_decision: GlobalStopOperatorDecision,
+) -> GlobalStopEvaluation:
+    evaluator_failed = False
+    evaluation: GlobalStopEvaluation | None = None
+    try:
+        safe_state = _require_initialized_global_stop_state_for_mutation(state)
+        safe_command = _require_initialized_global_stop_command_for_mutation(command)
+        safe_decision = _require_initialized_global_stop_operator_decision_for_mutation(operator_decision)
+        evaluation = evaluate_global_stop_update(safe_state, safe_command, safe_decision)
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        evaluator_failed = True
+    if evaluator_failed:
+        raise _mutation_failed()
+    if type(evaluation) is not GlobalStopEvaluation:
+        raise _database_integrity_failure()
+    if evaluation.kind is GlobalStopEvaluationKind.PRE_APPLY_INVALID:
+        raise _database_integrity_failure()
+    if evaluation.kind in (GlobalStopEvaluationKind.ACCEPTED, GlobalStopEvaluationKind.DOMAIN_REJECTED):
+        return evaluation
+    raise _database_integrity_failure()
+
+
+def _require_initialized_global_stop_command_for_mutation(value: object) -> GlobalStopCommand:
+    try:
+        if type(value) is not GlobalStopCommand:
+            raise _database_integrity_failure()
+        return GlobalStopCommand(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            action=object.__getattribute__(value, "action"),
+            idempotency_key=object.__getattribute__(value, "idempotency_key"),
+            expected_version=object.__getattribute__(value, "expected_version"),
+            source_stop_id=object.__getattribute__(value, "source_stop_id"),
+            stop_id=object.__getattribute__(value, "stop_id"),
+            reason_class=object.__getattribute__(value, "reason_class"),
+            issuer_ref=object.__getattribute__(value, "issuer_ref"),
+            issued_at=object.__getattribute__(value, "issued_at"),
+            operator_decision_ref=object.__getattribute__(value, "operator_decision_ref"),
+            canonical_command_digest=object.__getattribute__(value, "canonical_command_digest"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+
+
+def _require_initialized_global_stop_operator_decision_for_mutation(
+    value: object,
+) -> GlobalStopOperatorDecision:
+    try:
+        if type(value) is not GlobalStopOperatorDecision:
+            raise _database_integrity_failure()
+        return GlobalStopOperatorDecision(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            decision_ref=object.__getattribute__(value, "decision_ref"),
+            authorized=object.__getattribute__(value, "authorized"),
+            reason=object.__getattribute__(value, "reason"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+
+
+def _require_initialized_global_stop_state_for_mutation(value: object) -> GlobalStopState:
+    try:
+        if type(value) is not GlobalStopState:
+            raise _database_integrity_failure()
+        return GlobalStopState(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            version=object.__getattribute__(value, "version"),
+            active=object.__getattribute__(value, "active"),
+            stop_id=object.__getattribute__(value, "stop_id"),
+            reason_class=object.__getattribute__(value, "reason_class"),
+            issuer_ref=object.__getattribute__(value, "issuer_ref"),
+            issued_at=object.__getattribute__(value, "issued_at"),
+            operator_decision_ref=object.__getattribute__(value, "operator_decision_ref"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+
+
+def _require_initialized_global_stop_event_for_mutation(value: object) -> GlobalStopEvent:
+    try:
+        if type(value) is not GlobalStopEvent:
+            raise _database_integrity_failure()
+        return GlobalStopEvent(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            event_ref=object.__getattribute__(value, "event_ref"),
+            command_digest=object.__getattribute__(value, "command_digest"),
+            idempotency_key=object.__getattribute__(value, "idempotency_key"),
+            action=object.__getattribute__(value, "action"),
+            source_version=object.__getattribute__(value, "source_version"),
+            resulting_version=object.__getattribute__(value, "resulting_version"),
+            outcome=object.__getattribute__(value, "outcome"),
+            reason=object.__getattribute__(value, "reason"),
+            operator_decision_ref=object.__getattribute__(value, "operator_decision_ref"),
+            resulting_global_stop_ref=object.__getattribute__(value, "resulting_global_stop_ref"),
+            resulting_status=object.__getattribute__(value, "resulting_status"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+
+
+def _require_initialized_global_stop_evaluation_for_mutation(value: object) -> GlobalStopEvaluation:
+    try:
+        if type(value) is not GlobalStopEvaluation:
+            raise _database_integrity_failure()
+        event = object.__getattribute__(value, "event")
+        if event is not None:
+            event = _require_initialized_global_stop_event_for_mutation(event)
+        return GlobalStopEvaluation(
+            kind=object.__getattribute__(value, "kind"),
+            state=_require_initialized_global_stop_state_for_mutation(object.__getattribute__(value, "state")),
+            event=event,
+            reason=object.__getattribute__(value, "reason"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+
+
 def _dry_run_result_from_transition_resolution(
     resolution: CommittedTransition | TransitionConflict | _FreshTransitionEvaluation,
 ) -> _RollbackOnlyTransitionDryRunResult:
@@ -955,15 +1347,15 @@ def _dry_run_conflict(conflict_class: str) -> _RollbackOnlyTransitionDryRunResul
     )
 
 
-def _create_sqlite_transition_read_capability(
+def _create_sqlite_mutation_read_capability(
     *,
     connection: sqlite3.Connection,
     epoch: object,
     owner_pid: int,
     owner_thread: int,
-    state: _TransactionCapabilityState,
-) -> _SQLiteTransitionReadCapability:
-    return _SQLiteTransitionReadCapability(
+    state: _MutationCapabilityState,
+) -> _SQLiteMutationReadCapability:
+    return _SQLiteMutationReadCapability(
         key=_CAPABILITY_CONSTRUCTION_KEY,
         connection=connection,
         epoch=epoch,
@@ -973,13 +1365,13 @@ def _create_sqlite_transition_read_capability(
     )
 
 
-def _invalidate_sqlite_transition_read_capability(
-    capability: _SQLiteTransitionReadCapability,
+def _invalidate_sqlite_mutation_read_capability(
+    capability: _SQLiteMutationReadCapability,
     *,
-    state: _TransactionCapabilityState | None,
+    state: _MutationCapabilityState | None,
     epoch: object | None,
 ) -> SQLiteMutationStoreError | None:
-    if type(capability) is not _SQLiteTransitionReadCapability or type(state) is not _TransactionCapabilityState:
+    if type(capability) is not _SQLiteMutationReadCapability or type(state) is not _MutationCapabilityState:
         return _mutation_failed()
     try:
         state.invalidate(key=_CAPABILITY_CONSTRUCTION_KEY, epoch=epoch)
@@ -1183,6 +1575,87 @@ def _require_fresh_planned_transition(value: object) -> CommittedTransition:
     return checked
 
 
+def _require_exact_global_stop_write_plan(value: object) -> _GlobalStopWritePlan:
+    if type(value) is not _GlobalStopWritePlan:
+        raise _database_integrity_failure()
+    try:
+        return _GlobalStopWritePlan(
+            planned_update=value.planned_update,
+            event_insert=value.event_insert,
+            accepted_global_stop_current_cas=value.accepted_global_stop_current_cas,
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+
+
+def _require_exact_global_stop_event_insert_values(value: object) -> _GlobalStopEventInsertValues:
+    if type(value) is not _GlobalStopEventInsertValues:
+        raise _database_integrity_failure()
+    try:
+        checked = _GlobalStopEventInsertValues(
+            spec=value.spec,
+            parameters=value.parameters,
+            event=value.event,
+            replay_state=value.replay_state,
+            event_sequence=value.event_sequence,
+            created_at=value.created_at,
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+    if type(checked.spec) is not type(_GLOBAL_STOP_EVENT_INSERT_SPEC) or checked.spec is not _GLOBAL_STOP_EVENT_INSERT_SPEC:
+        raise _database_integrity_failure()
+    if checked.spec.sql != _GLOBAL_STOP_EVENT_INSERT_SPEC.sql:
+        raise _database_integrity_failure()
+    return checked
+
+
+def _require_exact_accepted_global_stop_current_cas_values(
+    value: object,
+) -> _AcceptedGlobalStopCurrentCasValues:
+    if type(value) is not _AcceptedGlobalStopCurrentCasValues:
+        raise _database_integrity_failure()
+    try:
+        checked = _AcceptedGlobalStopCurrentCasValues(
+            spec=value.spec,
+            parameters=value.parameters,
+            source_state=value.source_state,
+            resulting_state=value.resulting_state,
+            updated_at=value.updated_at,
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
+        raise _database_integrity_failure()
+    if (
+        type(checked.spec) is not type(_ACCEPTED_GLOBAL_STOP_CURRENT_CAS_SPEC)
+        or checked.spec is not _ACCEPTED_GLOBAL_STOP_CURRENT_CAS_SPEC
+    ):
+        raise _database_integrity_failure()
+    if checked.spec.sql != _ACCEPTED_GLOBAL_STOP_CURRENT_CAS_SPEC.sql:
+        raise _database_integrity_failure()
+    return checked
+
+
+def _require_fresh_planned_global_stop_update(value: object) -> CommittedGlobalStopUpdate:
+    if type(value) is not CommittedGlobalStopUpdate:
+        raise _database_integrity_failure()
+    try:
+        checked = CommittedGlobalStopUpdate(
+            state=value.state,
+            event=value.event,
+            replayed=value.replayed,
+        )
+    except Exception:
+        raise _database_integrity_failure()
+    if checked.replayed is not False:
+        raise _database_integrity_failure()
+    return checked
+
+
 def _execute_transition_event_insert(
     connection: sqlite3.Connection,
     values: _TransitionEventInsertValues,
@@ -1214,6 +1687,58 @@ def _execute_accepted_work_item_cas(
     if type(connection) is not sqlite3.Connection:
         raise _mutation_failed()
     checked = _require_exact_accepted_work_item_cas_values(values)
+    cursor: Any | None = None
+    sqlite_failure: SQLiteMutationStoreError | None = None
+    rowcount: Any | None = None
+    try:
+        cursor = connection.execute(checked.spec.sql, checked.parameters)
+        rowcount = cursor.rowcount
+    except sqlite3.Error as raw_sqlite_error:
+        sqlite_failure = _classify_sqlite_write_error(raw_sqlite_error)
+    except Exception:
+        sqlite_failure = _mutation_failed()
+    finally:
+        if cursor is not None:
+            close_failure = _close_cursor_safely(cursor)
+            if sqlite_failure is None and close_failure is not None:
+                sqlite_failure = close_failure
+    if sqlite_failure is not None:
+        raise sqlite_failure
+    if type(rowcount) is not int or rowcount != 1:
+        raise _database_integrity_failure()
+
+
+def _execute_global_stop_event_insert(
+    connection: sqlite3.Connection,
+    values: _GlobalStopEventInsertValues,
+) -> None:
+    if type(connection) is not sqlite3.Connection:
+        raise _mutation_failed()
+    checked = _require_exact_global_stop_event_insert_values(values)
+    cursor: Any | None = None
+    sqlite_failure: SQLiteMutationStoreError | None = None
+    try:
+        cursor = connection.execute(checked.spec.sql, checked.parameters)
+    except sqlite3.Error as raw_sqlite_error:
+        sqlite_failure = _classify_sqlite_write_error(raw_sqlite_error)
+    except Exception:
+        sqlite_failure = _mutation_failed()
+    finally:
+        if cursor is not None:
+            close_failure = _close_cursor_safely(cursor)
+            if sqlite_failure is None and close_failure is not None:
+                sqlite_failure = close_failure
+    if sqlite_failure is not None:
+        raise sqlite_failure
+
+
+def _execute_accepted_global_stop_current_cas(
+    connection: sqlite3.Connection,
+    values: _AcceptedGlobalStopCurrentCasValues,
+) -> None:
+    if type(connection) is not sqlite3.Connection:
+        raise _mutation_failed()
+    checked = _require_exact_accepted_global_stop_current_cas_values(values)
     cursor: Any | None = None
     sqlite_failure: SQLiteMutationStoreError | None = None
     rowcount: Any | None = None
@@ -1295,6 +1820,6 @@ def _commit_outcome_unknown() -> SQLiteMutationStoreError:
 
 
 def _capability_error(
-    reason: _TransitionReadCapabilityFailureReason,
-) -> _TransitionReadCapabilityError:
-    return _TransitionReadCapabilityError(reason)
+    reason: _MutationReadCapabilityFailureReason,
+) -> _MutationReadCapabilityError:
+    return _MutationReadCapabilityError(reason)

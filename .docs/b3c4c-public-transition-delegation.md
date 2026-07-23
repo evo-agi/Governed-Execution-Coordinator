@@ -1,7 +1,7 @@
 # B3c4c Public Transition Delegation
 
-Status: implemented public transition delegation only. Global-stop persistence
-remains unavailable.
+Status: implemented public transition delegation only. Public global-stop
+persistence remains unavailable.
 
 B3c4c makes `_SQLiteWriterSession.apply_transition(command)` functional through
 the existing WriterSession operation guard and the existing private B3c4b atomic
@@ -119,5 +119,6 @@ delegate registry, callback injection, package-root indirection, or generic
 delegate catch-all.
 
 `_SQLiteWriterSession.apply_global_stop_update()` still enters the operation
-guard and raises `writer_session_mutation_unavailable`. B4 remains future for
-global-stop persistence.
+guard and raises `writer_session_mutation_unavailable`. B4b adds only a private
+global-stop persistence entry; B4c remains future for public global-stop
+delegation.

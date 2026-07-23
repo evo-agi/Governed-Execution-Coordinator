@@ -354,17 +354,23 @@ CAS, or commit; B3c4b is the first private persistence/commit tranche.
 B4a freezes prerequisite global-stop contracts in
 `.docs/b4a-global-stop-prerequisite-contracts.md`: public global-stop
 preflight vocabulary, private no-I/O preflight, persisted receipt and
-event/replay row contracts, transaction-internal readers with no production
-caller, table-local sequence allocation, receipt-binding taxonomy, and
-pure/static write grammar. It does not provision receipts, execute mutation
-SQL, begin or commit a transaction, or make `apply_global_stop_update()`
-functional.
+event/replay row contracts, transaction-internal readers, table-local sequence
+allocation, receipt-binding taxonomy, and pure/static write grammar. It does not
+provision receipts or make `apply_global_stop_update()` functional.
 
-Global-stop mutation transaction remains future and unimplemented until B4b. It
-shares the same pre-SQLite authority prefix as transition mutation:
+`.docs/b4b-private-atomic-global-stop-persistence.md`: private atomic
+global-stop persistence through the same neutral mutation controller, read
+capability, mutation slot, bound-open path, and commit-resolution graph as
+transition persistence. It verifies only already-persisted operator-decision
+receipts, persists accepted or domain-rejected events atomically, updates the
+singleton only by accepted CAS, preserves commit uncertainty/retry semantics,
+and still does not make public `apply_global_stop_update()` functional.
+
+The private B4b global-stop mutation transaction shares the same pre-SQLite
+authority prefix as transition mutation:
 
 1. acquire the operation lease; acquisition performs owner-process and active-session validation and returns only after the retained authority lock is confirmed active;
-2. perform existing future global-stop typed command/operator-decision local checks;
+2. perform existing global-stop typed command/operator-decision local checks;
 3. acquire the shared per-session mutation slot;
 4. derive the resource-owned root/lock/database binding from the active operation lease;
 5. open one existing managed read/write connection through that binding;
@@ -380,11 +386,15 @@ shares the same pre-SQLite authority prefix as transition mutation:
 15. load the operator decision receipt;
 16. verify command and typed operator decision against the persisted receipt;
 17. invoke the pure global-stop evaluator with no external I/O;
-18. insert exactly one global-stop event and replay snapshot;
-19. on acceptance, update `global_stop_current`;
-20. on domain rejection, leave `global_stop_current` unchanged;
-21. resolve commit, rollback, and close using the B3c0a transaction precedence;
-22. return the committed event and resulting global-stop state only after resolution.
+18. capture one normalized transaction timestamp only after a fresh evaluation;
+19. read the table-local maximum global-stop event sequence;
+20. allocate the next table-local sequence;
+21. insert exactly one global-stop event and replay snapshot;
+22. on acceptance, update `global_stop_current` by singleton CAS;
+23. on domain rejection, leave `global_stop_current` unchanged;
+24. resolve commit, rollback, and close through the neutral mutation
+    commit-resolution graph;
+25. return the committed event and resulting global-stop state only after resolution.
 
 ## Context Provenance
 
@@ -465,7 +475,11 @@ controller, transaction-resolution close failure remains an independent
 B3c2 transaction-internal reader tests exercise the nominal capability through a
 deadline-bounded fork proof that always reaps children and observes
 `process_mismatch` before inherited connection use.
-No B3/B4 persistence exists.
+B3c4b private transition persistence exists, B3c4c guarded public transition
+delegation exists, and B4b private global-stop persistence exists. Public
+global-stop delegation remains future B4c, operator-decision receipt
+provisioning remains a separate reopened seam, and no schema-ID bump, migration
+0002, production authorization, or orchestration claim is added.
 
 Migration `0001_initial` creates the first schema and seeds only a canonical
 clear `global_stop_current` singleton at version 0. B1.1 validates that
@@ -511,8 +525,15 @@ B3c4b adds private atomic transition apply through the existing controller:
 maximum-sequence read, pure sequence allocation, frozen write-plan consumption,
 transition-event insert, accepted-current CAS, capability invalidation before
 commit, one commit attempt, commit uncertainty classification, and cleanup. It
-still does not add a production read port, global-stop persistence, executable
-A2 behavior, schema-ID bump, or migration 0002.
+still does not add a production read port, public global-stop persistence,
+executable A2 behavior, schema-ID bump, or migration 0002.
+B4b adds private atomic global-stop apply through the same neutral controller:
+idempotency lookup, current-row read, persisted receipt verification, evaluator
+invocation, table-local sequence allocation, global-stop event insert, accepted
+singleton CAS, capability invalidation before commit, one commit attempt, commit
+uncertainty classification, and cleanup. It still does not add receipt
+provisioning, public global-stop delegation, executable A2 behavior, schema-ID
+bump, or migration 0002.
 B3c4c adds only public operation-guarded transition delegation to the B3c4b
 private atomic entry. The public wrapper owns bounded local import,
 private-to-public preflight mapping, and pre-delegate import/load failure

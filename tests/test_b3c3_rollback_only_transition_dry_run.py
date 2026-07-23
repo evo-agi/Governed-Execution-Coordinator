@@ -26,8 +26,8 @@ from ge_nwp_coordinator.sqlite_transition_dry_run_contracts import (
     _TransitionDryRunPreflightFailureReason,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
 )
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
 import ge_nwp_coordinator.sqlite_writer_session as writer_module
@@ -647,8 +647,8 @@ def test_result_cleanup_precedence_slot_release_and_capability_expiration(
         with monkeypatch.context() as lifecycle_patch:
             events: list[str] = []
             captured: list[object] = []
-            original_create = transaction_module._create_sqlite_transition_read_capability
-            original_invalidate = transaction_module._invalidate_sqlite_transition_read_capability
+            original_create = transaction_module._create_sqlite_mutation_read_capability
+            original_invalidate = transaction_module._invalidate_sqlite_mutation_read_capability
             original_rollback = transaction_module._rollback_transaction
             original_close = transaction_module._close_connection
 
@@ -670,8 +670,8 @@ def test_result_cleanup_precedence_slot_release_and_capability_expiration(
                 events.append("close")
                 return original_close(connection)
 
-            lifecycle_patch.setattr(transaction_module, "_create_sqlite_transition_read_capability", create)
-            lifecycle_patch.setattr(transaction_module, "_invalidate_sqlite_transition_read_capability", invalidate)
+            lifecycle_patch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", create)
+            lifecycle_patch.setattr(transaction_module, "_invalidate_sqlite_mutation_read_capability", invalidate)
             lifecycle_patch.setattr(transaction_module, "_rollback_transaction", rollback)
             lifecycle_patch.setattr(transaction_module, "_close_connection", close)
 
@@ -685,18 +685,18 @@ def test_result_cleanup_precedence_slot_release_and_capability_expiration(
     with make_coherent_transition_fixture_for_test(tmp_path / "expired", ready_dependency=True) as fixture:
         _patch_clock(monkeypatch)
         captured = []
-        original_create = transaction_module._create_sqlite_transition_read_capability
+        original_create = transaction_module._create_sqlite_mutation_read_capability
 
         def capture_create(**kwargs: object) -> object:
             capability = original_create(**kwargs)
             captured.append(capability)
             return capability
 
-        monkeypatch.setattr(transaction_module, "_create_sqlite_transition_read_capability", capture_create)
+        monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", capture_create)
         _run_dry_run(fixture)
-        with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+        with pytest.raises(_MutationReadCapabilityError) as exc_info:
             captured[0]._borrow_connection_for_select()
-        assert exc_info.value.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED
+        assert exc_info.value.reason is _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED
 
 
 def test_rollback_and_close_failures_supersede_planned_results(
@@ -721,14 +721,14 @@ def test_capability_wrong_thread_and_fork_fail_closed_after_capture(
     with make_coherent_transition_fixture_for_test(tmp_path, ready_dependency=True) as fixture:
         _patch_clock(monkeypatch)
         captured: list[object] = []
-        original_create = transaction_module._create_sqlite_transition_read_capability
+        original_create = transaction_module._create_sqlite_mutation_read_capability
 
         def create(**kwargs: object) -> object:
             capability = original_create(**kwargs)
             captured.append(capability)
             return capability
 
-        monkeypatch.setattr(transaction_module, "_create_sqlite_transition_read_capability", create)
+        monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", create)
         _run_dry_run(fixture)
         capability = captured[0]
 
@@ -737,15 +737,15 @@ def test_capability_wrong_thread_and_fork_fail_closed_after_capture(
         def borrow_in_thread() -> None:
             try:
                 capability._borrow_connection_for_select()
-            except _TransitionReadCapabilityError as exc:
+            except _MutationReadCapabilityError as exc:
                 thread_results.append(exc.reason.value)
 
         thread = threading.Thread(target=borrow_in_thread)
         thread.start()
         thread.join(5)
         assert not thread.is_alive()
-        assert thread_results == [_TransitionReadCapabilityFailureReason.PROCESS_MISMATCH.value] or thread_results == [
-            _TransitionReadCapabilityFailureReason.THREAD_MISMATCH.value
+        assert thread_results == [_MutationReadCapabilityFailureReason.PROCESS_MISMATCH.value] or thread_results == [
+            _MutationReadCapabilityFailureReason.THREAD_MISMATCH.value
         ]
 
         if not hasattr(os, "fork"):
@@ -757,7 +757,7 @@ def test_capability_wrong_thread_and_fork_fail_closed_after_capture(
             try:
                 try:
                     capability._borrow_connection_for_select()
-                except _TransitionReadCapabilityError as exc:
+                except _MutationReadCapabilityError as exc:
                     os.write(write_fd, exc.reason.value.encode("ascii"))
                 else:
                     os.write(write_fd, b"unexpected")
@@ -770,7 +770,7 @@ def test_capability_wrong_thread_and_fork_fail_closed_after_capture(
         finally:
             os.close(read_fd)
             os.waitpid(child, 0)
-        assert result == _TransitionReadCapabilityFailureReason.PROCESS_MISMATCH.value
+        assert result == _MutationReadCapabilityFailureReason.PROCESS_MISMATCH.value
 
 
 def test_dry_run_does_not_mutate_tables_read_sequence_or_commit(
@@ -819,8 +819,8 @@ def test_public_non_integration_boundaries_remain_closed() -> None:
 def test_static_b3c3_runtime_gates() -> None:
     source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
     dry_run_source = (
-        inspect.getsource(transaction_module._TransitionTransactionController._run_transition_dry_run_transaction)
-        + inspect.getsource(transaction_module._TransitionTransactionController._run_until_transition_resolution)
+        inspect.getsource(transaction_module._CoordinatorMutationTransactionController._run_transition_dry_run_transaction)
+        + inspect.getsource(transaction_module._CoordinatorMutationTransactionController._run_until_transition_resolution)
         + inspect.getsource(transaction_module._evaluate_bound_transition)
     )
 
@@ -832,9 +832,9 @@ def test_static_b3c3_runtime_gates() -> None:
     assert "_run_rollback_only_writer_fencing" in source
     assert "_run_rollback_only_transition_dry_run" in source
     assert "_run_atomic_transition_apply" in source
-    assert source.count("class _TransitionTransactionController") == 1
+    assert source.count("class _CoordinatorMutationTransactionController") == 1
     assert "_RollbackOnlyTransitionTransactionController" not in source
-    assert source.count("def _create_sqlite_transition_read_capability") == 1
+    assert source.count("def _create_sqlite_mutation_read_capability") == 1
     for forbidden in (
         "Callable",
         "callback",

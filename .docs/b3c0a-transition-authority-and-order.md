@@ -41,14 +41,14 @@ one private nominal transaction-read capability. The concrete class is not
 trusted through structural Protocol conformance, is not a public reader, and is
 not package-root exported.
 
-The concrete capability is created only by one private transition transaction
-controller. There is one controller construction path, and that controller path
-is the only path that may construct the nominal capability. Future production
-invocation may occur only from `_SQLiteWriterSession.apply_transition()`. During
-B3c4b, the controller still has no public production caller; coherent tests may
-invoke the same private controller directly through private imports without
-adding a separate source-level `for_test` factory. Direct private test
-invocation is not public or production authority.
+The concrete capability is created only by one private Coordinator mutation
+transaction controller. There is one controller construction path, and that
+controller path is the only path that may construct the nominal capability.
+Public transition invocation occurs only from `_SQLiteWriterSession.apply_transition()`;
+B4b adds only a private global-stop entry. Coherent tests may invoke the same
+private controller directly through private imports without adding a separate
+source-level `for_test` factory. Direct private test invocation is not public or
+production authority.
 
 Capability creation occurs only while one valid `_WriterSessionOperationLease`
 is active and only after:
@@ -71,14 +71,15 @@ transaction on the same connection. The capability is invalidated before commit
 or rollback, invalidation is permanent, and the object must not escape the
 controller lifecycle.
 
-Through B3c4b, `_SQLiteWriterSession.apply_transition()` and
-`_SQLiteWriterSession.apply_global_stop_update()` remain
-`writer_session_mutation_unavailable` and contact no SQLite database.
+After B3c4c, `_SQLiteWriterSession.apply_transition()` delegates to the private
+atomic transition entry. `_SQLiteWriterSession.apply_global_stop_update()`
+remains `writer_session_mutation_unavailable` and contacts no SQLite database.
 
-B3b2a's `_TransitionReadCapability` Protocol remains only the private reader
-shape. B3b2b's structural tests do not prove production transaction authority.
-No B3c capability is created before or during fencing; it is created after
-successful fencing.
+B3b2a's reader Protocol has since been neutralized as
+`_MutationReadCapability`; it remains only the private reader shape. B3b2b's
+structural tests do not prove production transaction authority. No B3c
+capability is created before or during fencing; it is created after successful
+fencing.
 
 ## Operation Guard And Private Credential Boundary
 
@@ -318,15 +319,15 @@ is `mutation_failed` with no event and no fabricated result.
 
 The private capability error vocabulary remains closed:
 
-- `transition_read_capability_unavailable`;
-- `transition_read_capability_expired`;
+- `mutation_read_capability_unavailable`;
+- `mutation_read_capability_expired`;
 - `process_mismatch`;
 - `thread_mismatch`.
 
-B3b2b preserves known `_TransitionReadCapabilityError` values unchanged. If
+B3b2b preserves known `_MutationReadCapabilityError` values unchanged. If
 `_borrow_connection_for_select()` raises any other ordinary exception, B3b2b
 maps it to
-`_TransitionReadCapabilityError(transition_read_capability_unavailable)` only
+`_MutationReadCapabilityError(mutation_read_capability_unavailable)` only
 after the raw exception has left active exception context. The safe error must
 retain no raw exception text, capability detail, connection repr, path, process
 or thread identity, transaction epoch, credential, proof, proof digest, raw row,
@@ -449,15 +450,15 @@ result return after rollback/close. It remains non-durable and
 production-unintegrated.
 
 B3c4a now freezes only the pure/static write specifications, value builders,
-private write plan, commit-resolution state vocabulary, SQLite classification
-matrix, retry contract, proof matrix, and B3c4c public-integration boundary
-needed for B3c4b. B3c4a performs no SQL execution and changes no public
-behavior.
+private write plan, the then-transition-owned commit-resolution state vocabulary
+later neutralized by B4b, SQLite classification matrix, retry contract, proof
+matrix, and B3c4c public-integration boundary needed for B3c4b. B3c4a performs
+no SQL execution and changes no public behavior.
 
 B3c4b now implements private maximum-sequence use, sequence allocation, event
 insertion, accepted-state CAS, commit, rollback/commit resolution, and
-commit-uncertainty runtime. It remains production-unintegrated and does not
-change public behavior. B3c4c remains future for public transition apply
-delegation, and B4 remains future for global-stop persistence.
+commit-uncertainty runtime. B3c4c implements public transition apply delegation.
+B4b implements private global-stop persistence; public global-stop delegation
+remains future B4c.
 
 Each future stage requires a separate implementation patch and standalone audit.

@@ -48,12 +48,13 @@ operation guard to the B3c4b private atomic transition entry. The public wrapper
 does not own SQL, transaction control, event or current-state writes, sequence
 allocation, context assembly, evaluator invocation, capability construction, or
 mutation-slot acquisition. Public `apply_global_stop_update()` still fails
-locally with `writer_session_mutation_unavailable`; B4a adds only prerequisite
-global-stop contracts, transaction-internal readers with no production caller,
-and pure/static write grammar. It does not provision operator-decision
-receipts, execute a mutation, begin or commit a transaction, or add public
-global-stop delegation. Receipt provisioning remains a separately governed
-operator/repo-policy integration seam. Stale
+locally with `writer_session_mutation_unavailable`. B4a defines
+receipt/read/event/replay/sequence/write contracts, and B4b implements private
+atomic global-stop persistence without provisioning operator-decision receipts.
+B4c remains future guarded public delegation. Receipt provisioning remains a
+separately governed operator/repo-policy integration seam, and no public,
+orchestration, worker, service, connector, CLI, or cross-repository authority is
+added. Stale
 writer conflicts are private apply-boundary failures and never disclose
 idempotency status or return transition events. Closed-session and
 process-mismatch failures are session-local failures before the apply boundary;

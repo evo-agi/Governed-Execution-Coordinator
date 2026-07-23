@@ -1810,8 +1810,8 @@ def test_b3c3_runtime_integrates_readers_context_and_evaluator_without_b3c4_muta
     dry_run_source = "\n".join(
         (
             inspect.getsource(transaction_module._run_rollback_only_transition_dry_run),
-            inspect.getsource(transaction_module._TransitionTransactionController._run_transition_dry_run_transaction),
-            inspect.getsource(transaction_module._TransitionTransactionController._run_until_transition_resolution),
+            inspect.getsource(transaction_module._CoordinatorMutationTransactionController._run_transition_dry_run_transaction),
+            inspect.getsource(transaction_module._CoordinatorMutationTransactionController._run_until_transition_resolution),
             inspect.getsource(transaction_module._evaluate_bound_transition),
             inspect.getsource(transaction_module._dry_run_result_from_transition_resolution),
         )

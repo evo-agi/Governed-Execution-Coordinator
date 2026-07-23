@@ -35,7 +35,7 @@ from ge_nwp_coordinator.persistence_contracts import (
 from ge_nwp_coordinator.sqlite_global_stop_event_contracts import _GLOBAL_STOP_CURRENT_SELECT
 from ge_nwp_coordinator.sqlite_global_stop_readers import _read_global_stop_current
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapability,
+    _MutationReadCapability,
     _database_integrity_failure,
     _execute_select_fetch_two,
     _row_tuple_to_private_mapping,
@@ -158,7 +158,7 @@ _B3B2A_SELECT_QUERY_SPECS = (
 )
 
 def _read_current_work_item(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     work_item_id: str,
 ) -> WorkItemRecordEnvelope | None:
     validated_ref = require_contract_ref(work_item_id, "transition_read.work_item_id")
@@ -172,7 +172,7 @@ def _read_current_work_item(
 
 
 def _read_lease_identity_record(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     decision_ref: str,
 ) -> LeaseIdentityRecordEnvelope | None:
     validated_ref = require_contract_ref(decision_ref, "transition_read.decision_ref")
@@ -186,7 +186,7 @@ def _read_lease_identity_record(
 
 
 def _read_authorization_receipt(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     decision_ref: str,
 ) -> AuthorizationReceiptEnvelope | None:
     validated_ref = require_contract_ref(decision_ref, "transition_read.decision_ref")
@@ -200,7 +200,7 @@ def _read_authorization_receipt(
 
 
 def _read_dependency_receipt(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     decision_ref: str,
 ) -> DependencyReceiptEnvelope | None:
     validated_ref = require_contract_ref(decision_ref, "transition_read.decision_ref")
@@ -214,7 +214,7 @@ def _read_dependency_receipt(
 
 
 def _read_admitted_backlog(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     backlog_id: str,
 ) -> AdmittedBacklogRecordEnvelope | None:
     validated_ref = require_contract_ref(backlog_id, "transition_read.backlog_id")
@@ -229,7 +229,7 @@ def _read_admitted_backlog(
 
 def _read_one_select_row(
     *,
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     spec: _SelectQuerySpec,
     lookup_value: str | int,
     adapter: Callable[[Mapping[str, Any]], _EnvelopeT],

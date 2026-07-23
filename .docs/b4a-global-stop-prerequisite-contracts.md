@@ -1,7 +1,7 @@
 # B4a Global-Stop Prerequisite Contracts
 
-B4a is a pure/static prerequisite tranche for future persistent global-stop
-updates. It adds public error vocabulary, private local preflight contracts,
+B4a is a pure/static prerequisite tranche for persistent global-stop updates.
+It adds public error vocabulary, private local preflight contracts,
 persisted-row reconstruction contracts, transaction-internal SELECT readers,
 table-local sequence allocation, receipt binding taxonomy, and pure write
 grammar only.
@@ -18,7 +18,7 @@ cannot mint an operator decision, cannot treat a caller-supplied
 `GlobalStopOperatorDecision` as authority, and cannot manufacture a persisted
 receipt from that caller input.
 
-The future B4 apply transaction may only verify an already-persisted immutable
+B4b private apply may only verify an already-persisted immutable
 row in `global_stop_operator_decision_receipts`. Receipt provisioning remains a
 separate governed integration seam outside B4a, B4b, and B4c. No current source
 assigns that seam to Control Plane, Bridge, CLI, connector, app, channel,
@@ -179,14 +179,13 @@ The module has no execution method, no receipt INSERT, no production receipt
 provisioner, no `RETURNING`, no `INSERT OR REPLACE`, no `ON CONFLICT`, no
 runtime caller, and no transaction control.
 
-## Future B4b Transaction Order
+## B4b Transaction Order
 
-B4b must use one existing operation lease, one shared mutation slot, one
+B4b uses one existing operation lease, one shared mutation slot, one
 state-root/lock/database binding, one writer-fencing path, one nominal read
 capability, one commit-resolution graph, and one rollback/COMMIT/uncertainty
-owner. Before adding `_run_atomic_global_stop_apply`, B4b must perform one
-closed neutralization of the current transition-named
-controller/capability/resolution vocabulary, likely to names such as
+owner. B4b performs one closed neutralization of the previous transition-named
+controller/capability/resolution vocabulary to
 `_CoordinatorMutationTransactionController`, `_SQLiteMutationReadCapability`,
 `_MutationReadCapability`, and `_MutationCommitResolutionState`.
 
@@ -196,7 +195,7 @@ It must reject a second controller, second capability constructor, second
 mutation slot, raw connection API, public database handle, or parallel commit
 state machine.
 
-Future B4b order is:
+B4b order is:
 
 1. preflight command and typed decision after session guard but before mutation
    slot or SQLite;
@@ -231,7 +230,7 @@ receipt binding is `database_integrity_failure`.
 
 ## Commit, Uncertainty, And Retry
 
-B4b must reuse the accepted B3c4 contracts: capability invalidation before
+B4b reuses the accepted B3c4 contracts: capability invalidation before
 rollback or COMMIT; rollback only before the COMMIT-attempt boundary; rollback
 failure as `mutation_failed`; any COMMIT-attempt exception as
 `commit_outcome_unknown`; no rollback after COMMIT attempt; successful COMMIT
@@ -249,5 +248,5 @@ Agent authority, connector authority, CLI authority, app authority, channel
 authority, schema migration, schema-id bump, service, queue consumer, daemon,
 or global product run truth.
 
-B4b private atomic persistence, B4c public guarded delegation, and receipt
-provisioning remain future work.
+B4b private atomic persistence is implemented. B4c public guarded delegation
+and receipt provisioning remain future work.

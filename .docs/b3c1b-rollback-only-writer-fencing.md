@@ -60,7 +60,7 @@ namespace attack.
 
 ## Controller
 
-`_TransitionTransactionController` is private and single-use. The only
+`_CoordinatorMutationTransactionController` is private and single-use. The only
 construction path is the module-private entry point using a module-private
 construction key. Tests invoke that same private entry point by private import;
 there is no source-level `for_test` controller or alternate factory. B3c1b uses
@@ -146,16 +146,16 @@ and close with no idempotency disclosure.
 
 ## Nominal Capability
 
-`_SQLiteTransitionReadCapability` is private, nominal, constant-repr, and
+`_SQLiteMutationReadCapability` is private, nominal, constant-repr, and
 constructed only by the controller through one module-private helper and
-construction key. It structurally satisfies the private B3b2a
-`_TransitionReadCapability` protocol by exposing only:
+construction key. It structurally satisfies the private shared
+`_MutationReadCapability` protocol by exposing only:
 
 `_borrow_connection_for_select()`
 
 The capability binds one exact built-in `sqlite3.Connection`, one opaque
 identity-only epoch, owner process, owner thread, and a shared private
-`_TransactionCapabilityState`. It has no public constructor, no public
+`_MutationCapabilityState`. It has no public constructor, no public
 connection or epoch property, no finalizer, no context-manager ownership, no
 close method, no serialization path, and no writer metadata, credential, proof,
 digest, lock, location, or operation identity.
@@ -171,8 +171,8 @@ Borrow checks run in this order:
 
 Known failures use the existing closed private capability vocabulary:
 `process_mismatch`, `thread_mismatch`,
-`transition_read_capability_expired`, and
-`transition_read_capability_unavailable`. Unknown connection-state failures are
+`mutation_read_capability_expired`, and
+`mutation_read_capability_unavailable`. Unknown connection-state failures are
 sanitized to unavailable without retaining raw exception detail.
 
 Permanent invalidation is controller-only, idempotent for the intended path,

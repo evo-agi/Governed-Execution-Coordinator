@@ -94,7 +94,7 @@ integrate with `WriterSession.apply_transition`.
 
 B3b2b implements the six private SELECT readers over those specs and keeps them
 unreachable from production callers. The readers validate lookup refs before
-borrowing, borrow only through `_TransitionReadCapability`, execute the
+borrowing, borrow only through `_MutationReadCapability`, execute the
 parameterized specs, call `fetchmany(2)`, enforce zero/one/multiple
 cardinality, require exact built-in tuples, build private mappings, delegate to
 B3b1 row adapters, classify SQLite SELECT errors safely, sanitize unknown
@@ -357,19 +357,22 @@ epoch rules, cleanup precedence, and the B3c1a/B3c1b split. There is still no
 public or production transaction caller or mutation. B3c2 adds private event
 readers only, and B3c3 adds only the private rollback-only dry run with reader
 ordering, exact replay/conflict handling, context assembly, timestamp capture,
-and evaluator invocation but no durable persistence. B3c4a adds only
-pure/static transition write specifications, value builders, a private planned
-write plan, commit-resolution state vocabulary, SQLite classification, retry,
-proof, and public-integration boundary contracts. B3c4b now implements private
-atomic transition persistence through that same controller path: fresh
-evaluations read maximum event sequence, allocate the next sequence, consume
-the frozen write plan, insert one event, CAS-update accepted current state,
-invalidate capability, and attempt exactly one commit with
-`commit_outcome_unknown` on commit-attempt exceptions. B3c4c now makes public
-`_SQLiteWriterSession.apply_transition()` delegate to that B3c4b entry through
-the existing operation guard, with only bounded local import and exact preflight
-mapping in the public wrapper. SQL, transaction, sequence, event, current-state
-CAS, context, evaluator, capability, and mutation-slot ownership remain in the
-private atomic path. B4a now adds prerequisite global-stop contracts, readers,
-sequence allocation, receipt binding, and pure/static write grammar only;
-private global-stop persistence and public delegation remain future.
+  and evaluator invocation but no durable persistence. B3c4a adds only
+  pure/static transition write specifications, value builders, a private planned
+  write plan, the then-transition-owned commit-resolution vocabulary later
+  neutralized by B4b, SQLite classification, retry, proof, and
+  public-integration boundary contracts. B3c4b now implements private atomic
+  transition persistence through that same controller path: fresh evaluations
+  read maximum event sequence, allocate the next sequence, consume the frozen
+  write plan, insert one event, CAS-update accepted current state, invalidate
+  capability, and attempt exactly one commit with `commit_outcome_unknown` on
+  commit-attempt exceptions. B3c4c now makes public
+  `_SQLiteWriterSession.apply_transition()` delegate to that B3c4b entry through
+  the existing operation guard, with only bounded local import and exact
+  preflight mapping in the public wrapper. SQL, transaction, sequence, event,
+  current-state CAS, context, evaluator, capability, and mutation-slot ownership
+  remain in the private atomic path. B4a now adds prerequisite global-stop
+  contracts, readers, sequence allocation, receipt binding, and pure/static
+  write grammar only. B4b now adds private global-stop persistence through the
+  same neutral mutation controller while public global-stop delegation remains
+  future B4c.

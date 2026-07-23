@@ -77,11 +77,12 @@ report payloads. They do not read `transition_events`, `global_stop_events`,
 
 ## Private Transaction Capability Protocol
 
-`_TransitionReadCapability` is a private protocol only. It is not runtime public
-authority, not a concrete scope, and not a production implementation. B3b2a does
-not provide a constructor, factory, raw-connection wrapper, transaction epoch
-implementation, connection posture probe, or production object that can be
-instantiated as transaction-bound read authority.
+`_MutationReadCapability` is the private protocol now shared by transition and
+global-stop mutation readers. It is not runtime public authority, not a concrete
+scope, and not a production implementation. B3b2a did not provide a
+constructor, factory, raw-connection wrapper, transaction epoch implementation,
+connection posture probe, or production object that can be instantiated as
+transaction-bound read authority.
 
 B3c1b creates the concrete capability only after B2 operation-lease authority,
 the shared per-session mutation slot, managed read/write connection open,
@@ -110,7 +111,7 @@ shape is:
 
 ```python
 _read_current_work_item(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     work_item_id: str,
 ) -> WorkItemRecordEnvelope | None
 ```
@@ -128,13 +129,13 @@ before borrowing the capability or executing SQL. Malformed refs fail locally
 without SQLite access and without echoing the rejected value.
 
 All six readers borrow the connection through `_borrow_connection_for_select()`
-only. Safe `_TransitionReadCapabilityError` reasons are preserved unchanged. Any
+only. Safe `_MutationReadCapabilityError` reasons are preserved unchanged. Any
 other ordinary exception from the capability borrow is sanitized to
-`transition_read_capability_unavailable` after the raw exception has left active
+`mutation_read_capability_unavailable` after the raw exception has left active
 exception context, with no retained raw cause, context, note, capability detail,
 connection repr, transaction epoch, path, proof, digest, row, SQL parameter, or
 secret. A returned object that is not a `sqlite3.Connection` is rejected as
-`transition_read_capability_unavailable`. B3b2b performs no runtime Protocol
+`mutation_read_capability_unavailable`. B3b2b performs no runtime Protocol
 checking, process/thread/epoch checks, connection posture mutation, transaction
 start/end, connection open, or connection close.
 

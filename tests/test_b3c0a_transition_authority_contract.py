@@ -55,7 +55,7 @@ EXPECTED_APPLY_ORDER = (
 
 EXPECTED_GLOBAL_STOP_ORDER_PREFIX = (
     "acquire the operation lease; acquisition performs owner-process and active-session validation and returns only after the retained authority lock is confirmed active;",
-    "perform existing future global-stop typed command/operator-decision local checks;",
+    "perform existing global-stop typed command/operator-decision local checks;",
     "acquire the shared per-session mutation slot;",
     "derive the resource-owned root/lock/database binding from the active operation lease;",
     "open one existing managed read/write connection through that binding;",
@@ -264,13 +264,16 @@ def test_operation_lease_acquisition_source_contract_is_static_only() -> None:
 
 def test_global_stop_adr_uses_shared_pre_sqlite_mutation_prefix() -> None:
     adr = _read(".docs/sqlite-state-backend-adr.md")
-    items = _numbered_block_after(adr, "Global-stop mutation transaction remains future and unimplemented until B4b.")
+    items = _numbered_block_after(
+        adr,
+        "The private B4b global-stop mutation transaction shares the same pre-SQLite",
+    )
     assert items[: len(EXPECTED_GLOBAL_STOP_ORDER_PREFIX)] == EXPECTED_GLOBAL_STOP_ORDER_PREFIX
     assert "BEGIN IMMEDIATE" not in items[0]
     assert items.index(
         EXPECTED_GLOBAL_STOP_ORDER_PREFIX[0]
-    ) < items.index("perform existing future global-stop typed command/operator-decision local checks;")
-    assert items.index("perform existing future global-stop typed command/operator-decision local checks;") < items.index(
+    ) < items.index("perform existing global-stop typed command/operator-decision local checks;")
+    assert items.index("perform existing global-stop typed command/operator-decision local checks;") < items.index(
         "acquire the shared per-session mutation slot;"
     )
     assert items.index("acquire the shared per-session mutation slot;") < items.index(
@@ -298,26 +301,28 @@ def test_nominal_capability_owner_contract_has_no_concrete_runtime() -> None:
         "one private nominal transaction controller",
         "one private nominal transaction-read capability",
         "not trusted through structural Protocol conformance",
-        "created only by one private transition transaction controller",
+        "created only by one private Coordinator mutation transaction controller",
         "There is one controller construction path",
-        "Future production invocation may occur only from `_SQLiteWriterSession.apply_transition()`",
-        "During B3c4b, the controller still has no public production caller",
-        "coherent tests may invoke the same private controller directly through private imports",
+        "Public transition invocation occurs only from `_SQLiteWriterSession.apply_transition()`",
+        "B4b adds only a private global-stop entry",
+        "After B3c4c, `_SQLiteWriterSession.apply_transition()` delegates to the private atomic transition entry",
+        "`_SQLiteWriterSession.apply_global_stop_update()` remains `writer_session_mutation_unavailable`",
+        "`_MutationReadCapability`",
+        "Coherent tests may invoke the same private controller directly through private imports",
         "without adding a separate source-level `for_test` factory",
         "while one valid `_WriterSessionOperationLease` is active",
         "after successful fencing",
         "module-private construction path or sentinel",
         "No raw-connection factory",
         "not escape the controller lifecycle",
-        "`_SQLiteWriterSession.apply_transition()` and `_SQLiteWriterSession.apply_global_stop_update()` remain",
     ):
         assert phrase in normalized
 
     support_source = _read("src/ge_nwp_coordinator/sqlite_transition_select_support.py")
     support_tree = ast.parse(support_source)
     class_names = {node.name for node in ast.walk(support_tree) if isinstance(node, ast.ClassDef)}
-    assert "_TransitionReadCapability" in class_names
-    assert not any(name.endswith("Capability") and name != "_TransitionReadCapability" for name in class_names)
+    assert "_MutationReadCapability" in class_names
+    assert not any(name.endswith("Capability") and name != "_MutationReadCapability" for name in class_names)
     assert "runtime_checkable" not in support_source
 
 
@@ -512,7 +517,7 @@ def test_static_runtime_boundary_still_has_no_b3c_transition_apply_implementatio
     assert "WRITER_SESSION_MUTATION_UNAVAILABLE" in global_stop_source
 
     for forbidden in (
-        "class _TransitionTransactionController",
+        "class _CoordinatorMutationTransactionController",
         "class _B3cTransitionReadCapability",
         "_shared_mutation_slot",
         "_create_for_b3c_managed_transition_transaction",

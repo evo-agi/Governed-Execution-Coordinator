@@ -135,7 +135,7 @@ SELECT contract prerequisites for future B3b2b readers. It defines ordered
 row-column tuples as the single source of row-shape truth, derives existing
 row-key sets from those tuples, defines six data-only explicit-column
 parameterized SELECT specifications with `LIMIT 2`, and adds a private
-`_TransitionReadCapability` protocol for future B3c-managed active
+`_MutationReadCapability` protocol for future Coordinator mutation active
 transactions. B3b2a does not execute SELECT, create cursors, fetch rows,
 reconstruct B3b1 envelopes, classify cardinality or missing rows, assemble
 transition input, inspect idempotency/replay/event state, own transactions or
@@ -150,7 +150,7 @@ capability protocol.
 
 B3b2b implements only private, unreachable SELECT reader functions over the
 B3b2a query specs. They validate lookup refs before borrowing, borrow only via
-the private `_TransitionReadCapability` protocol, execute parameterized
+the private `_MutationReadCapability` protocol, execute parameterized
 `SELECT ... LIMIT 2`, call `fetchmany(2)`, enforce bounded cardinality, require
 exact built-in tuple rows, build one private mapping, delegate to B3b1 row
 adapters, classify SQLite SELECT failures safely, sanitize unknown capability
@@ -229,13 +229,15 @@ B3c2 implements only private transaction-internal transition-event SELECT
 readers in `.docs/b3c2-transition-event-readers.md`: one idempotency-addressed
 event/replay row reader and one observed maximum event-sequence reader, plus a
 tiny shared private SELECT lifecycle support module used by B3b2b and B3c2.
-The readers accept only `_TransitionReadCapability`, reuse the immutable B3c0b
+The readers accept only `_MutationReadCapability`, reuse the immutable B3c0b
 query specs, delegate event/replay integrity to
 `transition_event_record_envelope_from_row(...)`, return only `None` or an
 exact hidden envelope for idempotency lookup and `None` or an exact observed
 non-negative integer maximum for sequence inspection, and are test-executed
 through both fault-injected private capabilities and the real B3c1b nominal
-capability seam. The B3c2 idempotency reader locally requires exact built-in
+capability seam. The readers now consume the neutral private
+`_MutationReadCapability` protocol shared by transition and global-stop
+mutation readers. The B3c2 idempotency reader locally requires exact built-in
 `str` lookup refs before contract-ref validation or capability borrow, without
 changing repository-wide string validation or B3b2 lookup-input semantics.
 Shared SELECT support treats cursor-close failure after successful fetch as
@@ -278,7 +280,7 @@ is limited to the private pure/static
 `sqlite_transition_write_contracts.py` module plus tests. B3c4a freezes the
 exact transition-event insert specification, accepted work-item CAS
 specification, event/replay and accepted-current value builders, private
-planned write plan, commit-resolution state vocabulary, SQLite
+planned write plan, then-transition-owned commit-resolution state vocabulary, SQLite
 classification matrix, retry-after-uncertainty contract, proof matrix, and
 B3c4c public-integration boundary. It adds no SQLite mutation execution, no
 controller integration, no maximum-sequence read or allocation integration, no
@@ -286,12 +288,15 @@ COMMIT, no public `WriterSession.apply_transition()` behavior change, no
 package-root export, no `StateStore` widening, no global-stop mutation, no
 schema-ID bump, and no migration 0002. B3c4a fresh planned outcomes are
 private grammar only and are not durable receipts unless the B3c4b private
-atomic runtime successfully commits the frozen plan.
+atomic runtime successfully commits the frozen plan. B4b later moves the
+commit-resolution state vocabulary to the neutral
+`sqlite_mutation_transaction_contracts.py` module.
 
 B3c4b contracts are pinned in
 `.docs/b3c4b-private-atomic-transition-persistence.md`. B3c4b implements only
-private atomic transition persistence through the existing single transaction
-controller and nominal-capability path. It shares the B3c3 read/evaluate
+private atomic transition persistence through the existing single Coordinator
+mutation transaction controller and nominal-capability path. It shares the
+B3c3 read/evaluate
 sequence, reads observed maximum event sequence only for fresh evaluations,
 allocates the next sequence through the pure allocator, consumes the frozen
 B3c4a write plan, inserts one transition event, CAS-updates the current work
@@ -300,11 +305,11 @@ attempts exactly one commit, returns fresh committed outcomes only after
 successful commit and cleanup, and returns `commit_outcome_unknown` after any
 commit-attempt exception. Replay and conflicts roll back and perform no write.
 B3c4b owns private atomic transition persistence: there is no public
-API/export, `StateStore` widening, global-stop mutation, schema-ID bump,
+API/export, `StateStore` widening, public global-stop mutation, schema-ID bump,
 migration 0002, worker, service, CLI, MCP, connector, repair, publication, or
 related-repo consumer in that private runtime. B3c4c is the public transition
-delegation tranche only; B4a now freezes prerequisite global-stop contracts
-only, and B4 runtime mutation remains future.
+delegation tranche only; B4a freezes prerequisite global-stop contracts and
+B4b adds private global-stop persistence only.
 
 B3c4c public transition delegation contracts are pinned in
 `.docs/b3c4c-public-transition-delegation.md`, building on
@@ -327,17 +332,33 @@ B4a global-stop prerequisite contracts are pinned in
 global-stop-specific public preflight vocabulary, private no-I/O command and
 operator-decision reconstruction, persisted operator-decision receipt and
 global-stop event/replay row contracts, transaction-internal reader specs and
-readers with no production caller, table-local global-stop event sequence
+readers that gain only the B4b private transaction caller, table-local global-stop event sequence
 allocation, receipt-binding taxonomy, and pure/static write grammar. B4a does
-not provision decision receipts, execute SELECT/INSERT/UPDATE from a production
-caller, begin or commit a transaction, make `apply_global_stop_update()`
-functional, add `_run_atomic_global_stop_apply`, generalize the live
-transaction controller, widen `GlobalStopApplyOutcome` or `StateStore`, change
+not provision decision receipts, make `apply_global_stop_update()`
+functional, widen `GlobalStopApplyOutcome` or `StateStore`, change
 transition apply behavior, add schema-ID bump or migration 0002, or add worker,
 service, CLI, MCP, connector, publication, or related-repo authority. Receipt
 provisioning remains a separately governed operator/repo-policy integration
 seam outside B4a/B4b/B4c; tests may seed receipts only as tests-only evidence
 of verification mechanics, not production operator authorization.
+
+B4b private atomic global-stop persistence contracts are pinned in
+`.docs/b4b-private-atomic-global-stop-persistence.md`. B4b neutralizes the
+transition-named private controller, read capability, and commit-resolution
+vocabulary into one Coordinator mutation authority; preserves existing
+transition entries and public transition behavior; adds only the private
+`_run_atomic_global_stop_apply(...)` entry; verifies only already-persisted
+operator-decision receipt rows; persists accepted and domain-rejected
+global-stop events atomically; CAS-updates the global-stop singleton only for
+accepted evaluations; preserves commit uncertainty and explicit retry
+semantics; and keeps public `apply_global_stop_update()` unavailable. B4b does
+not insert, provision, upsert, update, delete, import, register, or manufacture
+operator-decision receipts; does not treat caller-supplied typed decisions as
+authority; does not add a second controller, capability, mutation slot,
+connection path, or commit state machine; does not add public B4c delegation;
+does not modify schema or migrations; and does not add cross-repository
+authority. Tests may seed receipt rows only as temporary tests-only evidence of
+verification and persistence mechanics, not production operator authorization.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

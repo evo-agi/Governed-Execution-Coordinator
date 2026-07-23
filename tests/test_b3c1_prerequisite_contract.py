@@ -6,7 +6,7 @@ import inspect
 from pathlib import Path
 
 import ge_nwp_coordinator
-from ge_nwp_coordinator.sqlite_transition_select_support import _TransitionReadCapabilityFailureReason
+from ge_nwp_coordinator.sqlite_transition_select_support import _MutationReadCapabilityFailureReason
 from ge_nwp_coordinator.sqlite_writer_session import _SQLiteWriterSession
 from ge_nwp_coordinator.state_store import WriterSessionFailureReason
 
@@ -95,8 +95,8 @@ def test_b3c1_prerequisite_document_status_boundary_and_split_are_static_only() 
         "the smallest safe operation-lease active-authority interface;",
         "the smallest safe operation-lease durable-issuance verification interface;",
         "resource-owned state-database filesystem-authority binding through the operation lease;",
-        "one private nominal transition transaction controller;",
-        "one private nominal transaction-read capability;",
+        "one private nominal Coordinator mutation transaction controller;",
+        "one private nominal mutation-read capability;",
         "one fresh existing managed read/write SQLite connection;",
         "`BEGIN IMMEDIATE`;",
         "managed schema and connection-posture validation;",
@@ -110,17 +110,29 @@ def test_production_unintegrated_posture_reconciles_single_controller_path() -> 
     writer_authority = _normalized(_read(".docs/writer-session-authority.md"))
     for document in (b3c1, b3c0a, writer_authority):
         for phrase in (
-            "created only by one private transition transaction controller",
+            "created only by one private",
             "There is one controller construction path",
-            "Future production invocation may occur only from `_SQLiteWriterSession.apply_transition()`",
-            "coherent tests may invoke the same private controller directly through private imports",
             "without adding a separate source-level `for_test` factory",
         ):
             assert phrase in document
         assert (
+            "mutation transaction controller" in document
+            or "`_CoordinatorMutationTransactionController`" in document
+        )
+        assert (
+            "Public transition invocation may occur only from `_SQLiteWriterSession.apply_transition()`" in document
+            or "Public transition invocation occurs only from `_SQLiteWriterSession.apply_transition()`" in document
+            or "Public production invocation for transitions occurs only from `_SQLiteWriterSession.apply_transition()`"
+            in document
+        )
+        assert (
+            "coherent tests may invoke the same private controller directly through private imports" in document
+            or "Coherent tests may invoke the same private controller directly through private imports" in document
+        )
+        assert (
             "During B3c1b, the controller has no production caller" in document
-            or "During B3c4b, the controller has no public production caller" in document
-            or "During B3c4b, the controller still has no public production caller" in document
+            or "B4b adds a private global-stop entry with no public caller" in document
+            or "B4b adds only a private global-stop entry" in document
         )
 
     assert "created only inside `_SQLiteWriterSession.apply_transition()`" not in b3c0a
@@ -310,9 +322,9 @@ def test_rollback_only_controller_result_is_exact_private_enum_contract() -> Non
     assert not hasattr(ge_nwp_coordinator, "_WriterIssuanceMatch")
     transaction_source = _read("src/ge_nwp_coordinator/sqlite_transition_transaction.py")
     assert "def _run_rollback_only_writer_fencing(" in transaction_source
-    assert "class _TransitionTransactionController" in transaction_source
+    assert "class _CoordinatorMutationTransactionController" in transaction_source
     assert "_run_rollback_only_writer_fencing" not in ge_nwp_coordinator.__all__
-    assert "_TransitionTransactionController" not in ge_nwp_coordinator.__all__
+    assert "_CoordinatorMutationTransactionController" not in ge_nwp_coordinator.__all__
     assert "sqlite_transition_transaction" not in ge_nwp_coordinator.__all__
     assert "sqlite_transition_transaction" not in _read("src/ge_nwp_coordinator/__init__.py")
     assert "class _SQLiteTransitionTransactionController" not in production_source
@@ -378,31 +390,31 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons() -> Non
     normalized = _normalized(section)
     for phrase in (
         "`src/ge_nwp_coordinator/sqlite_transition_transaction.py`",
-        "This module owns one private nominal transition transaction controller",
-        "private nominal transition transaction controller",
-        "private nominal transaction-read capability",
+        "This module owns one private nominal Coordinator mutation transaction controller",
+        "private nominal Coordinator mutation transaction controller",
+        "private nominal mutation-read capability",
         "no public constructor",
         "no package-root export",
         "no finalizer",
         "no independent close",
         "no public connection property",
         "created only by the controller after successful writer fencing",
-        "Structural `_TransitionReadCapability` conformance is not authority.",
+        "Structural `_MutationReadCapability` conformance is not authority.",
         "one opaque epoch",
         "private, identity-only",
         "same-process and same-thread only",
-        "transition_read_capability_expired",
-        "transition_read_capability_unavailable",
+        "mutation_read_capability_expired",
+        "mutation_read_capability_unavailable",
         "process_mismatch",
         "thread_mismatch",
         "Transaction A's capability cannot revive during transaction B",
     ):
         assert phrase in normalized
 
-    assert _TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE.value == "transition_read_capability_unavailable"
-    assert _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED.value == "transition_read_capability_expired"
-    assert _TransitionReadCapabilityFailureReason.PROCESS_MISMATCH.value == "process_mismatch"
-    assert _TransitionReadCapabilityFailureReason.THREAD_MISMATCH.value == "thread_mismatch"
+    assert _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE.value == "mutation_read_capability_unavailable"
+    assert _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED.value == "mutation_read_capability_expired"
+    assert _MutationReadCapabilityFailureReason.PROCESS_MISMATCH.value == "process_mismatch"
+    assert _MutationReadCapabilityFailureReason.THREAD_MISMATCH.value == "thread_mismatch"
     assert (PACKAGE_DIR / "sqlite_transition_transaction.py").exists()
 
     class_names: set[str] = set()
@@ -411,10 +423,10 @@ def test_nominal_capability_epoch_contract_uses_existing_closed_reasons() -> Non
             node.name for node in ast.walk(ast.parse(source)) if isinstance(node, ast.ClassDef)
         )
     assert "_WriterSessionMutationLease" in class_names
-    assert "_TransitionTransactionController" in class_names
+    assert "_CoordinatorMutationTransactionController" in class_names
     assert "_RollbackOnlyTransitionTransactionController" not in class_names
     assert "_SQLiteTransitionTransactionController" not in class_names
-    assert "_SQLiteTransitionReadCapability" in class_names
+    assert "_SQLiteMutationReadCapability" in class_names
 
 
 def test_rollback_only_lifecycle_and_cleanup_precedence_are_exact() -> None:
@@ -524,7 +536,7 @@ def test_docs_cross_reference_b3c1a_b3c1b_and_no_mutation_or_migration_exists() 
     ):
         assert forbidden not in source
     assert "def _run_rollback_only_writer_fencing(" in source
-    assert "class _SQLiteTransitionReadCapability" in source
+    assert "class _SQLiteMutationReadCapability" in source
 
     migrations = sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql"))
     assert migrations == ["0001_initial.sql"]

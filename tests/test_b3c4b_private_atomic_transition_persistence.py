@@ -25,8 +25,8 @@ from ge_nwp_coordinator.persistence_contracts import (
 )
 from ge_nwp_coordinator.sqlite_connection import open_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
+import ge_nwp_coordinator.sqlite_mutation_transaction_contracts as mutation_contracts
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
-import ge_nwp_coordinator.sqlite_transition_write_contracts as write_contracts
 from ge_nwp_coordinator.state_machine import (
     TransitionCommand,
     TransitionEvaluation,
@@ -180,7 +180,7 @@ def _patch_clock(monkeypatch: pytest.MonkeyPatch, timestamp: str = FIXTURE_TIMES
 
 
 def _controller_with_resolution_state(state: object) -> object:
-    controller = object.__new__(transaction_module._TransitionTransactionController)
+    controller = object.__new__(transaction_module._CoordinatorMutationTransactionController)
     controller._resolution_state = state
     return controller
 
@@ -191,8 +191,8 @@ def _capture_resolution_trace(
     fail_on: tuple[object, ...] = (),
 ) -> list[object]:
     trace: list[object] = []
-    original_init = transaction_module._TransitionTransactionController.__init__
-    original_set = transaction_module._TransitionTransactionController._set_resolution_state
+    original_init = transaction_module._CoordinatorMutationTransactionController.__init__
+    original_set = transaction_module._CoordinatorMutationTransactionController._set_resolution_state
 
     def traced_init(self: object, *args: object, **kwargs: object) -> None:
         original_init(self, *args, **kwargs)
@@ -204,8 +204,8 @@ def _capture_resolution_trace(
         original_set(self, state)
         trace.append(self._resolution_state)
 
-    monkeypatch.setattr(transaction_module._TransitionTransactionController, "__init__", traced_init)
-    monkeypatch.setattr(transaction_module._TransitionTransactionController, "_set_resolution_state", traced_set)
+    monkeypatch.setattr(transaction_module._CoordinatorMutationTransactionController, "__init__", traced_init)
+    monkeypatch.setattr(transaction_module._CoordinatorMutationTransactionController, "_set_resolution_state", traced_set)
     return trace
 
 
@@ -239,9 +239,9 @@ def _fresh_block_command(command: TransitionCommand, *, expected_version: int, k
 
 
 def test_resolution_state_setter_enforces_frozen_allowed_graph_for_every_enum_pair() -> None:
-    state = transaction_module._TransitionCommitResolutionState
-    allowed = transaction_module._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
-    assert allowed is write_contracts._TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+    state = transaction_module._MutationCommitResolutionState
+    allowed = transaction_module._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
+    assert allowed is mutation_contracts._MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS
 
     explicit_disallowed = {
         (state.NEW, state.CLOSED),
@@ -288,7 +288,7 @@ def test_resolution_state_traces_record_only_successful_milestones(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    state = transaction_module._TransitionCommitResolutionState
+    state = transaction_module._MutationCommitResolutionState
     replay_or_conflict_path = [
         state.NEW,
         state.TRANSACTION_ACTIVE,
@@ -558,7 +558,7 @@ def test_stale_writer_returns_conflict_before_capability_idempotency_or_sequence
 
             return inner
 
-        monkeypatch.setattr(transaction_module, "_create_sqlite_transition_read_capability", fail_if_called("capability"))
+        monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", fail_if_called("capability"))
         monkeypatch.setattr(transaction_module, "_read_transition_event_for_idempotency", fail_if_called("idempotency"))
         monkeypatch.setattr(transaction_module, "_read_transition_event_max_sequence", fail_if_called("max-sequence"))
         monkeypatch.setattr(transaction_module, "evaluate_transition", fail_if_called("evaluator"))
@@ -726,7 +726,7 @@ def test_capability_invalidation_rollback_and_close_failures_preserve_no_partial
         _patch_clock(monkeypatch)
         monkeypatch.setattr(
             transaction_module,
-            "_invalidate_sqlite_transition_read_capability",
+            "_invalidate_sqlite_mutation_read_capability",
             lambda *args, **kwargs: transaction_module._mutation_failed(),
         )
 
@@ -754,7 +754,7 @@ def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    state = transaction_module._TransitionCommitResolutionState
+    state = transaction_module._MutationCommitResolutionState
 
     invalidation_cases = (
         ("capability-active", True, None, [state.NEW, state.TRANSACTION_ACTIVE, state.FENCED, state.CAPABILITY_ACTIVE]),
@@ -796,7 +796,7 @@ def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
                     )
                 failure_patch.setattr(
                     transaction_module,
-                    "_invalidate_sqlite_transition_read_capability",
+                    "_invalidate_sqlite_mutation_read_capability",
                     lambda *args, **kwargs: transaction_module._mutation_failed(),
                 )
 
@@ -878,7 +878,7 @@ def test_resolution_setter_failures_preserve_cleanup_and_commit_boundaries(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    state = transaction_module._TransitionCommitResolutionState
+    state = transaction_module._MutationCommitResolutionState
 
     with monkeypatch.context() as precommit_patch:
         with make_coherent_transition_fixture_for_test(tmp_path / "precommit", ready_dependency=True) as fixture:
@@ -1065,7 +1065,7 @@ def test_close_failure_after_commit_success_or_uncertainty_does_not_change_resol
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    state = transaction_module._TransitionCommitResolutionState
+    state = transaction_module._MutationCommitResolutionState
 
     with monkeypatch.context() as success_patch:
         with make_coherent_transition_fixture_for_test(tmp_path / "success", ready_dependency=True) as fixture:
@@ -1113,7 +1113,7 @@ def test_capability_is_invalidated_before_commit_and_expires_after_resolution(
     with make_coherent_transition_fixture_for_test(tmp_path, ready_dependency=True) as fixture:
         _patch_clock(monkeypatch)
         captured: list[object] = []
-        original_create = transaction_module._create_sqlite_transition_read_capability
+        original_create = transaction_module._create_sqlite_mutation_read_capability
 
         def create(**kwargs: object) -> object:
             capability = original_create(**kwargs)
@@ -1123,16 +1123,16 @@ def test_capability_is_invalidated_before_commit_and_expires_after_resolution(
         def assert_expired_before_commit(connection: sqlite3.Connection) -> object:
             with pytest.raises(Exception) as exc_info:
                 captured[0]._borrow_connection_for_select()
-            assert type(exc_info.value).__name__ == "_TransitionReadCapabilityError"
+            assert type(exc_info.value).__name__ == "_MutationReadCapabilityError"
             return None
 
-        monkeypatch.setattr(transaction_module, "_create_sqlite_transition_read_capability", create)
+        monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", create)
         monkeypatch.setattr(transaction_module, "_commit_transaction", assert_expired_before_commit)
         _assert_committed(_run_apply(fixture), replayed=False)
 
         with pytest.raises(Exception) as exc_info:
             captured[0]._borrow_connection_for_select()
-        assert type(exc_info.value).__name__ == "_TransitionReadCapabilityError"
+        assert type(exc_info.value).__name__ == "_MutationReadCapabilityError"
 
 
 def test_representative_sql_traces_have_no_hidden_retry_or_b4_mutation(
@@ -1231,8 +1231,8 @@ def test_public_caller_export_state_store_schema_and_b4_boundaries_remain_closed
     assert "BEGIN" not in public_apply_source
     assert "COMMIT" not in public_apply_source
     assert "ROLLBACK" not in public_apply_source
-    assert "_TransitionTransactionController" not in public_apply_source
-    assert "_create_sqlite_transition_read_capability" not in public_apply_source
+    assert "_CoordinatorMutationTransactionController" not in public_apply_source
+    assert "_create_sqlite_mutation_read_capability" not in public_apply_source
     assert "_read_transition_event_max_sequence" not in public_apply_source
     assert "next_transition_event_sequence" not in public_apply_source
     assert "_transition_write_plan" not in public_apply_source
@@ -1284,7 +1284,7 @@ def test_static_one_controller_private_atomic_shape_and_write_contract_consumpti
     function_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
     controller_class = next(
         node for node in ast.walk(tree)
-        if isinstance(node, ast.ClassDef) and node.name == "_TransitionTransactionController"
+        if isinstance(node, ast.ClassDef) and node.name == "_CoordinatorMutationTransactionController"
     )
     setter = next(
         node for node in controller_class.body
@@ -1297,10 +1297,10 @@ def test_static_one_controller_private_atomic_shape_and_write_contract_consumpti
     setter_source = ast.get_source_segment(source, setter)
     assert setter_source is not None
 
-    assert class_names.count("_TransitionTransactionController") == 1
+    assert class_names.count("_CoordinatorMutationTransactionController") == 1
     assert "_RollbackOnlyTransitionTransactionController" not in class_names
     assert function_names.count("_set_resolution_state") == 1
-    assert function_names.count("_create_sqlite_transition_read_capability") == 1
+    assert function_names.count("_create_sqlite_mutation_read_capability") == 1
     assert "_run_rollback_only_writer_fencing" in function_names
     assert "_run_rollback_only_transition_dry_run" in function_names
     assert "_run_atomic_transition_apply" in function_names
@@ -1308,10 +1308,9 @@ def test_static_one_controller_private_atomic_shape_and_write_contract_consumpti
     assert "callback" not in source
     assert "observer" not in source
     assert "raw_connection" not in source
-    assert "apply_global_stop_update" not in source
-    assert "global_stop_events" not in source
     assert source.count("sqlite_transition_write_contracts") == 1
-    assert source.count("_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS") == 2
+    assert source.count("sqlite_mutation_transaction_contracts") == 1
+    assert source.count("_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS") == 2
     assert "_TRANSITION_RESOLUTION_ROLLBACK_STATES" not in source
     assert "_read_transition_event_max_sequence" in source
     assert "next_transition_event_sequence" in source
@@ -1320,23 +1319,23 @@ def test_static_one_controller_private_atomic_shape_and_write_contract_consumpti
 
     assert any(
         isinstance(node, ast.ImportFrom)
-        and node.module == "ge_nwp_coordinator.sqlite_transition_write_contracts"
-        and any(alias.name == "_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS" for alias in node.names)
+        and node.module == "ge_nwp_coordinator.sqlite_mutation_transaction_contracts"
+        and any(alias.name == "_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS" for alias in node.names)
         for node in ast.walk(tree)
     )
     assert not any(
         isinstance(target, ast.Name)
-        and target.id == "_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS"
+        and target.id == "_MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS"
         for node in ast.walk(tree)
         if isinstance(node, ast.Assign)
         for target in node.targets
     )
     assert "current_state = self._resolution_state" in setter_source
-    assert "type(current_state) is not _TransitionCommitResolutionState" in setter_source
-    assert "type(state) is not _TransitionCommitResolutionState" in setter_source
-    assert "if (current_state, state) not in _TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS" in setter_source
+    assert "type(current_state) is not _MutationCommitResolutionState" in setter_source
+    assert "type(state) is not _MutationCommitResolutionState" in setter_source
+    assert "if (current_state, state) not in _MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS" in setter_source
     assert setter_source.index(
-        "if (current_state, state) not in _TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS"
+        "if (current_state, state) not in _MUTATION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS"
     ) < setter_source.index("self._resolution_state = state")
 
     def resolution_assignments(function: ast.FunctionDef) -> list[ast.Assign]:
@@ -1362,7 +1361,7 @@ def test_static_one_controller_private_atomic_shape_and_write_contract_consumpti
     assert len(constructor_assignments) == 1
     assert len(setter_assignments) == 1
     assert len(all_resolution_assignments) == 2
-    assert "self._resolution_state = _TransitionCommitResolutionState.NEW" in ast.get_source_segment(
+    assert "self._resolution_state = _MutationCommitResolutionState.NEW" in ast.get_source_segment(
         source,
         constructor_assignments[0],
     )

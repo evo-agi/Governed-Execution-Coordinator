@@ -51,8 +51,8 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _read_lease_identity_record,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
 )
 from ge_nwp_coordinator import sqlite_transition_read_scope as read_scope
 from ge_nwp_coordinator.state_machine import (
@@ -160,7 +160,7 @@ class _TestsOnlyTransitionReadCapabilityEpoch:
 
     def _connection_for_generation(self, generation: int) -> sqlite3.Connection:
         if not self._active or generation != self._generation:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         return self._connection
 
 
@@ -731,16 +731,16 @@ def test_capability_errors_are_preserved_and_wrong_return_type_is_safe() -> None
     epoch, capability = _capability_for(connection)
     epoch.end_for_test()
     try:
-        with pytest.raises(_TransitionReadCapabilityError) as expired:
+        with pytest.raises(_MutationReadCapabilityError) as expired:
             _read_current_work_item(capability, "wi-1")
-        assert expired.value.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED
+        assert expired.value.reason is _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED
         assert expired.value.__cause__ is None
         assert expired.value.__context__ is None
 
-        with pytest.raises(_TransitionReadCapabilityError) as wrong_type:
+        with pytest.raises(_MutationReadCapabilityError) as wrong_type:
             _read_current_work_item(_WrongConnectionCapability(), "wi-1")
-        assert wrong_type.value.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
-        assert str(wrong_type.value) == "transition_read_capability_unavailable"
+        assert wrong_type.value.reason is _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
+        assert str(wrong_type.value) == "mutation_read_capability_unavailable"
     finally:
         connection.close()
 
@@ -748,13 +748,13 @@ def test_capability_errors_are_preserved_and_wrong_return_type_is_safe() -> None
 def test_unknown_capability_exception_is_sanitized_outside_raw_exception_context() -> None:
     capability = _UnknownExceptionCapability()
 
-    with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+    with pytest.raises(_MutationReadCapabilityError) as exc_info:
         _read_current_work_item(capability, "wi-1")
 
     exc = exc_info.value
-    assert exc.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
-    assert str(exc) == "transition_read_capability_unavailable"
-    assert exc.args == ("transition_read_capability_unavailable",)
+    assert exc.reason is _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
+    assert str(exc) == "mutation_read_capability_unavailable"
+    assert exc.args == ("mutation_read_capability_unavailable",)
     assert exc.__cause__ is None
     assert exc.__context__ is None
     assert getattr(exc, "__notes__", None) is None
@@ -781,9 +781,9 @@ def test_test_only_old_transaction_fake_rejects_after_new_generation_starts() ->
         epoch.end_for_test()
         capability_b = epoch.start_for_test()
 
-        with pytest.raises(_TransitionReadCapabilityError) as old_capability:
+        with pytest.raises(_MutationReadCapabilityError) as old_capability:
             _read_current_work_item(capability_a, "wi-1")
-        assert old_capability.value.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED
+        assert old_capability.value.reason is _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED
         assert _read_current_work_item(capability_b, "wi-1") is None
     finally:
         connection.close()
@@ -961,10 +961,10 @@ def test_reader_source_has_no_production_capability_factory_transaction_or_mutat
     support_tree = ast.parse(support_source)
     class_names = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
     support_class_names = {node.name for node in ast.walk(support_tree) if isinstance(node, ast.ClassDef)}
-    assert "_TransitionReadCapability" not in class_names
-    assert "_TransitionReadCapability" in support_class_names
+    assert "_MutationReadCapability" not in class_names
+    assert "_MutationReadCapability" in support_class_names
     assert not any(name.endswith("Capability") for name in class_names)
-    assert not any(name.endswith("Capability") and name != "_TransitionReadCapability" for name in support_class_names)
+    assert not any(name.endswith("Capability") and name != "_MutationReadCapability" for name in support_class_names)
 
     for forbidden in (
         "sqlite3.connect",

@@ -1,8 +1,10 @@
-"""Internal SQLite writer issuance and session acquisition for B2c.
+"""Internal SQLite writer issuance, session lifecycle, and delegation boundary.
 
-This module deliberately does not implement transition or global-stop
-mutation storage. Active mutation calls fail locally until B3/B4 provide the
-atomic apply boundary.
+This module owns WriterSession lifecycle and operation authority, but not
+SQLite mutation grammar or direct SQL storage. Public transition apply delegates
+to the one private neutral mutation transaction authority, private transition
+and global-stop persistence both exist, and public global-stop delegation
+remains unavailable until B4c.
 """
 
 from __future__ import annotations

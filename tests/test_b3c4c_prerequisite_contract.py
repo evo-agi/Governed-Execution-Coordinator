@@ -36,10 +36,10 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "f0ccae80ef3c805802425b1b7716890e8a17eae1194540573470d8356bb892b8"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py": (
-        "a8f0f6fbea713575b4ab7fc5f9cdf68740fbee016c30c32f30a0238e32e63f15"
+        "b26e9612383cb94ffbaf3393d5ada90ec708c4511c6151a3867acce03380768c"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py": (
-        "8b5a6a0ffc54833e33707efb10d7a9fe8ff35489f220d46ac235e1cde0addfbb"
+        "2904ad805b412300bf759cc451be303cd1eb070dc60a3dc2b7f7a2c5a9938863"
     ),
 }
 
@@ -118,8 +118,8 @@ def test_package_root_exports_only_public_preflight_vocabulary() -> None:
         "_TransitionDryRunPreflightError",
         "_TransitionDryRunPreflightFailureReason",
         "_run_atomic_transition_apply",
-        "_TransitionTransactionController",
-        "_SQLiteTransitionReadCapability",
+        "_CoordinatorMutationTransactionController",
+        "_SQLiteMutationReadCapability",
         "_TransitionWritePlan",
     ):
         assert private_name not in package_exports
@@ -291,7 +291,8 @@ def test_docs_pin_public_result_error_matrix_and_no_b4_schema_behavior() -> None
         "`_run_atomic_transition_apply`",
         "`_SQLiteWriterSession.apply_global_stop_update()` still enters",
         "`writer_session_mutation_unavailable`",
-        "B4 remains future for global-stop persistence",
+        "B4b adds only a private global-stop persistence entry",
+        "B4c remains future for public global-stop delegation",
         "schema-ID bump",
         "migration 0002",
     ):

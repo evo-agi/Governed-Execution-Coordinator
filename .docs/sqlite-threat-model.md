@@ -172,7 +172,7 @@ independent cleanup failure and maps to `mutation_failed`.
 
 B3c2 private transition-event readers reuse the same closed SELECT posture for
 transaction-internal event/idempotency and observed maximum-sequence reads. They
-accept only `_TransitionReadCapability`, expose no raw rows, JSON, digests,
+accept only `_MutationReadCapability`, expose no raw rows, JSON, digests,
 SQL, parameters, paths, connection reprs, capability details, proofs, bindings,
 or epochs, and reduce malformed rows, duplicate idempotency rows, wrong lookup
 addresses, and malformed aggregate results to `database_integrity_failure`.
@@ -266,5 +266,8 @@ raw exception causes in reprs or public errors, and are consumed only by the
 private B3c4b transaction runtime and tests. B3c4b provides focused crash,
 rollback, commit-uncertainty, restart, process, thread, fork, and capability
 fault-injection proof pinned by the B3c4a proof matrix. B3c4b adds no public
-WriterSession delegation, no global-stop mutation, no schema migration, and no
+global-stop delegation, no schema migration, and no related-repository
+authority. B4b adds private global-stop persistence through the same neutral
+mutation authority, verifies only already-persisted receipts, and adds no
+receipt provisioner, public global-stop method, schema migration, or
 related-repository authority.

@@ -46,9 +46,9 @@ from ge_nwp_coordinator.sqlite_transition_read_scope import (
     _read_lease_identity_record,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapability,
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
+    _MutationReadCapability,
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
 )
 
 
@@ -174,11 +174,11 @@ class _TestOnlyB3cTransactionCapability:
 
     def _borrow_connection_for_select(self) -> sqlite3.Connection:
         if os.getpid() != self._owner_process_id:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.PROCESS_MISMATCH)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.PROCESS_MISMATCH)
         if threading.get_ident() != self._owner_thread_id:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.THREAD_MISMATCH)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.THREAD_MISMATCH)
         if not self._active or not self._connection.in_transaction:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         return self._connection
 
     def _invalidate_before_transaction_end_for_test(self) -> None:
@@ -186,7 +186,7 @@ class _TestOnlyB3cTransactionCapability:
 
 
 def _assert_safe_capability_error(
-    exc_info: pytest.ExceptionInfo[_TransitionReadCapabilityError],
+    exc_info: pytest.ExceptionInfo[_MutationReadCapabilityError],
     reason: str,
 ) -> None:
     assert exc_info.value.reason.value == reason
@@ -247,11 +247,11 @@ def test_ordered_row_columns_are_safe_nonempty_unique_string_tuples() -> None:
 
 def test_private_transition_read_capability_is_protocol_only() -> None:
     source = SELECT_SUPPORT_PATH.read_text(encoding="utf-8")
-    assert getattr(_TransitionReadCapability, "_is_protocol", False) is True
-    assert getattr(_TransitionReadCapability, "_is_runtime_protocol", False) is False
-    assert "_borrow_connection_for_select" in _TransitionReadCapability.__dict__
+    assert getattr(_MutationReadCapability, "_is_protocol", False) is True
+    assert getattr(_MutationReadCapability, "_is_runtime_protocol", False) is False
+    assert "_borrow_connection_for_select" in _MutationReadCapability.__dict__
     tree = ast.parse(source)
-    protocol = next(node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "_TransitionReadCapability")
+    protocol = next(node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "_MutationReadCapability")
     assert not any(isinstance(node, ast.FunctionDef) and node.name == "__init__" for node in protocol.body)
     assert "class _TransitionReadScope" not in source
     assert "_create_for_b3c_managed_transition_transaction" not in source
@@ -283,7 +283,7 @@ def test_b3b2b_private_reader_signatures_are_capability_bound() -> None:
         signature = inspect.signature(reader)
         parameters = list(signature.parameters.values())
         assert parameters[0].name == "capability"
-        assert parameters[0].annotation == "_TransitionReadCapability"
+        assert parameters[0].annotation == "_MutationReadCapability"
         lookup_parameter, return_type = expected[reader_name]
         if lookup_parameter is None:
             assert [parameter.name for parameter in parameters] == ["capability"]
@@ -309,9 +309,9 @@ def test_test_only_capability_rejects_transaction_a_reuse_after_transaction_b_st
         connection.execute("ROLLBACK")
         connection.execute("BEGIN IMMEDIATE")
 
-        with pytest.raises(_TransitionReadCapabilityError) as old_capability:
+        with pytest.raises(_MutationReadCapabilityError) as old_capability:
             capability_a._borrow_connection_for_select()
-        _assert_safe_capability_error(old_capability, "transition_read_capability_expired")
+        _assert_safe_capability_error(old_capability, "mutation_read_capability_expired")
 
         capability_b = _TestOnlyB3cTransactionCapability(connection)
         assert capability_b._borrow_connection_for_select() is connection
@@ -333,9 +333,9 @@ def test_invalidated_test_capability_stays_invalid_after_posture_restore_and_res
         connection.isolation_level = None
         connection.execute("BEGIN IMMEDIATE")
 
-        with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+        with pytest.raises(_MutationReadCapabilityError) as exc_info:
             capability._borrow_connection_for_select()
-        _assert_safe_capability_error(exc_info, "transition_read_capability_expired")
+        _assert_safe_capability_error(exc_info, "mutation_read_capability_expired")
     finally:
         _cleanup_connection(connection)
 
@@ -347,9 +347,9 @@ def test_test_only_capability_rejects_after_transaction_end_without_restart() ->
         capability._invalidate_before_transaction_end_for_test()
         connection.execute("ROLLBACK")
 
-        with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+        with pytest.raises(_MutationReadCapabilityError) as exc_info:
             capability._borrow_connection_for_select()
-        _assert_safe_capability_error(exc_info, "transition_read_capability_expired")
+        _assert_safe_capability_error(exc_info, "mutation_read_capability_expired")
     finally:
         connection.close()
 
@@ -358,22 +358,22 @@ def test_test_only_capability_rejects_thread_and_process_mismatch_safely(monkeyp
     connection = _active_explicit_connection()
     try:
         capability = _TestOnlyB3cTransactionCapability(connection)
-        reasons: list[_TransitionReadCapabilityFailureReason] = []
+        reasons: list[_MutationReadCapabilityFailureReason] = []
 
         def borrow_in_another_thread() -> None:
             try:
                 capability._borrow_connection_for_select()
-            except _TransitionReadCapabilityError as exc:
+            except _MutationReadCapabilityError as exc:
                 reasons.append(exc.reason)
 
         thread = threading.Thread(target=borrow_in_another_thread)
         thread.start()
         thread.join(timeout=5)
         assert not thread.is_alive()
-        assert reasons == [_TransitionReadCapabilityFailureReason.THREAD_MISMATCH]
+        assert reasons == [_MutationReadCapabilityFailureReason.THREAD_MISMATCH]
 
         monkeypatch.setattr(os, "getpid", lambda: capability._owner_process_id + 1)
-        with pytest.raises(_TransitionReadCapabilityError) as exc_info:
+        with pytest.raises(_MutationReadCapabilityError) as exc_info:
             capability._borrow_connection_for_select()
         _assert_safe_capability_error(exc_info, "process_mismatch")
     finally:
@@ -479,9 +479,9 @@ def test_query_spec_type_and_constants_remain_internal_and_unexported() -> None:
         assert name not in ge_nwp_coordinator.__all__
         assert not hasattr(ge_nwp_coordinator, name)
     for name in (
-        "_TransitionReadCapability",
-        "_TransitionReadCapabilityError",
-        "_TransitionReadCapabilityFailureReason",
+        "_MutationReadCapability",
+        "_MutationReadCapabilityError",
+        "_MutationReadCapabilityFailureReason",
     ):
         assert name not in ge_nwp_coordinator.__all__
         assert not hasattr(ge_nwp_coordinator, name)

@@ -8,7 +8,6 @@ writer-session behavior.
 """
 
 from dataclasses import dataclass as _dataclass, field as _field
-from enum import Enum as _Enum
 
 from ge_nwp_coordinator.canonicalization import canonical_json_bytes as _canonical_json_bytes
 from ge_nwp_coordinator.persistence_contracts import (
@@ -235,21 +234,6 @@ class _TransitionWritePlan:
 
     def __reduce__(self) -> object:
         raise TypeError("invalid transition write contract")
-
-
-class _TransitionCommitResolutionState(str, _Enum):
-    NEW = "new"
-    TRANSACTION_ACTIVE = "transaction_active"
-    FENCED = "fenced"
-    CAPABILITY_ACTIVE = "capability_active"
-    PLANNED_OUTCOME = "planned_outcome"
-    WRITES_PERFORMED = "writes_performed"
-    CAPABILITY_INVALIDATED = "capability_invalidated"
-    COMMIT_ATTEMPT_STARTED = "commit_attempt_started"
-    COMMIT_SUCCEEDED = "commit_succeeded"
-    COMMIT_OUTCOME_UNKNOWN = "commit_outcome_unknown"
-    ROLLBACK_RESOLVED = "rollback_resolved"
-    CLOSED = "closed"
 
 
 def _transition_event_insert_values(
@@ -677,89 +661,6 @@ _ACCEPTED_WORK_ITEM_CAS_SPEC = _AcceptedWorkItemCasSpec(
     parameter_count=15,
 )
 
-_TRANSITION_COMMIT_RESOLUTION_REPLAY_CONFLICT_PATH = (
-    _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
-    _TransitionCommitResolutionState.FENCED,
-    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
-    _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
-    _TransitionCommitResolutionState.ROLLBACK_RESOLVED,
-    _TransitionCommitResolutionState.CLOSED,
-)
-_TRANSITION_COMMIT_RESOLUTION_FRESH_SUCCESS_PATH = (
-    _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
-    _TransitionCommitResolutionState.FENCED,
-    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
-    _TransitionCommitResolutionState.PLANNED_OUTCOME,
-    _TransitionCommitResolutionState.WRITES_PERFORMED,
-    _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
-    _TransitionCommitResolutionState.COMMIT_ATTEMPT_STARTED,
-    _TransitionCommitResolutionState.COMMIT_SUCCEEDED,
-    _TransitionCommitResolutionState.CLOSED,
-)
-_TRANSITION_COMMIT_RESOLUTION_FRESH_UNCERTAIN_PATH = (
-    _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
-    _TransitionCommitResolutionState.FENCED,
-    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
-    _TransitionCommitResolutionState.PLANNED_OUTCOME,
-    _TransitionCommitResolutionState.WRITES_PERFORMED,
-    _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
-    _TransitionCommitResolutionState.COMMIT_ATTEMPT_STARTED,
-    _TransitionCommitResolutionState.COMMIT_OUTCOME_UNKNOWN,
-    _TransitionCommitResolutionState.CLOSED,
-)
-_TRANSITION_COMMIT_RESOLUTION_PLANNED_OUTCOME_FAILURE_PATH = (
-    _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
-    _TransitionCommitResolutionState.FENCED,
-    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
-    _TransitionCommitResolutionState.PLANNED_OUTCOME,
-    _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
-    _TransitionCommitResolutionState.ROLLBACK_RESOLVED,
-    _TransitionCommitResolutionState.CLOSED,
-)
-_TRANSITION_COMMIT_RESOLUTION_POST_WRITE_PRECOMMIT_FAILURE_PATH = (
-    _TransitionCommitResolutionState.TRANSACTION_ACTIVE,
-    _TransitionCommitResolutionState.FENCED,
-    _TransitionCommitResolutionState.CAPABILITY_ACTIVE,
-    _TransitionCommitResolutionState.PLANNED_OUTCOME,
-    _TransitionCommitResolutionState.WRITES_PERFORMED,
-    _TransitionCommitResolutionState.CAPABILITY_INVALIDATED,
-    _TransitionCommitResolutionState.ROLLBACK_RESOLVED,
-    _TransitionCommitResolutionState.CLOSED,
-)
-_B3C4A_COMMIT_RESOLUTION_GRAPH_SCOPE = (
-    "successful_commit_resolution_milestones_after_graph_covered_transaction_authority",
-    "not_complete_operational_cleanup_model",
-    "stale_writer_pre_capability_outside_graph",
-    "other_pre_capability_failures_outside_graph",
-    "pre_capability_exits_cannot_claim_capability_states",
-    "capability_invalidation_failure_cannot_claim_capability_invalidated",
-    "rollback_failure_cannot_claim_rollback_resolved",
-    "close_failure_cannot_force_closed_milestone",
-    "successful_capability_invalidation_before_rollback_resolved",
-    "successful_capability_invalidation_before_commit_attempt_started",
-    "no_direct_rollback_edge_bypasses_capability_invalidation",
-    "b3c4b_runtime_enforcement_future",
-)
-_TRANSITION_COMMIT_RESOLUTION_ALLOWED_TRANSITIONS = frozenset(
-    {
-        (_TransitionCommitResolutionState.NEW, _TransitionCommitResolutionState.TRANSACTION_ACTIVE),
-        (_TransitionCommitResolutionState.TRANSACTION_ACTIVE, _TransitionCommitResolutionState.FENCED),
-        (_TransitionCommitResolutionState.FENCED, _TransitionCommitResolutionState.CAPABILITY_ACTIVE),
-        (_TransitionCommitResolutionState.CAPABILITY_ACTIVE, _TransitionCommitResolutionState.PLANNED_OUTCOME),
-        (_TransitionCommitResolutionState.CAPABILITY_ACTIVE, _TransitionCommitResolutionState.CAPABILITY_INVALIDATED),
-        (_TransitionCommitResolutionState.PLANNED_OUTCOME, _TransitionCommitResolutionState.CAPABILITY_INVALIDATED),
-        (_TransitionCommitResolutionState.PLANNED_OUTCOME, _TransitionCommitResolutionState.WRITES_PERFORMED),
-        (_TransitionCommitResolutionState.WRITES_PERFORMED, _TransitionCommitResolutionState.CAPABILITY_INVALIDATED),
-        (_TransitionCommitResolutionState.CAPABILITY_INVALIDATED, _TransitionCommitResolutionState.ROLLBACK_RESOLVED),
-        (_TransitionCommitResolutionState.CAPABILITY_INVALIDATED, _TransitionCommitResolutionState.COMMIT_ATTEMPT_STARTED),
-        (_TransitionCommitResolutionState.COMMIT_ATTEMPT_STARTED, _TransitionCommitResolutionState.COMMIT_SUCCEEDED),
-        (_TransitionCommitResolutionState.COMMIT_ATTEMPT_STARTED, _TransitionCommitResolutionState.COMMIT_OUTCOME_UNKNOWN),
-        (_TransitionCommitResolutionState.ROLLBACK_RESOLVED, _TransitionCommitResolutionState.CLOSED),
-        (_TransitionCommitResolutionState.COMMIT_SUCCEEDED, _TransitionCommitResolutionState.CLOSED),
-        (_TransitionCommitResolutionState.COMMIT_OUTCOME_UNKNOWN, _TransitionCommitResolutionState.CLOSED),
-    }
-)
-
 _B3C4A_SQLITE_CLASSIFICATION_MATRIX = (
     ("maximum_sequence_read", "schema_query_corruption_cardinality_shape", "database_integrity_failure"),
     ("maximum_sequence_read", "operational_or_unknown", "mutation_failed"),
@@ -821,7 +722,7 @@ _B3C4C_PUBLIC_INTEGRATION_BOUNDARY = (
     "public_apply_contains_no_sql",
     "public_apply_accepts_no_context_timestamp_capability",
     "public_apply_exposes_existing_apply_outcomes_and_errors",
-    "apply_global_stop_update_unavailable_until_b4",
+    "apply_global_stop_update_unavailable_until_b4c",
     "no_public_database_reader_or_store",
     "no_state_store_widening",
 )
@@ -829,5 +730,5 @@ _B4_SEPARATION_CONTRACT = (
     "no_global_stop_event_insert",
     "no_global_stop_current_update",
     "no_operator_decision_mutation",
-    "b4_remains_future_global_stop_persistence_tranche",
+    "b4b_private_global_stop_persistence_exists_b4c_public_delegation_future",
 )

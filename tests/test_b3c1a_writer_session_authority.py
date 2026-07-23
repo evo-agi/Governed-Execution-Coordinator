@@ -529,13 +529,13 @@ def test_public_boundary_exports_and_global_stop_remain_closed(
     assert transaction_module_path.exists()
     transaction_source = transaction_module_path.read_text(encoding="utf-8")
     assert "def _run_rollback_only_writer_fencing(" in transaction_source
-    assert "class _TransitionTransactionController" in transaction_source
+    assert "class _CoordinatorMutationTransactionController" in transaction_source
     assert "sqlite_transition_transaction" not in package_exports
     assert "sqlite_transition_transaction" not in (PACKAGE_DIR / "__init__.py").read_text(encoding="utf-8")
     writer_source = inspect.getsource(writer_module)
     for forbidden in (
         "class _SQLiteTransitionTransactionController",
-        "class _SQLiteTransitionReadCapability",
+        "class _SQLiteMutationReadCapability",
         "_borrow_connection_for_select",
         "_read_current_work_item",
         "_read_global_stop_current",

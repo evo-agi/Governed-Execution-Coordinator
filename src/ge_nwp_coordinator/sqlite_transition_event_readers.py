@@ -16,7 +16,7 @@ from ge_nwp_coordinator.sqlite_transition_event_contracts import (
     _TRANSITION_EVENT_MAX_SEQUENCE_SELECT,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapability,
+    _MutationReadCapability,
     _database_integrity_failure,
     _execute_select_fetch_two,
     _row_tuple_to_private_mapping,
@@ -25,7 +25,7 @@ from ge_nwp_coordinator.state_machine import TransitionEvent
 
 
 def _read_transition_event_for_idempotency(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
     work_item_id: str,
     idempotency_key: str,
 ) -> TransitionEventRecordEnvelope | None:
@@ -71,7 +71,7 @@ def _read_transition_event_for_idempotency(
 
 
 def _read_transition_event_max_sequence(
-    capability: _TransitionReadCapability,
+    capability: _MutationReadCapability,
 ) -> int | None:
     rows = _execute_select_fetch_two(
         capability=capability,

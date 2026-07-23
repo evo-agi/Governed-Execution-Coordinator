@@ -138,7 +138,7 @@ of truth for schema-0001 row shapes, and six immutable explicit-column
 parameterized SELECT specs exist as data.
 
 B3b2b implements six private SELECT readers over those specs. They validate
-lookup refs before borrowing, borrow only through `_TransitionReadCapability`,
+lookup refs before borrowing, borrow only through `_MutationReadCapability`,
 bind the lookup as one parameter, call `fetchmany(2)`, classify row cardinality,
 require exact built-in tuple rows, map tuples to private dictionaries, delegate
 to B3b1 row adapters, classify SQLite SELECT failures safely, sanitize unknown
@@ -271,8 +271,9 @@ rollback-only writer fencing/capability mechanics; neither changes that runtime
 boundary. B3c2 adds private event/idempotency and observed maximum-sequence
 readers with no production caller and no mutation. B3c4a adds only private
 pure/static transition write specifications, value builders, planned-write and
-commit-resolution contracts, with no SQLite mutation, controller integration,
-public WriterSession behavior change, schema-ID bump, or migration 0002.
+the then-transition-owned commit-resolution contracts later neutralized by B4b,
+with no SQLite mutation, controller integration, public WriterSession behavior
+change, schema-ID bump, or migration 0002.
 
 The future SQLite backend must preserve the P1.1 command/event/apply-conflict
 algebra. Event rows own idempotency and exact replay snapshots. Current-state
@@ -327,3 +328,15 @@ global-stop mutation, begin or commit a transaction, insert events, update the
 singleton, provision operator-decision receipts, make
 `apply_global_stop_update()` functional, widen `GlobalStopApplyOutcome`, or add
 schema migration 0002.
+
+## B4b Boundary
+
+B4b adds private atomic global-stop persistence through the same neutral
+Coordinator mutation controller and nominal read capability used by transition
+persistence. It verifies only already-persisted immutable
+`global_stop_operator_decision_receipts`, persists one accepted or
+domain-rejected global-stop event atomically, CAS-updates `global_stop_current`
+only on accepted evaluations, and preserves commit uncertainty and explicit
+retry semantics. It does not provision receipts, treat caller-supplied typed
+decisions as authority, make `apply_global_stop_update()` functional, widen
+`GlobalStopApplyOutcome` or `StateStore`, or add migration 0002.

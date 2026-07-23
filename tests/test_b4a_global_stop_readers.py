@@ -46,8 +46,8 @@ from ge_nwp_coordinator.sqlite_global_stop_readers import (
     _read_global_stop_operator_decision_receipt,
 )
 from ge_nwp_coordinator.sqlite_transition_select_support import (
-    _TransitionReadCapabilityError,
-    _TransitionReadCapabilityFailureReason,
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
 )
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
 from ge_nwp_coordinator.sqlite_writer_session import _WriterIssuanceMatch
@@ -120,11 +120,11 @@ class _TestsOnlyCapability:
 
     def _borrow_connection_for_select(self) -> sqlite3.Connection:
         if os.getpid() != self._pid:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.PROCESS_MISMATCH)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.PROCESS_MISMATCH)
         if threading.get_ident() != self._thread:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.THREAD_MISMATCH)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.THREAD_MISMATCH)
         if not self._active or not self._connection.in_transaction:
-            raise _TransitionReadCapabilityError(_TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED)
+            raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED)
         return self._connection
 
     def expire(self) -> None:
@@ -224,7 +224,7 @@ def _assert_store_error(exc: pytest.ExceptionInfo[SQLiteMutationStoreError], err
 
 
 def _run_real_controller_with_probe(session: object, monkeypatch: pytest.MonkeyPatch, probe: Callable[[object], None]) -> object:
-    original_create = transaction_module._create_sqlite_transition_read_capability
+    original_create = transaction_module._create_sqlite_mutation_read_capability
     captured: list[object] = []
 
     def capture_create(**kwargs: object) -> object:
@@ -233,7 +233,7 @@ def _run_real_controller_with_probe(session: object, monkeypatch: pytest.MonkeyP
         probe(capability)
         return capability
 
-    monkeypatch.setattr(transaction_module, "_create_sqlite_transition_read_capability", capture_create)
+    monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", capture_create)
     with session._resource.operation_guard(session) as operation:
         result = transaction_module._run_rollback_only_writer_fencing(operation_lease=operation)
     assert result is _WriterIssuanceMatch.MATCH
@@ -373,9 +373,9 @@ def test_real_nominal_capability_reads_current_and_expires(tmp_path: Path, monke
         capability = _run_real_controller_with_probe(fixture.writer_session, monkeypatch, probe)
         assert type(summary["current"]) is GlobalStopCurrentRecordEnvelope
         assert summary["max"] is None
-        with pytest.raises(_TransitionReadCapabilityError) as expired:
+        with pytest.raises(_MutationReadCapabilityError) as expired:
             _read_global_stop_event_max_sequence(capability)  # type: ignore[arg-type]
-        assert expired.value.reason is _TransitionReadCapabilityFailureReason.CAPABILITY_EXPIRED
+        assert expired.value.reason is _MutationReadCapabilityFailureReason.CAPABILITY_EXPIRED
 
 
 def test_reader_module_has_no_runtime_caller_or_mutation_sql() -> None:
@@ -395,5 +395,6 @@ def test_reader_module_has_no_runtime_caller_or_mutation_sql() -> None:
     transaction_source = (PACKAGE_DIR / "sqlite_transition_transaction.py").read_text(encoding="utf-8")
     assert "_read_global_stop_event_for_idempotency" not in writer_source
     assert "_read_global_stop_operator_decision_receipt" not in writer_source
-    assert "_read_global_stop_event_for_idempotency" not in transaction_source
-    assert "_read_global_stop_operator_decision_receipt" not in transaction_source
+    assert transaction_source.count("_read_global_stop_event_for_idempotency") == 2
+    assert transaction_source.count("_read_global_stop_operator_decision_receipt") == 2
+    assert "_run_atomic_global_stop_apply" in transaction_source

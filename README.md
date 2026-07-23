@@ -130,10 +130,11 @@ SQLite bootstrap/migration infrastructure only:
   tranche that can persist and commit it through the atomic path.
 - B3c4a contracts, documented in
   `.docs/b3c4a-transition-write-and-commit-contracts.md`, add only private
-  pure/static write specifications and commit-resolution contracts for future
-  durable transition persistence. B3c4a freezes the exact
+  pure/static write specifications and commit-resolution contracts for durable
+  transition persistence. B3c4a freezes the exact
   `transition_events` insert SQL, accepted `work_items` CAS SQL, event and CAS
-  value builders, private write plan, commit-resolution state vocabulary,
+  value builders, private write plan, the then-transition-owned
+  commit-resolution state vocabulary later neutralized by B4b,
   SQLite classification matrix, retry-after-uncertainty contract, B3c4b proof
   matrix, and B3c4c public-integration boundary. It imports no SQLite runtime,
   executes no SQL, inserts no event, updates no work item, reads or allocates no
@@ -141,7 +142,7 @@ SQLite bootstrap/migration infrastructure only:
   adds no package export, and requires no schema-ID bump or migration 0002.
 - B3c4b private atomic transition persistence, documented in
   `.docs/b3c4b-private-atomic-transition-persistence.md`, consumes those
-  frozen B3c4a contracts through the existing single transaction controller
+  frozen B3c4a contracts through the existing single mutation transaction controller
   and nominal-capability path. B3c4b remains the sole atomic transaction owner.
   Fresh accepted or domain-rejected evaluations read the observed maximum
   transition-event sequence, allocate the next sequence, insert one transition
@@ -149,8 +150,8 @@ SQLite bootstrap/migration infrastructure only:
   capability before one commit attempt, and return committed results only after
   successful commit and cleanup. Commit-attempt exceptions collapse to
   `commit_outcome_unknown`; caller retry is by the same idempotency key and
-  digest. It adds no global-stop mutation, public export, `StateStore` widening,
-  schema-ID bump, or migration 0002.
+  digest. It adds no public global-stop mutation, public export, `StateStore`
+  widening, schema-ID bump, or migration 0002.
 - B3c4c public transition delegation, documented in
   `.docs/b3c4c-public-transition-delegation.md` and
   `.docs/b3c4c-prerequisite-contract.md`, adds only the public command-local
@@ -166,13 +167,21 @@ SQLite bootstrap/migration infrastructure only:
   `.docs/b4a-global-stop-prerequisite-contracts.md`, add only public
   global-stop preflight vocabulary, private no-I/O command and typed-decision
   reconstruction, persisted receipt and event/replay row contracts, private
-  transaction-internal readers with no production caller, table-local sequence
-  allocation, receipt-binding taxonomy, and pure/static write grammar for
-  future global-stop persistence. B4a does not provision operator-decision
+  transaction-internal readers, table-local sequence allocation,
+  receipt-binding taxonomy, and pure/static write grammar for global-stop
+  persistence. B4a does not provision operator-decision
   receipts, execute global-stop mutation SQL, begin or commit a transaction,
   make `apply_global_stop_update()` functional, add a public delegation path,
   change transition apply, widen StateStore/outcome types, or require schema-ID
   bump or migration 0002.
+- B4b private atomic global-stop persistence, documented in
+  `.docs/b4b-private-atomic-global-stop-persistence.md`, uses the same neutral
+  mutation controller, read capability, mutation slot, bound-open path, and
+  commit-resolution graph as transition persistence. It verifies only
+  already-persisted operator-decision receipts, persists accepted or
+  domain-rejected events atomically, updates the singleton only by accepted CAS,
+  preserves commit uncertainty and explicit retry semantics, and keeps public
+  `apply_global_stop_update()` unavailable.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -321,6 +330,7 @@ the pure write plan. B3c4b now implements private atomic transition
 persistence, and B3c4c makes public `WriterSession.apply_transition()` delegate
 to it without moving SQL, transaction, sequence, event, context, evaluator, or
 mutation-slot ownership into the public wrapper. B4a now freezes prerequisite
-global-stop contracts only; B4 runtime mutation remains future.
+global-stop contracts, and B4b adds private global-stop persistence only; public
+global-stop delegation remains future B4c.
 
 See `.docs/` for the authority boundary and A2-P1 contract.
