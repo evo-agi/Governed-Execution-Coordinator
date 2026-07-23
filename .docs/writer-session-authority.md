@@ -156,6 +156,7 @@ surface.
 | --- | --- | --- | --- | --- |
 | WriterSession lifecycle failure | `WriterSession` or its session wrapper | `writer_session_closed`, `writer_session_process_mismatch`, `writer_session_close_during_operation`, `writer_session_mutation_in_progress`, `writer_session_mutation_unavailable` | Before any `StateStore` or atomic apply call | No event, no apply conflict, no SQLite access, no idempotency disclosure, no fencing result, and no durable record. |
 | Transition apply preflight failure | B3c4c public transition wrapper | `transition_apply_invalid_command`, `transition_apply_unsupported_command` | After operation-guard success and before mutation-slot acquisition or SQLite access | No event, no apply conflict, no durable record, no idempotency participation, no rollback, and no COMMIT. |
+| Global-stop apply preflight failure | B4a public vocabulary; future B4c wrapper | `global_stop_apply_invalid_command`, `global_stop_apply_invalid_operator_decision` | Future B4c only, after operation-guard success and before mutation-slot acquisition or SQLite access | No event, no apply conflict, no durable record, no idempotency participation, no rollback, and no COMMIT. In B4a the public method remains `writer_session_mutation_unavailable`. |
 | Atomic apply conflict | B3c4b fenced SQLite atomic boundary | `stale_writer_token`, `idempotency_key_reuse_conflict`, `expected_version_conflict`, `work_item_not_found`, `validation_failed` | Requires a session that passed local lifecycle checks and command-local preflight checks | No event; may require a database transaction or read; remains distinct from session-local failures. |
 | Domain result | Pure evaluator reached through the atomic boundary | accepted event or domain-rejected event | Reached only after session and apply checks pass | Exactly one accepted or domain-rejected event is the durable receipt. |
 
@@ -173,6 +174,9 @@ It is not a parser, session-lifecycle, or mutation-unavailable catch-all.
 B3c4c public preflight failures use
 `TransitionApplyPreflightError`, not `TransitionConflict`, `WriterSessionError`,
 or `SQLiteMutationStoreError`.
+B4a defines `GlobalStopApplyPreflightError` and
+`GlobalStopApplyPreflightFailureReason` for future B4c only. Those names do not
+make `apply_global_stop_update()` functional in B4a.
 
 Writer-acquisition failures use a separate closed vocabulary:
 
@@ -214,11 +218,17 @@ Future `WriterSession` mutation calls use this order:
 
    Transition checks include exact `TransitionCommand` type/digest,
    non-READY dependency ref null, and zero budget cost. Global-stop checks retain
-   the future typed command/operator-decision local checks without widening B4
-   semantics. B3c4c maps the transition private preflight reasons exactly to
+   the B4a typed command/operator-decision local checks without making public
+   global-stop apply callable. B3c4c maps the transition private preflight reasons exactly to
    `TransitionApplyPreflightFailureReason.INVALID_COMMAND` or
    `TransitionApplyPreflightFailureReason.UNSUPPORTED_COMMAND`. These checks run
    only after operation-guard success and before mutation-slot acquisition.
+
+   Future B4c maps B4a private global-stop preflight reasons exactly to
+   `GlobalStopApplyPreflightFailureReason.INVALID_COMMAND` or
+   `GlobalStopApplyPreflightFailureReason.INVALID_OPERATOR_DECISION`; malformed
+   private preflight objects remain mutation-store integrity failures, and
+   import/load failures remain mutation failures.
 
 4. In B3c1a private plumbing and B3c4b transition mutation runtime, acquire the
    shared per-session mutation slot.

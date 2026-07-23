@@ -351,8 +351,17 @@ run and cleanup. Fresh evaluator output is non-durable and
 non-receipt. B3c3 performs no maximum-sequence read, allocator call, insert,
 CAS, or commit; B3c4b is the first private persistence/commit tranche.
 
-Global-stop mutation transaction remains future and unimplemented. It shares the
-same pre-SQLite authority prefix as transition mutation:
+B4a freezes prerequisite global-stop contracts in
+`.docs/b4a-global-stop-prerequisite-contracts.md`: public global-stop
+preflight vocabulary, private no-I/O preflight, persisted receipt and
+event/replay row contracts, transaction-internal readers with no production
+caller, table-local sequence allocation, receipt-binding taxonomy, and
+pure/static write grammar. It does not provision receipts, execute mutation
+SQL, begin or commit a transaction, or make `apply_global_stop_update()`
+functional.
+
+Global-stop mutation transaction remains future and unimplemented until B4b. It
+shares the same pre-SQLite authority prefix as transition mutation:
 
 1. acquire the operation lease; acquisition performs owner-process and active-session validation and returns only after the retained authority lock is confirmed active;
 2. perform existing future global-stop typed command/operator-decision local checks;

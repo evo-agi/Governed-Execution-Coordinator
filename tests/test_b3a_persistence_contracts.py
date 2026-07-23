@@ -656,7 +656,7 @@ def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface
     source = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py")
-        if path.name != "sqlite_transition_write_contracts.py"
+        if path.name not in {"sqlite_transition_write_contracts.py", "sqlite_global_stop_write_contracts.py"}
     )
     for forbidden in (
         "INSERT INTO transition_events",

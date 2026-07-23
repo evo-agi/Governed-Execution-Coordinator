@@ -374,7 +374,7 @@ def test_b3b_prerequisite_boundary_has_no_reader_fixture_export_or_schema_change
     source = "\n".join(
         path.read_text(encoding="utf-8")
         for path in package_dir.rglob("*.py")
-        if path.name != "sqlite_transition_write_contracts.py"
+        if path.name not in {"sqlite_transition_write_contracts.py", "sqlite_global_stop_write_contracts.py"}
     )
     helper_source = inspect.getsource(validate_b3_work_item_authority_binding)
 

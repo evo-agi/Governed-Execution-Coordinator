@@ -11,8 +11,25 @@ from enum import Enum
 from typing import Any, Mapping
 
 from ge_nwp_coordinator.backlog import BACKLOG_SCHEMA_ID, BACKLOG_SCHEMA_VERSION, FiniteBacklog, WorkItem
-from ge_nwp_coordinator.canonicalization import canonical_json_bytes, canonical_sha256, require_exact_keys, require_string
-from ge_nwp_coordinator.global_stop import GLOBAL_STOP_SCHEMA_ID, GlobalStopState
+from ge_nwp_coordinator.canonicalization import (
+    canonical_json_bytes,
+    canonical_sha256,
+    decode_json_object,
+    require_exact_keys,
+    require_string,
+)
+from ge_nwp_coordinator.global_stop import (
+    GLOBAL_STOP_EVENT_SCHEMA_ID,
+    GLOBAL_STOP_OPERATOR_DECISION_SCHEMA_ID,
+    GLOBAL_STOP_SCHEMA_ID,
+    GlobalStopAction,
+    GlobalStopCommand,
+    GlobalStopEvent,
+    GlobalStopEventOutcome,
+    GlobalStopOperatorDecision,
+    GlobalStopState,
+    GlobalStopStatus,
+)
 from ge_nwp_coordinator.lease import (
     AUTHORIZATION_DECISION_SCHEMA_ID,
     LEASE_SCHEMA_ID,
@@ -36,10 +53,16 @@ from ge_nwp_coordinator.state_machine import (
     WorkItemState,
     require_work_item_state,
 )
-from ge_nwp_coordinator.state_store import CommittedTransition, TransitionConflict
+from ge_nwp_coordinator.state_store import (
+    CommittedGlobalStopUpdate,
+    CommittedTransition,
+    GlobalStopConflict,
+    TransitionConflict,
+)
 
 SQLITE_SIGNED_INT_MAX = 9223372036854775807
 FIRST_TRANSITION_EVENT_SEQUENCE = 0
+FIRST_GLOBAL_STOP_EVENT_SEQUENCE = 0
 _SAFE_SQL_IDENTIFIER_FIRST_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _SAFE_SQL_IDENTIFIER_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789_")
 
@@ -164,6 +187,23 @@ GLOBAL_STOP_CURRENT_ROW_COLUMNS = _validated_row_columns(
     ),
 )
 GLOBAL_STOP_CURRENT_ROW_KEYS = frozenset(GLOBAL_STOP_CURRENT_ROW_COLUMNS)
+GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_ROW_COLUMNS = _validated_row_columns(
+    "GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_ROW_COLUMNS",
+    (
+        "decision_ref",
+        "authorized",
+        "reason",
+        "schema_id",
+        "canonical_json",
+        "canonical_digest",
+        "created_at",
+    ),
+)
+GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_ROW_KEYS = frozenset(GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_ROW_COLUMNS)
+GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_KEYS = _row_keys_without(
+    GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_ROW_COLUMNS,
+    "created_at",
+)
 TRANSITION_EVENT_ROW_COLUMNS = _validated_row_columns(
     "TRANSITION_EVENT_ROW_COLUMNS",
     (
@@ -197,8 +237,65 @@ TRANSITION_EVENT_ROW_COLUMNS = _validated_row_columns(
     ),
 )
 TRANSITION_EVENT_ROW_KEYS = frozenset(TRANSITION_EVENT_ROW_COLUMNS)
+GLOBAL_STOP_EVENT_ROW_COLUMNS = _validated_row_columns(
+    "GLOBAL_STOP_EVENT_ROW_COLUMNS",
+    (
+        "event_ref",
+        "event_sequence",
+        "idempotency_key",
+        "command_digest",
+        "action",
+        "source_version",
+        "resulting_version",
+        "outcome",
+        "reason",
+        "operator_decision_ref",
+        "resulting_global_stop_ref",
+        "resulting_status",
+        "schema_id",
+        "event_json",
+        "event_digest",
+        "replay_global_stop_json",
+        "replay_global_stop_digest",
+        "created_at",
+    ),
+)
+GLOBAL_STOP_EVENT_ROW_KEYS = frozenset(GLOBAL_STOP_EVENT_ROW_COLUMNS)
+GLOBAL_STOP_OPERATOR_DECISION_KEYS = frozenset(
+    {
+        "schema_id",
+        "decision_ref",
+        "authorized",
+        "reason",
+    }
+)
+GLOBAL_STOP_EVENT_RECORD_KEYS = frozenset(
+    {
+        "schema_id",
+        "event_ref",
+        "command_digest",
+        "idempotency_key",
+        "action",
+        "source_version",
+        "resulting_version",
+        "outcome",
+        "reason",
+        "operator_decision_ref",
+        "resulting_global_stop_ref",
+        "resulting_status",
+    }
+)
+B4_GLOBAL_STOP_APPLY_CONFLICT_CLASSES = frozenset(
+    {
+        "stale_writer_token",
+        "idempotency_key_reuse_conflict",
+        "expected_version_conflict",
+        "validation_failed",
+    }
+)
 _MAX_CANONICAL_JSON_BYTES = 1048576
 _MAX_EVIDENCE_REFS_JSON_BYTES = 262144
+_MAX_RECEIPT_CANONICAL_JSON_BYTES = 262144
 
 
 class B3AuthorizationModelHandling(str, Enum):
@@ -299,6 +396,48 @@ class GlobalStopCurrentRecordEnvelope:
             self,
             "updated_at",
             _require_canonical_utc_timestamp(self.updated_at, "global_stop_current_row.updated_at"),
+        )
+
+
+@dataclass(frozen=True)
+class GlobalStopOperatorDecisionReceiptEnvelope:
+    decision: GlobalStopOperatorDecision = field(repr=False)
+    created_at: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "decision",
+            _require_initialized_global_stop_operator_decision(self.decision),
+        )
+        object.__setattr__(
+            self,
+            "created_at",
+            _require_global_stop_event_created_at(self.created_at),
+        )
+
+
+@dataclass(frozen=True)
+class GlobalStopEventRecordEnvelope:
+    event_sequence: int
+    event: GlobalStopEvent = field(repr=False)
+    replay_state: GlobalStopState = field(repr=False)
+    created_at: str
+
+    def __post_init__(self) -> None:
+        event = _require_initialized_global_stop_event(self.event)
+        replay_state = _require_initialized_global_stop_state(self.replay_state)
+        object.__setattr__(
+            self,
+            "event_sequence",
+            _require_global_stop_event_sequence(self.event_sequence),
+        )
+        object.__setattr__(self, "event", event)
+        object.__setattr__(self, "replay_state", replay_state)
+        object.__setattr__(
+            self,
+            "created_at",
+            _require_global_stop_event_created_at(self.created_at),
         )
 
 
@@ -786,6 +925,176 @@ class GlobalStopCurrentRecordContract:
         return GlobalStopCurrentRecordEnvelope(state=state, updated_at=self.updated_at)
 
 
+@dataclass(frozen=True)
+class GlobalStopOperatorDecisionReceiptContract:
+    decision_ref: str
+    authorized: bool
+    reason: str
+    schema_id: str
+    canonical_json: str = field(repr=False)
+    canonical_digest: str = field(repr=False)
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "GlobalStopOperatorDecisionReceiptContract":
+        try:
+            raw = require_exact_keys(payload, "global_stop_operator_decision_receipt", GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_KEYS)
+            schema_id = require_string(raw.get("schema_id"), "global_stop_operator_decision_receipt.schema_id")
+            if schema_id != GLOBAL_STOP_OPERATOR_DECISION_SCHEMA_ID:
+                raise _integrity_failure()
+            return cls(
+                decision_ref=require_contract_ref(
+                    raw.get("decision_ref"),
+                    "global_stop_operator_decision_receipt.decision_ref",
+                ),
+                authorized=require_sqlite_boolean(
+                    raw.get("authorized"),
+                    "global_stop_operator_decision_receipt.authorized",
+                ),
+                reason=require_string(raw.get("reason"), "global_stop_operator_decision_receipt.reason"),
+                schema_id=schema_id,
+                canonical_json=_require_bounded_text(
+                    raw.get("canonical_json"),
+                    "global_stop_operator_decision_receipt.canonical_json",
+                    max_bytes=_MAX_RECEIPT_CANONICAL_JSON_BYTES,
+                ),
+                canonical_digest=require_digest(
+                    raw.get("canonical_digest"),
+                    "global_stop_operator_decision_receipt.canonical_digest",
+                ),
+            )
+        except (TypeError, ValueError) as exc:
+            raise _integrity_failure() from exc
+
+    def reconstruct(self) -> GlobalStopOperatorDecision:
+        try:
+            payload = decode_json_object(self.canonical_json, "global_stop_operator_decision")
+            raw = require_exact_keys(payload, "global_stop_operator_decision", GLOBAL_STOP_OPERATOR_DECISION_KEYS)
+            decision = GlobalStopOperatorDecision(
+                schema_id=raw.get("schema_id"),
+                decision_ref=raw.get("decision_ref"),
+                authorized=raw.get("authorized"),
+                reason=raw.get("reason"),
+            )
+        except (TypeError, ValueError) as exc:
+            raise _integrity_failure() from exc
+        canonical_payload = global_stop_operator_decision_to_dict(decision)
+        _require_exact_canonical_json(self.canonical_json, canonical_payload)
+        _require_equal(self.canonical_digest, canonical_sha256(canonical_payload))
+        _require_equal(self.decision_ref, decision.decision_ref)
+        _require_equal(self.authorized, decision.authorized)
+        _require_equal(self.reason, decision.reason)
+        _require_equal(self.schema_id, decision.schema_id)
+        return decision
+
+
+@dataclass(frozen=True)
+class GlobalStopEventRecordContract:
+    event_ref: str = field(repr=False)
+    event_sequence: int
+    idempotency_key: str = field(repr=False)
+    command_digest: str = field(repr=False)
+    action: str = field(repr=False)
+    source_version: int = field(repr=False)
+    resulting_version: int = field(repr=False)
+    outcome: str = field(repr=False)
+    reason: str = field(repr=False)
+    operator_decision_ref: str = field(repr=False)
+    resulting_global_stop_ref: str = field(repr=False)
+    resulting_status: str = field(repr=False)
+    schema_id: str = field(repr=False)
+    event_json: str = field(repr=False)
+    event_digest: str = field(repr=False)
+    replay_global_stop_json: str = field(repr=False)
+    replay_global_stop_digest: str = field(repr=False)
+    created_at: str
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> "GlobalStopEventRecordContract":
+        try:
+            raw = require_exact_keys(payload, "global_stop_event_row", GLOBAL_STOP_EVENT_ROW_KEYS)
+            schema_id = require_string(raw.get("schema_id"), "global_stop_event_row.schema_id")
+            if schema_id != GLOBAL_STOP_EVENT_SCHEMA_ID:
+                raise _integrity_failure()
+            return cls(
+                event_ref=require_contract_ref(raw.get("event_ref"), "global_stop_event_row.event_ref"),
+                event_sequence=_require_global_stop_event_sequence(raw.get("event_sequence")),
+                idempotency_key=require_contract_ref(
+                    raw.get("idempotency_key"),
+                    "global_stop_event_row.idempotency_key",
+                ),
+                command_digest=require_digest(raw.get("command_digest"), "global_stop_event_row.command_digest"),
+                action=require_string(raw.get("action"), "global_stop_event_row.action"),
+                source_version=_require_row_non_negative_int(
+                    raw.get("source_version"),
+                    "global_stop_event_row.source_version",
+                ),
+                resulting_version=_require_row_non_negative_int(
+                    raw.get("resulting_version"),
+                    "global_stop_event_row.resulting_version",
+                ),
+                outcome=require_string(raw.get("outcome"), "global_stop_event_row.outcome"),
+                reason=require_string(raw.get("reason"), "global_stop_event_row.reason"),
+                operator_decision_ref=require_contract_ref(
+                    raw.get("operator_decision_ref"),
+                    "global_stop_event_row.operator_decision_ref",
+                ),
+                resulting_global_stop_ref=require_contract_ref(
+                    raw.get("resulting_global_stop_ref"),
+                    "global_stop_event_row.resulting_global_stop_ref",
+                ),
+                resulting_status=require_string(raw.get("resulting_status"), "global_stop_event_row.resulting_status"),
+                schema_id=schema_id,
+                event_json=_require_bounded_canonical_json(raw.get("event_json"), "global_stop_event_row.event_json"),
+                event_digest=require_digest(raw.get("event_digest"), "global_stop_event_row.event_digest"),
+                replay_global_stop_json=_require_bounded_canonical_json(
+                    raw.get("replay_global_stop_json"),
+                    "global_stop_event_row.replay_global_stop_json",
+                ),
+                replay_global_stop_digest=require_digest(
+                    raw.get("replay_global_stop_digest"),
+                    "global_stop_event_row.replay_global_stop_digest",
+                ),
+                created_at=_require_global_stop_event_created_at(raw.get("created_at")),
+            )
+        except (TypeError, ValueError) as exc:
+            raise _integrity_failure() from exc
+
+    def reconstruct(self) -> GlobalStopEventRecordEnvelope:
+        event = global_stop_event_from_json(self.event_json)
+        _require_exact_canonical_json(self.event_json, global_stop_event_to_dict(event))
+        _require_equal(self.event_digest, global_stop_event_canonical_digest(event))
+        self._require_indexed_event_equality(event)
+        _require_global_stop_event_ref_consistency(event)
+
+        try:
+            replay_state = GlobalStopState.from_json(self.replay_global_stop_json)
+        except (TypeError, ValueError) as exc:
+            raise _integrity_failure() from exc
+        _require_equal(self.replay_global_stop_json, replay_state.canonical_json())
+        _require_equal(self.replay_global_stop_digest, replay_state.canonical_digest())
+        _require_global_stop_event_replay_consistency(event=event, replay_state=replay_state)
+        return GlobalStopEventRecordEnvelope(
+            event_sequence=self.event_sequence,
+            event=event,
+            replay_state=replay_state,
+            created_at=self.created_at,
+        )
+
+    def _require_indexed_event_equality(self, event: GlobalStopEvent) -> None:
+        _require_equal(self.event_ref, event.event_ref)
+        _require_equal(self.idempotency_key, event.idempotency_key)
+        _require_equal(self.command_digest, event.command_digest)
+        _require_equal(self.action, event.action.value)
+        _require_equal(self.source_version, event.source_version)
+        _require_equal(self.resulting_version, event.resulting_version)
+        _require_equal(self.outcome, event.outcome.value)
+        _require_equal(self.reason, event.reason)
+        _require_equal(self.operator_decision_ref, event.operator_decision_ref)
+        _require_equal(self.resulting_global_stop_ref, event.resulting_global_stop_ref)
+        _require_equal(self.resulting_status, event.resulting_status.value)
+        _require_equal(self.schema_id, event.schema_id)
+
+
 def lease_identity_record_envelope_from_row(payload: Mapping[str, Any]) -> LeaseIdentityRecordEnvelope:
     try:
         raw = require_exact_keys(payload, "lease_identity_record_row", LEASE_IDENTITY_RECORD_ROW_KEYS)
@@ -866,6 +1175,31 @@ def global_stop_current_envelope_from_row(payload: Mapping[str, Any]) -> GlobalS
     return GlobalStopCurrentRecordContract.from_dict(payload).reconstruct()
 
 
+def global_stop_operator_decision_receipt_envelope_from_row(
+    payload: Mapping[str, Any],
+) -> GlobalStopOperatorDecisionReceiptEnvelope:
+    try:
+        raw = require_exact_keys(
+            payload,
+            "global_stop_operator_decision_receipt_row",
+            GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_ROW_KEYS,
+        )
+        created_at = _require_global_stop_event_created_at(raw.get("created_at"))
+        decision = GlobalStopOperatorDecisionReceiptContract.from_dict(
+            _row_projection(raw, GLOBAL_STOP_OPERATOR_DECISION_RECEIPT_KEYS)
+        ).reconstruct()
+        return GlobalStopOperatorDecisionReceiptEnvelope(decision=decision, created_at=created_at)
+    except (TypeError, ValueError) as exc:
+        raise _integrity_failure() from exc
+
+
+def global_stop_event_record_envelope_from_row(payload: Mapping[str, Any]) -> GlobalStopEventRecordEnvelope:
+    result = _global_stop_event_record_envelope_from_row_or_error(payload)
+    if isinstance(result, SQLiteMutationStoreError):
+        raise result from None
+    return result
+
+
 def transition_event_record_envelope_from_row(payload: Mapping[str, Any]) -> TransitionEventRecordEnvelope:
     result = _transition_event_record_envelope_from_row_or_error(payload)
     if isinstance(result, SQLiteMutationStoreError):
@@ -900,6 +1234,34 @@ def match_transition_event_idempotency(
     except SQLiteMutationStoreError:
         raise
     except (TypeError, ValueError):
+        raise _integrity_failure() from None
+
+
+def match_global_stop_event_idempotency(
+    existing: GlobalStopEventRecordEnvelope | None,
+    command: GlobalStopCommand,
+) -> CommittedGlobalStopUpdate | GlobalStopConflict | None:
+    try:
+        if type(command) is not GlobalStopCommand:
+            raise _integrity_failure()
+        if existing is None:
+            return None
+        if type(existing) is not GlobalStopEventRecordEnvelope:
+            raise _integrity_failure()
+        event = existing.event
+        replay_state = existing.replay_state
+        if type(event) is not GlobalStopEvent:
+            raise _integrity_failure()
+        if type(replay_state) is not GlobalStopState:
+            raise _integrity_failure()
+        if event.idempotency_key != command.idempotency_key:
+            raise _integrity_failure()
+        if event.command_digest != command.canonical_command_digest:
+            return GlobalStopConflict(conflict_class="idempotency_key_reuse_conflict")
+        return CommittedGlobalStopUpdate(state=replay_state, event=event, replayed=True)
+    except SQLiteMutationStoreError:
+        raise
+    except Exception:
         raise _integrity_failure() from None
 
 
@@ -966,6 +1328,84 @@ def next_transition_event_sequence(max_event_sequence: int | None) -> int:
     return max_event_sequence + 1
 
 
+def next_global_stop_event_sequence(maximum: int | None) -> int:
+    if maximum is None:
+        return FIRST_GLOBAL_STOP_EVENT_SEQUENCE
+    if type(maximum) is not int or maximum < 0:
+        raise _integrity_failure()
+    if maximum >= SQLITE_SIGNED_INT_MAX:
+        raise SQLiteMutationStoreError(SQLiteMutationStoreErrorCode.EVENT_SEQUENCE_EXHAUSTED)
+    return maximum + 1
+
+
+def global_stop_operator_decision_to_dict(decision: GlobalStopOperatorDecision) -> dict[str, Any]:
+    if type(decision) is not GlobalStopOperatorDecision:
+        raise _integrity_failure()
+    return {
+        "schema_id": decision.schema_id,
+        "decision_ref": decision.decision_ref,
+        "authorized": decision.authorized,
+        "reason": decision.reason,
+    }
+
+
+def global_stop_operator_decision_canonical_json(decision: GlobalStopOperatorDecision) -> str:
+    return canonical_json_bytes(global_stop_operator_decision_to_dict(decision)).decode("utf-8")
+
+
+def global_stop_operator_decision_canonical_digest(decision: GlobalStopOperatorDecision) -> str:
+    return canonical_sha256(global_stop_operator_decision_to_dict(decision))
+
+
+def global_stop_event_to_dict(event: GlobalStopEvent) -> dict[str, Any]:
+    if type(event) is not GlobalStopEvent:
+        raise _integrity_failure()
+    return {
+        "schema_id": event.schema_id,
+        "event_ref": event.event_ref,
+        "command_digest": event.command_digest,
+        "idempotency_key": event.idempotency_key,
+        "action": event.action.value,
+        "source_version": event.source_version,
+        "resulting_version": event.resulting_version,
+        "outcome": event.outcome.value,
+        "reason": event.reason,
+        "operator_decision_ref": event.operator_decision_ref,
+        "resulting_global_stop_ref": event.resulting_global_stop_ref,
+        "resulting_status": event.resulting_status.value,
+    }
+
+
+def global_stop_event_from_json(text: str) -> GlobalStopEvent:
+    try:
+        payload = decode_json_object(text, "global_stop_event")
+        raw = require_exact_keys(payload, "global_stop_event", GLOBAL_STOP_EVENT_RECORD_KEYS)
+        return GlobalStopEvent(
+            schema_id=raw.get("schema_id"),
+            event_ref=raw.get("event_ref"),
+            command_digest=raw.get("command_digest"),
+            idempotency_key=raw.get("idempotency_key"),
+            action=raw.get("action"),
+            source_version=raw.get("source_version"),
+            resulting_version=raw.get("resulting_version"),
+            outcome=raw.get("outcome"),
+            reason=raw.get("reason"),
+            operator_decision_ref=raw.get("operator_decision_ref"),
+            resulting_global_stop_ref=raw.get("resulting_global_stop_ref"),
+            resulting_status=raw.get("resulting_status"),
+        )
+    except (TypeError, ValueError) as exc:
+        raise _integrity_failure() from exc
+
+
+def global_stop_event_canonical_json(event: GlobalStopEvent) -> str:
+    return canonical_json_bytes(global_stop_event_to_dict(event)).decode("utf-8")
+
+
+def global_stop_event_canonical_digest(event: GlobalStopEvent) -> str:
+    return canonical_sha256(global_stop_event_to_dict(event))
+
+
 def normalize_transaction_timestamp(value: Any) -> str:
     return require_utc_timestamp(value, "transaction_timestamp")
 
@@ -986,6 +1426,16 @@ def _transition_event_record_envelope_from_row_or_error(
         return _integrity_failure()
 
 
+def _global_stop_event_record_envelope_from_row_or_error(
+    payload: Mapping[str, Any],
+) -> GlobalStopEventRecordEnvelope | SQLiteMutationStoreError:
+    try:
+        raw = require_exact_keys(payload, "global_stop_event_row", GLOBAL_STOP_EVENT_ROW_KEYS)
+        return GlobalStopEventRecordContract.from_dict(raw).reconstruct()
+    except Exception:
+        return _integrity_failure()
+
+
 def _require_event_replay_consistency(*, event: TransitionEvent, replay_record: WorkItemRecord) -> None:
     _require_equal(replay_record.work_item_id, event.work_item_id)
     _require_equal(replay_record.lease_id, event.lease_id)
@@ -995,6 +1445,101 @@ def _require_event_replay_consistency(*, event: TransitionEvent, replay_record: 
     _require_equal(replay_record.budget_consumed, 0)
     _require_equal(replay_record.budget_limit, 0)
     _require_equal(event.budget_cost_delta, 0)
+
+
+def _require_global_stop_event_replay_consistency(
+    *,
+    event: GlobalStopEvent,
+    replay_state: GlobalStopState,
+) -> None:
+    _require_equal(replay_state.version, event.resulting_version)
+    _require_equal(replay_state.stop_ref, event.resulting_global_stop_ref)
+    _require_equal(replay_state.status, event.resulting_status)
+    if event.outcome is GlobalStopEventOutcome.ACCEPTED:
+        _require_equal(event.resulting_version, event.source_version + 1)
+    elif event.outcome is GlobalStopEventOutcome.DOMAIN_REJECTED:
+        _require_equal(event.resulting_version, event.source_version)
+        _require_equal(replay_state.version, event.source_version)
+    else:
+        raise _integrity_failure()
+    CommittedGlobalStopUpdate(state=replay_state, event=event, replayed=True)
+
+
+def _require_global_stop_event_ref_consistency(event: GlobalStopEvent) -> None:
+    payload = {
+        "schema_id": event.schema_id,
+        "command_digest": event.command_digest,
+        "idempotency_key": event.idempotency_key,
+        "action": event.action.value,
+        "source_version": event.source_version,
+        "resulting_version": event.resulting_version,
+        "outcome": event.outcome.value,
+        "reason": event.reason,
+        "operator_decision_ref": event.operator_decision_ref,
+        "resulting_global_stop_ref": event.resulting_global_stop_ref,
+        "resulting_status": event.resulting_status.value,
+    }
+    _require_equal(event.event_ref, f"global-stop-event-{canonical_sha256(payload)[:24]}")
+
+
+def _require_initialized_global_stop_operator_decision(value: object) -> GlobalStopOperatorDecision:
+    try:
+        if type(value) is not GlobalStopOperatorDecision:
+            raise _integrity_failure()
+        return GlobalStopOperatorDecision(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            decision_ref=object.__getattribute__(value, "decision_ref"),
+            authorized=object.__getattribute__(value, "authorized"),
+            reason=object.__getattribute__(value, "reason"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception as exc:
+        raise _integrity_failure() from exc
+
+
+def _require_initialized_global_stop_event(value: object) -> GlobalStopEvent:
+    try:
+        if type(value) is not GlobalStopEvent:
+            raise _integrity_failure()
+        return GlobalStopEvent(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            event_ref=object.__getattribute__(value, "event_ref"),
+            command_digest=object.__getattribute__(value, "command_digest"),
+            idempotency_key=object.__getattribute__(value, "idempotency_key"),
+            action=object.__getattribute__(value, "action"),
+            source_version=object.__getattribute__(value, "source_version"),
+            resulting_version=object.__getattribute__(value, "resulting_version"),
+            outcome=object.__getattribute__(value, "outcome"),
+            reason=object.__getattribute__(value, "reason"),
+            operator_decision_ref=object.__getattribute__(value, "operator_decision_ref"),
+            resulting_global_stop_ref=object.__getattribute__(value, "resulting_global_stop_ref"),
+            resulting_status=object.__getattribute__(value, "resulting_status"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception as exc:
+        raise _integrity_failure() from exc
+
+
+def _require_initialized_global_stop_state(value: object) -> GlobalStopState:
+    try:
+        if type(value) is not GlobalStopState:
+            raise _integrity_failure()
+        return GlobalStopState(
+            schema_id=object.__getattribute__(value, "schema_id"),
+            version=object.__getattribute__(value, "version"),
+            active=object.__getattribute__(value, "active"),
+            stop_id=object.__getattribute__(value, "stop_id"),
+            reason_class=object.__getattribute__(value, "reason_class"),
+            issuer_ref=object.__getattribute__(value, "issuer_ref"),
+            issued_at=object.__getattribute__(value, "issued_at"),
+            operator_decision_ref=object.__getattribute__(value, "operator_decision_ref"),
+        )
+    except SQLiteMutationStoreError:
+        raise
+    except Exception as exc:
+        raise _integrity_failure() from exc
 
 
 def _require_exact_canonical_json(text: str, payload: Mapping[str, Any]) -> None:
@@ -1026,6 +1571,15 @@ def _require_canonical_utc_timestamp(value: Any, field_name: str) -> str:
 
 def _require_transition_event_created_at(value: Any) -> str:
     text = _require_canonical_utc_timestamp(value, "transition_event_row.created_at")
+    return _require_whole_second_utc_timestamp(text)
+
+
+def _require_global_stop_event_created_at(value: Any) -> str:
+    text = _require_canonical_utc_timestamp(value, "global_stop_event_row.created_at")
+    return _require_whole_second_utc_timestamp(text)
+
+
+def _require_whole_second_utc_timestamp(text: str) -> str:
     if (
         len(text) != 20
         or text[4] != "-"
@@ -1058,6 +1612,13 @@ def _require_exact_row_int(value: Any, field_name: str, *, expected: int) -> int
 
 def _require_transition_event_sequence(value: Any) -> int:
     sequence = _require_row_non_negative_int(value, "transition_event_row.event_sequence")
+    if sequence > SQLITE_SIGNED_INT_MAX:
+        raise _integrity_failure()
+    return sequence
+
+
+def _require_global_stop_event_sequence(value: Any) -> int:
+    sequence = _require_row_non_negative_int(value, "global_stop_event_row.event_sequence")
     if sequence > SQLITE_SIGNED_INT_MAX:
         raise _integrity_failure()
     return sequence

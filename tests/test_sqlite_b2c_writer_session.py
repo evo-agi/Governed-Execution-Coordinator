@@ -1534,7 +1534,7 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
     source = "\n".join(
         path.read_text(encoding="utf-8")
         for path in (ROOT / "src").rglob("*.py")
-        if path.name != "sqlite_transition_write_contracts.py"
+        if path.name not in {"sqlite_transition_write_contracts.py", "sqlite_global_stop_write_contracts.py"}
     )
     for forbidden in (
         "def current_writer",

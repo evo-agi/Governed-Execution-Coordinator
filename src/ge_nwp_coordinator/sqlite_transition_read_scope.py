@@ -22,8 +22,6 @@ from ge_nwp_coordinator.persistence_contracts import (
     AuthorizationReceiptEnvelope,
     DEPENDENCY_RECEIPT_ROW_COLUMNS,
     DependencyReceiptEnvelope,
-    GLOBAL_STOP_CURRENT_ROW_COLUMNS,
-    GlobalStopCurrentRecordEnvelope,
     LEASE_IDENTITY_RECORD_ROW_COLUMNS,
     LeaseIdentityRecordEnvelope,
     WORK_ITEM_ROW_COLUMNS,
@@ -31,10 +29,11 @@ from ge_nwp_coordinator.persistence_contracts import (
     admitted_backlog_record_envelope_from_row,
     authorization_receipt_envelope_from_row,
     dependency_receipt_envelope_from_row,
-    global_stop_current_envelope_from_row,
     lease_identity_record_envelope_from_row,
     work_item_record_envelope_from_row,
 )
+from ge_nwp_coordinator.sqlite_global_stop_event_contracts import _GLOBAL_STOP_CURRENT_SELECT
+from ge_nwp_coordinator.sqlite_global_stop_readers import _read_global_stop_current
 from ge_nwp_coordinator.sqlite_transition_select_support import (
     _TransitionReadCapability,
     _database_integrity_failure,
@@ -44,7 +43,6 @@ from ge_nwp_coordinator.sqlite_transition_select_support import (
 
 _SAFE_SQL_IDENTIFIER_FIRST_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz")
 _SAFE_SQL_IDENTIFIER_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789_")
-_GLOBAL_STOP_SINGLETON_ID = 1
 _EnvelopeT = TypeVar("_EnvelopeT")
 
 
@@ -150,13 +148,6 @@ _ADMITTED_BACKLOG_SELECT = _make_select_query_spec(
     columns=ADMITTED_BACKLOG_ROW_COLUMNS,
     lookup_column="backlog_id",
 )
-_GLOBAL_STOP_CURRENT_SELECT = _make_select_query_spec(
-    query_id="global_stop_current",
-    table_name="global_stop_current",
-    columns=GLOBAL_STOP_CURRENT_ROW_COLUMNS,
-    lookup_column="singleton_id",
-)
-
 _B3B2A_SELECT_QUERY_SPECS = (
     _CURRENT_WORK_ITEM_SELECT,
     _LEASE_IDENTITY_SELECT,
@@ -234,21 +225,6 @@ def _read_admitted_backlog(
         adapter=admitted_backlog_record_envelope_from_row,
         missing_row_policy=_MissingRowPolicy.RETURN_NONE,
     )
-
-
-def _read_global_stop_current(
-    capability: _TransitionReadCapability,
-) -> GlobalStopCurrentRecordEnvelope:
-    envelope = _read_one_select_row(
-        capability=capability,
-        spec=_GLOBAL_STOP_CURRENT_SELECT,
-        lookup_value=_GLOBAL_STOP_SINGLETON_ID,
-        adapter=global_stop_current_envelope_from_row,
-        missing_row_policy=_MissingRowPolicy.INTEGRITY_FAILURE,
-    )
-    if envelope is None:
-        raise _database_integrity_failure()
-    return envelope
 
 
 def _read_one_select_row(

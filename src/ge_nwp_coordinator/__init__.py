@@ -34,6 +34,8 @@ from ge_nwp_coordinator.state_machine import (
 from ge_nwp_coordinator.state_store import (
     CommittedGlobalStopUpdate,
     CommittedTransition,
+    GlobalStopApplyPreflightError,
+    GlobalStopApplyPreflightFailureReason,
     GlobalStopConflict,
     SafeWriterMetadata,
     StateStore,
@@ -51,6 +53,8 @@ __all__ = [
     "CommittedTransition",
     "DependencyDecision",
     "FiniteBacklog",
+    "GlobalStopApplyPreflightError",
+    "GlobalStopApplyPreflightFailureReason",
     "GlobalStopConflict",
     "LEASE_SCHEMA_ID",
     "LeaseIdentityValidation",

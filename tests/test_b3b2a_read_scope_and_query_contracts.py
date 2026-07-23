@@ -408,7 +408,10 @@ def test_query_specs_are_immutable_parameterized_select_contracts() -> None:
     assert len({spec.query_id for spec in _B3B2A_SELECT_QUERY_SPECS}) == 6
 
     for spec, table_name, lookup_column, columns in QUERY_CONTRACTS:
-        assert isinstance(spec, _SelectQuerySpec)
+        if table_name == "global_stop_current":
+            assert type(spec).__name__ == "_GlobalStopSelectQuerySpec"
+        else:
+            assert isinstance(spec, _SelectQuerySpec)
         assert spec.table_name == table_name
         assert spec.lookup_column == lookup_column
         assert spec.columns == columns
@@ -530,8 +533,8 @@ def test_b3b2b_production_module_only_adds_private_bounded_select_readers() -> N
         "_read_authorization_receipt",
         "_read_dependency_receipt",
         "_read_admitted_backlog",
-        "_read_global_stop_current",
     } <= function_names
+    assert "from ge_nwp_coordinator.sqlite_global_stop_readers import _read_global_stop_current" in source
     assert not any(name.startswith("read_") for name in function_names)
     assert "_borrow_connection_for_select" not in function_names
 

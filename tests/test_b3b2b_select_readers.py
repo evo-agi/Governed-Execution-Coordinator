@@ -442,6 +442,9 @@ READER_CASES = (
     ),
 )
 OPTIONAL_READER_CASES = tuple(case for case in READER_CASES if case.lookup_value is not None)
+TRANSITION_READ_SCOPE_ADAPTER_CASES = tuple(
+    case for case in READER_CASES if case.reader_name != "_read_global_stop_current"
+)
 READER_NAMES = frozenset(case.reader_name for case in READER_CASES)
 
 
@@ -654,7 +657,11 @@ def test_fetchmany_is_bounded_to_two_for_each_reader(case: _ReaderCase) -> None:
         connection.close()
 
 
-@pytest.mark.parametrize("case", READER_CASES, ids=[case.reader_name for case in READER_CASES])
+@pytest.mark.parametrize(
+    "case",
+    TRANSITION_READ_SCOPE_ADAPTER_CASES,
+    ids=[case.reader_name for case in TRANSITION_READ_SCOPE_ADAPTER_CASES],
+)
 def test_column_order_mapping_uses_exact_bound_adapter_and_no_raw_tuple(case: _ReaderCase, monkeypatch: pytest.MonkeyPatch) -> None:
     raw_tuple = tuple(f"value-{index}" for index, _ in enumerate(case.spec.columns))
     connection, _ = _scripted_connection(rows=(raw_tuple,))
@@ -678,7 +685,11 @@ def test_column_order_mapping_uses_exact_bound_adapter_and_no_raw_tuple(case: _R
         connection.close()
 
 
-@pytest.mark.parametrize("case", READER_CASES, ids=[case.reader_name for case in READER_CASES])
+@pytest.mark.parametrize(
+    "case",
+    TRANSITION_READ_SCOPE_ADAPTER_CASES,
+    ids=[case.reader_name for case in TRANSITION_READ_SCOPE_ADAPTER_CASES],
+)
 def test_non_exact_tuple_rows_are_rejected_before_adapter(case: _ReaderCase, monkeypatch: pytest.MonkeyPatch) -> None:
     def forbidden_adapter(payload: object) -> object:
         raise AssertionError(f"adapter should not receive {payload!r}")

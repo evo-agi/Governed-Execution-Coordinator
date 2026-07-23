@@ -370,4 +370,6 @@ invalidate capability, and attempt exactly one commit with
 the existing operation guard, with only bounded local import and exact preflight
 mapping in the public wrapper. SQL, transaction, sequence, event, current-state
 CAS, context, evaluator, capability, and mutation-slot ownership remain in the
-private atomic path. B4 remains future for global-stop persistence.
+private atomic path. B4a now adds prerequisite global-stop contracts, readers,
+sequence allocation, receipt binding, and pure/static write grammar only;
+private global-stop persistence and public delegation remain future.

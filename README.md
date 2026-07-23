@@ -162,6 +162,17 @@ SQLite bootstrap/migration infrastructure only:
   still raises `writer_session_mutation_unavailable`; no
   `TransitionApplyOutcome` change, `StateStore` widening, global-stop
   persistence, B4 behavior, schema-ID bump, or migration 0002 is added.
+- B4a global-stop prerequisite contracts, documented in
+  `.docs/b4a-global-stop-prerequisite-contracts.md`, add only public
+  global-stop preflight vocabulary, private no-I/O command and typed-decision
+  reconstruction, persisted receipt and event/replay row contracts, private
+  transaction-internal readers with no production caller, table-local sequence
+  allocation, receipt-binding taxonomy, and pure/static write grammar for
+  future global-stop persistence. B4a does not provision operator-decision
+  receipts, execute global-stop mutation SQL, begin or commit a transaction,
+  make `apply_global_stop_update()` functional, add a public delegation path,
+  change transition apply, widen StateStore/outcome types, or require schema-ID
+  bump or migration 0002.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
   temporary managed schema-0001 database, directly seeds synthetic
   authoritative rows through a test-setup transaction, validates them through
@@ -309,7 +320,7 @@ dry-run behavior, still production-unintegrated and non-durable. B3c4a freezes
 the pure write plan. B3c4b now implements private atomic transition
 persistence, and B3c4c makes public `WriterSession.apply_transition()` delegate
 to it without moving SQL, transaction, sequence, event, context, evaluator, or
-mutation-slot ownership into the public wrapper. B4 remains future for
-global-stop mutation.
+mutation-slot ownership into the public wrapper. B4a now freezes prerequisite
+global-stop contracts only; B4 runtime mutation remains future.
 
 See `.docs/` for the authority boundary and A2-P1 contract.

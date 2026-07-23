@@ -303,7 +303,8 @@ B3c4b owns private atomic transition persistence: there is no public
 API/export, `StateStore` widening, global-stop mutation, schema-ID bump,
 migration 0002, worker, service, CLI, MCP, connector, repair, publication, or
 related-repo consumer in that private runtime. B3c4c is the public transition
-delegation tranche only; B4 remains future for persistent global-stop updates.
+delegation tranche only; B4a now freezes prerequisite global-stop contracts
+only, and B4 runtime mutation remains future.
 
 B3c4c public transition delegation contracts are pinned in
 `.docs/b3c4c-public-transition-delegation.md`, building on
@@ -320,6 +321,23 @@ the sole atomic transaction owner and `commit_outcome_unknown` passes through.
 there is no `TransitionApplyOutcome` change, `StateStore` widening, schema-ID
 bump, migration 0002, global-stop persistence, B4 behavior, worker, service,
 CLI, MCP, connector, publication, or related-repo authority.
+
+B4a global-stop prerequisite contracts are pinned in
+`.docs/b4a-global-stop-prerequisite-contracts.md`. B4a adds only
+global-stop-specific public preflight vocabulary, private no-I/O command and
+operator-decision reconstruction, persisted operator-decision receipt and
+global-stop event/replay row contracts, transaction-internal reader specs and
+readers with no production caller, table-local global-stop event sequence
+allocation, receipt-binding taxonomy, and pure/static write grammar. B4a does
+not provision decision receipts, execute SELECT/INSERT/UPDATE from a production
+caller, begin or commit a transaction, make `apply_global_stop_update()`
+functional, add `_run_atomic_global_stop_apply`, generalize the live
+transaction controller, widen `GlobalStopApplyOutcome` or `StateStore`, change
+transition apply behavior, add schema-ID bump or migration 0002, or add worker,
+service, CLI, MCP, connector, publication, or related-repo authority. Receipt
+provisioning remains a separately governed operator/repo-policy integration
+seam outside B4a/B4b/B4c; tests may seed receipts only as tests-only evidence
+of verification mechanics, not production operator authorization.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary managed schema-0001 SQLite databases through production

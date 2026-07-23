@@ -264,7 +264,7 @@ def test_operation_lease_acquisition_source_contract_is_static_only() -> None:
 
 def test_global_stop_adr_uses_shared_pre_sqlite_mutation_prefix() -> None:
     adr = _read(".docs/sqlite-state-backend-adr.md")
-    items = _numbered_block_after(adr, "Global-stop mutation transaction remains future and unimplemented.")
+    items = _numbered_block_after(adr, "Global-stop mutation transaction remains future and unimplemented until B4b.")
     assert items[: len(EXPECTED_GLOBAL_STOP_ORDER_PREFIX)] == EXPECTED_GLOBAL_STOP_ORDER_PREFIX
     assert "BEGIN IMMEDIATE" not in items[0]
     assert items.index(

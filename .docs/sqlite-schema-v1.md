@@ -215,6 +215,15 @@ Not stored in the first backend:
 - primary key: `decision_ref`;
 - authority: canonical JSON plus digest;
 - index columns: authorized and reason;
+- B4a defines the exact ordered row contract: `decision_ref`, `authorized`,
+  `reason`, `schema_id`, `canonical_json`, `canonical_digest`, and
+  `created_at`;
+- B4a reconstruction requires strict SQLite Boolean encoding, exact schema id,
+  closed canonical JSON containing only `schema_id`, `decision_ref`,
+  `authorized`, and `reason`, literal canonical JSON equality, canonical digest
+  equality, indexed field equality, and exact canonical UTC `created_at`;
+- B4a does not define receipt INSERT grammar or production receipt
+  provisioning;
 - immutable.
 
 `work_items`
@@ -301,6 +310,22 @@ Not stored in the first backend:
 - primary key: `event_ref`;
 - unique: `idempotency_key`;
 - authority: canonical event JSON plus event digest;
+- B4a defines the exact ordered row contract: `event_ref`, `event_sequence`,
+  `idempotency_key`, `command_digest`, `action`, `source_version`,
+  `resulting_version`, `outcome`, `reason`, `operator_decision_ref`,
+  `resulting_global_stop_ref`, `resulting_status`, `schema_id`, `event_json`,
+  `event_digest`, `replay_global_stop_json`, `replay_global_stop_digest`, and
+  `created_at`;
+- B4a treats `event_sequence` as table-local to `global_stop_events`.
+  It does not share sequence state with `transition_events` and does not claim
+  cross-table ordering;
+- B4a reconstruction requires deterministic event-ref consistency with the
+  pure evaluator identity grammar, literal canonical event JSON and digest
+  equality, indexed/event equality, exact replay `GlobalStopState` JSON and
+  digest equality, replay state/result equality, and exact canonical UTC
+  `created_at`;
+- B4a pure/static write grammar defines future event INSERT and accepted
+  singleton-CAS parameter shape only. It executes no SQL in B4a;
 - event-owned idempotency and replay snapshot;
 - append-only by schema trigger.
 

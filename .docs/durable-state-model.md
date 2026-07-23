@@ -291,7 +291,11 @@ Coordinator cannot clear, weaken, replace, or reinterpret it.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra
 as work-item transitions. A typed operator decision is an input to the pure
-global-stop evaluator; it is not minted by the Coordinator.
+global-stop evaluator; it is not minted by the Coordinator. B4a adds
+verification-only prerequisite contracts for already-persisted immutable
+operator-decision receipts. The Coordinator still cannot manufacture receipt
+authority from the caller-supplied typed decision, and no production receipt
+provisioner exists in this repository.
 
 An active global stop blocks lease admission, ready, cycle start,
 retry-equivalent progression, worker-cycle progression, repair,
@@ -312,3 +316,14 @@ through the existing operation guard, exact preflight mapping, and bounded
 function-local import. It does not widen `StateStore`, change
 `TransitionApplyOutcome`, move SQL or transaction ownership into
 `sqlite_writer_session.py`, or implement global-stop mutation.
+
+## B4a Boundary
+
+B4a pins prerequisite public/private global-stop contracts, receipt and
+event/replay row reconstruction, transaction-internal readers, table-local
+sequence allocation, receipt binding, and pure/static write grammar in
+`.docs/b4a-global-stop-prerequisite-contracts.md`. It does not execute a
+global-stop mutation, begin or commit a transaction, insert events, update the
+singleton, provision operator-decision receipts, make
+`apply_global_stop_update()` functional, widen `GlobalStopApplyOutcome`, or add
+schema migration 0002.
