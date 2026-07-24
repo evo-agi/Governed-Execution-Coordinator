@@ -1,5 +1,10 @@
 # A2-P1 Contract
 
+Historical tranche freeze: this document preserves the original A2-P1/P1.1
+contract and must not be read as the current whole-repository implementation
+status. Current Coordinator status is documented in `.docs/architecture.md` and
+`.docs/authority-boundaries.md`.
+
 A2-P1/P1.1 is the Coordinator skeleton tranche.
 
 It implements:

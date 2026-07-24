@@ -4,9 +4,11 @@ If `.docs/` exists, always treat `.docs/` as the source of truth.
 
 ## Ownership
 
-This repository owns the future A2 coding-work durable state contract only.
-Current P1/P1.1 code has no production durable store and no active durable
-writer.
+This repository owns bounded internal durable SQLite mutation authority for
+coding-work state. Current Coordinator code includes internal durable writer
+issuance, writer-fenced transition/global-stop apply, verification of
+already-persisted operator-decision receipts, idempotency, CAS, exact replay,
+commit uncertainty, and explicit retry semantics.
 
 Bridge remains the guarded worker/evidence adapter. Control Plane remains
 product workflow authority. Execution Substrate remains product admission and
@@ -18,10 +20,17 @@ Operator/repo policy owns lease issuance and global stop. The coordinator
 cannot self-authorize, cannot mint authorization, and cannot treat a valid
 digest as execution permission.
 
-Transition commands, transition events, writer-session contracts,
-global-stop commands, and global-stop events are contract objects only until a
-future backend tranche. Reports are projections only. They are not durable
-state, authorization, acceptance, publication, or product truth.
+Transition commands and global-stop commands remain caller inputs. Accepted or
+domain-rejected transition/global-stop events and current state now have bounded
+durable SQLite persistence only through the guarded writer-session mutation
+paths. Reports are projections only. They are not durable state,
+authorization, acceptance, publication, or product truth.
+
+The Coordinator still does not own or implement a worker, scheduler, queue
+consumer, work-item production provisioner, decision-receipt provisioner,
+coding-work lease issuer, executable authorization issuer, Codex invocation, CP
+workflow, ES runtime, publication, or general orchestration. Receipt
+provisioning remains reopened and external to this repository.
 
 B1/B1.1 implements only secure local SQLite state-location, connection
 bootstrap, observational inspection/validation, schema migration, migration

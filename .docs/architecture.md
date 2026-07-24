@@ -6,26 +6,51 @@ Current repository name: Governed Execution Coordinator. This operational
 repository name is provisional. It may change without changing schema, authority, or durable identifiers.
 Repository naming must not affect schema, authority, or durable identifiers.
 
+## Current Status
+
+The Coordinator now owns bounded internal durable SQLite mutation authority for
+coding-work state. The current implementation includes internal durable writer
+issuance, private atomic transition persistence, guarded public transition
+delegation, private atomic global-stop persistence, guarded public global-stop
+delegation, verification of already-persisted operator-decision receipts,
+writer fencing, idempotency, exact replay, accepted-current CAS, rollback, one
+COMMIT attempt, commit uncertainty, and explicit retry.
+
+The Coordinator still does not own or implement work-item production
+provisioning, coding-work lease issuance, executable authorization issuance,
+operator-decision receipt provisioning, a worker, scheduler, queue consumer,
+Codex invocation, Execution Substrate runtime, Control Plane workflow,
+publication, a public service/API, or general orchestration. Receipt
+provisioning remains a separately governed operator/repo-policy integration
+seam outside this repository.
+
+The canonical cross-repository integration architecture/status decision is
+recorded at
+`Execution Substrate/.docs/system_overview/hybrid_integration_architecture_adr.md`.
+That pointer does not transfer Coordinator architecture ownership to Execution
+Substrate; it records only the cross-repository decision and owner boundaries.
+
 ## Scope
 
-A2-P1/P1.1 establishes a local Coordinator skeleton for future A2 coding-work
-state. It contains domain models, deterministic identity contracts, a pure
-state transition evaluator, command/event and writer-session contracts, and
-non-authoritative report projections.
+Historically, A2-P1/P1.1 established a local Coordinator skeleton for A2
+coding-work state. It contains domain models, deterministic identity contracts,
+a pure state transition evaluator, command/event and writer-session contracts,
+and non-authoritative report projections. The later B-tranches described below
+add the bounded durable SQLite mutation authority named in Current Status.
 
 P1 versioned inputs are closed-world contracts. Unknown keys, duplicate JSON
 object keys, misspelled keys, and unversioned extension bags fail before
 canonicalization or digest verification.
 
-P1/P1.1 is not an executable coordinator slice. It has no worker invocation path,
-no scheduler, no daemon, no queue consumer, no `StateStore` mutation backend,
-no sandbox, no repair executor, no local commit behavior, and no publication
-behavior. It also has no production future-stage enablement policy or
-configuration.
+P1/P1.1 remains historical contract context, not the current whole-repository
+status. It has no worker invocation path, no scheduler, no daemon, no queue
+consumer, no public `StateStore` mutation backend, no sandbox, no repair
+executor, no local commit behavior, and no publication behavior. It also has no
+production future-stage enablement policy or configuration.
 
 ## Authorities
 
-The future NWP Coordinator owns only future A2 coding-work durable state.
+The NWP Coordinator owns only bounded coding-work durable state.
 Bridge remains a guarded worker/evidence adapter. Codex remains a worker only.
 Control Plane remains product workflow authority. Execution Substrate remains
 product admission/runtime authority. Maintenance Agent remains maintenance
@@ -208,13 +233,14 @@ path, platform, credential, or trust material.
 
 ## B0 SQLite Backend Selection
 
-B0 selects SQLite, one private local database, as the future first production
-state backend architecture. B1/B1.1 add the migration runner and local
-administrative database posture. B2b adds the common state-authority lock for
+B0 selected SQLite, one private local database, as the first bounded local state
+backend architecture. B1/B1.1 add the migration runner and local administrative
+database posture. B2b adds the common state-authority lock for
 initialize/migrate administration. B2c adds durable writer issuance and
-internal writer-session acquisition. The current runtime still has no
-production `StateStore` mutation backend, no coordinator service, and no
-executable A2 capability.
+internal writer-session acquisition. Later B3c4/B4 tranches add the bounded
+writer-session transition/global-stop mutation authority described in Current
+Status. The public `StateStore` remains unwidened; the runtime still has no
+coordinator service and no executable A2 capability.
 
 The selected first-backend journal posture is rollback journal DELETE mode with
 `synchronous=FULL`, `locking_mode=NORMAL`, `foreign_keys=ON`,

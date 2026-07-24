@@ -6,9 +6,18 @@ This operational repository name is provisional and may change without changing
 schema, authority, or durable identifiers. The canonical component name is
 NWP Coordinator.
 
-This repository contains the A2-P1/P1.1 skeleton for the future local
-coding-work coordinator. P1/P1.1 provides offline contract primitives and B1
-SQLite bootstrap/migration infrastructure only:
+Current status: this repository owns bounded internal durable SQLite mutation
+authority for coding-work state. It has internal durable writer issuance,
+writer-fenced transition and global-stop apply, guarded public delegation,
+verification of already-persisted operator-decision receipts, idempotency, CAS,
+exact replay, one COMMIT attempt, commit uncertainty, and explicit retry. It is
+not a service, API, worker, scheduler, queue consumer, provisioner, lease issuer,
+authorization issuer, CP workflow, ES runtime, publication system, or general
+orchestrator.
+
+Tranche history: A2-P1/P1.1 established the original local coding-work
+coordinator skeleton. Later B-tranches added the bounded SQLite authority
+described above. The historical sequence includes:
 
 - standing lease identity parsing, deterministic canonicalization, and digest
   validation for `governed-execution.nwp-standing-lease.v1`;
@@ -205,11 +214,11 @@ For valid bound commands targeting P1-disabled worker, repair, or local-commit
 states, `stage_not_enabled` precedes contextual domain reasons while the event
 still retains complete runtime provenance.
 
-P1/B1 does not execute workers, invoke Bridge or Codex, start a scheduler, run
-a daemon, consume a queue, create worktrees, implement `StateStore` mutations,
-acquire a Coordinator writer, authorize executable work, run validation
-sandboxes, repair, commit, publish, push, open pull requests, or contact live
-product routes.
+Historical P1/B1 did not execute workers, invoke Bridge or Codex, start a
+scheduler, run a daemon, consume a queue, create worktrees, implement
+`StateStore` mutations, acquire a Coordinator writer, authorize executable work,
+run validation sandboxes, repair, commit, publish, push, open pull requests, or
+contact live product routes.
 
 The P1 runtime has no supported policy, configuration, callback, or environment
 path that enables future worker, repair, or local-commit stages.
@@ -240,10 +249,10 @@ waits for active operations, operation leases retain the concrete session
 wrapper, closing and cleaning are distinct, closed is published only after
 proof/lock cleanup completes, and fallback finalization is nonblocking with
 deferred proof/lock cleanup by the last operation. Concurrent explicit close
-callers wait for closed. The runtime still provides no `StateStore` mutation
-backend, transition/global-stop persistence, coordinator service, worker,
-scheduler, authorization path, or executable A2 capability. B2c mutation
-methods enter that guard and fail locally with
+callers wait for closed. At the B2c tranche point, the runtime still provided no
+`StateStore` mutation backend, transition/global-stop persistence, coordinator
+service, worker, scheduler, authorization path, or executable A2 capability.
+B2c mutation methods entered that guard and failed locally with
 `writer_session_mutation_unavailable`.
 
 B3a is contract-only. `WriterSession.apply_transition` accepts only a
@@ -340,4 +349,9 @@ public `WriterSession.apply_global_stop_update()` delegate to it without moving
 SQL, receipt verification, evaluator, sequence, write, rollback, COMMIT, or
 uncertainty ownership into the public wrapper.
 
-See `.docs/` for the authority boundary and A2-P1 contract.
+Current next implementation selection is cross-repository authority-contract
+design for authority issuance, Coordinator ingress, worker/runtime handoff, and
+correlation/recovery. It is not A2-P1 creation and not end-to-end execution.
+
+See `.docs/` for the current architecture, authority boundary, and historical
+A2-P1 contract.
