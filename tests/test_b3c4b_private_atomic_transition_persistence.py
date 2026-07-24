@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+import io
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from pathlib import Path
 import sqlite3
@@ -20,6 +22,7 @@ from b3_coherent_transition_fixture import (
 from ge_nwp_coordinator.persistence_contracts import (
     SQLITE_SIGNED_INT_MAX,
     TRANSITION_EVENT_ROW_COLUMNS,
+    WORK_ITEM_ROW_COLUMNS,
     TransitionEventRecordEnvelope,
     transition_event_record_envelope_from_row,
 )
@@ -68,23 +71,62 @@ def _run_apply_raises(
     error_class: str,
     command: TransitionCommand | None = None,
 ) -> SQLiteMutationStoreError:
-    with pytest.raises(SQLiteMutationStoreError) as exc_info:
+    captured_error: SQLiteMutationStoreError | None = None
+    unexpected_ordinary_exception = False
+    try:
         _run_apply(fixture, command)
-    _assert_mutation_error(exc_info.value, error_class)
-    assert fixture.writer_session._resource._mutation_slot is None
-    return exc_info.value
+    except SQLiteMutationStoreError as error:
+        captured_error = error
+    except Exception:
+        unexpected_ordinary_exception = True
+
+    if unexpected_ordinary_exception:
+        pytest.fail("mutation path raised an unexpected ordinary exception", pytrace=False)
+    if captured_error is None:
+        pytest.fail("mutation path did not raise the expected safe error", pytrace=False)
+
+    _assert_mutation_error(captured_error, error_class)
+    if fixture.writer_session._resource._mutation_slot is not None:
+        pytest.fail("mutation slot was not released safely", pytrace=False)
+    return captured_error
 
 
-def _assert_mutation_error(error: SQLiteMutationStoreError, error_class: str) -> None:
-    assert error.error_class == error_class
-    assert str(error) == error_class
-    assert error.args == (error_class,)
-    assert error.internal_detail is None
-    assert error.__cause__ is None
-    assert error.__context__ is None
-    assert not getattr(error, "__notes__", ())
+def _assert_mutation_error(error: object, error_class: str) -> None:
+    if type(error_class) is not str:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    if type(error) is not SQLiteMutationStoreError:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+
+    args = error.args
+    if type(args) is not tuple or len(args) != 1:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    arg = args[0]
+    if type(arg) is not str:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+
+    observed_error_class = error.error_class
+    if type(observed_error_class) is not str:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    if observed_error_class != error_class:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    if arg != error_class:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+
+    if error.internal_detail is not None:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    if error.__cause__ is not None:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    if error.__context__ is not None:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+    notes = getattr(error, "__notes__", None)
+    if notes is not None and (type(notes) is not list or len(notes) != 0):
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
+
+    if str(error) != error_class:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
     formatted = "".join(traceback.format_exception(type(error), error, error.__traceback__))
-    assert PRIVATE_SENTINEL not in formatted
+    if PRIVATE_SENTINEL in formatted:
+        pytest.fail("mutation error violated the closed safe error contract", pytrace=False)
 
 
 def _assert_committed(result: object, *, replayed: bool) -> CommittedTransition:
@@ -134,6 +176,122 @@ def _transition_event_envelopes(fixture: object) -> tuple[TransitionEventRecordE
         assert type(envelope) is TransitionEventRecordEnvelope
         envelopes.append(envelope)
     return tuple(envelopes)
+
+
+def _work_item_rows(fixture: object) -> tuple[tuple[object, ...], ...]:
+    connection = open_existing_sqlite_connection(fixture.location, read_only=True)
+    try:
+        columns = ", ".join(WORK_ITEM_ROW_COLUMNS)
+        rows = connection.execute(f"SELECT {columns} FROM work_items ORDER BY work_item_id").fetchall()
+        return tuple(tuple(row) for row in rows)
+    finally:
+        connection.close()
+
+
+def _operation_count(resource: object) -> int:
+    return len(resource._active_operations)
+
+
+def _assert_adversarial_a_private_equal(actual: object, expected: object) -> None:
+    comparison_failed = False
+    result: object = None
+    stdout_buffer = io.StringIO()
+    stderr_buffer = io.StringIO()
+
+    with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+        try:
+            result = actual == expected
+        except Exception:
+            comparison_failed = True
+
+    if (
+        comparison_failed
+        or type(result) is not bool
+        or result is not True
+        or stdout_buffer.getvalue()
+        or stderr_buffer.getvalue()
+    ):
+        pytest.fail("adversarial A private-state comparison failed", pytrace=False)
+
+
+def _adversarial_a_normalized_trace(trace: object) -> str:
+    if type(trace) is not list and type(trace) is not tuple:
+        pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+    normalized: list[str] = []
+    for statement in trace:
+        if type(statement) is not str:
+            pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+        normalized.append(statement.upper())
+    return "\n".join(normalized)
+
+
+def _assert_adversarial_a_trace_order(trace: object, ordered_markers: object) -> None:
+    if type(ordered_markers) is not tuple:
+        pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+    markers: list[str] = []
+    for marker in ordered_markers:
+        if type(marker) is not str:
+            pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+        markers.append(marker)
+
+    normalized = _adversarial_a_normalized_trace(trace)
+    previous_position = -1
+    for marker in markers:
+        position = normalized.find(marker, previous_position + 1)
+        if position < 0 or position <= previous_position:
+            pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+        previous_position = position
+
+
+def _assert_capability_expired(capability: object) -> None:
+    with pytest.raises(Exception) as exc_info:
+        capability._borrow_connection_for_select()
+    assert type(exc_info.value).__name__ == "_MutationReadCapabilityError"
+
+
+def _assert_adversarial_a_error_is_private(
+    error: SQLiteMutationStoreError,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    fixture: object,
+    forbidden_values: tuple[str, ...],
+) -> None:
+    captured = capsys.readouterr()
+    formatted = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    observed = "\n".join(
+        (
+            str(error),
+            repr(error),
+            repr(error.args),
+            repr(error.internal_detail),
+            repr(error.__cause__),
+            repr(error.__context__),
+            repr(getattr(error, "__notes__", ())),
+            formatted,
+            captured.out,
+            captured.err,
+        )
+    )
+    observed_upper = observed.upper()
+    for sql_token in (
+        "BEGIN IMMEDIATE",
+        "INSERT INTO",
+        "UPDATE WORK_ITEMS",
+        "SELECT ",
+        "SQLITE3.CONNECTION",
+        "SQLITE3.CURSOR",
+    ):
+        if sql_token in observed_upper:
+            pytest.fail("privacy assertion detected prohibited SQL-shaped material", pytrace=False)
+    for value in (
+        PRIVATE_SENTINEL,
+        str(fixture.location.state_root),
+        str(fixture.location.database_path),
+        str(fixture.location.state_authority_lock_path),
+        *forbidden_values,
+    ):
+        if value and value in observed:
+            pytest.fail("privacy assertion detected prohibited private material", pytrace=False)
 
 
 def _insert_transition_event_row(fixture: object, row: dict[str, object]) -> None:
@@ -718,6 +876,116 @@ def test_event_insert_and_cas_failures_roll_back_partial_writes(
         _run_apply_raises(fixture, "mutation_failed")
         assert transition_event_count_for_test(fixture) == 0
         assert read_back_fixture_for_test(fixture).work_item.record == fixture.work_item
+
+
+def test_real_transition_cas_zero_row_after_event_insert_rolls_back_and_retries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
+
+    with make_coherent_transition_fixture_for_test(tmp_path, ready_dependency=True) as fixture:
+        _patch_clock(monkeypatch)
+        before_envelope = read_back_fixture_for_test(fixture).work_item
+        before_rows = _work_item_rows(fixture)
+        traced_sql: list[str] = []
+        captured_capabilities: list[object] = []
+        injected_rows: list[int] = []
+        original_open = transaction_module._open_bound_existing_sqlite_connection
+        original_create_capability = transaction_module._create_sqlite_mutation_read_capability
+        original_event_insert = transaction_module._execute_transition_event_insert
+
+        def tracing_open(*args: object, **kwargs: object) -> sqlite3.Connection:
+            connection = original_open(*args, **kwargs)
+            connection.set_trace_callback(traced_sql.append)
+            return connection
+
+        def capture_capability(*args: object, **kwargs: object) -> object:
+            capability = original_create_capability(*args, **kwargs)
+            captured_capabilities.append(capability)
+            return capability
+
+        def insert_then_shift_current_version(connection: sqlite3.Connection, values: object) -> None:
+            original_event_insert(connection, values)
+            cursor = connection.execute(
+                "UPDATE work_items SET version = version + 100 WHERE work_item_id = ?",
+                (fixture.work_item.work_item_id,),
+            )
+            try:
+                injected_rows.append(cursor.rowcount)
+            finally:
+                cursor.close()
+
+        monkeypatch.setattr(transaction_module, "_open_bound_existing_sqlite_connection", tracing_open)
+        monkeypatch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", capture_capability)
+        monkeypatch.setattr(transaction_module, "_execute_transition_event_insert", insert_then_shift_current_version)
+
+        error = _run_apply_raises(fixture, "database_integrity_failure")
+
+        _assert_adversarial_a_error_is_private(
+            error,
+            capsys,
+            fixture=fixture,
+            forbidden_values=(
+                fixture.command.work_item_id,
+                fixture.command.idempotency_key,
+                fixture.command.canonical_command_digest,
+                fixture.work_item.canonical_json(),
+                fixture.work_item.canonical_digest(),
+            ),
+        )
+        normalized = _adversarial_a_normalized_trace(traced_sql)
+        assert injected_rows == [1]
+        if len(captured_capabilities) != 1:
+            pytest.fail("adversarial A private-state comparison failed", pytrace=False)
+        _assert_capability_expired(captured_capabilities[0])
+        if normalized.count("INSERT INTO TRANSITION_EVENTS") != 1:
+            pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+        _assert_adversarial_a_trace_order(
+            traced_sql,
+            (
+                "INSERT INTO TRANSITION_EVENTS",
+                "UPDATE WORK_ITEMS SET VERSION = VERSION + 100",
+                "UPDATE WORK_ITEMS\nSET\n    LEASE_ID =",
+            ),
+        )
+        if "COMMIT" in normalized:
+            pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+        if "ROLLBACK" not in normalized:
+            pytest.fail("adversarial A SQL-trace ordering proof failed", pytrace=False)
+        assert transition_event_count_for_test(fixture) == 0
+        _assert_adversarial_a_private_equal(_work_item_rows(fixture), before_rows)
+        _assert_adversarial_a_private_equal(read_back_fixture_for_test(fixture).work_item, before_envelope)
+        if fixture.writer_session._resource._mutation_slot is not None:
+            pytest.fail("mutation slot was not released safely", pytrace=False)
+        if _operation_count(fixture.writer_session._resource) != 0:
+            pytest.fail("adversarial A private-state comparison failed", pytrace=False)
+        if fixture.writer_session.active is not True:
+            pytest.fail("adversarial A private-state comparison failed", pytrace=False)
+
+        location = fixture.location
+        fixture.writer_session.close()
+        monkeypatch.undo()
+        restarted = acquire_sqlite_writer_session(location)
+        try:
+            restarted_fixture = replace(fixture, writer_session=restarted)
+            _patch_clock(monkeypatch)
+            fresh = _assert_committed(_run_apply(restarted_fixture), replayed=False)
+            assert transition_event_count_for_test(restarted_fixture) == 1
+            _assert_adversarial_a_private_equal(
+                read_back_fixture_for_test(restarted_fixture).work_item.record,
+                fresh.record,
+            )
+
+            replay = _assert_committed(_run_apply(restarted_fixture), replayed=True)
+            _assert_adversarial_a_private_equal(replay.event, fresh.event)
+            _assert_adversarial_a_private_equal(replay.record, fresh.record)
+            assert transition_event_count_for_test(restarted_fixture) == 1
+            if _operation_count(restarted_fixture.writer_session._resource) != 0:
+                pytest.fail("adversarial A private-state comparison failed", pytrace=False)
+        finally:
+            restarted.close()
 
 
 def test_capability_invalidation_rollback_and_close_failures_preserve_no_partial_commit(
