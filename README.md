@@ -15,6 +15,14 @@ not a service, API, worker, scheduler, queue consumer, provisioner, lease issuer
 authorization issuer, CP workflow, ES runtime, publication system, or general
 orchestrator.
 
+Strategic target direction is recorded separately from current behavior:
+Coordinator is intended to become the durable autonomy core for software
+development progression while Execution Substrate remains execution admission
+and runtime authority. The reserved transport-neutral Worker Execution Boundary
+and its non-implementation constraints are documented in
+`.docs/worker-execution-boundary.md`. Bridge is not selected as mandatory future
+worker placement by this tranche.
+
 Tranche history: A2-P1/P1.1 established the original local coding-work
 coordinator skeleton. Later B-tranches added the bounded SQLite authority
 described above. The historical sequence includes:

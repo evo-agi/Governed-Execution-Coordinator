@@ -10,11 +10,17 @@ issuance, writer-fenced transition/global-stop apply, verification of
 already-persisted operator-decision receipts, idempotency, CAS, exact replay,
 commit uncertainty, and explicit retry semantics.
 
-Bridge remains the guarded worker/evidence adapter. Control Plane remains
-product workflow authority. Execution Substrate remains product admission and
-runtime authority. Maintenance Agent remains maintenance authority.
-Infrastructure Manager remains readiness, provenance, and diagnostics
-authority.
+Bridge remains the current guarded adapter/evidence surface and is not durable
+program state, scheduler, lifecycle truth, retry/repair authority, or acceptance
+authority. Execution Substrate remains execution admission/runtime authority:
+admission, runtime-profile compatibility, prepare/submit handoff, runtime
+identity and credential-handoff boundaries, submitted-execution lifecycle
+projection, runtime cancellation-request boundaries, and retained execution
+results remain ES-owned. Control Plane remains relevant only to current
+maintained MVP/demo compatibility, migration, filming, freeze, reference, or
+retirement context; CP is not part of the target autonomous-development
+topology. Maintenance Agent remains maintenance authority. Infrastructure
+Manager remains readiness, provenance, and diagnostics authority.
 
 Operator/repo policy owns lease issuance and global stop. The coordinator
 cannot self-authorize, cannot mint authorization, and cannot treat a valid
@@ -31,6 +37,31 @@ consumer, work-item production provisioner, decision-receipt provisioner,
 coding-work lease issuer, executable authorization issuer, Codex invocation, CP
 workflow, ES runtime, publication, or general orchestration. Receipt
 provisioning remains reopened and external to this repository.
+
+Strategic target direction is separate from current behavior. Coordinator is
+intended to become the durable autonomy core for software development
+progression: durable desired progression, semantic work and attempt identity,
+work selection, dispatch intent, retry/repair decisions, cancellation intent,
+global-stop effect planning, evidence requirements and bindings, restart
+reconciliation decisions, acceptance progression, and governed advancement
+toward allowed Git or publication effects. Model reasoning owns cognitive
+intent and architectural or semantic judgment, but model sessions and responses
+are not durable program truth by themselves.
+
+The Worker Execution Boundary is reserved as the transport-neutral boundary
+between Coordinator-owned durable development progression and ES-owned execution
+authority. It may later be placed as an in-process Coordinator adapter, an
+explicitly widened Bridge adapter, or a separate stateless gateway. This
+repository currently implements none of those placements, no dispatcher, no
+reconciler, no service/API/IPC, no ES call, no Bridge widening, no Codex
+invocation, no runtime-profile integration, no outbox/inbox implementation, no
+schema or migration for dispatch, no connector dependency, no Development
+Program prerequisite, and no full event-sourcing decision.
+A future adapter or gateway may own only bounded placement-specific protocol
+mechanics, ephemeral invocation/session correlation, redaction, and evidence
+shaping. It must not own durable work selection, scheduling policy, semantic
+retry or repair authority, acceptance, ES admission, runtime lifecycle truth,
+Git truth, validation truth, or hidden program state.
 
 B1/B1.1 implements only secure local SQLite state-location, connection
 bootstrap, observational inspection/validation, schema migration, migration

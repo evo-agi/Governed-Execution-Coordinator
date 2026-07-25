@@ -165,9 +165,12 @@ lets exactly one cleanup owner enter cleaning, best-effort overwrites and drops
 the private proof, closes the common lock, then publishes closed. Concurrent
 explicit close callers wait for closed. Close performs no SQLite update, delete,
 release marker, or generation reset. Public transition mutation now delegates
-through the private guarded path; public global-stop mutation currently enters
-the private guard and then fails locally with
-`writer_session_mutation_unavailable`.
+through the private guarded path. Public global-stop mutation now delegates
+through the guarded B4c public wrapper to B4b private atomic global-stop
+persistence. The public wrappers own no SQL, receipt verification, evaluator,
+sequence allocation, write, rollback, COMMIT, or uncertainty handling, and they
+do not widen public `StateStore` or add worker, service, scheduler, ES handoff,
+or runtime behavior.
 
 ## B3a Future Mutation Error Contract
 

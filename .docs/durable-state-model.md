@@ -24,7 +24,21 @@ result/preflight/binding/timestamp/cleanup boundaries, idempotency and context
 reader ordering, expected-version checks, lease-runtime/context construction,
 and exactly one pure evaluator invocation, but it does not persist evaluator
 output, mutate durable state, commit, or add migration 0002.
-The code still does not implement a production `StateStore` mutation backend.
+B3c4b adds private atomic transition persistence, B3c4c adds guarded public
+transition delegation, B4b adds private global-stop persistence, and B4c adds
+guarded public global-stop delegation. The public `StateStore` remains
+unwidened; internal `WriterSession` mutation is not a general public
+`StateStore` backend or service. The code still has no dispatch, semantic
+attempt, runtime-observation, result-ingest, outbox/inbox, worker, scheduler,
+queue, Codex, ES handoff, or runtime lifecycle storage.
+
+Strategic target direction is separate from current behavior. Lifecycle state
+names such as `cycle_starting`, `worker_running`, `validating`, `auditing`,
+repair, commit, and cleanup names do not transfer runtime authority to
+Coordinator. Future desired/observed state and semantic-attempt work requires a
+new accepted contract. The current finite-backlog, standing-lease, zero-only
+budget, READY-only dependency, and disabled-stage contracts remain current v1
+behavior but are not frozen as the target model.
 
 The work-item state schema id is:
 

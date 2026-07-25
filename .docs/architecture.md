@@ -19,10 +19,28 @@ COMMIT attempt, commit uncertainty, and explicit retry.
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
 operator-decision receipt provisioning, a worker, scheduler, queue consumer,
-Codex invocation, Execution Substrate runtime, Control Plane workflow,
-publication, a public service/API, or general orchestration. Receipt
+Codex invocation, Execution Substrate runtime handoff, runtime-profile
+integration, result-ingest path, publication, a public service/API, or general
+orchestration. Receipt
 provisioning remains a separately governed operator/repo-policy integration
 seam outside this repository.
+
+Strategic target direction is separate from current implementation facts.
+Coordinator is intended to become the durable autonomy core for software
+development progression: durable desired progression, semantic work and attempt
+identity, work selection, durable dispatch intent, retry and repair decisions,
+cancellation intent, global-stop effect planning, evidence requirements and
+bindings, restart reconciliation decisions, acceptance progression, and governed
+advancement toward allowed Git or publication effects. This target direction is
+not implemented by the current code and does not authorize execution.
+
+The reserved Worker Execution Boundary is documented in
+`.docs/worker-execution-boundary.md`. It is transport-neutral and keeps
+in-process adapter, explicitly widened Bridge adapter, and separate stateless
+gateway placements open. The boundary enables no worker, scheduler, dispatcher,
+reconciler, service/API/IPC, ES call, Bridge widening, Codex invocation, schema,
+migration, outbox/inbox implementation, runtime profile, connector dependency,
+Development Program prerequisite, or event-sourcing decision by itself.
 
 The canonical cross-repository integration architecture/status decision is
 recorded at
@@ -50,20 +68,41 @@ production future-stage enablement policy or configuration.
 
 ## Authorities
 
-The NWP Coordinator owns only bounded coding-work durable state.
-Bridge remains a guarded worker/evidence adapter. Codex remains a worker only.
-Control Plane remains product workflow authority. Execution Substrate remains
-product admission/runtime authority. Maintenance Agent remains maintenance
-authority. Infrastructure Manager remains readiness, provenance, and
-diagnostics authority.
+The NWP Coordinator currently owns only bounded coding-work durable state. The
+target Coordinator owns durable desired development progression and semantic
+effect intent, not runtime lifecycle truth.
+
+Bridge remains a guarded adapter/evidence surface today. A future worker adapter
+may own only bounded placement-specific protocol mechanics such as request
+translation, Codex CLI or App Server protocol handling, local IPC or transport
+mechanics, ephemeral adapter invocation/session correlation, and bounded
+redaction/evidence shaping. A worker adapter, widened Bridge adapter, or future
+gateway must not own durable work selection, scheduling policy, semantic retry
+or repair authority, acceptance, ES admission, runtime lifecycle truth, Git
+truth, validation truth, or hidden program state.
+
+Execution Substrate remains execution admission/runtime authority: execution
+admission, runtime-profile compatibility, prepare and submit handoff, runtime
+identity and credential-handoff boundaries, submitted execution lifecycle
+projection, runtime cancellation request boundary, and retained execution
+results remain ES-owned. Git owns repository object and ref truth. CI or
+validating runtimes own observed validation results.
+
+Control Plane remains relevant only to current maintained MVP/demo
+compatibility, migration, filming, freeze, reference, or retirement context. CP
+is not part of the target autonomous-development topology. Maintenance Agent
+remains maintenance authority. Infrastructure Manager remains readiness,
+provenance, and diagnostics authority.
 
 Operator/repo policy owns lease issuance and global stop. The Coordinator
 observes and enforces those decisions but cannot issue them, clear them,
 weaken them, reinterpret them, or self-authorize.
 
-ChatGPT, connector state, API request/session context, Symphony, reports,
-Bridge ledgers, Bridge reports, and local runner evidence remain adapters or
-projections. They are not durable A2 state.
+Model reasoning owns cognitive intent, architectural and semantic judgment,
+planning, replanning, and evidence review. Model sessions, ChatGPT state,
+connector state, API request/session context, Symphony, reports, Bridge ledgers,
+Bridge reports, and local runner evidence remain adapters or projections. They
+are not durable A2 state or target durable program truth.
 
 ## P1 Package
 

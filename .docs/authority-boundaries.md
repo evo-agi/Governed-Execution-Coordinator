@@ -1,5 +1,7 @@
 # Authority Boundaries
 
+## Current Authority
+
 The NWP Coordinator cannot self-authorize. A valid lease digest proves only
 schema validity, canonical form, digest match, time-window shape, bounded field
 shape, and finite-backlog binding shape. It does not prove authorization or
@@ -18,14 +20,20 @@ production posture, requires internally coherent authorization flags and
 reasons, and classifies `operator_policy` as unsupported by the accepted
 runtime architecture until a separate authorization contract exists.
 
-Bridge remains worker/evidence adapter only. Bridge ledgers and reports are
-evidence/projection and never become Coordinator durable state.
+Bridge remains worker/evidence adapter only in current implementation reality.
+Bridge ledgers and reports are evidence/projection and never become Coordinator
+durable state, lifecycle truth, retry/repair authority, scheduling policy,
+acceptance, or hidden program state.
 
-Control Plane remains product workflow authority and does not become A2
-coding-work state owner.
+Control Plane remains relevant only to current maintained MVP/demo
+compatibility, migration, filming, freeze, reference, or retirement context. CP
+does not become A2 coding-work state owner and is not part of the target
+autonomous-development topology.
 
-Execution Substrate remains product admission/runtime authority and does not
-delegate ES route, TLS, lifecycle, or runtime truth to the Coordinator.
+Execution Substrate remains execution admission/runtime authority and does not
+delegate ES route, TLS, lifecycle, runtime-profile compatibility, runtime
+identity, credential-handoff boundaries, runtime cancellation request, retained
+results, or runtime truth to the Coordinator.
 
 Maintenance Agent remains maintenance authority. Maintenance leases and coding
 leases are separate namespaces and are not interchangeable.
@@ -37,6 +45,61 @@ Reports, ChatGPT state, connector state, API sessions, Symphony, and adapter
 evidence do not create durable A2 state, lease authority, execution authority,
 acceptance, commit authority, or publication authority. A report or adapter
 projection does not create durable A2 state.
+
+## Strategic Target Fact Ownership
+
+Coordinator is intended to become the durable autonomy core for software
+development progression. Target Coordinator ownership includes durable desired
+development progression, semantic work and attempt identity, work selection,
+durable dispatch intent, retry and repair decisions, cancellation intent,
+global-stop effect planning, evidence requirements and bindings, restart
+reconciliation decisions, acceptance progression, and governed advancement
+toward allowed Git or publication effects.
+
+Execution Substrate continues to own execution admission, runtime-profile
+compatibility, prepare and submit handoff, runtime identity and
+credential-handoff boundaries, submitted execution lifecycle projection, runtime
+cancellation request boundaries, and retained execution results. Git owns
+repository object and ref truth. CI or validating runtimes own observed
+validation results.
+
+The Worker Execution Boundary is the reserved transport-neutral boundary between
+Coordinator-owned durable development progression and ES-owned runtime
+authority. A worker adapter, widened Bridge adapter, or future gateway may own
+only bounded placement-specific protocol mechanics, request translation, Codex
+CLI or App Server protocol handling, local IPC or transport mechanics,
+ephemeral adapter invocation/session correlation, and bounded redaction/evidence
+shaping. It must not own durable work selection, scheduling policy, semantic
+retry or repair authority, acceptance, ES admission, runtime lifecycle truth,
+Git truth, validation truth, or hidden program state.
+
+Model reasoning owns cognitive intent and architectural or semantic judgment.
+Model sessions and model responses are not durable program truth by themselves.
+The user is not a routine per-task approval service. Connector availability and
+a first-class Development Program are not prerequisites for the Worker Execution
+Boundary. Full append-only event sourcing is not selected or required by this
+tranche.
+
+## Evidence And References Versus Authority
+
+Coordinator may retain safe opaque references and bounded observations needed
+for correlation and decision-making. Retaining an ES `run_id`, adapter
+invocation reference, Git ref, validation reference, or retained-result
+reference does not transfer ownership of the external fact to Coordinator.
+
+The current ES submit contract exposes an internally generated `run_id` after a
+successful submit but does not expose caller-supplied submit idempotency or a
+query-by-dispatch-command recovery contract. Reliable real dispatch requires an
+ES-owned idempotency, correlation, or recovery decision, or an explicitly
+bounded bootstrap exception. Coordinator must not compensate by inventing a
+second ES lifecycle store, scraping Nomad as its own authority, or treating
+trace/request IDs as recovery authority.
+
+External I/O must not occur inside the SQLite mutation transaction boundary. A
+recoverable durable effect intent must exist before an external dispatch effect
+is attempted. Delivery acknowledgement is not runtime admission. An ES submit
+receipt is not semantic work acceptance. Transport redelivery is not a new
+semantic attempt; a new semantic attempt requires a Coordinator decision.
 
 Writer-session authority is mutation fencing contract shape plus B2c internal
 SQLite acquisition. B2a removes standalone reconstructable public-token
