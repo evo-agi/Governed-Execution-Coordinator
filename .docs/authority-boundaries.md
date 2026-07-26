@@ -35,11 +35,18 @@ delegate ES route, TLS, lifecycle, runtime-profile compatibility, runtime
 identity, credential-handoff boundaries, runtime cancellation request, retained
 results, or runtime truth to the Coordinator.
 
-Maintenance Agent remains maintenance authority. Maintenance leases and coding
-leases are separate namespaces and are not interchangeable.
+Maintenance Agent currently retains only its bounded current-contract scan,
+proposal, approval-record, route-matrix/eligibility handling, and bounded
+foreground invocation behavior. MA is not selected as the general authorization
+issuer, renewal authority, deployment authority, runtime/lifecycle authority, or
+durable operational-progression owner. Maintenance leases and coding leases are
+separate namespaces and are not interchangeable.
 
-Infrastructure Manager remains readiness, provenance, profile, diagnostics,
-and support-bundle authority. Its outputs are not Coordinator state truth.
+Infrastructure Manager outputs remain readiness evidence, bootstrap provenance,
+diagnostics, and profile/support evidence. IM is not durable progression,
+operational acceptance, owner-route, orchestration, or runtime authority. Its
+outputs are not Coordinator state truth. MA/IM survival, migration, or retirement
+remains open.
 
 Reports, ChatGPT state, connector state, API sessions, Symphony, and adapter
 evidence do not create durable A2 state, lease authority, execution authority,
@@ -48,13 +55,43 @@ projection does not create durable A2 state.
 
 ## Strategic Target Fact Ownership
 
-Coordinator is intended to become the durable autonomy core for software
-development progression. Target Coordinator ownership includes durable desired
-development progression, semantic work and attempt identity, work selection,
-durable dispatch intent, retry and repair decisions, cancellation intent,
-global-stop effect planning, evidence requirements and bindings, restart
-reconciliation decisions, acceptance progression, and governed advancement
-toward allowed Git or publication effects.
+Coordinator may later become the component-level durable progression owner for
+governed programs admitted to its target operating model through conceptual
+shared owner-neutral progression mechanics and separately versioned
+software-development and bounded operational-change domain contracts. Current
+implementation remains coding-work-specific bounded durable SQLite mutation
+authority only. The target does not select one universal queue, backlog, lease,
+work-item/state grammar, state machine, retry or repair counter, dependency
+receipt model, global stop, acceptance grammar, effect vocabulary, schema,
+service, module, worker, scheduler, or reconciler.
+
+The target-only operational authority split is:
+
+- Git and owning repository retain desired bytes and owner action definitions;
+- owning route/component repository retains action meaning, route eligibility,
+  preconditions, privilege and runtime-profile requirements,
+  identity/signing/secret custody, idempotency and re-entry, post-check meaning,
+  rollback, compensation, containment, and redaction;
+- external owner/policy authority retains grant issuance and effect ceilings;
+- target Coordinator may safely verify and bind allowlisted immutable authority
+  references and own durable progression decisions;
+- Execution Substrate retains authentication, reliable keyed submit when that
+  future contract is implemented, admission, runtime handoff, lifecycle
+  projection, cancellation-request, and retained-result boundaries;
+- runtime/provider/host source retains observed runtime facts;
+- Maintenance Agent retains bounded current scans, proposals, approval records,
+  route eligibility handling, and foreground invocation only;
+- Infrastructure Manager retains evidence, provenance, diagnostics, and
+  profile/support evidence only;
+- Control Plane retains current MVP/demo workflow and exact-scope controls only;
+- Bridge/connector retains transport, session, and report evidence only;
+- CI/probes/owner systems retain validation observations;
+- Git retains object and ref truth.
+
+Coordinator may verify and bind allowlisted immutable authority references. It
+may not mint, renew, widen, translate, reinterpret, or self-supersede operational
+authority. A digest proves byte identity only. Owner-blocked routes remain
+blocked.
 
 Execution Substrate continues to own execution admission, runtime-profile
 compatibility, prepare and submit handoff, runtime identity and
@@ -78,7 +115,8 @@ Model sessions and model responses are not durable program truth by themselves.
 The user is not a routine per-task approval service. Connector availability and
 a first-class Development Program are not prerequisites for the Worker Execution
 Boundary. Full append-only event sourcing is not selected or required by this
-tranche.
+tranche. CP WebAuthn and MA biometric/lease designs are not adopted as the
+general operational authorization model.
 
 ## Evidence And References Versus Authority
 
@@ -86,6 +124,10 @@ Coordinator may retain safe opaque references and bounded observations needed
 for correlation and decision-making. Retaining an ES `run_id`, adapter
 invocation reference, Git ref, validation reference, or retained-result
 reference does not transfer ownership of the external fact to Coordinator.
+Persistence does not make evidence true. Raw credentials, keys, biometric
+material, TLS/SPIFFE/Vault/WebAuthn/Codex/OpenAI/API-key material, private
+environment files, unrestricted logs, support-bundle bodies, and private
+paths/endpoints remain outside Coordinator durable/public state.
 
 The current ES submit contract exposes an internally generated `run_id` after a
 successful submit but does not expose caller-supplied submit idempotency or a

@@ -18,29 +18,43 @@ COMMIT attempt, commit uncertainty, and explicit retry.
 
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
-operator-decision receipt provisioning, a worker, scheduler, queue consumer,
-Codex invocation, Execution Substrate runtime handoff, runtime-profile
-integration, result-ingest path, publication, a public service/API, or general
-orchestration. Receipt
-provisioning remains a separately governed operator/repo-policy integration
-seam outside this repository.
+operator-decision receipt provisioning, an operational-change domain model,
+operational schema, worker, scheduler, queue consumer, dispatcher, Codex
+invocation, Execution Substrate runtime handoff, runtime-profile integration,
+operational observation ingest, result-ingest path, repair executor, bootstrap
+executor, publication path, public service/API/IPC, live operational effect, or
+general orchestration. Receipt provisioning remains a separately governed
+operator/repo-policy integration seam outside this repository.
 
 Strategic target direction is separate from current implementation facts.
-Coordinator is intended to become the durable autonomy core for software
-development progression: durable desired progression, semantic work and attempt
-identity, work selection, durable dispatch intent, retry and repair decisions,
-cancellation intent, global-stop effect planning, evidence requirements and
-bindings, restart reconciliation decisions, acceptance progression, and governed
-advancement toward allowed Git or publication effects. This target direction is
-not implemented by the current code and does not authorize execution.
+Coordinator may later become the component-level durable progression owner for
+governed programs admitted to its target operating model. That target architecture
+uses conceptual shared owner-neutral progression mechanics plus separately
+versioned software-development and bounded operational-change domain contracts.
+The current coding domain remains intact and coding-work-specific. The shared
+mechanics do not imply one universal queue, backlog, lease, work-item/state
+grammar, state machine, retry or repair counter, dependency receipt model, global
+stop, acceptance grammar, effect vocabulary, schema, service, module, worker,
+scheduler, or reconciler. This target direction is not implemented by the
+current code and does not authorize execution.
+
+The target does not select a generic environment controller, topology controller,
+universal scheduler, capability registry, background probe loop, continuous drift
+reconciler, schema, service, worker, route, issuer, adapter, effect engine, or
+production topology. Owner-route semantics, external authority issuance,
+ES/runtime ownership, and source-observation ownership remain separate.
+Operational acceptance is a future Coordinator durable progression decision over
+admitted owner-source observations; it is not ownership of the observed fact.
 
 The reserved Worker Execution Boundary is documented in
-`.docs/worker-execution-boundary.md`. It is transport-neutral and keeps
-in-process adapter, explicitly widened Bridge adapter, and separate stateless
-gateway placements open. The boundary enables no worker, scheduler, dispatcher,
-reconciler, service/API/IPC, ES call, Bridge widening, Codex invocation, schema,
-migration, outbox/inbox implementation, runtime profile, connector dependency,
-Development Program prerequisite, or event-sourcing decision by itself.
+`.docs/worker-execution-boundary.md`. It remains coding-specific and unchanged.
+It is transport-neutral and keeps in-process adapter, explicitly widened Bridge
+adapter, and separate stateless gateway placements open. The boundary enables no
+worker, scheduler, dispatcher, reconciler, service/API/IPC, ES call, Bridge
+widening, Codex invocation, schema, migration, outbox/inbox implementation,
+runtime profile, connector dependency, Development Program prerequisite, or
+event-sourcing decision by itself. The bounded operational-change target is
+documented separately in `.docs/operational-progression-boundary.md`.
 
 The canonical cross-repository integration architecture/status decision is
 recorded at
@@ -69,8 +83,10 @@ production future-stage enablement policy or configuration.
 ## Authorities
 
 The NWP Coordinator currently owns only bounded coding-work durable state. The
-target Coordinator owns durable desired development progression and semantic
-effect intent, not runtime lifecycle truth.
+target Coordinator may later own durable progression decisions for admitted
+software-development and bounded operational-change programs. It does not own
+owner-route meaning, external authorization issuance, source-observation truth,
+or runtime lifecycle truth.
 
 Bridge remains a guarded adapter/evidence surface today. A future worker adapter
 may own only bounded placement-specific protocol mechanics such as request
@@ -90,9 +106,21 @@ validating runtimes own observed validation results.
 
 Control Plane remains relevant only to current maintained MVP/demo
 compatibility, migration, filming, freeze, reference, or retirement context. CP
-is not part of the target autonomous-development topology. Maintenance Agent
-remains maintenance authority. Infrastructure Manager remains readiness,
-provenance, and diagnostics authority.
+is not part of the target autonomous-development topology. Owning
+repositories/components retain route/action meaning, route eligibility,
+preconditions, privilege and runtime-profile requirements, identity/signing/secret
+custody, idempotency and re-entry, post-check meaning, rollback, compensation,
+containment, and redaction.
+
+Maintenance Agent currently retains only its bounded current-contract scan,
+proposal, approval-record, route-matrix/eligibility handling, and bounded
+foreground invocation behavior. MA is not selected as the general authorization
+issuer, renewal authority, deployment authority, runtime/lifecycle authority, or
+durable operational-progression owner. Infrastructure Manager outputs remain
+readiness evidence, bootstrap provenance, diagnostics, and profile/support
+evidence. IM is not durable progression, operational acceptance, owner-route,
+orchestration, or runtime authority. MA/IM survival, migration, or retirement
+remains open.
 
 Operator/repo policy owns lease issuance and global stop. The Coordinator
 observes and enforces those decisions but cannot issue them, clear them,
@@ -101,8 +129,10 @@ weaken them, reinterpret them, or self-authorize.
 Model reasoning owns cognitive intent, architectural and semantic judgment,
 planning, replanning, and evidence review. Model sessions, ChatGPT state,
 connector state, API request/session context, Symphony, reports, Bridge ledgers,
-Bridge reports, and local runner evidence remain adapters or projections. They
-are not durable A2 state or target durable program truth.
+Bridge reports, profiles, retained bundles, MA proposals, IM readiness evidence,
+CP projections, traces, request IDs, and local runner evidence remain adapters,
+evidence, or projections. They are not durable A2 state or target durable program
+truth.
 
 ## P1 Package
 

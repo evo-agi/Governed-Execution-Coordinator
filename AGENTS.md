@@ -13,14 +13,21 @@ commit uncertainty, and explicit retry semantics.
 Bridge remains the current guarded adapter/evidence surface and is not durable
 program state, scheduler, lifecycle truth, retry/repair authority, or acceptance
 authority. Execution Substrate remains execution admission/runtime authority:
-admission, runtime-profile compatibility, prepare/submit handoff, runtime
-identity and credential-handoff boundaries, submitted-execution lifecycle
-projection, runtime cancellation-request boundaries, and retained execution
-results remain ES-owned. Control Plane remains relevant only to current
-maintained MVP/demo compatibility, migration, filming, freeze, reference, or
-retirement context; CP is not part of the target autonomous-development
-topology. Maintenance Agent remains maintenance authority. Infrastructure
-Manager remains readiness, provenance, and diagnostics authority.
+admission, runtime-profile compatibility, reliable keyed submit when that future
+contract is implemented, prepare/submit handoff, runtime identity and
+credential-handoff boundaries, submitted-execution lifecycle projection, runtime
+cancellation-request boundaries, and retained execution results remain ES-owned.
+Control Plane remains relevant only to current maintained MVP/demo compatibility,
+migration, filming, freeze, reference, or retirement context; CP is not part of
+the target autonomous-development topology. Maintenance Agent currently retains
+only its bounded current-contract scan, proposal, approval-record,
+route-matrix/eligibility handling, and bounded foreground invocation behavior.
+MA is not selected as the general authorization issuer, renewal authority,
+deployment authority, runtime/lifecycle authority, or durable
+operational-progression owner. Infrastructure Manager outputs remain readiness
+evidence, bootstrap provenance, diagnostics, and profile/support evidence. IM is
+not durable progression, operational acceptance, owner-route, orchestration, or
+runtime authority. MA/IM survival, migration, or retirement remains open.
 
 Operator/repo policy owns lease issuance and global stop. The coordinator
 cannot self-authorize, cannot mint authorization, and cannot treat a valid
@@ -38,15 +45,21 @@ coding-work lease issuer, executable authorization issuer, Codex invocation, CP
 workflow, ES runtime, publication, or general orchestration. Receipt
 provisioning remains reopened and external to this repository.
 
-Strategic target direction is separate from current behavior. Coordinator is
-intended to become the durable autonomy core for software development
-progression: durable desired progression, semantic work and attempt identity,
-work selection, dispatch intent, retry/repair decisions, cancellation intent,
-global-stop effect planning, evidence requirements and bindings, restart
-reconciliation decisions, acceptance progression, and governed advancement
-toward allowed Git or publication effects. Model reasoning owns cognitive
-intent and architectural or semantic judgment, but model sessions and responses
-are not durable program truth by themselves.
+Strategic target direction is separate from current behavior. Coordinator may
+later become the sole component-level durable progression authority for governed
+programs admitted to its target operating model through a conceptual shared
+owner-neutral progression kernel and separately versioned software-development
+and bounded operational-change domain contracts. Shared mechanics do not imply
+one universal queue, backlog, lease, work-item/state grammar, state machine,
+retry or repair counter, dependency receipt model, global stop, acceptance
+grammar, effect vocabulary, schema, service, module, worker, scheduler, or
+reconciler. Coordinator target ownership is durable progression decisions only:
+owner repositories retain action semantics, external authority issuance remains
+external, ES remains admission/runtime/reliable-submit owner, and Bridge, MA, IM,
+CP, reports, and artifacts remain non-authoritative within their exact current
+contracts. Model reasoning owns cognitive intent and architectural or semantic
+judgment, but model sessions and responses are not durable program truth by
+themselves.
 
 The Worker Execution Boundary is reserved as the transport-neutral boundary
 between Coordinator-owned durable development progression and ES-owned execution
@@ -62,6 +75,13 @@ mechanics, ephemeral invocation/session correlation, redaction, and evidence
 shaping. It must not own durable work selection, scheduling policy, semantic
 retry or repair authority, acceptance, ES admission, runtime lifecycle truth,
 Git truth, validation truth, or hidden program state.
+
+The bounded operational-change progression target is separate, target-only
+documentation. First operational work is docs/docs-contracts only. The Worker
+Execution Boundary remains coding-specific and untouched, current coding
+`global_stop` behavior remains untouched, and source, schema, runtime, worker,
+scheduler, reconciler, service/API/IPC, ES-call, Bridge-widening, adapter, and
+gateway work remains blocked until separately authorized.
 
 B1/B1.1 implements only secure local SQLite state-location, connection
 bootstrap, observational inspection/validation, schema migration, migration
