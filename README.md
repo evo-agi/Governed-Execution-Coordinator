@@ -15,13 +15,30 @@ not a service, API, worker, scheduler, queue consumer, provisioner, lease issuer
 authorization issuer, CP workflow, ES runtime, publication system, or general
 orchestrator.
 
-Strategic target direction is recorded separately from current behavior:
-Coordinator is intended to become the durable autonomy core for software
-development progression while Execution Substrate remains execution admission
-and runtime authority. The reserved transport-neutral Worker Execution Boundary
-and its non-implementation constraints are documented in
-`.docs/worker-execution-boundary.md`. Bridge is not selected as mandatory future
-worker placement by this tranche.
+Strategic target direction is recorded separately from current behavior. The
+accepted C1 staged target is model-guided Coordinator durable progression,
+followed by a transport-neutral Worker Execution Boundary, a bounded
+direct-local bootstrap/proof route to a process-separated worker, an exact
+immutable candidate capsule, validation and independent/model review,
+Coordinator semantic decision, and at most one separately selected local
+feature-branch commit. Later, the same worker artifact and versioned
+command/observation/fence/capsule contracts route through Execution Substrate,
+which retains admission and runtime lifecycle authority. Bridge is not the
+worker owner.
+
+The authoritative composition record is
+`.docs/autonomous-software-development-operating-model.md`; specialized detail
+remains in `.docs/authority-boundaries.md`,
+`.docs/software-development-progression-boundary.md`,
+`.docs/worker-execution-boundary.md`, and `.docs/durable-state-model.md`.
+C1 uses the classifications `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
+COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
+DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`.
+
+C1 adds documentation and contract tests only. It adds no worker, supervisor,
+runtime, schema, migration, dependency, package export, entry point, script,
+model integration, capsule builder or store, ES integration, Git effect,
+publication behavior, subordinate-authorization runtime, or autonomous loop.
 
 Tranche history: A2-P1/P1.1 established the original local coding-work
 coordinator skeleton. Later B-tranches added the bounded SQLite authority
@@ -357,9 +374,14 @@ public `WriterSession.apply_global_stop_update()` delegate to it without moving
 SQL, receipt verification, evaluator, sequence, write, rollback, COMMIT, or
 uncertainty ownership into the public wrapper.
 
-Current next implementation selection is cross-repository authority-contract
-design for authority issuance, Coordinator ingress, worker/runtime handoff, and
-correlation/recovery. It is not A2-P1 creation and not end-to-end execution.
+The C1 operating model closes the staged topology, first effect ceiling,
+capsule custody split, authority roles, direct-local stop conditions, and ES
+migration gate as an `ACCEPTED STRATEGIC TARGET`. Exact IPC, supervisor,
+credential, capsule-store, model/provider, Git-command, Coordinator schema, and
+ES wire mechanics remain `FUTURE IMPLEMENTATION DETAIL`. Direct-local source,
+the first ES scenario, publication, and production autonomy remain `DEFERRED OR
+BLOCKED EFFECT` until their separately authorized tranches. This selection is
+not end-to-end execution and does not reprioritize the current ES P0.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.

@@ -2,8 +2,28 @@ from pathlib import Path
 import re
 import tomllib
 
+import pytest
+
+
 ROOT = Path(__file__).resolve().parents[1]
 DOC_PATH = ".docs/software-development-progression-boundary.md"
+C0_HEADINGS = (
+    ("C0-SD-001", "Tranche Boundary"),
+    ("C0-SD-002", "Target Status"),
+    ("C0-SD-003", "Identity Non-Collapse"),
+    ("C0-SD-004", "Current FiniteBacklog Compatibility"),
+    ("C0-SD-005", "Immutable Revision History And Explicit Supersession"),
+    ("C0-SD-006", "Stale Proposal Containment"),
+    ("C0-SD-007", "Attempt, Effect, Delivery, And Invocation Separation"),
+    ("C0-SD-008", "Ambiguity And Safe Reconciliation"),
+    ("C0-SD-009", "Observations Are Not Semantic Decisions"),
+    ("C0-SD-010", "Stop And Cancellation Compatibility"),
+    ("C0-SD-011", "Publication Separation"),
+    ("C0-SD-012", "Private-Material And Evidence Custody"),
+    ("C0-SD-013", "Executable Authority Binding"),
+    ("C0-SD-014", "Ambiguity Vocabulary Is Not A Universal State Machine"),
+    ("C0-SD-015", "Implementation And Cross-Repository Choices Remain Open"),
+)
 
 
 def _text(path: str) -> str:
@@ -16,6 +36,50 @@ def _doc() -> str:
 
 def _compact(text: str) -> str:
     return " ".join(text.split())
+
+
+def _markdown_atx_headings(text: str) -> tuple[tuple[int, str], ...]:
+    """Parse ATX headings outside closed backtick or tilde fenced blocks."""
+    headings: list[tuple[int, str]] = []
+    fence: tuple[str, int] | None = None
+    for line in text.splitlines():
+        stripped = line.lstrip(" ")
+        indent = len(line) - len(stripped)
+        if indent <= 3 and stripped and stripped[0] in "`~":
+            marker = stripped[0]
+            run_length = len(stripped) - len(stripped.lstrip(marker))
+            remainder = stripped[run_length:]
+            if run_length >= 3:
+                if fence is None:
+                    fence = (marker, run_length)
+                    continue
+                if marker == fence[0] and run_length >= fence[1] and not remainder.strip():
+                    fence = None
+                    continue
+        if fence is None and indent <= 3:
+            match = re.fullmatch(r"(#{1,6})[ \t]+(.+?)[ \t]*", stripped)
+            if match is not None:
+                title = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
+                assert title
+                headings.append((len(match.group(1)), title))
+    assert fence is None, "unclosed or mismatched fenced code block"
+    return tuple(headings)
+
+
+def _c0_heading_inventory(text: str) -> tuple[tuple[str, str], ...]:
+    expected = {
+        identifier: f"{identifier} - {title}" for identifier, title in C0_HEADINGS
+    }
+    observed: list[tuple[str, str]] = []
+    for level, heading in _markdown_atx_headings(text):
+        identifiers = re.findall(r"C0-SD-\d{3}", heading)
+        for identifier in identifiers:
+            assert identifier in expected
+            assert level == 3
+            assert heading == expected[identifier]
+            observed.append((identifier, heading.removeprefix(f"{identifier} - ")))
+    assert tuple(observed) == C0_HEADINGS
+    return tuple(observed)
 
 
 def _section(text: str, heading: str, next_heading: str | None = None) -> str:
@@ -66,8 +130,52 @@ def test_adjacent_boundaries_are_referenced_without_creating_universal_kernel() 
 
 
 def test_c0_clause_inventory_is_complete_and_stable() -> None:
-    ids = re.findall(r"^### (C0-SD-\d{3}) - ", _doc(), flags=re.MULTILINE)
-    assert ids == [f"C0-SD-{index:03d}" for index in range(1, 16)]
+    assert _c0_heading_inventory(_doc()) == C0_HEADINGS
+
+
+def test_c0_clause_inventory_rejects_identifier_and_heading_mutations() -> None:
+    text = _doc()
+    first = "### C0-SD-001 - Tranche Boundary"
+    second = "### C0-SD-002 - Target Status"
+    fenced_shadow = (
+        text
+        + "\n```markdown\n"
+        + "### C0-SD-999 - Fenced Unknown\n"
+        + "### C0-SD-001 — Fenced Alternate Duplicate\n"
+        + "```\n"
+    )
+    assert _c0_heading_inventory(fenced_shadow) == C0_HEADINGS
+
+    swapped_titles = text.replace(
+        first,
+        "### C0-SD-001 - Target Status",
+        1,
+    ).replace(
+        second,
+        "### C0-SD-002 - Tranche Boundary",
+        1,
+    )
+    reordered = text.replace(first, "### C0-SD-TEMP", 1).replace(
+        second,
+        first,
+        1,
+    ).replace("### C0-SD-TEMP", second, 1)
+    mutations = (
+        text + "\n### C0-SD-001 — Tranche Boundary\n",
+        text + "\n ### C0-SD-001: Tranche Boundary\n",
+        text + "\n### C0-SD-999 - Unknown Clause\n",
+        text + "\n" + first + "\n",
+        text.replace(first, "### C0-SD-001 - Wrong Title", 1),
+        swapped_titles,
+        text.replace(first, "### C0-SD-001 - Tranche boundary", 1),
+        text.replace(first + "\n", "", 1),
+        reordered,
+        text + "\n```markdown\n### C0-SD-999 - Unclosed Fence\n",
+        text + "\n```markdown\n### C0-SD-999 - Mismatched Fence\n~~~\n",
+    )
+    for mutation in mutations:
+        with pytest.raises(AssertionError):
+            _c0_heading_inventory(mutation)
 
 
 def test_identity_and_program_version_non_collapse_are_pinned() -> None:
@@ -283,6 +391,16 @@ def test_publication_private_material_and_report_privacy_boundaries_are_pinned()
         "Raw prompts, model transcripts, Codex JSONL, unrestricted logs, command output, workspaces, raw diffs, raw retained-result bodies, credentials, endpoints, local paths, and trust material remain separate evidence or custody material",
         "would not make those bytes program authority or semantic-acceptance truth",
         "Public reports and projections remain more restrictive and must preserve current report privacy contracts.",
+        "The worker invocation authors candidate bytes",
+        "a capsule builder acting at the worker boundary seals a canonical manifest, blobs, and portable digest",
+        "a private, immutable, content-addressed worker-side store outside the mutable worktree and Coordinator SQLite has physical custody",
+        "Coordinator may retain only a safe capsule digest/reference and progression decisions",
+        "Reviewer retrieval is read-only, attempt-bound, and capsule-bound",
+        "later ES transport or retention is opaque",
+        "A capsule digest is not a path, endpoint, bearer retrieval credential, authorization proof, acceptance decision, or Git identity",
+        "one local feature-branch Git commit after Coordinator semantic acceptance and a separately selected Git effect",
+        "The worker must not silently commit during authoring.",
+        "Push, remote-ref mutation, PR creation, merge, and deployment are blocked first-slice effects",
     ):
         assert phrase in custody
 
@@ -300,10 +418,19 @@ def test_external_executable_authority_binding_and_non_issuance_are_pinned() -> 
         "Planning, proposal formation, and non-effectful reasoning may exist without executable authority.",
         "Before an execution-producing effect becomes eligible for dispatch",
         "before any execution-producing external I/O",
-        "durable effect intent MUST bind an immutable, externally issued, scope-compatible authority reference or verified decision",
-        "Coordinator MUST NOT mint, renew, widen, reinterpret, or silently reuse executable authority",
-        "only when its immutable scope and ceilings expressly permit that use",
-        "each binding is explicit",
+        "durable effect intent MUST bind an immutable, externally issued, scope-compatible standing authority reference or verified decision",
+        "External standing-policy authority authors the immutable grant, revocation or expiry, applicable global-stop directives, and effect ceilings.",
+        "Coordinator MUST NOT mint, renew, widen, reinterpret, or silently reuse that external standing authority",
+        "Coordinator may derive a narrower subordinate attempt/effect authorization record and issue a fence within the verified parent grant",
+        "binds the parent grant and exact program version, work item, semantic attempt, and effect",
+        "cannot exceed or outlive the parent",
+        "fails closed on absence, staleness, expiry, revocation, ambiguity, or insufficiency",
+        "is not a new grant issuer",
+        "only when its immutable scope and ceilings expressly permit bounded reuse",
+        "each subordinate binding is explicit",
+        "The external authority does not write Coordinator SQLite directly",
+        "Coordinator's durable record does not become independent external authority",
+        "Current subordinate-authorization runtime behavior remains absent.",
         "does not select issuer, verifier deployment, encoding, signer, trust root, revocation transport, or wire protocol",
     ):
         assert phrase in custody
@@ -324,21 +451,37 @@ def test_ambiguity_vocabulary_is_distinctions_not_universal_state_machine() -> N
         assert phrase in open_decisions
 
 
-def test_implementation_and_cross_repository_choices_remain_open() -> None:
+def test_c1_supersedes_c0_first_slice_architecture_choices() -> None:
     open_decisions = _compact(_section(_doc(), "Required Gates, Explicit Non-Claims, And Open Decisions"))
 
     for phrase in (
-        "leaves open schema and migration design",
+        "C1 supersedes C0's open alternatives for the first software-development slice",
+        "worker source and initial release machinery live in the Coordinator repository",
+        "the worker runs as a separate OS process",
+        "a bounded direct-local bootstrap/proof route precedes later ES routing through the same versioned contracts",
+        "Bridge and Bridge Core are not worker owners",
+        "the first private immutable content-addressed capsule has worker-side custody",
+        "external standing authority and subordinate Coordinator records are distinct",
+        "the maximum effect is one local feature-branch Git commit after acceptance",
+    ):
+        assert phrase in open_decisions
+
+
+def test_remaining_implementation_and_cross_repository_details_stay_open() -> None:
+    open_decisions = _compact(_section(_doc(), "Required Gates, Explicit Non-Claims, And Open Decisions"))
+
+    for phrase in (
+        "The remaining implementation details are exact schema and migration design",
         "current-state tables versus event sourcing",
         "outbox/inbox design",
-        "service/API/IPC/queue/scheduler placement",
-        "worker and adapter implementation",
-        "Bridge versus gateway versus in-process placement",
+        "service/API/IPC/queue/scheduler mechanics",
+        "worker package, executable, build, supervisor, credential, and IPC mechanics",
+        "worker command/observation/fence and capsule DTO fields and wire encoding",
         "ES request/response/correlation/query/cancellation/result-ingest wire contracts",
-        "model provider, model protocol, prompt transport",
-        "authorization issuer/verifier deployment, trust root",
-        "Git and CI transports",
-        "raw private evidence custody",
+        "model provider, model protocol, and prompt transport",
+        "authority issuer/verifier deployment, encoding, signer, trust root, revocation transport, and credential form",
+        "Git commands, branch naming, commit-message format, credentials, CI transport, and publisher implementation",
+        "capsule path, storage technology, encryption, garbage collection, retention, serialization, and recovery",
         "CP/IM/MA migration, retirement, or integration",
         "stop precedence",
         "final program-completion semantics when intent can continue evolving",
@@ -353,8 +496,9 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
 
     for phrase in (
         "Required-before-source gates remain future tranche gates",
-        "a later tranche must explicitly accept the relevant domain vocabulary, authority binding, safe reference policy, observation semantics, effect and retry semantics, stop semantics, ES or non-ES transport contract, and privacy posture",
-        "before source, schema, service, worker, adapter, gateway, Git/CI, or runtime execution work",
+        "C0 and C1 accept the semantic and staged architecture direction",
+        "a separately accepted implementation contract must freeze the applicable versioned worker command/observation/fence/capsule contract, authority binding, safe-reference policy, observation semantics, effect and retry semantics, stop semantics, direct-local or ES adapter contract, and privacy posture",
+        "before source, schema, service, worker, adapter, Git/CI, or runtime execution work",
     ):
         assert phrase in open_decisions
 

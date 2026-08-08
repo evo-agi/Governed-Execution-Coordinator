@@ -5,6 +5,13 @@ Coordinator repository. It is a documentation and contract-test tranche for the
 accepted strategic target only. Current owning-repository contracts remain
 present reality where they describe implemented behavior.
 
+C1 supplements rather than replaces this exact C0-SD-001 through C0-SD-015
+inventory. The authoritative staged operating-model composition is
+`.docs/autonomous-software-development-operating-model.md`. Across C0 and C1,
+statements distinguish `CURRENT IMPLEMENTED CONTRACT`, `CURRENT COMPATIBILITY
+EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION DETAIL`, `DEFERRED OR
+BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`.
+
 ## Status And Current Reality
 
 ### C0-SD-001 - Tranche Boundary
@@ -43,7 +50,9 @@ The adjacent documents
 [.docs/operational-progression-boundary.md](operational-progression-boundary.md)
 remain governing context for already-frozen owner-neutral mechanics such as
 durable intent before external I/O, source-attributed observations, explicit
-unknown or ambiguous outcomes, and transport-neutral placement.
+unknown or ambiguous outcomes, and transport-neutral worker contracts. C1
+closes the coding-specific staged source/process placement while operational
+progression remains separate and unchanged.
 
 C0 MUST NOT create or imply one universal queue, backlog, lease,
 work-item/state grammar, state machine, retry or repair counter, dependency
@@ -235,6 +244,12 @@ repositories retain object/ref and action truth. C0 does not select Git
 credentials, Git commands, branch policy, PR policy, publication transport, or
 publisher placement.
 
+C1 closes the first-slice maximum effect at one local feature-branch Git commit
+after Coordinator semantic acceptance and a separately selected Git
+effect. The worker must not silently commit during authoring. Push, remote-ref
+mutation, PR creation, merge, and deployment are blocked first-slice effects,
+not implied consequences of acceptance or a local commit.
+
 ### C0-SD-012 - Private-Material And Evidence Custody
 
 Classification: STRATEGIC TARGET with CURRENT REPORT PRIVACY INVARIANT.
@@ -252,6 +267,19 @@ authority or semantic-acceptance truth. Coordinator may bind safe references and
 relevant verification results. Public reports and projections remain more
 restrictive and must preserve current report privacy contracts.
 
+C1 closes the first-slice candidate-custody split conceptually. The worker
+invocation authors candidate bytes; a capsule builder acting at the worker
+boundary seals a canonical manifest, blobs, and portable digest; and a private,
+immutable, content-addressed worker-side store outside the mutable worktree and
+Coordinator SQLite has physical custody. Coordinator may retain only a safe
+capsule digest/reference and progression decisions. Reviewer retrieval is
+read-only, attempt-bound, and capsule-bound; later ES transport or retention is
+opaque; and Git becomes object/ref truth only after a separate commit effect.
+A capsule digest is not a path, endpoint, bearer retrieval credential,
+authorization proof, acceptance decision, or Git identity. Exact path, storage
+technology, encryption, garbage collection, retention, serialization, and wire
+encoding remain future implementation details.
+
 ### C0-SD-013 - Executable Authority Binding
 
 Classification: STRATEGIC TARGET.
@@ -259,13 +287,24 @@ Classification: STRATEGIC TARGET.
 Planning, proposal formation, and non-effectful reasoning may exist without
 executable authority. Before an execution-producing effect becomes eligible for
 dispatch, and before any execution-producing external I/O, its durable effect
-intent MUST bind an immutable, externally issued, scope-compatible authority
-reference or verified decision.
+intent MUST bind an immutable, externally issued, scope-compatible standing
+authority reference or verified decision.
 
-Coordinator MUST NOT mint, renew, widen, reinterpret, or silently reuse
-executable authority. A grant may cover more than one effect or attempt only
-when its immutable scope and ceilings expressly permit that use, and each
-binding is explicit.
+External standing-policy authority authors the immutable grant, revocation or
+expiry, applicable global-stop directives, and effect ceilings. Coordinator
+MUST NOT mint, renew, widen, reinterpret, or silently reuse that external
+standing authority. Under C1's accepted target only, Coordinator may derive a
+narrower subordinate attempt/effect authorization record and issue a fence
+within the verified parent grant. The subordinate record binds the parent grant
+and exact program version, work item, semantic attempt, and effect; cannot
+exceed or outlive the parent; fails closed on absence, staleness, expiry,
+revocation, ambiguity, or insufficiency; and is not a new grant issuer.
+
+A parent grant may cover more than one effect or attempt only when its immutable
+scope and ceilings expressly permit bounded reuse, and each subordinate binding
+is explicit. The external authority does not write Coordinator SQLite directly,
+and Coordinator's durable record does not become independent external
+authority. Current subordinate-authorization runtime behavior remains absent.
 
 C0 does not select issuer, verifier deployment, encoding, signer, trust root,
 revocation transport, or wire protocol.
@@ -291,26 +330,43 @@ cannot establish the relevant source fact. C0 MUST NOT collapse those cases.
 
 ### C0-SD-015 - Implementation And Cross-Repository Choices Remain Open
 
-Classification: IMPLEMENTATION DETAIL LEFT OPEN and REPORT-ONLY UNCERTAINTY
-where owning repository evidence is absent.
+Classification: `ACCEPTED STRATEGIC TARGET` for choices superseded by C1,
+`FUTURE IMPLEMENTATION DETAIL` for the remaining open mechanics, and
+`REPORT-ONLY UNCERTAINTY` where owning-repository evidence is absent.
 
-C0 leaves open schema and migration design, current-state tables versus event
-sourcing, outbox/inbox design, service/API/IPC/queue/scheduler placement,
-worker and adapter implementation, Bridge versus gateway versus in-process
-placement, ES request/response/correlation/query/cancellation/result-ingest wire
-contracts, model provider, model protocol, prompt transport, authorization
-issuer/verifier deployment, trust root, Git and CI transports, raw private
-evidence custody, CP/IM/MA migration, retirement, or integration, stop
-precedence, and final program-completion semantics when intent can continue
-evolving.
+C1 supersedes C0's open alternatives for the first software-development slice:
+worker source and initial release machinery live in the Coordinator repository;
+the worker runs as a separate OS process; a bounded direct-local
+bootstrap/proof route precedes later ES routing through the same versioned
+contracts; Bridge and Bridge Core are not worker owners; the first private
+immutable content-addressed capsule has worker-side custody; external standing
+authority and subordinate Coordinator records are distinct; and the maximum
+effect is one local feature-branch Git commit after acceptance.
+
+The remaining implementation details are exact schema and migration design;
+current-state tables versus event sourcing; outbox/inbox design;
+service/API/IPC/queue/scheduler mechanics; worker package, executable, build,
+supervisor, credential, and IPC mechanics; worker command/observation/fence and
+capsule DTO fields and wire encoding;
+ES request/response/correlation/query/cancellation/result-ingest wire contracts;
+model provider, model protocol, and
+prompt transport; authority issuer/verifier deployment, encoding, signer,
+trust root, revocation transport, and credential form; Git commands, branch
+naming, commit-message format, credentials, CI transport, and publisher
+implementation; capsule path, storage technology, encryption, garbage
+collection, retention, serialization, and recovery; CP/IM/MA migration,
+retirement, or integration; stop precedence; and final program-completion
+semantics when intent can continue evolving.
 
 C0 and a later strictly pure, transport-neutral Coordinator domain model do not
 require an ES repository change. Concrete ES-backed dispatch, reconciliation,
 cancellation, runtime observation, result ingest, and unattended execution
 require separately accepted ES and cross-repository contracts.
 
-Required-before-source gates remain future tranche gates: a later tranche must
-explicitly accept the relevant domain vocabulary, authority binding, safe
-reference policy, observation semantics, effect and retry semantics, stop
-semantics, ES or non-ES transport contract, and privacy posture before source,
-schema, service, worker, adapter, gateway, Git/CI, or runtime execution work.
+Required-before-source gates remain future tranche gates. C0 and C1 accept the
+semantic and staged architecture direction, but a separately accepted
+implementation contract must freeze the applicable versioned worker
+command/observation/fence/capsule contract, authority binding, safe-reference
+policy, observation semantics, effect and retry semantics, stop semantics,
+direct-local or ES adapter contract, and privacy posture before source, schema,
+service, worker, adapter, Git/CI, or runtime execution work.

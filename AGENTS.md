@@ -10,6 +10,12 @@ issuance, writer-fenced transition/global-stop apply, verification of
 already-persisted operator-decision receipts, idempotency, CAS, exact replay,
 commit uncertainty, and explicit retry semantics.
 
+C1 contract language distinguishes `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
+COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
+DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`. The
+authoritative composition record is
+`.docs/autonomous-software-development-operating-model.md`.
+
 Bridge remains the current guarded adapter/evidence surface and is not durable
 program state, scheduler, lifecycle truth, retry/repair authority, or acceptance
 authority. Execution Substrate remains execution admission/runtime authority:
@@ -29,9 +35,11 @@ evidence, bootstrap provenance, diagnostics, and profile/support evidence. IM is
 not durable progression, operational acceptance, owner-route, orchestration, or
 runtime authority. MA/IM survival, migration, or retirement remains open.
 
-Operator/repo policy owns lease issuance and global stop. The coordinator
-cannot self-authorize, cannot mint authorization, and cannot treat a valid
-digest as execution permission.
+Under the current implemented contract, operator/repo policy owns lease
+issuance and global stop. The Coordinator cannot self-authorize, cannot mint
+external standing authority, and cannot treat a valid digest as execution
+permission. Current executable authorization remains unsupported and
+fail-closed.
 
 Transition commands and global-stop commands remain caller inputs. Accepted or
 domain-rejected transition/global-stop events and current state now have bounded
@@ -45,34 +53,51 @@ coding-work lease issuer, executable authorization issuer, Codex invocation, CP
 workflow, ES runtime, publication, or general orchestration. Receipt
 provisioning remains reopened and external to this repository.
 
-Strategic target direction is separate from current behavior. Coordinator may
-later become the sole component-level durable progression authority for governed
-programs admitted to its target operating model through a conceptual shared
-owner-neutral progression kernel and separately versioned software-development
-and bounded operational-change domain contracts. Shared mechanics do not imply
-one universal queue, backlog, lease, work-item/state grammar, state machine,
-retry or repair counter, dependency receipt model, global stop, acceptance
-grammar, effect vocabulary, schema, service, module, worker, scheduler, or
-reconciler. Coordinator target ownership is durable progression decisions only:
-owner repositories retain action semantics, external authority issuance remains
-external, ES remains admission/runtime/reliable-submit owner, and Bridge, MA, IM,
-CP, reports, and artifacts remain non-authoritative within their exact current
-contracts. Model reasoning owns cognitive intent and architectural or semantic
-judgment, but model sessions and responses are not durable program truth by
-themselves.
+Strategic target direction is separate from current behavior. Under the
+accepted C1 software-development target, external standing-policy authority
+authors immutable grants, revocation or expiry, applicable global-stop
+directives, and effect ceilings. Coordinator may later verify and durably bind
+a safe parent-grant reference and derive only narrower subordinate
+attempt/effect authorization records and fences. It may never exceed, extend,
+renew, reinterpret, or outlive the external grant, and its durable record never
+becomes independent external authority. This subordinate behavior is target-only
+and is not currently implemented.
+
+Coordinator may later become the sole component-level durable progression
+authority for governed programs admitted to its target operating model through
+a conceptual shared owner-neutral progression kernel and separately versioned
+software-development and bounded operational-change domain contracts. Shared
+mechanics do not imply one universal queue, backlog, lease, work-item/state
+grammar, state machine, retry or repair counter, dependency receipt model,
+global stop, acceptance grammar, effect vocabulary, schema, service, module,
+worker, scheduler, or reconciler. Coordinator target ownership is durable
+progression decisions only: owner repositories retain action semantics,
+external standing-authority issuance remains external, ES remains
+admission/runtime/reliable-submit owner, and Bridge, MA, IM, CP, reports, and
+artifacts remain non-authoritative within their exact current contracts. Model
+reasoning creates cognitive proposals, but model sessions and responses are not
+durable program truth or effect authority. The user steers major direction,
+priorities, and risk posture and is not a routine synchronous per-attempt
+approver.
 
 The Worker Execution Boundary is reserved as the transport-neutral boundary
 between Coordinator-owned durable development progression and ES-owned execution
-authority. It may later be placed as an in-process Coordinator adapter, an
-explicitly widened Bridge adapter, or a separate stateless gateway. This
-repository currently implements none of those placements, no dispatcher, no
-reconciler, no service/API/IPC, no ES call, no Bridge widening, no Codex
-invocation, no runtime-profile integration, no outbox/inbox implementation, no
-schema or migration for dispatch, no connector dependency, no Development
-Program prerequisite, and no full event-sourcing decision.
-A future adapter or gateway may own only bounded placement-specific protocol
-mechanics, ephemeral invocation/session correlation, redaction, and evidence
-shaping. It must not own durable work selection, scheduling policy, semantic
+authority. The accepted staged target places initial worker source and release
+machinery in this repository, runs the worker as a separate OS process through
+a bounded direct-local bootstrap/proof adapter, and later routes the same worker
+artifact and versioned command/observation/fence/capsule contracts through ES.
+Bridge and Bridge Core are not worker owners. Direct-local is not the target
+production path and becomes disabled by default after accepted ES routing,
+surviving only under a distinct proof/recovery policy.
+
+This repository currently implements no direct-local adapter, worker
+supervisor, worker process, dispatcher, reconciler, service/API/IPC, ES call,
+Bridge widening, Codex invocation, model/provider client, capsule builder or
+store, validation/review/repair executor, Git effect handler, runtime-profile
+integration, outbox/inbox, schema or migration for dispatch, connector
+dependency, or autonomous loop. Future adapter and supervisor mechanics may own
+only bounded protocol, process, ephemeral correlation, redaction, and evidence
+shaping. They must not own durable work selection, scheduling policy, semantic
 retry or repair authority, acceptance, ES admission, runtime lifecycle truth,
 Git truth, validation truth, or hidden program state.
 

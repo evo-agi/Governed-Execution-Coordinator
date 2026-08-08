@@ -1,5 +1,12 @@
 # Durable State Model
 
+C1 state statements distinguish `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
+COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
+DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`. The
+authoritative C1 composition record is
+`.docs/autonomous-software-development-operating-model.md`; process-only audit
+governance there is not durable state.
+
 A2-P1/P1.1 defines state contracts. B1/B1.1 adds explicit operator-local
 SQLite bootstrap, observational validation, live-schema integrity checks, and
 migration infrastructure. B2a corrects the writer-session authority contract.
@@ -32,13 +39,28 @@ unwidened; internal `WriterSession` mutation is not a general public
 attempt, runtime-observation, result-ingest, outbox/inbox, worker, scheduler,
 queue, Codex, ES handoff, or runtime lifecycle storage.
 
-Strategic target direction is separate from current behavior. Lifecycle state
-names such as `cycle_starting`, `worker_running`, `validating`, `auditing`,
-repair, commit, and cleanup names do not transfer runtime authority to
-Coordinator. Future desired/observed state and semantic-attempt work requires a
-new accepted contract. The current finite-backlog, standing-lease, zero-only
-budget, READY-only dependency, and disabled-stage contracts remain current v1
-behavior but are not frozen as the target model.
+Strategic target direction is separate from current behavior. C0 and C1 now
+provide accepted target contracts for software-development progression and the
+first staged operating model. They add no program, attempt, effect, observation,
+capsule, review, dispatch, publication, worker, or subordinate-authorization
+schema or runtime behavior. Future source or schema implementation still
+requires a separately accepted implementation contract.
+
+Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
+`auditing`, repair, commit, and cleanup names do not transfer runtime authority
+to Coordinator.
+
+The current finite-backlog, standing-lease, zero-only budget, READY-only
+dependency, and disabled-stage contracts remain current v1 compatibility
+behavior but are not frozen as the target model. Current schema 0001, migration
+inventory, `WriterSession`, transition/global-stop persistence, evaluator
+behavior, state names, and disabled-stage behavior remain unchanged.
+
+Direct-local worker execution, capsule construction or custody, review,
+validation, repair, Git effects, ES routing, publication, and autonomous
+progression are deferred or blocked effects. Exact future state shape, schema,
+migrations, safe-reference representation, and observation storage are future
+implementation details.
 
 The work-item state schema id is:
 
@@ -90,6 +112,18 @@ lease runtime, global stop, authorization, dependency, evidence, predecessor,
 terminal, budget, attempt, and repair-limit reasons. The resulting
 domain-rejected event still records the complete reconstructed context
 provenance, including `LeaseRuntimeDecision`.
+
+## C1 Candidate-Capsule Durable-State Boundary
+
+For candidate-capsule material, future Coordinator durable state may retain only
+a safe capsule digest/reference and the Coordinator-owned progression decisions
+that bind it. Capsule bytes, mutable workspace material, local paths, and bearer
+retrieval credentials remain outside Coordinator SQLite. This capsule-material
+restriction does not exclude accepted future durable program, revision,
+work-item, semantic-attempt, effect, source-observation, acceptance,
+repair/replan, publication-eligibility, publication, or other safe
+Coordinator-owned progression facts. This target-only statement adds no current
+schema or implementation.
 
 ## P1.1 Atomic Apply Contract
 

@@ -6,6 +6,14 @@ Current repository name: Governed Execution Coordinator. This operational
 repository name is provisional. It may change without changing schema, authority, or durable identifiers.
 Repository naming must not affect schema, authority, or durable identifiers.
 
+## C1 Classification Key
+
+C1 architecture statements distinguish `CURRENT IMPLEMENTED CONTRACT`,
+`CURRENT COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE
+IMPLEMENTATION DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY
+GOVERNANCE`. The authoritative C1 composition record is
+`.docs/autonomous-software-development-operating-model.md`.
+
 ## Current Status
 
 The Coordinator now owns bounded internal durable SQLite mutation authority for
@@ -38,29 +46,59 @@ stop, acceptance grammar, effect vocabulary, schema, service, module, worker,
 scheduler, or reconciler. This target direction is not implemented by the
 current code and does not authorize execution.
 
-The target does not select a generic environment controller, topology controller,
-universal scheduler, capability registry, background probe loop, continuous drift
-reconciler, schema, service, worker, route, issuer, adapter, effect engine, or
-production topology. Owner-route semantics, external authority issuance,
-ES/runtime ownership, and source-observation ownership remain separate.
-Operational acceptance is a future Coordinator durable progression decision over
-admitted owner-source observations; it is not ownership of the observed fact.
+The accepted C1 software-development target is:
+
+```text
+reasoning model
+    -> Coordinator durable software-development progression
+    -> transport-neutral Worker Execution Boundary
+    -> bounded direct-local bootstrap/proof adapter
+    -> process-separated coding worker
+    -> exact immutable candidate capsule
+    -> validation and independent review observations
+    -> model review proposal
+    -> Coordinator acceptance, repair, replan, rejection, or block
+    -> at most one local feature-branch Git commit
+
+later, the same progression semantics, worker artifact, and versioned contracts
+    -> ES reliable-submit adapter
+    -> ES admission and runtime lifecycle
+    -> process-separated coding worker
+    -> opaque capsule result transport or retention
+```
+
+Initial worker source and release machinery are targeted to this repository,
+while execution remains in a separate OS process. Direct-local is a bounded
+bootstrap/proof route, not the target production path. Bridge and Bridge Core
+are not worker owners. The target does not select a generic environment controller,
+topology controller, universal scheduler, capability registry, background
+probe loop, continuous drift reconciler, operational effect engine, or
+operational production topology. Owner-route semantics, external standing
+authority issuance, ES/runtime ownership, and source-observation ownership
+remain separate. Operational acceptance is a future Coordinator durable
+progression decision over admitted owner-source observations; it is not
+ownership of the observed fact.
 
 The reserved Worker Execution Boundary is documented in
-`.docs/worker-execution-boundary.md`. It remains coding-specific and unchanged.
-It is transport-neutral and keeps in-process adapter, explicitly widened Bridge
-adapter, and separate stateless gateway placements open. The boundary enables no
-worker, scheduler, dispatcher, reconciler, service/API/IPC, ES call, Bridge
-widening, Codex invocation, schema, migration, outbox/inbox implementation,
-runtime profile, connector dependency, Development Program prerequisite, or
-event-sourcing decision by itself. The bounded operational-change target is
-documented separately in `.docs/operational-progression-boundary.md`.
+`.docs/worker-execution-boundary.md`. It remains coding-specific and
+transport-neutral. Direct-local and later ES adapters must conform to the same
+versioned worker command, observation, fence, and capsule contracts. The
+boundary and C1 add no worker, supervisor, scheduler, dispatcher, reconciler,
+service/API/IPC, ES call, Bridge widening, Codex invocation, model/provider
+client, capsule store, Git effect, schema, migration, outbox/inbox
+implementation, runtime profile, connector dependency, or autonomous loop.
+Exact IPC, supervisor, package, executable, credential, and deployment
+mechanics remain future implementation details. The bounded operational-change
+target remains separately documented in
+`.docs/operational-progression-boundary.md` and is excluded from C1's first
+software-development slice.
 
 The canonical cross-repository integration architecture/status decision is
 recorded at
 `Execution Substrate/.docs/system_overview/hybrid_integration_architecture_adr.md`.
 That pointer does not transfer Coordinator architecture ownership to Execution
-Substrate; it records only the cross-repository decision and owner boundaries.
+Substrate. It is current cross-repository status and migration authority, not
+the complete Coordinator target operating model.
 
 ## Scope
 
@@ -85,17 +123,17 @@ production future-stage enablement policy or configuration.
 The NWP Coordinator currently owns only bounded coding-work durable state. The
 target Coordinator may later own durable progression decisions for admitted
 software-development and bounded operational-change programs. It does not own
-owner-route meaning, external authorization issuance, source-observation truth,
-or runtime lifecycle truth.
+owner-route meaning, external standing-authority issuance,
+source-observation truth, or runtime lifecycle truth.
 
-Bridge remains a guarded adapter/evidence surface today. A future worker adapter
-may own only bounded placement-specific protocol mechanics such as request
-translation, Codex CLI or App Server protocol handling, local IPC or transport
-mechanics, ephemeral adapter invocation/session correlation, and bounded
-redaction/evidence shaping. A worker adapter, widened Bridge adapter, or future
-gateway must not own durable work selection, scheduling policy, semantic retry
-or repair authority, acceptance, ES admission, runtime lifecycle truth, Git
-truth, validation truth, or hidden program state.
+Bridge remains a guarded adapter/evidence surface today and is not the target
+worker owner or a direct-local trigger. A future direct-local supervisor/adapter
+and later ES adapter may own only bounded process and transport protocol
+mechanics, ephemeral invocation/session correlation, and bounded
+redaction/evidence shaping. They must not own durable work selection,
+scheduling policy, semantic retry or repair authority, acceptance, ES
+admission, runtime lifecycle truth, Git truth, validation truth, or hidden
+program state.
 
 Execution Substrate remains execution admission/runtime authority: execution
 admission, runtime-profile compatibility, prepare and submit handoff, runtime
@@ -122,9 +160,19 @@ evidence. IM is not durable progression, operational acceptance, owner-route,
 orchestration, or runtime authority. MA/IM survival, migration, or retirement
 remains open.
 
-Operator/repo policy owns lease issuance and global stop. The Coordinator
-observes and enforces those decisions but cannot issue them, clear them,
-weaken them, reinterpret them, or self-authorize.
+Under the current implemented contract, operator/repo policy owns lease
+issuance and global stop. The Coordinator observes and enforces those decisions
+but cannot issue external standing authority, clear or weaken global stop,
+reinterpret authority, or self-authorize. Current executable authorization is
+unsupported and fail-closed.
+
+Under the accepted target, external standing-policy authority authors immutable
+standing grants, revocation or expiry, applicable global-stop directives, and
+effect ceilings. Coordinator may verify and durably bind a safe parent-grant
+reference and derive only narrower subordinate attempt/effect records and
+fences. It cannot exceed, extend, renew, reinterpret, or outlive the external
+grant, and the external authority does not write Coordinator SQLite directly.
+Subordinate authorization is not currently implemented.
 
 Model reasoning owns cognitive intent, architectural and semantic judgment,
 planning, replanning, and evidence review. Model sessions, ChatGPT state,
@@ -133,6 +181,10 @@ Bridge reports, profiles, retained bundles, MA proposals, IM readiness evidence,
 CP projections, traces, request IDs, and local runner evidence remain adapters,
 evidence, or projections. They are not durable A2 state or target durable program
 truth.
+
+Model output is a non-authoritative proposal, not a durable progression
+decision or effect authority. The user steers major direction, priorities, and
+risk posture and is not a routine synchronous per-attempt approver.
 
 ## P1 Package
 

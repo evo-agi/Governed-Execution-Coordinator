@@ -1,5 +1,13 @@
 # Authority Boundaries
 
+## C1 Classification Key
+
+Authority statements distinguish `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
+COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
+DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`. The
+authoritative C1 composition record is
+`.docs/autonomous-software-development-operating-model.md`.
+
 ## Current Authority
 
 The NWP Coordinator cannot self-authorize. A valid lease digest proves only
@@ -20,10 +28,10 @@ production posture, requires internally coherent authorization flags and
 reasons, and classifies `operator_policy` as unsupported by the accepted
 runtime architecture until a separate authorization contract exists.
 
-Bridge remains worker/evidence adapter only in current implementation reality.
-Bridge ledgers and reports are evidence/projection and never become Coordinator
-durable state, lifecycle truth, retry/repair authority, scheduling policy,
-acceptance, or hidden program state.
+Bridge remains the current guarded adapter/evidence surface. It is not the
+worker owner or a direct-local trigger. Bridge ledgers and reports are
+evidence/projection and never become Coordinator durable state, lifecycle truth,
+retry/repair authority, scheduling policy, acceptance, or hidden program state.
 
 Control Plane remains relevant only to current maintained MVP/demo
 compatibility, migration, filming, freeze, reference, or retirement context. CP
@@ -63,7 +71,11 @@ implementation remains coding-work-specific bounded durable SQLite mutation
 authority only. The target does not select one universal queue, backlog, lease,
 work-item/state grammar, state machine, retry or repair counter, dependency
 receipt model, global stop, acceptance grammar, effect vocabulary, schema,
-service, module, worker, scheduler, or reconciler.
+service, module, scheduler, or reconciler. C1 does select a coding-specific
+staged worker source/process route without implementing it: initial source and
+release machinery in the Coordinator repository, a separate OS worker process,
+a bounded direct-local bootstrap/proof adapter, and later ES routing through the
+same versioned contracts.
 
 The target-only operational authority split is:
 
@@ -102,21 +114,98 @@ validation results.
 
 The Worker Execution Boundary is the reserved transport-neutral boundary between
 Coordinator-owned durable development progression and ES-owned runtime
-authority. A worker adapter, widened Bridge adapter, or future gateway may own
-only bounded placement-specific protocol mechanics, request translation, Codex
-CLI or App Server protocol handling, local IPC or transport mechanics,
-ephemeral adapter invocation/session correlation, and bounded redaction/evidence
-shaping. It must not own durable work selection, scheduling policy, semantic
-retry or repair authority, acceptance, ES admission, runtime lifecycle truth,
-Git truth, validation truth, or hidden program state.
+authority. The bounded direct-local supervisor/adapter and later ES adapter may
+own only bounded process and transport protocol mechanics, ephemeral
+invocation/session correlation, and bounded redaction/evidence shaping. They
+must not own durable work selection, scheduling policy, semantic retry or repair
+authority, acceptance, ES admission, runtime lifecycle truth, Git truth,
+validation truth, or hidden program state. Bridge and Bridge Core are not
+worker owners.
 
 Model reasoning owns cognitive intent and architectural or semantic judgment.
 Model sessions and model responses are not durable program truth by themselves.
-The user is not a routine per-task approval service. Connector availability and
-a first-class Development Program are not prerequisites for the Worker Execution
+The user steers major direction, priorities, and risk posture and is not a
+routine synchronous per-attempt approval service. Connector availability and a
+first-class Development Program are not prerequisites for the Worker Execution
 Boundary. Full append-only event sourcing is not selected or required by this
 tranche. CP WebAuthn and MA biometric/lease designs are not adopted as the
 general operational authorization model.
+
+## External Standing Authority And Target Subordinate Records
+
+Classification: `CURRENT IMPLEMENTED CONTRACT`. Current executable
+authorization is unsupported and fail-closed. Current coding `global_stop`
+behavior is unchanged; global-stop and transition commands remain caller
+inputs, and accepted or domain-rejected events persist only through the guarded
+Coordinator `WriterSession` paths. Coordinator cannot self-authorize, and a
+digest proves byte identity only, not permission.
+
+Classification: `ACCEPTED STRATEGIC TARGET`. Authority authorship and durable
+recording remain distinct:
+
+- external standing-policy authority authors immutable standing grants, grant
+  revocation or expiry, applicable global-stop directives, and effect, risk,
+  cost, time, repository, path, and publication ceilings;
+- Coordinator verifies and durably binds a safe standing-authority reference
+  and its own progression facts; and
+- Coordinator may derive narrower subordinate attempt/effect authorization
+  records and issue attempt/effect fences only within that verified grant.
+
+The external standing-policy authority does not write Coordinator SQLite
+directly. Coordinator may never exceed, extend, renew, reinterpret, or outlive
+the parent grant and may never convert its own durable record into independent
+external authority. Subordinate authorization is target-only and is not
+implemented by the current repository.
+
+Every subordinate record or fence binds the parent standing-grant identity and
+the exact program version, work item, semantic attempt, and effect. It remains
+within scope, ceiling, expiry, revocation, and `global_stop`; fails closed when
+the parent grant is absent, stale, expired, revoked, ambiguous, or insufficient;
+does not make Coordinator a new grant issuer; and is not transferable to another
+effect or attempt unless the parent grant expressly permits bounded reuse.
+
+Classification: `FUTURE IMPLEMENTATION DETAIL`. The external issuer, verifier
+deployment, encoding, signer, trust root, revocation transport, credential form,
+and grant wire protocol remain open.
+
+## Target Writer, Source, Custodian, And Projection Matrix
+
+Classification: `ACCEPTED STRATEGIC TARGET`, except where a row is explicitly
+current.
+
+The matrix distinguishes semantic source or authority, durable recorder,
+physical custodian, safe-reference holder, and projection. Storing a reference
+does not collapse those roles.
+
+| Fact or material | Semantic source or authority | Durable recorder | Physical custodian or safe-reference holder | Projection treatment |
+| --- | --- | --- | --- | --- |
+| External standing grant | External standing-policy authority | External authority system; Coordinator records only a verified safe binding | External authority system; Coordinator holds a safe reference | Reports may project bounded status only |
+| External revocation, expiry, or applicable global-stop directive | External standing-policy authority | External authority system; Coordinator records its verified binding and resulting progression facts | External authority system; Coordinator holds a safe reference | Reports do not author or clear the directive |
+| Program identity, revisions, work items, semantic attempts, progression decisions, effect intents, subordinate attempt/effect records, fences, cancellation intents, semantic acceptance, repair/replan decisions, and publication eligibility | Coordinator under the admitted domain and parent grant | Coordinator | Coordinator durable state, using only safe material | Reports are non-authoritative projections |
+| Current transition and `global_stop` mutation | Current guarded Coordinator `WriterSession` contract | Guarded Coordinator `WriterSession` | Coordinator SQLite under current custody rules | Reports remain projections |
+| Bootstrap worker invocation fact | Direct-local supervisor as source | Future Coordinator observation binding only | Supervisor owns process-local fact; Coordinator may hold a safe reference | Supervisor output is evidence, not acceptance |
+| Later runtime admission, profile handoff, identity, lifecycle, cancellation request, and result fact | Execution Substrate | ES | ES; Coordinator may hold safe references | ES observations remain source-attributed |
+| Candidate bytes and implementation activity | Worker invocation | Not Coordinator program truth | Mutable worker workspace until sealed | Worker completion is not acceptance |
+| Canonical capsule manifest, blobs, and portable digest | Capsule builder acting at the worker boundary | Immutable capsule store for the sealed artifact; Coordinator records only a safe digest/reference | First-slice private immutable worker-side content-addressed store | A digest is not authority or acceptance |
+| Validation result | Executing validator or CI source | Validator/CI source; Coordinator may bind an observation | Validator/CI evidence system | Success is not semantic acceptance |
+| Model planning or review proposal | Model invocation as non-authoritative source evidence | Coordinator may bind only the safe proposal/decision relationship required by a future contract | Model/provider under its own custody contract | Model output is a proposal only |
+| Git object and local ref | Git | Git object database and refs | Git | A commit is neither acceptance nor publication permission |
+| PR or remote publication state | Git forge, when a future tranche permits it | Git forge | Git forge | Blocked in the first slice |
+| Workspace teardown | Worker supervisor | Supervisor operational record, if a future contract requires one | Worker supervisor | Teardown does not decide acceptance |
+| Public report | No semantic authority | No authoritative fact writer | Projection output only | Projection only |
+
+The worker, supervisor, reviewer, model adapter, capsule store, and ES adapter
+must not receive a `WriterSession`, writer proof, Coordinator database path, or
+unrestricted Coordinator credentials. The first-slice capsule is private,
+immutable, content-addressed, worker-side, outside the mutable worktree, and
+outside Coordinator SQLite. A reviewer receives only read-only, attempt-bound,
+capsule-bound retrieval authority. Later ES transport or retention is opaque and
+does not make ES the semantic author or acceptance authority.
+
+Classification: `DEFERRED OR BLOCKED EFFECT`. Push, PR creation, remote-ref
+mutation, merge, deployment, and production autonomy are outside the first
+slice. Classification: `PROCESS-ONLY GOVERNANCE`. Audit-fixture isolation rules
+are recorded only in the C1 composition record and create no product authority.
 
 ## Evidence And References Versus Authority
 

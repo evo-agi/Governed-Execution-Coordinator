@@ -1,6 +1,8 @@
 from pathlib import Path
 import re
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -10,6 +12,84 @@ def _text(path: str) -> str:
 
 def _compact(text: str) -> str:
     return " ".join(text.split())
+
+
+def _markdown_atx_headings(text: str) -> tuple[tuple[int, str, int, int], ...]:
+    """Parse bounded ATX headings outside backtick or tilde fenced blocks."""
+    headings: list[tuple[int, str, int, int]] = []
+    fence: tuple[str, int] | None = None
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        stripped = content.lstrip(" ")
+        indent = len(content) - len(stripped)
+        if indent <= 3 and stripped and stripped[0] in "`~":
+            marker = stripped[0]
+            run_length = len(stripped) - len(stripped.lstrip(marker))
+            remainder = stripped[run_length:]
+            if run_length >= 3:
+                if fence is None:
+                    fence = (marker, run_length)
+                    offset += len(line)
+                    continue
+                if marker == fence[0] and run_length >= fence[1] and not remainder.strip():
+                    fence = None
+                    offset += len(line)
+                    continue
+        if fence is None and indent <= 3:
+            match = re.fullmatch(r"(#{1,6})[ \t]+(.+?)[ \t]*", stripped)
+            if match is not None:
+                title = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
+                assert title
+                headings.append((len(match.group(1)), title, offset, offset + len(line)))
+        offset += len(line)
+    assert fence is None, "unclosed or mismatched fenced code block"
+    return tuple(headings)
+
+
+def _bounded_markdown_section(text: str, heading: str, level: int) -> str:
+    headings = _markdown_atx_headings(text)
+    matches = [item for item in headings if item[1] == heading]
+    assert len(matches) == 1
+    selected = matches[0]
+    assert selected[0] == level
+    selected_index = headings.index(selected)
+    boundaries = tuple(
+        following
+        for following in headings[selected_index + 1 :]
+        if following[0] <= level
+    )
+    assert boundaries, "bounded section must have a later same-or-higher heading"
+    end = boundaries[0][2]
+    return text[selected[3] : end]
+
+
+def _assert_candidate_capsule_durable_state_contract(text: str) -> None:
+    section = _compact(
+        _bounded_markdown_section(
+            text,
+            "C1 Candidate-Capsule Durable-State Boundary",
+            2,
+        )
+    )
+    assertions = (
+        "For candidate-capsule material, future Coordinator durable state may retain only a safe capsule digest/reference and the Coordinator-owned progression decisions that bind it.",
+        "Capsule bytes, mutable workspace material, local paths, and bearer retrieval credentials remain outside Coordinator SQLite.",
+        "This capsule-material restriction does not exclude accepted future durable program, revision, work-item, semantic-attempt, effect, source-observation, acceptance, repair/replan, publication-eligibility, publication, or other safe Coordinator-owned progression facts.",
+        "This target-only statement adds no current schema or implementation.",
+    )
+    for assertion in assertions:
+        assert assertion in section
+    assert section == " ".join(assertions)
+
+    assert "Future Coordinator state may hold only" not in _compact(text)
+    for opposite in (
+        "Coordinator SQLite may retain candidate-capsule bytes.",
+        "Candidate-capsule bytes may be stored in Coordinator SQLite.",
+        "Mutable workspace material may be retained in Coordinator SQLite.",
+        "Bearer retrieval credentials may be retained in Coordinator SQLite.",
+    ):
+        assert opposite not in section
 
 
 def _section(text: str, heading: str, next_heading: str | None = None) -> str:
@@ -64,7 +144,7 @@ def test_docs_pin_authority_boundaries() -> None:
     architecture = _compact(_text(".docs/architecture.md"))
     worker = _compact(_text(".docs/worker-execution-boundary.md"))
     for phrase in (
-        "Bridge remains worker/evidence adapter only",
+        "Bridge remains the current guarded adapter/evidence surface",
         "Control Plane remains relevant only to current maintained MVP/demo compatibility, migration, filming, freeze, reference, or retirement context",
         "CP does not become A2 coding-work state owner and is not part of the target autonomous-development topology",
         "Execution Substrate remains execution admission/runtime authority",
@@ -121,7 +201,8 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     worker = _compact(_text(".docs/worker-execution-boundary.md"))
 
     assert "Status: target contract/design record only." in worker
-    assert "This document enables no runtime implementation, no wire schema, no transport, and no placement." in worker
+    assert "This document enables no runtime implementation, no wire schema, no transport implementation, no process launch, and no dispatch." in worker
+    assert "It selects target worker source/process placement and a staged direct-local-to-ES route without implementing either." in worker
     assert "Coordinator currently owns bounded internal durable SQLite mutation authority for coding-work state." in worker
     assert "The public `StateStore` remains unwidened." in worker
     assert "Coordinator currently has no worker, scheduler, queue consumer, dispatcher, reconciler, public service/API, Codex invocation, Execution Substrate handoff" in worker
@@ -130,8 +211,8 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     assert "separately versioned software-development and bounded operational-change domain contracts" in architecture
     assert "The current coding domain remains intact and coding-work-specific." in architecture
     assert "This target direction is not implemented by the current code and does not authorize execution." in architecture
-    assert "This repository currently implements none of those placements, no dispatcher, no reconciler, no service/API/IPC, no ES call" in agents
-    assert "The current finite-backlog, standing-lease, zero-only budget, READY-only dependency, and disabled-stage contracts remain current v1 behavior but are not frozen as the target model." in durable
+    assert "This repository currently implements no direct-local adapter, worker supervisor, worker process, dispatcher, reconciler, service/API/IPC, ES call" in agents
+    assert "The current finite-backlog, standing-lease, zero-only budget, READY-only dependency, and disabled-stage contracts remain current v1 compatibility behavior but are not frozen as the target model." in durable
 
 
 def test_operational_progression_boundary_pins_target_only_current_reality_and_worker_boundary() -> None:
@@ -450,24 +531,24 @@ def test_worker_boundary_pins_target_fact_ownership_and_non_authority() -> None:
     ):
         assert phrase in worker
 
-    assert "A worker adapter, widened Bridge adapter, or future gateway may own only bounded placement-specific protocol mechanics" in authority
-    assert "It must not own durable work selection, scheduling policy, semantic retry or repair authority, acceptance, ES admission, runtime lifecycle truth, Git truth, validation truth, or hidden program state." in authority
+    assert "The bounded direct-local supervisor/adapter and later ES adapter may own only bounded process and transport protocol mechanics" in authority
+    assert "They must not own durable work selection, scheduling policy, semantic retry or repair authority, acceptance, ES admission, runtime lifecycle truth, Git truth, validation truth, or hidden program state." in authority
 
 
-def test_worker_boundary_keeps_placement_open_and_bridge_non_mandatory() -> None:
+def test_worker_boundary_pins_staged_placement_and_bridge_non_ownership() -> None:
     readme = _compact(_text("README.md"))
     worker = _compact(_text(".docs/worker-execution-boundary.md"))
-    placement = worker.split("## Placement Alternatives", 1)[1].split(
+    placement = worker.split("## Accepted Staged Placement And Credential Boundary", 1)[1].split(
         "## Private Material And Safe Projections", 1
     )[0]
 
-    assert "in-process Coordinator adapter" in placement
-    assert "explicitly widened Bridge adapter" in placement
-    assert "separate stateless gateway" in placement
-    assert "Placement is a deployment and implementation decision after placement-neutral contracts exist." in placement
-    assert "A separate gateway is not justified merely for conceptual neatness." in placement
-    assert "Bridge is not selected as mandatory adapter placement by this tranche." in placement
-    assert "Bridge is not selected as mandatory future worker placement by this tranche." in readme
+    assert "worker source and release machinery held in the Coordinator repository" in placement
+    assert "launches a separate OS worker process" in placement
+    assert "The authoritative Coordinator process never executes implementation work in-process." in placement
+    assert "Bridge and Bridge Core are not worker implementation owners, adapters, or triggers for the first slice." in placement
+    assert "A separate stateless gateway is not selected." in placement
+    assert "must not receive a `WriterSession`, writer proof, Coordinator database path, or unrestricted Coordinator credentials" in placement
+    assert "Bridge is not the worker owner." in readme
 
 
 def test_worker_boundary_pins_effect_ordering_and_attempt_semantics() -> None:
@@ -511,17 +592,24 @@ def test_worker_boundary_records_es_submit_ambiguity_as_blocker() -> None:
 
 
 def test_worker_boundary_pins_private_projection_limits_and_negative_non_claims() -> None:
-    worker = _compact(_text(".docs/worker-execution-boundary.md"))
-    negative = worker.split("## Explicit Non-Claims", 1)[1].split(
-        "## Required-Before-Real-Dispatch Gates", 1
-    )[0]
+    worker_text = _text(".docs/worker-execution-boundary.md")
+    start_heading = "## Explicit Non-Claims"
+    end_heading = "## Required-Before-Execution Gates"
+    assert worker_text.count(start_heading) == 1
+    assert worker_text.count(end_heading) == 1
+    start = worker_text.index(start_heading) + len(start_heading)
+    end = worker_text.index(end_heading)
+    assert start < end
+    negative = _compact(worker_text[start:end])
+    worker = _compact(worker_text)
 
     assert "Public reports must not contain raw prompts, raw Codex JSONL, raw logs, credentials, trust material, local absolute paths, private endpoints, retained bundles, or arbitrary runtime payloads." in worker
-    assert "Retained bundles remain ES-owned opaque results." in worker
-    assert "Raw/private context-package or worker-input storage is not decided by this tranche" in worker
+    assert "The first-slice candidate capsule is private, immutable, content-addressed, worker-side, outside the mutable worktree, and outside Coordinator SQLite." in worker
+    assert "Coordinator retains only a safe digest/reference and progression decisions." in worker
+    assert "Later ES transport or retention is opaque." in worker
 
     for phrase in (
-        "no worker or Codex invocation",
+        "no implemented worker, supervisor, process launch, or Codex invocation",
         "no scheduler",
         "no dispatcher or reconciler",
         "no service/API/IPC",
@@ -529,24 +617,64 @@ def test_worker_boundary_pins_private_projection_limits_and_negative_non_claims(
         "no outbox/inbox implementation",
         "no ES call",
         "no Bridge widening",
-        "no selected gateway service",
+        "no Bridge or Bridge Core worker ownership",
+        "no gateway service",
         "no connector dependency",
         "no Development Program prerequisite",
         "no full event-sourcing decision",
-        "no direct-local-Codex target path",
+        "no implemented direct-local worker route",
         "no runtime-profile selection",
-        "no authority issuance implementation",
-        "no publication behavior",
+        "no model/provider client",
+        "no capsule builder or store implementation",
+        "no subordinate-authorization runtime",
+        "no Git effect or publication behavior",
+        "no validation, review, or repair executor",
+        "no autonomous loop",
     ):
         assert phrase in negative
 
 
 def test_current_status_drift_corrections_are_documented() -> None:
-    durable = _compact(_text(".docs/durable-state-model.md"))
+    durable_text = _text(".docs/durable-state-model.md")
+    durable = _compact(durable_text)
     operations = _compact(_text(".docs/sqlite-operations-and-recovery.md"))
 
+    _assert_candidate_capsule_durable_state_contract(durable_text)
     assert "B3c4b adds private atomic transition persistence, B3c4c adds guarded public transition delegation, B4b adds private global-stop persistence, and B4c adds guarded public global-stop delegation." in durable
     assert "The public `StateStore` remains unwidened; internal `WriterSession` mutation is not a general public `StateStore` backend or service." in durable
     assert "The code still has no dispatch, semantic attempt, runtime-observation, result-ingest, outbox/inbox, worker, scheduler, queue, Codex, ES handoff, or runtime lifecycle storage." in durable
     assert "Public global-stop mutation now delegates through the guarded B4c public wrapper to B4b private atomic global-stop persistence." in operations
     assert "The public wrappers own no SQL, receipt verification, evaluator, sequence allocation, write, rollback, COMMIT, or uncertainty handling" in operations
+
+
+def test_candidate_capsule_durable_state_section_rejects_structural_drift() -> None:
+    text = _text(".docs/durable-state-model.md")
+    heading = "## C1 Candidate-Capsule Durable-State Boundary"
+    boundary = "## P1.1 Atomic Apply Contract"
+    required_source = (
+        "Capsule bytes, mutable workspace material, local paths, and bearer\n"
+        "retrieval credentials remain outside Coordinator SQLite."
+    )
+    required_statement = required_source.replace("\n", " ")
+
+    fenced_duplicate = f"```text\n{heading}\n```\n\n{text}"
+    _assert_candidate_capsule_durable_state_contract(fenced_duplicate)
+
+    mutations = (
+        text.replace(heading, f"{heading}\n\n{heading}", 1),
+        text.replace(required_source, "", 1) + f"\n\n{required_statement}\n",
+        text.replace(
+            heading,
+            f"{heading}\n\nCoordinator SQLite may retain candidate-capsule bytes.",
+            1,
+        ),
+        text + "\nFuture Coordinator state may hold only a safe reference.\n",
+        text.split(f"\n{boundary}", 1)[0] + "\n",
+        text.replace(boundary, "### P1.1 Atomic Apply Contract", 1),
+        text.replace(boundary, "P1.1 Atomic Apply Contract", 1),
+        f"```text\n{text}",
+        f"~~~text\n{text}\n```\n",
+    )
+    for mutation in mutations:
+        with pytest.raises(AssertionError):
+            _assert_candidate_capsule_durable_state_contract(mutation)

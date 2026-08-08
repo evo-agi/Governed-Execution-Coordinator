@@ -3,7 +3,15 @@
 ## Status And Purpose
 
 Status: target contract/design record only. This document enables no runtime
-implementation, no wire schema, no transport, and no placement.
+implementation, no wire schema, no transport implementation, no process launch,
+and no dispatch. It selects target worker source/process placement and a staged
+direct-local-to-ES route without implementing either.
+
+Contract language distinguishes `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
+COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
+DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`. The
+authoritative C1 composition record is
+`.docs/autonomous-software-development-operating-model.md`.
 
 The Worker Execution Boundary is the reserved, transport-neutral boundary
 between Coordinator-owned durable development progression and Execution
@@ -13,9 +21,9 @@ work. It is not evidence that dispatch, worker execution, ES submission, result
 ingest, or an autonomous loop exists.
 
 This tranche selects no final schema, table, queue, service, IPC, public API,
-polling model, callback model, runtime profile, Codex protocol, adapter
-placement, gateway service, Development Program, or append-only event-sourcing
-architecture.
+polling model, callback model, runtime profile, Codex protocol, package,
+executable, supervisor mechanism, credential delivery, build system, deployment,
+Development Program, or append-only event-sourcing architecture.
 
 ## Current Implementation Reality
 
@@ -46,10 +54,10 @@ handoff, runtime-profile compatibility, runtime identity and credential-handoff
 boundaries, Nomad-backed lifecycle projection, runtime cancellation-request
 boundaries, and retained execution results.
 
-Bridge is currently a guarded adapter, transport, redaction, local-proof, and
-evidence surface. Bridge is not durable program authority, runtime lifecycle
-truth, work-selection authority, scheduling policy, retry/repair authority,
-acceptance authority, or hidden Coordinator state.
+Bridge is currently a guarded adapter/evidence surface. Bridge is not the
+worker owner, a direct-local trigger, durable program authority, runtime
+lifecycle truth, work-selection authority, scheduling policy, retry/repair
+authority, acceptance authority, or hidden Coordinator state.
 
 Control Plane remains relevant only to current maintained MVP/demo
 compatibility, migration, filming, freeze, reference, or retirement context. It
@@ -57,30 +65,56 @@ is not part of the target autonomous-development topology in this document.
 
 ## Target Topology
 
-The strategic target topology is:
+Classification: `ACCEPTED STRATEGIC TARGET`.
+
+The initial bounded bootstrap/proof topology is:
 
 ```text
 reasoning model
-    -> Coordinator
-    -> Worker Execution Boundary
-    -> [in-process adapter | widened Bridge adapter | separate stateless gateway]
-    -> Execution Substrate
-    -> ES-owned runtime backend
-    -> worker
+    -> Coordinator durable software-development progression
+    -> transport-neutral Worker Execution Boundary
+    -> bounded direct-local bootstrap/proof adapter
+    -> process-separated coding worker
+    -> exact immutable candidate capsule
+    -> validation and independent review observations
+    -> model review proposal
+    -> Coordinator acceptance, repair, replan, rejection, or block
+    -> at most one local feature-branch Git commit
 ```
 
+The later ES-routed topology is:
+
+```text
+same Coordinator progression semantics
+same worker command/observation/fence/capsule contracts
+same worker artifact
+    -> ES reliable-submit adapter
+    -> ES admission and runtime lifecycle
+    -> process-separated coding worker
+    -> opaque capsule result transport or retention
+```
+
+Initial worker source and release machinery live in the Coordinator repository,
+and the worker executes as a separate OS process. The authoritative Coordinator
+process must not perform implementation work in-process. No seventh repository
+is created now; extraction requires demonstrated independent release cadence,
+ownership, multiple consumers, or materially separate dependency or security
+governance.
+
 Model reasoning owns cognitive intent, architectural judgment, semantic
-judgment, planning, replanning, and evidence review. Model sessions and model
-responses are not durable program truth by themselves.
+judgment, planning, replanning, and evidence review proposals. Model sessions
+and model responses are not durable program truth or effect authority by
+themselves.
 
 Coordinator is intended to become the durable autonomy core for software
 development progression. Execution Substrate continues to own execution
 admission and runtime authority. Git owns repository object and ref truth. CI or
 validating runtimes own observed validation results.
 
-Direct local Codex execution outside Execution Substrate may exist only as an
-explicitly named bootstrap or proof edge. It must not silently become the target
-execution path.
+Direct-local execution outside Execution Substrate is an explicitly named,
+bounded bootstrap/proof edge. It is not the target production execution path,
+is not implemented by this tranche, and must stop expanding after one accepted
+vertical slice pending ES-migration review.
 
 ## Desired Development State Versus Observed Execution Facts
 
@@ -103,6 +137,7 @@ Coordinator-owned target facts include:
 - global-stop effect planning;
 - acceptance progression;
 - governed advancement toward allowed Git or publication effects.
+- safe candidate-capsule digest/reference binding.
 
 Externally owned facts include:
 
@@ -115,11 +150,12 @@ Externally owned facts include:
 - adapter invocation/session reference;
 - Git object/ref identity;
 - validation observation.
+- capsule-store retrieval observation.
 
 External runtime identifiers may be correlation references, but they are not
 semantic work identity and do not become Coordinator runtime authority.
 
-## Placement-Neutral Dispatch Semantics
+## Transport-Neutral Command, Observation, Fence, And Capsule Contracts
 
 A future Worker Execution Boundary requires, without freezing final field names,
 schemas, tables, public endpoints, or transports:
@@ -131,13 +167,21 @@ schemas, tables, public endpoints, or transports:
 - repository and base Git identity;
 - policy or authorization references;
 - global-stop reference;
+- attempt/effect fence binding;
 - evidence requirements;
+- canonical candidate-capsule manifest and portable-digest contract;
 - idempotent delivery acknowledgement;
 - idempotent observation ingest;
 - duplicate, lost, late, stale, and ambiguous outcome handling.
 
 Transport redelivery is not a new semantic attempt. A new semantic attempt
 requires a Coordinator decision.
+
+The direct-local adapter and later ES adapter must implement the same versioned
+worker command, observation, fence, and capsule contracts and pass the same
+conformance contract. One-repository/one-active-invocation bounds do not make a
+supervisor or adapter the scheduler, lifecycle authority, work-selection
+authority, or program truth.
 
 ## Effect And Transaction Ordering
 
@@ -200,20 +244,27 @@ converted into success or failure by inference.
 This document does not choose polling versus callback, a service, local IPC, a
 queue, or an exact database representation.
 
-## Placement Alternatives
+## Accepted Staged Placement And Credential Boundary
 
-The Worker Execution Boundary keeps all three placement alternatives open:
+Classification: `ACCEPTED STRATEGIC TARGET`.
 
-- in-process Coordinator adapter;
-- explicitly widened Bridge adapter;
-- separate stateless gateway.
+The initial bounded direct-local supervisor/adapter launches a separate OS
+worker process from worker source and release machinery held in the Coordinator
+repository. The authoritative Coordinator process never executes implementation
+work in-process. Bridge and Bridge Core are not worker implementation owners,
+adapters, or triggers for the first slice. A separate stateless gateway is not
+selected.
 
-Placement is a deployment and implementation decision after placement-neutral
-contracts exist. A separate gateway is not justified merely for conceptual
-neatness. A widened Bridge adapter must consume an already defined Coordinator
-command port and ES-owned runtime contracts; it must not define durable
-progression, scheduling, retry, repair, acceptance, or lifecycle truth.
-Bridge is not selected as mandatory adapter placement by this tranche.
+The worker has no direct Coordinator SQLite mutation authority. The worker,
+supervisor, reviewer, model adapter, capsule store, and later ES adapter must not
+receive a `WriterSession`, writer proof, Coordinator database path, or
+unrestricted Coordinator credentials. Each boundary receives only the least,
+attempt-bound or effect-bound authority required under the verified standing
+grant and Coordinator fences.
+
+Classification: `FUTURE IMPLEMENTATION DETAIL`. Exact IPC, process launch,
+supervisor lifecycle mechanics, package and executable names, build system,
+credential delivery, and deployment remain open.
 
 ## Private Material And Safe Projections
 
@@ -221,16 +272,44 @@ Public reports must not contain raw prompts, raw Codex JSONL, raw logs,
 credentials, trust material, local absolute paths, private endpoints, retained
 bundles, or arbitrary runtime payloads.
 
-Coordinator may retain safe opaque references to external observations when
-needed for correlation and decision-making. Retained bundles remain ES-owned
-opaque results. Raw/private context-package or worker-input storage is not
-decided by this tranche and requires a separate privacy/security contract.
+The first-slice candidate capsule is private, immutable, content-addressed,
+worker-side, outside the mutable worktree, and outside Coordinator SQLite. The
+worker invocation authors candidate bytes. A capsule builder acting at the
+worker boundary seals the canonical manifest, blobs, and portable digest. A
+private immutable worker-side content-addressed store has physical custody.
+Coordinator retains only a safe digest/reference and progression decisions. A
+reviewer has read-only, attempt-bound, capsule-bound retrieval authority. Later
+ES transport or retention is opaque. Git owns object/ref truth only after a
+separately selected commit effect.
+
+A capsule digest is not a local path, endpoint, bearer retrieval credential,
+authorization proof, acceptance decision, or Git identity. The portable capsule
+excludes raw prompts, model transcripts, Codex JSONL, unrestricted logs,
+unrestricted command output, credentials, private endpoints, trust material,
+and unrelated workspace content. Exact path, storage implementation, encryption,
+garbage collection, retention duration, serialization, and wire encoding remain
+future implementation details.
+
+## Review, Handback, Repair, And Effect Boundary
+
+Worker completion, candidate capture, validation observation, independent review
+observation or proposal, model review proposal, Coordinator semantic acceptance,
+repair decision, replan decision, local Git commit, PR creation, merge, and
+deployment remain distinct. Neither worker exit, validator success, reviewer
+output, model response, ES result, Bridge report, Git commit, nor CI result
+creates semantic acceptance.
+
+A code-changing repair normally creates a new semantic attempt, candidate
+identity, portable capsule digest, and candidate-bound validation and review.
+The worker must not silently commit while authoring. The first-slice local commit
+is a separate effect after Coordinator acceptance; push, PR creation, merge, and
+deployment are blocked.
 
 ## Explicit Non-Claims
 
 This document and tranche add:
 
-- no worker or Codex invocation;
+- no implemented worker, supervisor, process launch, or Codex invocation;
 - no scheduler;
 - no dispatcher or reconciler;
 - no service/API/IPC;
@@ -238,41 +317,63 @@ This document and tranche add:
 - no outbox/inbox implementation;
 - no ES call;
 - no Bridge widening;
-- no selected gateway service;
+- no Bridge or Bridge Core worker ownership;
+- no gateway service;
 - no connector dependency;
 - no Development Program prerequisite;
 - no full event-sourcing decision;
-- no direct-local-Codex target path;
+- no implemented direct-local worker route;
 - no runtime-profile selection;
-- no authority issuance implementation;
-- no publication behavior.
+- no model/provider client;
+- no capsule builder or store implementation;
+- no subordinate-authorization runtime;
+- no Git effect or publication behavior;
+- no validation, review, or repair executor; and
+- no autonomous loop.
 
-## Required-Before-Real-Dispatch Gates
+## Required-Before-Execution Gates
 
-These are local gates, not one global project sequence:
+Direct-local source work requires a separately accepted implementation contract,
+standing-policy and validation contracts, versioned worker
+command/observation/fence/capsule contracts, process and credential boundaries,
+safe capsule custody/retrieval, cancellation and `global_stop` semantics,
+adapter conformance, independent audit, and provenance.
 
-- Coordinator semantic identity and command contract;
-- durable effect-intent and observation contract;
-- authorization or policy reference contract;
-- ES submit idempotency, correlation, or recovery decision;
-- cancellation and global-stop effect semantics;
-- safe read projections;
-- adapter implementation;
-- independent audit and provenance.
+Migration to ES additionally requires accepted ES contracts for resolved
+execution-plan extraction, reliable keyed submit, caller correlation and
+response-loss recovery, ES-owned ambiguous-submit reconciliation, runtime
+admission and lifecycle observation, cancellation correlation, opaque capsule
+result transport or retention, and Coordinator-to-ES adapter conformance.
+
+These are owner-governed gates, not permission for Coordinator documentation to
+reprioritize ES. `resolved-execution-plan-extraction-foundation` remains the next
+source-bearing reliable-submit seam under ES planning authority without adoption
+of the rejected archived implementation.
 
 ## Open Seams
 
-The following target seams remain open:
+The following implementation seams remain open:
 
-- exact attempt model;
-- relationship to current finite backlog and lease;
-- authority issuer and standing-policy representation;
+- exact Coordinator program and semantic-attempt schema;
+- mapping or migration from current finite backlog and lease compatibility;
+- external issuer/verifier deployment, standing-grant encoding, signer, trust
+  root, revocation transport, and credential form;
 - exact outbox/inbox or equivalent design;
-- schema;
-- polling versus callback;
-- service or local IPC;
-- adapter placement;
-- Codex CLI versus App Server;
-- runtime profile;
-- first bounded bootstrap exception;
-- raw/private context retention.
+- polling versus callback and service/API/local IPC mechanics;
+- worker package, executable, build, supervisor, and deployment mechanics;
+- command/observation/fence/capsule DTO fields and wire encoding;
+- Codex CLI versus App Server and model/provider protocol;
+- capsule path, store technology, encryption, garbage collection, retention,
+  serialization, archival, and recovery;
+- Git commands, branch naming, commit-message format, credentials, and publisher;
+- ES request/response, correlation, cancellation, lifecycle, retained-result,
+  runtime-profile, and adapter mechanics; and
+- direct-local proof/recovery policy representation.
+
+Classification: `CURRENT COMPATIBILITY EDGE`. Current `FiniteBacklog`, standing
+lease, zero-only budget, READY-only dependency, disabled stages, coding
+`global_stop`, `WriterSession`, and schema 0001 remain unchanged.
+Classification: `DEFERRED OR BLOCKED EFFECT`. All source/runtime work and effects
+beyond one future local feature-branch commit remain blocked. Classification:
+`PROCESS-ONLY GOVERNANCE`. Future audit isolation requirements live in the C1
+composition record and are not worker behavior.
