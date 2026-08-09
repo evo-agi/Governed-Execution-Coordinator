@@ -40,6 +40,13 @@ runtime, schema, migration, dependency, package export, entry point, script,
 model integration, capsule builder or store, ES integration, Git effect,
 publication behavior, subordinate-authorization runtime, or autonomous loop.
 
+C2A now freezes the accepted target-only first-slice semantic protocol in
+`.docs/c2a-first-slice-semantic-protocol-contract.md`; it still adds only
+documentation and documentation-contract tests. The next possible source
+tranche is C2A1 pure no-I/O semantic values only, and C2A1 is not implemented.
+Worker launch, durable schema, real Codex invocation, a Git commit effect, and
+ES routing are not the next authorized step.
+
 Tranche history: A2-P1/P1.1 established the original local coding-work
 coordinator skeleton. Later B-tranches added the bounded SQLite authority
 described above. The historical sequence includes:

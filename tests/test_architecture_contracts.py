@@ -201,8 +201,9 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     worker = _compact(_text(".docs/worker-execution-boundary.md"))
 
     assert "Status: target contract/design record only." in worker
-    assert "This document enables no runtime implementation, no wire schema, no transport implementation, no process launch, and no dispatch." in worker
-    assert "It selects target worker source/process placement and a staged direct-local-to-ES route without implementing either." in worker
+    assert "This document enables no runtime implementation, no transport or process-framing implementation, no process launch, and no dispatch." in worker
+    assert "C2A freezes target-only pure semantic schemas without creating a runtime wire protocol." in worker
+    assert "This document selects target worker source/process placement and a staged direct-local-to-ES route without implementing either." in worker
     assert "Coordinator currently owns bounded internal durable SQLite mutation authority for coding-work state." in worker
     assert "The public `StateStore` remains unwidened." in worker
     assert "Coordinator currently has no worker, scheduler, queue consumer, dispatcher, reconciler, public service/API, Codex invocation, Execution Substrate handoff" in worker
@@ -211,8 +212,14 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     assert "separately versioned software-development and bounded operational-change domain contracts" in architecture
     assert "The current coding domain remains intact and coding-work-specific." in architecture
     assert "This target direction is not implemented by the current code and does not authorize execution." in architecture
+    assert "C2A freezes target-only first-slice semantic schemas" in architecture
+    assert "Neither C2A semantic values nor C2A1 source are currently implemented" in architecture
+    assert "both add no durable schema, process, adapter, worker, or executable authorization" in architecture
     assert "This repository currently implements no direct-local adapter, worker supervisor, worker process, dispatcher, reconciler, service/API/IPC, ES call" in agents
     assert "The current finite-backlog, standing-lease, zero-only budget, READY-only dependency, and disabled-stage contracts remain current v1 compatibility behavior but are not frozen as the target model." in durable
+    assert "C2A freezes documentation-level semantic contracts and creates no durable state." in durable
+    assert "Managed schema 0001 remains unchanged." in durable
+    assert "A future C2B would require a separately accepted durable schema and forward migration; no migration number is reserved here." in durable
 
 
 def test_operational_progression_boundary_pins_target_only_current_reality_and_worker_boundary() -> None:

@@ -1,5 +1,12 @@
 # C1 Autonomous Software-Development Operating Model
 
+C2A composes below this unchanged thirteen-clause C1 inventory. The accepted
+target-only field and semantic authority is
+`.docs/c2a-first-slice-semantic-protocol-contract.md`; it makes `program_ref`
+and `program_version_ref` mandatory distinct identities for every productive
+first-slice semantic record. C2A adds no source, schema, process, or effect, and
+does not change C1 topology or its one-local-commit maximum.
+
 ## C1-AOM-001 — Status And Classification Ledger
 
 This document is the authoritative composition record for the accepted C1
@@ -393,7 +400,8 @@ This tranche implements no fixture or helper.
 Classification: `FUTURE IMPLEMENTATION DETAIL`.
 
 C1 leaves open exact IPC and supervisor mechanics; package, module, executable,
-and build-system names; command/observation/fence DTO fields and wire encoding;
+and build-system names; process framing, transport wrapping, and ES wire mapping
+for the C2A-frozen command/observation/fence/capsule semantic fields;
 capsule path, store technology, encryption, garbage collection, retention,
 serialization, archival, and recovery; external issuer and verifier deployment,
 signer, trust root, revocation transport, credential form, and grant encoding;

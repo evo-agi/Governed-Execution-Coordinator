@@ -46,6 +46,14 @@ stop, acceptance grammar, effect vocabulary, schema, service, module, worker,
 scheduler, or reconciler. This target direction is not implemented by the
 current code and does not authorize execution.
 
+Between the accepted durable progression semantics and any future adapter or
+process, C2A freezes target-only first-slice semantic schemas, identities,
+canonical digests, observations, fences, and capsule/Git-effect boundaries in
+`.docs/c2a-first-slice-semantic-protocol-contract.md`. A separately authorized
+C2A1 may later add only pure no-I/O value contracts. Neither C2A semantic values
+nor C2A1 source are currently implemented; both add no durable schema, process,
+adapter, worker, or executable authorization.
+
 The accepted C1 software-development target is:
 
 ```text

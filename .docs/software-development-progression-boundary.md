@@ -346,8 +346,9 @@ effect is one local feature-branch Git commit after acceptance.
 The remaining implementation details are exact schema and migration design;
 current-state tables versus event sourcing; outbox/inbox design;
 service/API/IPC/queue/scheduler mechanics; worker package, executable, build,
-supervisor, credential, and IPC mechanics; worker command/observation/fence and
-capsule DTO fields and wire encoding;
+supervisor, credential, and IPC mechanics; process framing, transport wrapping,
+and ES wire mapping for the C2A-frozen worker
+command/observation/fence/capsule semantic fields;
 ES request/response/correlation/query/cancellation/result-ingest wire contracts;
 model provider, model protocol, and
 prompt transport; authority issuer/verifier deployment, encoding, signer,
@@ -363,10 +364,10 @@ require an ES repository change. Concrete ES-backed dispatch, reconciliation,
 cancellation, runtime observation, result ingest, and unattended execution
 require separately accepted ES and cross-repository contracts.
 
-Required-before-source gates remain future tranche gates. C0 and C1 accept the
-semantic and staged architecture direction, but a separately accepted
-implementation contract must freeze the applicable versioned worker
-command/observation/fence/capsule contract, authority binding, safe-reference
-policy, observation semantics, effect and retry semantics, stop semantics,
-direct-local or ES adapter contract, and privacy posture before source, schema,
+The pure semantic-contract prerequisite is satisfied only by the accepted
+target-only C2A document. Durable schema, authority verification, process
+launch, worker execution, observation ingest, acceptance runtime, and Git
+effect remain unsatisfied required-before-source gates. A separately accepted
+implementation contract must still freeze the applicable runtime, direct-local
+or ES adapter, transport, and persistence mechanics before source, schema,
 service, worker, adapter, Git/CI, or runtime execution work.

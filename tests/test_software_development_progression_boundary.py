@@ -476,7 +476,7 @@ def test_remaining_implementation_and_cross_repository_details_stay_open() -> No
         "outbox/inbox design",
         "service/API/IPC/queue/scheduler mechanics",
         "worker package, executable, build, supervisor, credential, and IPC mechanics",
-        "worker command/observation/fence and capsule DTO fields and wire encoding",
+        "process framing, transport wrapping, and ES wire mapping for the C2A-frozen worker command/observation/fence/capsule semantic fields",
         "ES request/response/correlation/query/cancellation/result-ingest wire contracts",
         "model provider, model protocol, and prompt transport",
         "authority issuer/verifier deployment, encoding, signer, trust root, revocation transport, and credential form",
@@ -495,9 +495,9 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
     open_decisions = _compact(_section(_doc(), "Required Gates, Explicit Non-Claims, And Open Decisions"))
 
     for phrase in (
-        "Required-before-source gates remain future tranche gates",
-        "C0 and C1 accept the semantic and staged architecture direction",
-        "a separately accepted implementation contract must freeze the applicable versioned worker command/observation/fence/capsule contract, authority binding, safe-reference policy, observation semantics, effect and retry semantics, stop semantics, direct-local or ES adapter contract, and privacy posture",
+        "The pure semantic-contract prerequisite is satisfied only by the accepted target-only C2A document",
+        "Durable schema, authority verification, process launch, worker execution, observation ingest, acceptance runtime, and Git effect remain unsatisfied required-before-source gates",
+        "A separately accepted implementation contract must still freeze the applicable runtime, direct-local or ES adapter, transport, and persistence mechanics",
         "before source, schema, service, worker, adapter, Git/CI, or runtime execution work",
     ):
         assert phrase in open_decisions

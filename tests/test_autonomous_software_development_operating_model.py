@@ -704,6 +704,17 @@ def test_c1_clause_inventory_is_exact_and_ordered() -> None:
     )
 
 
+def test_c2a_cross_reference_is_bounded_outside_unchanged_c1_inventory() -> None:
+    preamble = _compact(_doc().split("## C1-AOM-001", 1)[0])
+    assert ".docs/c2a-first-slice-semantic-protocol-contract.md" in preamble
+    assert "`program_ref` and `program_version_ref` mandatory distinct identities" in preamble
+    assert "C2A adds no source, schema, process, or effect" in preamble
+    assert "does not change C1 topology or its one-local-commit maximum" in preamble
+    assert "C2A-PROTO-" not in "\n".join(
+        heading for _, heading, _, _ in _markdown_atx_headings(_doc())
+    )
+
+
 def test_classification_ledger_and_authoritative_composition_are_pinned() -> None:
     ledger = _compact(_clause("C1-AOM-001", "C1-AOM-002"))
     for classification in CLASSIFICATIONS:

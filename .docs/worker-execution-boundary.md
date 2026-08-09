@@ -3,9 +3,11 @@
 ## Status And Purpose
 
 Status: target contract/design record only. This document enables no runtime
-implementation, no wire schema, no transport implementation, no process launch,
-and no dispatch. It selects target worker source/process placement and a staged
-direct-local-to-ES route without implementing either.
+implementation, no transport or process-framing implementation, no process
+launch, and no dispatch. C2A freezes target-only pure semantic schemas without
+creating a runtime wire protocol. This document selects target worker
+source/process placement and a staged direct-local-to-ES route without
+implementing either.
 
 Contract language distinguishes `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
 COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
@@ -20,10 +22,11 @@ document records strategic target direction and required invariants for future
 work. It is not evidence that dispatch, worker execution, ES submission, result
 ingest, or an autonomous loop exists.
 
-This tranche selects no final schema, table, queue, service, IPC, public API,
+This tranche selects no durable schema, table, queue, service, IPC, public API,
 polling model, callback model, runtime profile, Codex protocol, package,
 executable, supervisor mechanism, credential delivery, build system, deployment,
-Development Program, or append-only event-sourcing architecture.
+or append-only event-sourcing architecture. C2A's accepted semantic contract
+does not implement a Development Program.
 
 ## Current Implementation Reality
 
@@ -157,13 +160,16 @@ semantic work identity and do not become Coordinator runtime authority.
 
 ## Transport-Neutral Command, Observation, Fence, And Capsule Contracts
 
-A future Worker Execution Boundary requires, without freezing final field names,
-schemas, tables, public endpoints, or transports:
+A future Worker Execution Boundary requires the exact target-only semantic
+fields, identities, domains, golden vectors, and finite outcomes frozen by
+`.docs/c2a-first-slice-semantic-protocol-contract.md`, including mandatory
+distinct `program_ref` and `program_version_ref`. Without freezing durable
+tables, public endpoints, process framing, or transport wrapping, it requires:
 
 - semantic attempt identity;
 - dispatch command identity;
 - canonical command digest;
-- work item and optional future program correlation;
+- mandatory program/version and work-item/revision correlation;
 - repository and base Git identity;
 - policy or authorization references;
 - global-stop reference;
@@ -361,7 +367,8 @@ The following implementation seams remain open:
 - exact outbox/inbox or equivalent design;
 - polling versus callback and service/API/local IPC mechanics;
 - worker package, executable, build, supervisor, and deployment mechanics;
-- command/observation/fence/capsule DTO fields and wire encoding;
+- process framing, transport wrapping, and ES wire mapping for the C2A-frozen
+  command/observation/fence/capsule semantic fields;
 - Codex CLI versus App Server and model/provider protocol;
 - capsule path, store technology, encryption, garbage collection, retention,
   serialization, archival, and recovery;

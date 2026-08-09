@@ -209,6 +209,50 @@ are recorded only in the C1 composition record and create no product authority.
 
 ## Evidence And References Versus Authority
 
+For first-slice source observations, four additional roles are exact and do
+not collapse:
+
+- the **underlying fact owner** owns the external or source-native fact;
+- the **canonical observation author** constructs and authors the closed
+  `WorkerObservationV1` record;
+- the **adapter/carrier** transports a command, delivery envelope,
+  observation, or opaque result; and
+- the **Coordinator recorder** records only the safe observation and its
+  ingest disposition through a future guarded writer boundary.
+
+### First-slice observation fact-owner and authorship matrix
+
+| Observation family | Underlying fact owner | Canonical observation author | Permitted carrier |
+| --- | --- | --- | --- |
+| delivery acknowledged/rejected/unknown | direct-local delivery supervisor or ES submit/recovery owner | `direct_local_adapter` or `es_adapter` | the selected route only |
+| worker started/completed and candidate captured | worker process | `worker` | direct-local or ES route |
+| capsule sealed/seal failed | capsule builder | `capsule_builder` | direct-local or ES route |
+| validation completed | validator/test runtime | `validator` | direct-local or ES route |
+| independent review completed | independent reviewer | `independent_reviewer` | direct-local or ES route |
+| cancellation acknowledged/rejected | direct-local supervisor or ES cancellation/lifecycle owner | `direct_local_adapter` or `es_adapter` | selected route |
+| process exit/deadline | OS/supervisor for direct-local or ES lifecycle owner | `direct_local_adapter` or `es_adapter` | selected route |
+| workspace teardown | workspace custodian | `workspace_custodian` | selected route |
+| capsule retrieval | capsule store | `capsule_store` | selected route |
+
+`source_kind` identifies the canonical observation-author kind. `source_ref`
+is that author's stable safe record reference. The existing v1
+`evidence_refs` field has the `safe_evidence_refs` role and may safely bind a
+native fact of the underlying owner. Carrier identity is route metadata outside
+the semantic observation identity. Recording or carrying a fact transfers
+neither authorship nor authority. ES remains the fact owner for ES
+admission/runtime/lifecycle facts even when `es_adapter` authors the canonical
+Coordinator observation. A direct-local adapter does not become the OS-process
+fact owner merely because it authors an observation, and Coordinator does not
+become the fact owner merely because it records that observation.
+
+Under the accepted target-only C2A semantic contract, schema validity,
+canonical digest validity, safe-reference possession, and capsule-digest
+possession do not confer authority. A future verifier must establish the whole
+parent grant, subordinate authorization, fence, expiry/revocation,
+repository/base/path, and current-global-stop relation. The governing field
+contract is `.docs/c2a-first-slice-semantic-protocol-contract.md`; it does not
+alter the source, recorder, or custodian roles above and implements no verifier.
+
 Coordinator may retain safe opaque references and bounded observations needed
 for correlation and decision-making. Retaining an ES `run_id`, adapter
 invocation reference, Git ref, validation reference, or retained-result
