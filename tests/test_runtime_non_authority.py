@@ -1,12 +1,10 @@
-"""Finite C1 non-implementation evidence boundaries.
-External C1 patch provenance establishes that this documentation/test tranche
-changed no production, schema, migration, or packaging bytes. These repository
-tests pin only current production roots, schema/migration inventory,
-execution-relevant packaging topology, package-root public bindings, and
-module-scope executable entry surfaces. Future source-bearing behavior requires
-a separately accepted source contract, path scope, validation, provenance, and
-independent audit. Independent review, not a generic static-effect analyzer in
-this module, evaluates source semantics outside those finite contracts.
+"""Finite C1/C2A1 source and runtime non-authority evidence boundaries.
+C2A1 adds one internal pure semantic-value module without changing schema,
+migration, packaging, package-root bindings, or executable entry surfaces.
+Future runtime behavior still requires a separately accepted source contract,
+path scope, validation, provenance, and independent audit. Independent review,
+not a generic static-effect analyzer in this module, evaluates source semantics
+outside these finite contracts.
 """
 
 import ast
@@ -25,6 +23,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
     {
         "schemas/sqlite/coordinator-state-v1.sql",
         "src/ge_nwp_coordinator/__init__.py",
+        "src/ge_nwp_coordinator/_worker_execution_semantic_values.py",
         "src/ge_nwp_coordinator/backlog.py",
         "src/ge_nwp_coordinator/canonicalization.py",
         "src/ge_nwp_coordinator/global_stop.py",
@@ -732,7 +731,7 @@ def test_public_export_contract_rejects_binding_and_namespace_mutations() -> Non
         _assert_package_module_contract(source + addition)
 
 
-def test_documentation_only_tranche_preserves_exact_production_and_schema_inventories() -> None:
+def test_c2a1_tranche_has_exact_production_and_schema_inventories() -> None:
     assert _production_surface_paths(ROOT) == EXPECTED_PRODUCTION_PATHS
 
 

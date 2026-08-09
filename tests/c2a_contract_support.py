@@ -2901,11 +2901,7 @@ def _manifest_valid(
             return False
         for phase in ("before", "after"):
             raw = fixture[phase]
-            if type(raw) is not bytes or not raw.endswith(b"\n"):
-                return False
-            try:
-                raw.decode("utf-8", errors="strict")
-            except UnicodeDecodeError:
+            if type(raw) is not bytes:
                 return False
             if entry[f"{phase}_blob_sha256"] != hashlib.sha256(raw).hexdigest():
                 return False

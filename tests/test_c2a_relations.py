@@ -1148,6 +1148,70 @@ def test_synthetic_blob_fixture_independently_reconstructs_manifest_and_dependen
     assert _effect_fence_for_vector("review")["portable_capsule_digest"] == manifest["portable_capsule_digest"]
 
 
+def test_capsule_relation_accepts_exact_binary_blobs_without_final_lf() -> None:
+    blobs = {
+        AUTHORIZED_PATHS[0]: {"before": b"\x00\xffbefore", "after": b"\x80after"},
+        AUTHORIZED_PATHS[1]: {"before": b"", "after": b"no-final-lf"},
+        AUTHORIZED_PATHS[2]: {"before": b"\xfe\xfd", "after": b"\x00\x01\x02"},
+    }
+    manifest = deepcopy(_full_record("CandidateCapsuleManifestV1"))
+    entries = {entry["path"]: entry for entry in manifest["entries"]}
+    for path in AUTHORIZED_PATHS:
+        for phase in ("before", "after"):
+            raw = blobs[path][phase]
+            entries[path][f"{phase}_byte_length"] = len(raw)
+            entries[path][f"{phase}_blob_sha256"] = hashlib.sha256(raw).hexdigest()
+    manifest = _reseal_manifest(manifest)
+    observation = deepcopy(_full_record("WorkerObservationV1"))
+    observation["portable_capsule_digest"] = manifest["portable_capsule_digest"]
+    observation = _reseal_observation(observation)
+
+    assert _manifest_valid_with_canonical_relations(
+        manifest, blobs=blobs, observation=observation
+    )
+
+    changed_byte = deepcopy(blobs)
+    changed_byte[AUTHORIZED_PATHS[0]]["after"] += b"x"
+    assert not _manifest_valid_with_canonical_relations(
+        manifest, blobs=changed_byte, observation=observation
+    )
+
+    wrong_length = deepcopy(manifest)
+    wrong_length["entries"][0]["after_byte_length"] += 1
+    wrong_length = _reseal_manifest(wrong_length)
+    wrong_length_observation = deepcopy(observation)
+    wrong_length_observation["portable_capsule_digest"] = wrong_length[
+        "portable_capsule_digest"
+    ]
+    wrong_length_observation = _reseal_observation(wrong_length_observation)
+    assert not _manifest_valid_with_canonical_relations(
+        wrong_length, blobs=blobs, observation=wrong_length_observation
+    )
+
+    wrong_digest = deepcopy(manifest)
+    wrong_digest["entries"][0]["after_blob_sha256"] = "0" * 64
+    wrong_digest = _reseal_manifest(wrong_digest)
+    wrong_digest_observation = deepcopy(observation)
+    wrong_digest_observation["portable_capsule_digest"] = wrong_digest[
+        "portable_capsule_digest"
+    ]
+    wrong_digest_observation = _reseal_observation(wrong_digest_observation)
+    assert not _manifest_valid_with_canonical_relations(
+        wrong_digest, blobs=blobs, observation=wrong_digest_observation
+    )
+
+    missing_key = deepcopy(blobs)
+    missing_key.pop(AUTHORIZED_PATHS[0])
+    assert not _manifest_valid_with_canonical_relations(
+        manifest, blobs=missing_key, observation=observation
+    )
+    extra_key = deepcopy(blobs)
+    extra_key["fourth.md"] = {"before": b"", "after": b""}
+    assert not _manifest_valid_with_canonical_relations(
+        manifest, blobs=extra_key, observation=observation
+    )
+
+
 def _alternate_capsule_observation_graph() -> tuple[object, ...]:
     blobs = {
         path: {

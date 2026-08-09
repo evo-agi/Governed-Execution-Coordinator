@@ -495,10 +495,10 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
     open_decisions = _compact(_section(_doc(), "Required Gates, Explicit Non-Claims, And Open Decisions"))
 
     for phrase in (
-        "The pure semantic-contract prerequisite is satisfied only by the accepted target-only C2A document",
-        "Durable schema, authority verification, process launch, worker execution, observation ingest, acceptance runtime, and Git effect remain unsatisfied required-before-source gates",
+        "The pure semantic-contract prerequisite is now satisfied by the accepted C2A document and the current C2A1 internal no-I/O values and six pure coherence validators",
+        "Durable schema, authority verification, process launch, worker execution, observation ingest, acceptance runtime, and Git effect remain unsatisfied required-before-runtime gates",
         "A separately accepted implementation contract must still freeze the applicable runtime, direct-local or ES adapter, transport, and persistence mechanics",
-        "before source, schema, service, worker, adapter, Git/CI, or runtime execution work",
+        "before schema, service, worker, adapter, Git/CI, or runtime execution work",
     ):
         assert phrase in open_decisions
 

@@ -245,13 +245,17 @@ Coordinator observation. A direct-local adapter does not become the OS-process
 fact owner merely because it authors an observation, and Coordinator does not
 become the fact owner merely because it records that observation.
 
-Under the accepted target-only C2A semantic contract, schema validity,
-canonical digest validity, safe-reference possession, and capsule-digest
-possession do not confer authority. A future verifier must establish the whole
-parent grant, subordinate authorization, fence, expiry/revocation,
-repository/base/path, and current-global-stop relation. The governing field
-contract is `.docs/c2a-first-slice-semantic-protocol-contract.md`; it does not
-alter the source, recorder, or custodian roles above and implements no verifier.
+Under the accepted C2A semantic contract and current C2A1 pure value layer,
+schema validity, canonical digest validity, safe-reference possession,
+capsule-digest possession, object equality, and successful pure relation
+validation do not confer authority or acceptance. A future verifier must
+establish the whole parent grant, subordinate authorization, fence,
+expiry/revocation, repository/base/path, and current-global-stop relation. The
+governing field contract is
+`.docs/c2a-first-slice-semantic-protocol-contract.md`, while
+`.docs/c2a1-pure-semantic-values.md` governs the internal no-I/O implementation;
+neither alters the source, recorder, or custodian roles above or implements an
+authority verifier.
 
 Coordinator may retain safe opaque references and bounded observations needed
 for correlation and decision-making. Retaining an ES `run_id`, adapter

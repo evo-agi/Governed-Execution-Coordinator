@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import gc
 import hashlib
 import inspect
@@ -49,6 +50,67 @@ from ge_nwp_coordinator.state_store import (
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_MIGRATION_0001_CHECKSUM = "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148"
+
+
+def _contains_requests_client_usage(source: str) -> bool:
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "requests" or alias.name.startswith("requests.")
+            for alias in node.names
+        ):
+            return True
+        if isinstance(node, ast.ImportFrom) and (
+            node.module == "requests"
+            or (node.module or "").startswith("requests.")
+        ):
+            return True
+        if not isinstance(node, ast.Call):
+            continue
+        function = node.func
+        if (
+            isinstance(function, ast.Attribute)
+            and isinstance(function.value, ast.Name)
+            and function.value.id == "requests"
+        ):
+            return True
+        if not node.args or not isinstance(node.args[0], ast.Constant):
+            continue
+        if node.args[0].value != "requests":
+            continue
+        if isinstance(function, ast.Name) and function.id == "__import__":
+            return True
+        if (
+            isinstance(function, ast.Attribute)
+            and isinstance(function.value, ast.Name)
+            and function.value.id == "importlib"
+            and function.attr == "import_module"
+        ):
+            return True
+    return False
+
+
+def _assert_no_requests_client_usage(paths: tuple[Path, ...]) -> None:
+    accepted = (
+        "class Example:\n    max_pull_requests = 1\n"
+        "payload = {'max_pull_requests': 1}\n"
+        "def max_pull_requests() -> int:\n    return 1\n"
+    )
+    rejected = (
+        "import requests\n",
+        "import requests as rq\nrq.get(...)\n",
+        "from requests import get\nget(...)\n",
+        "from requests import get as http_get\nhttp_get(...)\n",
+        "requests.get(...)\n",
+        "__import__('requests')\n",
+        "importlib.import_module('requests')\n",
+    )
+    assert not _contains_requests_client_usage(accepted)
+    assert all(_contains_requests_client_usage(source) for source in rejected)
+    assert not any(
+        _contains_requests_client_usage(path.read_text(encoding="utf-8"))
+        for path in paths
+    )
 
 
 def _location(tmp_path: Path) -> CoordinatorStateLocation:
@@ -1522,6 +1584,16 @@ def test_fork_child_callback_does_not_unlock_or_acquire_inherited_locks() -> Non
 
 
 def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
+    source_paths = tuple(
+        path
+        for path in (ROOT / "src").rglob("*.py")
+        if path.name
+        not in {
+            "sqlite_transition_write_contracts.py",
+            "sqlite_global_stop_write_contracts.py",
+        }
+    )
+    _assert_no_requests_client_usage(source_paths)
     package_exports = set(ge_nwp_coordinator.__all__)
     assert "acquire_sqlite_writer_session" not in package_exports
     assert "SQLiteWriterAcquisitionError" not in package_exports
@@ -1535,8 +1607,7 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
 
     source = "\n".join(
         path.read_text(encoding="utf-8")
-        for path in (ROOT / "src").rglob("*.py")
-        if path.name not in {"sqlite_transition_write_contracts.py", "sqlite_global_stop_write_contracts.py"}
+        for path in source_paths
     )
     for forbidden in (
         "def current_writer",
@@ -1556,7 +1627,6 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
         "QueueConsumer",
         "subprocess",
         "socket",
-        "requests",
         "urllib",
     ):
         assert forbidden not in source

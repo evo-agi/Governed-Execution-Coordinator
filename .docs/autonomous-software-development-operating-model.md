@@ -1,11 +1,14 @@
 # C1 Autonomous Software-Development Operating Model
 
 C2A composes below this unchanged thirteen-clause C1 inventory. The accepted
-target-only field and semantic authority is
+field and semantic authority is
 `.docs/c2a-first-slice-semantic-protocol-contract.md`; it makes `program_ref`
 and `program_version_ref` mandatory distinct identities for every productive
-first-slice semantic record. C2A adds no source, schema, process, or effect, and
-does not change C1 topology or its one-local-commit maximum.
+first-slice semantic record. C2A1 implements only the internal no-I/O values and
+six named pure coherence validators governed by
+`.docs/c2a1-pure-semantic-values.md`; this does not change C1 topology, add
+durable state, or authorize any effect, and preserves the one-local-commit
+maximum.
 
 ## C1-AOM-001 — Status And Classification Ledger
 
@@ -17,8 +20,10 @@ specialized contracts in:
 - `.docs/software-development-progression-boundary.md` for
   attempt/effect/review/acceptance/repair/publication semantics;
 - `.docs/worker-execution-boundary.md` for process, transport, credential,
-  fence, and capsule boundary detail; and
+  fence, and capsule boundary detail;
 - `.docs/durable-state-model.md` for current SQLite implementation reality.
+- `.docs/c2a1-pure-semantic-values.md` for the current internal no-I/O value and
+  pure coherence layer.
 
 The status classifications used by C1 are:
 
@@ -36,8 +41,9 @@ The status classifications used by C1 are:
   product runtime architecture or durable state.
 
 Classification: `CURRENT IMPLEMENTED CONTRACT`. Coordinator currently provides
-only bounded durable SQLite mutation authority for the existing coding-work
-transition and `global_stop` contracts. It has no software-development program
+bounded durable SQLite mutation authority for the existing coding-work
+transition and `global_stop` contracts, plus a separate internal C2A1 pure
+semantic-value and coherence layer. It has no software-development program
 runtime, semantic-attempt runtime, dispatcher, scheduler, queue consumer,
 worker, worker supervisor, subprocess launcher, model/provider client, ES
 client, capsule builder or store, observation-ingest loop, validation executor,
@@ -415,7 +421,8 @@ CP/IM/MA migration or retirement; and Bridge Core adoption.
 
 Classification: `DEFERRED OR BLOCKED EFFECT`.
 
-This documentation and contract-test tranche adds no production source, schema,
+C2A1 adds only one internal pure no-I/O production source module for immutable
+semantic values and six named coherence validators. It adds no schema,
 migration, dependency, package export, entry point, script, worker, subprocess
 call, network client, filesystem capsule implementation, model/provider
 implementation, ES client, Bridge integration, Git mutation implementation,

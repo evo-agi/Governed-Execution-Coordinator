@@ -17,7 +17,8 @@ GOVERNANCE`. The authoritative C1 composition record is
 ## Current Status
 
 The Coordinator now owns bounded internal durable SQLite mutation authority for
-coding-work state. The current implementation includes internal durable writer
+coding-work state and one separate pure no-I/O C2A1 semantic-value layer. The
+current implementation includes internal durable writer
 issuance, private atomic transition persistence, guarded public transition
 delegation, private atomic global-stop persistence, guarded public global-stop
 delegation, verification of already-persisted operator-decision receipts,
@@ -47,12 +48,13 @@ scheduler, or reconciler. This target direction is not implemented by the
 current code and does not authorize execution.
 
 Between the accepted durable progression semantics and any future adapter or
-process, C2A freezes target-only first-slice semantic schemas, identities,
-canonical digests, observations, fences, and capsule/Git-effect boundaries in
-`.docs/c2a-first-slice-semantic-protocol-contract.md`. A separately authorized
-C2A1 may later add only pure no-I/O value contracts. Neither C2A semantic values
-nor C2A1 source are currently implemented; both add no durable schema, process,
-adapter, worker, or executable authorization.
+process, C2A freezes the first-slice semantic schemas, identities, canonical
+digests, observations, fences, and capsule/Git-effect boundaries in
+`.docs/c2a-first-slice-semantic-protocol-contract.md`. C2A1 now implements the
+nine internal immutable values and six named pure coherence validators in one
+standard-library-only no-I/O module. This pure layer adds no durable schema,
+process, adapter, worker, executable authorization, ingest, capsule custody,
+Git effect, direct-local behavior, or ES routing.
 
 The accepted C1 software-development target is:
 

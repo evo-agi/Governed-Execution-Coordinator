@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from copy import deepcopy
 from dataclasses import fields
 from datetime import datetime, timezone
@@ -56,6 +57,67 @@ from ge_nwp_coordinator.state_machine import (
     transition,
 )
 from ge_nwp_coordinator.state_store import WriterSession
+
+
+def _contains_requests_client_usage(source: str) -> bool:
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "requests" or alias.name.startswith("requests.")
+            for alias in node.names
+        ):
+            return True
+        if isinstance(node, ast.ImportFrom) and (
+            node.module == "requests"
+            or (node.module or "").startswith("requests.")
+        ):
+            return True
+        if not isinstance(node, ast.Call):
+            continue
+        function = node.func
+        if (
+            isinstance(function, ast.Attribute)
+            and isinstance(function.value, ast.Name)
+            and function.value.id == "requests"
+        ):
+            return True
+        if not node.args or not isinstance(node.args[0], ast.Constant):
+            continue
+        if node.args[0].value != "requests":
+            continue
+        if isinstance(function, ast.Name) and function.id == "__import__":
+            return True
+        if (
+            isinstance(function, ast.Attribute)
+            and isinstance(function.value, ast.Name)
+            and function.value.id == "importlib"
+            and function.attr == "import_module"
+        ):
+            return True
+    return False
+
+
+def _assert_no_requests_client_usage(paths: tuple[Path, ...]) -> None:
+    accepted = (
+        "class Example:\n    max_pull_requests = 1\n"
+        "payload = {'max_pull_requests': 1}\n"
+        "def max_pull_requests() -> int:\n    return 1\n"
+    )
+    rejected = (
+        "import requests\n",
+        "import requests as rq\nrq.get(...)\n",
+        "from requests import get\nget(...)\n",
+        "from requests import get as http_get\nhttp_get(...)\n",
+        "requests.get(...)\n",
+        "__import__('requests')\n",
+        "importlib.import_module('requests')\n",
+    )
+    assert not _contains_requests_client_usage(accepted)
+    assert all(_contains_requests_client_usage(source) for source in rejected)
+    assert not any(
+        _contains_requests_client_usage(path.read_text(encoding="utf-8"))
+        for path in paths
+    )
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -653,10 +715,19 @@ def test_event_sequence_timestamp_and_mutation_error_contracts_are_safe() -> Non
 
 
 def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface() -> None:
+    source_paths = tuple(
+        path
+        for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py")
+        if path.name
+        not in {
+            "sqlite_transition_write_contracts.py",
+            "sqlite_global_stop_write_contracts.py",
+        }
+    )
+    _assert_no_requests_client_usage(source_paths)
     source = "\n".join(
         path.read_text(encoding="utf-8")
-        for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py")
-        if path.name not in {"sqlite_transition_write_contracts.py", "sqlite_global_stop_write_contracts.py"}
+        for path in source_paths
     )
     for forbidden in (
         "INSERT INTO transition_events",
@@ -670,7 +741,6 @@ def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface
         "QueueConsumer",
         "subprocess",
         "socket",
-        "requests",
         "urllib",
         "seed_authorization",
         "seed_work_item",

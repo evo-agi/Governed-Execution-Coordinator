@@ -678,7 +678,8 @@ def _assert_audit_isolation_structured_contract(text: str) -> None:
 def _assert_nonimplementation_contract(text: str) -> None:
     clause = _compact(_clause("C1-AOM-013", text=text))
     for phrase in (
-        "adds no production source, schema, migration, dependency, package export, entry point, script, worker, subprocess call, network client",
+        "C2A1 adds only one internal pure no-I/O production source module for immutable semantic values and six named coherence validators",
+        "adds no schema, migration, dependency, package export, entry point, script, worker, subprocess call, network client",
         "filesystem capsule implementation",
         "model/provider implementation",
         "ES client",
@@ -708,8 +709,9 @@ def test_c2a_cross_reference_is_bounded_outside_unchanged_c1_inventory() -> None
     preamble = _compact(_doc().split("## C1-AOM-001", 1)[0])
     assert ".docs/c2a-first-slice-semantic-protocol-contract.md" in preamble
     assert "`program_ref` and `program_version_ref` mandatory distinct identities" in preamble
-    assert "C2A adds no source, schema, process, or effect" in preamble
-    assert "does not change C1 topology or its one-local-commit maximum" in preamble
+    assert "C2A1 implements only the internal no-I/O values and six named pure coherence validators" in preamble
+    assert "does not change C1 topology, add durable state, or authorize any effect" in preamble
+    assert "preserves the one-local-commit maximum" in preamble
     assert "C2A-PROTO-" not in "\n".join(
         heading for _, heading, _, _ in _markdown_atx_headings(_doc())
     )
@@ -757,7 +759,7 @@ def test_classification_ledger_and_authoritative_composition_are_pinned() -> Non
     assert "Current executable authorization remains unsupported and fail-closed." in authority
     assert "This subordinate-authorization behavior is not currently implemented." in authority
     assert "Neither route is implemented by this tranche." in target_topology
-    assert "This documentation and contract-test tranche adds no production source" in nonimplementation
+    assert "C2A1 adds only one internal pure no-I/O production source module" in nonimplementation
 
 
 def test_staged_topology_is_ordered_and_transport_contracts_survive_es_migration() -> None:
@@ -1072,9 +1074,9 @@ def test_c1_heading_parser_is_closed_world_fence_aware_and_bounded() -> None:
         _assert_audit_isolation_structured_contract(level_two_shadow)
 
     final_clause_shadow = text.replace(
-        "This documentation and contract-test tranche adds no production source",
+        "C2A1 adds only one internal pure no-I/O production source module",
         "## Shadow Non-Implementation Section\n\n"
-        "This documentation and contract-test tranche adds no production source",
+        "C2A1 adds only one internal pure no-I/O production source module",
         1,
     )
     with pytest.raises(AssertionError):

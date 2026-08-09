@@ -16,12 +16,13 @@ DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`. The
 authoritative composition record is
 `.docs/autonomous-software-development-operating-model.md`.
 
-C2A is an accepted contract-only target whose exact first-slice semantic
-schemas, identities, digests, fences, observations, capsule, and effect
-boundaries are governed by
-`.docs/c2a-first-slice-semantic-protocol-contract.md`. C2A1 is not implemented.
-C2A adds no source, durable schema, migration, process, or executable effect
-authorization.
+C2A is the accepted authority for exact first-slice semantic schemas,
+identities, digests, fences, observations, capsule, and effect boundaries in
+`.docs/c2a-first-slice-semantic-protocol-contract.md`. C2A1 now implements one
+internal pure no-I/O semantic-value module and the six named pure coherence
+validators governed by `.docs/c2a1-pure-semantic-values.md`. This source adds
+no durable schema, migration, process, executable effect authorization, ingest,
+capsule custody, Git effect, direct-local behavior, or ES routing.
 
 Bridge remains the current guarded adapter/evidence surface and is not durable
 program state, scheduler, lifecycle truth, retry/repair authority, or acceptance

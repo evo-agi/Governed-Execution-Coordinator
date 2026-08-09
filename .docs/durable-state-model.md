@@ -46,11 +46,12 @@ capsule, review, dispatch, publication, worker, or subordinate-authorization
 schema or runtime behavior. Future source or schema implementation still
 requires a separately accepted implementation contract.
 
-C2A freezes documentation-level semantic contracts and creates no durable
-state. C2A1 is not implemented and, if separately authorized, may add only pure
-no-I/O value contracts with no durable state. Managed schema 0001 remains
-unchanged. A future C2B would require a separately accepted durable schema and
-forward migration; no migration number is reserved here.
+C2A freezes the semantic field, identity, digest, and relation contracts and
+creates no durable state. C2A1 implements only internal immutable no-I/O values
+and the six named pure coherence validators; those values neither read nor
+write SQLite and confer no durable or executable authority. Managed schema 0001
+remains unchanged. A future C2B would require a separately accepted durable
+schema and forward migration; no migration number is reserved here.
 
 Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
 `auditing`, repair, commit, and cleanup names do not transfer runtime authority

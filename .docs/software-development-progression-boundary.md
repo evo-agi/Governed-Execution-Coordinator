@@ -364,10 +364,11 @@ require an ES repository change. Concrete ES-backed dispatch, reconciliation,
 cancellation, runtime observation, result ingest, and unattended execution
 require separately accepted ES and cross-repository contracts.
 
-The pure semantic-contract prerequisite is satisfied only by the accepted
-target-only C2A document. Durable schema, authority verification, process
-launch, worker execution, observation ingest, acceptance runtime, and Git
-effect remain unsatisfied required-before-source gates. A separately accepted
-implementation contract must still freeze the applicable runtime, direct-local
-or ES adapter, transport, and persistence mechanics before source, schema,
-service, worker, adapter, Git/CI, or runtime execution work.
+The pure semantic-contract prerequisite is now satisfied by the accepted C2A
+document and the current C2A1 internal no-I/O values and six pure coherence
+validators. Durable schema, authority verification, process launch, worker
+execution, observation ingest, acceptance runtime, and Git effect remain
+unsatisfied required-before-runtime gates. A separately accepted implementation
+contract must still freeze the applicable runtime, direct-local or ES adapter,
+transport, and persistence mechanics before schema, service, worker, adapter,
+Git/CI, or runtime execution work.

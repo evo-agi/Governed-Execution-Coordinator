@@ -30,7 +30,8 @@ The authoritative composition record is
 `.docs/autonomous-software-development-operating-model.md`; specialized detail
 remains in `.docs/authority-boundaries.md`,
 `.docs/software-development-progression-boundary.md`,
-`.docs/worker-execution-boundary.md`, and `.docs/durable-state-model.md`.
+`.docs/worker-execution-boundary.md`, `.docs/durable-state-model.md`, and
+`.docs/c2a1-pure-semantic-values.md`.
 C1 uses the classifications `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
 COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
 DETAIL`, `DEFERRED OR BLOCKED EFFECT`, and `PROCESS-ONLY GOVERNANCE`.
@@ -40,12 +41,13 @@ runtime, schema, migration, dependency, package export, entry point, script,
 model integration, capsule builder or store, ES integration, Git effect,
 publication behavior, subordinate-authorization runtime, or autonomous loop.
 
-C2A now freezes the accepted target-only first-slice semantic protocol in
-`.docs/c2a-first-slice-semantic-protocol-contract.md`; it still adds only
-documentation and documentation-contract tests. The next possible source
-tranche is C2A1 pure no-I/O semantic values only, and C2A1 is not implemented.
-Worker launch, durable schema, real Codex invocation, a Git commit effect, and
-ES routing are not the next authorized step.
+C2A freezes the accepted first-slice semantic protocol in
+`.docs/c2a-first-slice-semantic-protocol-contract.md`. C2A1 implements only one
+internal standard-library pure no-I/O semantic-value module and the six named
+pure coherence validators described in `.docs/c2a1-pure-semantic-values.md`.
+It adds no package-root export, dependency, durable state, authorization
+verification, ingest, worker launch, capsule custody, real Codex invocation,
+Git effect, direct-local adapter behavior, or ES routing.
 
 Tranche history: A2-P1/P1.1 established the original local coding-work
 coordinator skeleton. Later B-tranches added the bounded SQLite authority

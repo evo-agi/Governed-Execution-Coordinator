@@ -1,4 +1,4 @@
-"""Direct bootstrap, nonimplementation, and provenance tests for C2A."""
+"""Direct C2A1 allowance, runtime nonimplementation, and provenance tests."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from c2a_contract_support import (
 
 EXPECTED_PRODUCTION_FILES = (
     "__init__.py",
+    "_worker_execution_semantic_values.py",
     "backlog.py",
     "canonicalization.py",
     "global_stop.py",
@@ -93,18 +94,13 @@ EXPECTED_PUBLIC_EXPORTS = (
 )
 
 
-C2A_IMPLEMENTATION_SENTINELS = (
-    "WorkerCommandV1",
-    "WorkerObservationV1",
-    "CandidateCapsuleManifestV1",
+C2A_RUNTIME_IMPLEMENTATION_SENTINELS = (
     "first_slice_worker",
     "worker_supervisor",
     "process_launcher",
-    "capsule_store",
     "validation_executor",
     "review_executor",
     "git_effect_handler",
-    "es_adapter",
     "model_client",
     "queue_consumer",
     "autonomous_loop",
@@ -112,13 +108,12 @@ C2A_IMPLEMENTATION_SENTINELS = (
 
 
 CURRENT_C2A1_CONTRADICTIONS = (
-    "C2A1 is current.",
-    "C2A1 is implemented.",
-    "Coordinator currently implements WorkerCommandV1.",
     "Coordinator currently launches the first-slice worker.",
     "Coordinator currently stores candidate capsules.",
     "Coordinator currently performs the first-slice Git effect.",
     "Coordinator currently routes the worker through ES.",
+    "C2A1 values confer executable authority.",
+    "C2A1 values write durable state.",
 )
 
 
@@ -131,8 +126,9 @@ def _current_c2a_posture_valid(text: str) -> bool:
         for identifier, title, _, _ in CLAUSES
     )
     return (
-        "C2A implements no production source" in " ".join(status.split())
-        and "C2A1 is not started." in tranche
+        "C2A1 implements one internal pure no-I/O semantic-value source module"
+        in " ".join(status.split())
+        and "C2A1 is current only for pure internal semantic values" in tranche
         and all(contradiction not in scoped for contradiction in CURRENT_C2A1_CONTRADICTIONS)
     )
 
@@ -212,7 +208,7 @@ def test_worker_source_release_and_process_target_remains_nonimplemented() -> No
     assert "This ownership and process statement is not current implementation." in status
 
 
-def test_current_source_schema_packaging_and_runtime_nonimplementation_remain_absent() -> None:
+def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     package_dir = ROOT / "src/ge_nwp_coordinator"
     production_files = tuple(
         sorted(path.relative_to(package_dir).as_posix() for path in package_dir.rglob("*") if path.is_file() and path.suffix in {".py", ".sql"})
@@ -224,14 +220,51 @@ def test_current_source_schema_packaging_and_runtime_nonimplementation_remain_ab
     migration_paths = tuple(sorted(path.relative_to(package_dir).as_posix() for path in (package_dir / "sqlite_migrations").rglob("*") if path.is_file()))
     assert migration_paths == ("sqlite_migrations/0001_initial.sql", "sqlite_migrations/__init__.py")
 
+    semantic_path = package_dir / "_worker_execution_semantic_values.py"
     source_paths = tuple(path for path in package_dir.rglob("*.py") if path.is_file())
-    source_text = "\n".join(path.read_text(encoding="utf-8") for path in source_paths)
+    nonsemantic_source_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in source_paths
+        if path != semantic_path
+    )
+    semantic_source = semantic_path.read_text(encoding="utf-8")
     schema_text = (ROOT / "schemas/sqlite/coordinator-state-v1.sql").read_text(encoding="utf-8") + (package_dir / "sqlite_migrations/0001_initial.sql").read_text(encoding="utf-8")
     for schema_id in EXACT_GOLDEN_DIGESTS:
-        assert GOLDEN_META[schema_id][0] not in source_text
+        assert GOLDEN_META[schema_id][0] in semantic_source
+        assert GOLDEN_META[schema_id][0] not in nonsemantic_source_text
         assert GOLDEN_META[schema_id][0] not in schema_text
-    for sentinel in C2A_IMPLEMENTATION_SENTINELS:
-        assert sentinel not in source_text
+    for sentinel in C2A_RUNTIME_IMPLEMENTATION_SENTINELS:
+        assert sentinel not in semantic_source
+
+    semantic_tree = ast.parse(semantic_source)
+    semantic_classes = {
+        node.name for node in semantic_tree.body if isinstance(node, ast.ClassDef)
+    }
+    semantic_functions = {
+        node.name for node in semantic_tree.body if isinstance(node, ast.FunctionDef)
+    }
+    assert {
+        "CeilingsV1",
+        "CapsuleEntryV1",
+        "WorkSpecV1",
+        "AttemptFenceV1",
+        "EffectFenceV1",
+        "WorkerCommandV1",
+        "DeliveryEnvelopeV1",
+        "WorkerObservationV1",
+        "CandidateCapsuleManifestV1",
+        "WorkerExecutionValueError",
+    } <= semantic_classes
+    assert {
+        "create_author_command_and_effect_fence",
+        "create_effect_fence",
+        "validate_authoring_relation",
+        "validate_effect_relation",
+        "validate_delivery_relation",
+        "validate_redelivery_relation",
+        "validate_capsule_manifest_relation",
+        "validate_observation_relation",
+    } <= semantic_functions
 
     package_root = (package_dir / "__init__.py").read_text(encoding="utf-8")
     module = ast.parse(package_root)
@@ -249,10 +282,9 @@ def test_current_source_schema_packaging_and_runtime_nonimplementation_remain_ab
 
     nonimplementation = " ".join(_section(DOC, f"{CLAUSES[14][0]} — {CLAUSES[14][1]}", 2).split())
     for phrase in (
-        "C2A changes documentation and documentation-contract tests only.",
-        "adds no production source, SQLite table or column, schema identifier, migration, package export, dependency, script, entry point, worker, adapter, supervisor, process, filesystem store, Git handler, network client, model client, Bridge or ES integration, scheduler, queue, service, API, IPC, reconciler, or autonomous loop",
+        "C2A1 is current only for pure internal semantic values and the six named pure coherence validators.",
+        "C2A1 adds no SQLite table or column, durable C2A state, migration, package export, dependency, script, entry point, worker, adapter, supervisor, process, filesystem store, Git handler, network client, model client, Bridge or ES integration, scheduler, queue, service, API, IPC, reconciler, or autonomous loop",
         "Coordinator managed schema 0001 and current B4c behavior remain exactly unchanged.",
-        "C2A1 is not started.",
         "C2A assigns no migration number and authorizes no schema work.",
     ):
         assert phrase in nonimplementation

@@ -1,10 +1,10 @@
 # C2A First-Slice Semantic Protocol Contract
 
-Status: accepted target contract only
+Status: accepted semantic contract with current C2A1 pure-value layer
 
-Current implementation: absent
+Current implementation: C2A1 pure internal values and six pure coherence validators only
 
-Source authorization: none in C2A
+Source authorization: bounded C2A1 internal no-I/O module only
 
 Schema/migration authorization: none in C2A
 
@@ -27,9 +27,11 @@ Classification: PROCESS-ONLY GOVERNANCE
 
 Required before: any source
 
-C2A freezes target semantic contracts through documentation and
-documentation-contract tests only. The seven schema identifiers in this record
-are semantic schema identifiers. They are not SQLite schemas, network
+C2A freezes the authoritative semantic contract. C2A1 implements one
+internal pure no-I/O semantic-value source module and the six named pure
+coherence validators under the owner-local contract in
+`.docs/c2a1-pure-semantic-values.md`. The seven schema identifiers in this
+record are semantic schema identifiers. They are not SQLite schemas, network
 protocols, process-framing protocols, service APIs, MCP tools, ES public APIs,
 or executable authorization.
 
@@ -40,12 +42,13 @@ exact replay, commit uncertainty, and explicit retry. Current schema 0001,
 `FiniteBacklog`, standing-lease identity, disabled-stage behavior, and coding
 `global_stop` remain unchanged compatibility or current contracts.
 
-C2A implements no production source, durable state, schema, migration,
-packaging, dependency, package export, entry point, worker, supervisor, process
-launch, filesystem capsule effect, SQLite state, model/provider or Codex
-invocation, validation/review executor, Git effect, ES adapter, Bridge
-integration, service, API, IPC, scheduler, queue, or autonomous loop. It does
-not authorize C2A1 or any external effect.
+C2A1 implements only the nine immutable internal values, exact mapping and
+identity mechanics, two pure factories, and six pure coherence validators. It
+implements no durable state, schema, migration, packaging, dependency, package
+export, entry point, worker, supervisor, process launch, filesystem capsule
+effect, SQLite state, model/provider or Codex invocation, validation/review
+executor, Git effect, ES adapter, Bridge integration, service, API, IPC,
+scheduler, queue, or autonomous loop. It authorizes no external effect.
 
 The accepted target keeps initial worker source and release ownership in the
 Coordinator repository while worker execution occurs in a separate OS process.
@@ -56,15 +59,17 @@ The documentation authority hierarchy is:
 1. `.docs/autonomous-software-development-operating-model.md` owns C1
    composition.
 2. This record owns first-slice field-level and semantic protocol detail.
-3. `.docs/authority-boundaries.md` owns authority source, durable writer, fact
+3. `.docs/c2a1-pure-semantic-values.md` owns the current internal Python value,
+   API, mapping, immutability, error/privacy, pure-relation, and no-I/O layer.
+4. `.docs/authority-boundaries.md` owns authority source, durable writer, fact
    source, custody, and projection.
-4. `.docs/software-development-progression-boundary.md` owns attempt, effect,
+5. `.docs/software-development-progression-boundary.md` owns attempt, effect,
    observation, review, decision, repair, replan, and publication semantics.
-5. `.docs/worker-execution-boundary.md` owns worker/process/adapter boundaries
+6. `.docs/worker-execution-boundary.md` owns worker/process/adapter boundaries
    and direct-local/ES conformance.
-6. `.docs/durable-state-model.md` owns current durable-state truth and the
+7. `.docs/durable-state-model.md` owns current durable-state truth and the
    target no-schema boundary.
-7. `.docs/architecture.md`, `AGENTS.md`, and `README.md` remain summaries and
+8. `.docs/architecture.md`, `AGENTS.md`, and `README.md` remain summaries and
    navigation, not duplicate field-level authorities.
 
 ## C2A-PROTO-002 — Identity Non-Collapse And One-Writer, Source, Recorder, And Custody Roles
@@ -1410,27 +1415,30 @@ Classification: FUTURE IMPLEMENTATION DETAIL
 
 Required before: durable schema change
 
-C2A changes documentation and documentation-contract tests only. It adds no
-production source, SQLite table or column, schema identifier, migration,
-package export, dependency, script, entry point, worker, adapter, supervisor,
-process, filesystem store, Git handler, network client, model client, Bridge or
-ES integration, scheduler, queue, service, API, IPC, reconciler, or autonomous
-loop. Coordinator managed schema 0001 and current B4c behavior remain exactly
-unchanged.
+C2A1 is current only for pure internal semantic values and the six named pure
+coherence validators. C2A1 adds no SQLite table or column, durable C2A state,
+migration, package export, dependency, script, entry point, worker, adapter,
+supervisor, process, filesystem store, Git handler, network client, model
+client, Bridge or ES integration, scheduler, queue, service, API, IPC,
+reconciler, or autonomous loop. Coordinator managed schema 0001 and current B4c
+behavior remain exactly unchanged.
 
-C2A1 is not started. A separately authorized C2A1 may add only pure, no-I/O
-semantic value contracts after this documentation is accepted; it may not
-launch a process or implement durable mutation. A later C2B requires separate
-acceptance for a durable schema design and forward migration. C2A assigns no
-migration number and authorizes no schema work.
+C2A1 implements the exact bounded source contract in
+`.docs/c2a1-pure-semantic-values.md`; it may not launch a process or implement
+durable mutation. A later C2B requires separate acceptance for a durable schema
+design and forward migration. C2A assigns no migration number and authorizes no
+schema work.
 
-Still deferred are runtime parsing and encoding, executable authorization
-verification, revocation source and freshness, process framing, executable and
-artifact identity, packaging and release, terminal receipt, containment,
-credential handoff, physical capsule storage and retrieval, validation and
-review execution, model invocation, Git commands and credentials, direct-local
+Still deferred are raw JSON decoding and full-record wire encoding, executable
+authorization verification, revocation source and freshness, observation
+ingest, unknown-outcome decisions, process framing, executable and artifact
+identity, packaging and release, terminal receipt, containment, credential
+handoff, physical capsule storage and retrieval, validation and review
+execution, model invocation, Git commands and credentials, direct-local
 bootstrap, ES routing, reconciliation, schema persistence, migration, service,
-API, IPC, scheduler, queue, and autonomous-loop mechanics.
+API, IPC, scheduler, queue, and autonomous-loop mechanics. Pure canonical
+identity-byte construction and the six named coherence validators are current
+C2A1 behavior rather than deferred runtime mechanics.
 
 ### Direct pytest contract oracle
 

@@ -2,12 +2,13 @@
 
 ## Status And Purpose
 
-Status: target contract/design record only. This document enables no runtime
-implementation, no transport or process-framing implementation, no process
-launch, and no dispatch. C2A freezes target-only pure semantic schemas without
-creating a runtime wire protocol. This document selects target worker
-source/process placement and a staged direct-local-to-ES route without
-implementing either.
+Status: target runtime contract/design record with a current C2A1 pure-value
+prerequisite. This document enables no runtime implementation, no transport or
+process-framing implementation, no process launch, and no dispatch. C2A freezes
+the pure semantic schemas without creating a runtime wire protocol, and C2A1
+implements only the internal immutable values and six named pure coherence
+validators. This document selects target worker source/process placement and a
+staged direct-local-to-ES route without implementing either.
 
 Contract language distinguishes `CURRENT IMPLEMENTED CONTRACT`, `CURRENT
 COMPATIBILITY EDGE`, `ACCEPTED STRATEGIC TARGET`, `FUTURE IMPLEMENTATION
@@ -40,6 +41,12 @@ attempt, commit uncertainty, and explicit retry.
 The public `StateStore` remains unwidened. Internal `WriterSession` mutation is
 not a general public `StateStore` backend, service, API, worker loop, dispatcher,
 or runtime integration.
+
+Separately, C2A1 currently provides one internal standard-library-only no-I/O
+module for nine immutable semantic values and six pure graph-coherence
+validators. It does not verify standing authority, ingest observations, acquire
+time or external facts, launch a worker, own capsule bytes, execute validation
+or review, perform Git effects, or implement either delivery route.
 
 Coordinator currently has no worker, scheduler, queue consumer, dispatcher,
 reconciler, public service/API, Codex invocation, Execution Substrate handoff,
@@ -160,11 +167,12 @@ semantic work identity and do not become Coordinator runtime authority.
 
 ## Transport-Neutral Command, Observation, Fence, And Capsule Contracts
 
-A future Worker Execution Boundary requires the exact target-only semantic
-fields, identities, domains, golden vectors, and finite outcomes frozen by
+A future Worker Execution Boundary consumes the exact semantic fields,
+identities, domains, golden vectors, and finite outcomes frozen by
 `.docs/c2a-first-slice-semantic-protocol-contract.md`, including mandatory
-distinct `program_ref` and `program_version_ref`. Without freezing durable
-tables, public endpoints, process framing, or transport wrapping, it requires:
+distinct `program_ref` and `program_version_ref`. C2A1 supplies only their pure
+internal value and coherence layer. Without freezing durable tables, public
+endpoints, process framing, or transport wrapping, the future boundary requires:
 
 - semantic attempt identity;
 - dispatch command identity;
