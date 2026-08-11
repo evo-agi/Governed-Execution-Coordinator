@@ -142,7 +142,35 @@ def _compact(text: str) -> str:
     return " ".join(text.split())
 
 
-def _markdown_atx_headings(text: str) -> tuple[tuple[int, str, int, int], ...]:
+def _require(condition: bool, diagnostic: str) -> None:
+    if not condition:
+        raise AssertionError(diagnostic)
+
+
+def _markdown_fence_candidate(content: str) -> tuple[str, int, str] | None:
+    stripped = content.lstrip(" ")
+    indent = len(content) - len(stripped)
+    if indent > 3 or not stripped or stripped[0] not in "`~":
+        return None
+    marker = stripped[0]
+    run_length = len(stripped) - len(stripped.lstrip(marker))
+    if run_length < 3:
+        return None
+    remainder = stripped[run_length:]
+    if marker == "`" and "`" in remainder:
+        return None
+    return marker, run_length, remainder
+
+
+def _markdown_closer_suffix_is_ascii_space_tab(suffix: str) -> bool:
+    return all(character in {" ", "\t"} for character in suffix)
+
+
+def _markdown_atx_headings(
+    text: str,
+    *,
+    role: str = "operating_model.markdown",
+) -> tuple[tuple[int, str, int, int], ...]:
     """Parse bounded ATX headings outside backtick and tilde fenced blocks."""
     headings: list[tuple[int, str, int, int]] = []
     fence: tuple[str, int] | None = None
@@ -151,28 +179,86 @@ def _markdown_atx_headings(text: str) -> tuple[tuple[int, str, int, int], ...]:
         content = line.rstrip("\r\n")
         stripped = content.lstrip(" ")
         indent = len(content) - len(stripped)
-        if indent <= 3 and stripped and stripped[0] in "`~":
-            marker = stripped[0]
-            run_length = len(stripped) - len(stripped.lstrip(marker))
-            remainder = stripped[run_length:]
-            if run_length >= 3:
-                if fence is None:
-                    fence = (marker, run_length)
-                    offset += len(line)
-                    continue
-                if marker == fence[0] and run_length >= fence[1] and not remainder.strip():
-                    fence = None
-                    offset += len(line)
-                    continue
+        candidate = _markdown_fence_candidate(content)
+        if candidate is not None:
+            marker, run_length, remainder = candidate
+            if fence is None:
+                fence = (marker, run_length)
+                offset += len(line)
+                continue
+            if (
+                marker == fence[0]
+                and run_length >= fence[1]
+                and _markdown_closer_suffix_is_ascii_space_tab(remainder)
+            ):
+                fence = None
+                offset += len(line)
+                continue
         if fence is None and indent <= 3:
             match = re.fullmatch(r"(#{1,6})[ \t]+(.+?)[ \t]*", stripped)
             if match is not None:
                 title = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
-                assert title
+                _require(bool(title), f"{role}|heading=<atx>|failure=empty")
                 headings.append((len(match.group(1)), title, offset, offset + len(line)))
         offset += len(line)
-    assert fence is None, "unclosed or mismatched fenced code block"
+    _require(fence is None, f"{role}|heading=<none>|failure=unbalanced_fence")
     return tuple(headings)
+
+
+def _unfenced_markdown(text: str, *, role: str) -> str:
+    visible: list[str] = []
+    fence: tuple[str, int] | None = None
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        stripped = content.lstrip(" ")
+        indent = len(content) - len(stripped)
+        candidate = _markdown_fence_candidate(content)
+        if fence is not None:
+            if (
+                candidate is not None
+                and candidate[0] == fence[0]
+                and candidate[1] >= fence[1]
+                and _markdown_closer_suffix_is_ascii_space_tab(candidate[2])
+            ):
+                fence = None
+            continue
+        if candidate is not None:
+            fence = (candidate[0], candidate[1])
+            continue
+        visible.append(line)
+    _require(fence is None, f"{role}|heading=<none>|failure=unbalanced_fence")
+    return "".join(visible)
+
+
+def _bounded_markdown_section(
+    text: str,
+    heading: str,
+    level: int,
+    *,
+    role: str,
+    allow_eof: bool = False,
+) -> str:
+    headings = _markdown_atx_headings(text, role=role)
+    matches = tuple(item for item in headings if item[1] == heading)
+    _require(bool(matches), f"{role}|heading={heading}|failure=missing")
+    _require(len(matches) == 1, f"{role}|heading={heading}|failure=duplicate")
+    selected = matches[0]
+    _require(selected[0] == level, f"{role}|heading={heading}|failure=wrong_level")
+    selected_index = headings.index(selected)
+    boundary = next(
+        (
+            following
+            for following in headings[selected_index + 1 :]
+            if following[0] <= selected[0]
+        ),
+        None,
+    )
+    _require(
+        boundary is not None or allow_eof,
+        f"{role}|heading={heading}|failure=missing_same_or_higher_boundary",
+    )
+    end = len(text) if boundary is None else boundary[2]
+    return text[selected[3] : end]
 
 
 @dataclass(frozen=True)
@@ -235,12 +321,7 @@ def _structured_markdown_blocks(text: str) -> tuple[_MarkdownBlock, ...]:
     for content in text.splitlines():
         stripped = content.lstrip(" ")
         indent = len(content) - len(stripped)
-        fence_marker: tuple[str, int, str] | None = None
-        if indent <= 3 and stripped and stripped[0] in "`~":
-            marker = stripped[0]
-            run_length = len(stripped) - len(stripped.lstrip(marker))
-            if run_length >= 3:
-                fence_marker = (marker, run_length, stripped[run_length:])
+        fence_marker = _markdown_fence_candidate(content)
 
         if fence is not None:
             marker, run_length, info, lines = fence
@@ -248,7 +329,7 @@ def _structured_markdown_blocks(text: str) -> tuple[_MarkdownBlock, ...]:
                 fence_marker is not None
                 and fence_marker[0] == marker
                 and fence_marker[1] >= run_length
-                and not fence_marker[2].strip()
+                and _markdown_closer_suffix_is_ascii_space_tab(fence_marker[2])
             ):
                 blocks.append(
                     _MarkdownBlock(
@@ -329,7 +410,10 @@ def _structured_markdown_blocks(text: str) -> tuple[_MarkdownBlock, ...]:
                 pending_kind = "paragraph"
             pending_lines.append(content)
 
-    assert fence is None, "unclosed or mismatched fenced code block"
+    _require(
+        fence is None,
+        "operating_model.markdown_blocks|block=<none>|failure=unbalanced_fence",
+    )
     flush()
     return tuple(blocks)
 
@@ -492,18 +576,20 @@ def _markdown_tables(text: str) -> tuple[tuple[tuple[str, ...], ...], ...]:
     for line in text.splitlines():
         stripped = line.lstrip(" ")
         indent = len(line) - len(stripped)
-        if indent <= 3 and stripped and stripped[0] in "`~":
-            marker = stripped[0]
-            run_length = len(stripped) - len(stripped.lstrip(marker))
-            remainder = stripped[run_length:]
-            if run_length >= 3:
-                if fence is None:
-                    finish_table()
-                    fence = (marker, run_length)
-                    continue
-                if marker == fence[0] and run_length >= fence[1] and not remainder.strip():
-                    fence = None
-                    continue
+        candidate = _markdown_fence_candidate(line)
+        if candidate is not None:
+            marker, run_length, remainder = candidate
+            if fence is None:
+                finish_table()
+                fence = (marker, run_length)
+                continue
+            if (
+                marker == fence[0]
+                and run_length >= fence[1]
+                and _markdown_closer_suffix_is_ascii_space_tab(remainder)
+            ):
+                fence = None
+                continue
         if fence is not None:
             continue
         if line.lstrip().startswith("|"):
@@ -512,7 +598,10 @@ def _markdown_tables(text: str) -> tuple[tuple[tuple[str, ...], ...], ...]:
         else:
             finish_table()
     finish_table()
-    assert fence is None, "unclosed or mismatched fenced code block"
+    _require(
+        fence is None,
+        "operating_model.markdown_tables|block=<none>|failure=unbalanced_fence",
+    )
     return tuple(tables)
 
 
@@ -1376,3 +1465,172 @@ def test_audit_isolation_structured_contract_rejects_finite_mutations() -> None:
     for mutation in mutations:
         with pytest.raises(AssertionError):
             _assert_audit_isolation_structured_contract(mutation)
+
+
+def _assert_c2b0_composition_overlay(text: str) -> None:
+    heading = "C2B0 Accepted Durable-State Composition Overlay"
+    role = "operating_model.c2b0_summary"
+    overlay = _compact(
+        _unfenced_markdown(
+            _bounded_markdown_section(
+                text,
+                heading,
+                2,
+                role=role,
+                allow_eof=True,
+            ),
+            role=f"{role}.section",
+        )
+    )
+    for phrase in (
+        "Classification: `ACCEPTED TARGET CONTRACT`.",
+        "C2B0 closes only the target durable-state seams",
+        "immutable `initialize` decision",
+        "distinct risk-reducing `cancel` decision",
+        "Author-effect establishment is separate from bound validation, review, and cancellation-effect establishment",
+        "active coding global stop blocks initialization, author/validation/review effects, productive delivery or redelivery, acceptance, repair, productive replan, publication eligibility, latch consumption, and Git eligibility",
+        "permits source evidence retention, terminal reject/block decisions, a cancel decision, cancellation-effect planning and cancellation delivery, and cancellation evidence ingest",
+        "C2B5 owns source-observation ingest, cancel/redeliver decisions, and bound validation/review/cancellation effects",
+        "C2B6 owns remaining program progression, publication eligibility, and the first-slice latch",
+        "adds no schema, migration, runtime, worker, Bridge change, or ES change",
+    ):
+        _require(
+            phrase in overlay,
+            f"{role}|heading={heading}|failure=target_claim_missing",
+        )
+    visible = _unfenced_markdown(text, role=role).lower()
+    for forbidden in (
+        "Exact C2B schema remains wholly open.",
+        "0002 is installed.",
+        "0003 is installed.",
+        "Application generation is currently 2.",
+        "No migration number is reserved.",
+        "C2B is currently implemented.",
+    ):
+        _require(
+            forbidden.lower() not in visible,
+            f"{role}|heading={heading}|failure=contradictory_current_status",
+        )
+
+
+def test_c2b0_overlay_pins_split_stop_and_continuation_progression_ownership() -> None:
+    _assert_c2b0_composition_overlay(_doc())
+
+
+def test_c2b0_overlay_is_fence_aware_and_bounded() -> None:
+    text = _doc()
+    required = "C2B0 closes only the target durable-state seams"
+    fenced_only = text.replace(required, f"~~~text\n{required}\n~~~~\n", 1)
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_composition_overlay(fenced_only)
+    assert str(rejected.value) == (
+        "operating_model.c2b0_summary|heading=C2B0 Accepted Durable-State Composition Overlay|failure=target_claim_missing"
+    )
+
+    boundary = text.replace(
+        "Classification: `ACCEPTED TARGET CONTRACT`.\n\nC2B0 closes",
+        "Classification: `ACCEPTED TARGET CONTRACT`.\n\n# Relocated Overlay\n\nC2B0 closes",
+        1,
+    )
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_composition_overlay(boundary)
+    assert str(rejected.value) == (
+        "operating_model.c2b0_summary|heading=C2B0 Accepted Durable-State Composition Overlay|failure=target_claim_missing"
+    )
+
+    contradictory = text + "\n# Contradictory Current Status\n\nC2B is currently implemented.\n"
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_composition_overlay(contradictory)
+    assert str(rejected.value) == (
+        "operating_model.c2b0_summary|heading=C2B0 Accepted Durable-State Composition Overlay|failure=contradictory_current_status"
+    )
+
+
+def test_c2b0_markdown_parsers_reject_invalid_backtick_info_authority_bypass() -> None:
+    text = _doc()
+    mutation = (
+        text
+        + "\n```bad`info\nC2B is currently implemented.\n"
+        + "```\n```\n"
+    )
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_composition_overlay(mutation)
+    assert str(rejected.value) == (
+        "operating_model.c2b0_summary|heading=C2B0 Accepted Durable-State Composition Overlay|failure=contradictory_current_status"
+    )
+
+    valid_tilde = text + "\n~~~bad`info\nC2B is currently implemented.\n~~~\n"
+    _assert_c2b0_composition_overlay(valid_tilde)
+
+    blocks = _structured_markdown_blocks(
+        "```bad`info\n## Visible Heading\n```\n```\n"
+    )
+    assert any(block.kind == "heading" and block.text == "Visible Heading" for block in blocks)
+    tables = _markdown_tables(
+        "```bad`info\n| visible |\n| --- |\n```\n```\n"
+    )
+    assert tables == ((('visible',), ('---',)),)
+
+
+def test_c2b0_markdown_parsers_reject_invalid_backtick_info_duplicate_heading_bypass() -> None:
+    text = _doc()
+    mutation = (
+        text
+        + "\n```bad`info\n## C2B0 Accepted Durable-State Composition Overlay\n"
+        + "```\n```\n"
+    )
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_composition_overlay(mutation)
+    assert str(rejected.value) == (
+        "operating_model.c2b0_summary|heading=C2B0 Accepted Durable-State Composition Overlay|failure=duplicate"
+    )
+
+
+def test_operating_model_markdown_closer_suffix_is_ascii_space_tab_only() -> None:
+    for valid_suffix in ("", " ", "\t", " \t"):
+        sample = f"~~~text\n## Hidden\n~~~{valid_suffix}\n## Visible\n"
+        headings = _markdown_atx_headings(sample, role="operating_model.repair3")
+        assert tuple(item[1] for item in headings) == ("Visible",)
+        blocks = _structured_markdown_blocks(
+            f"~~~text\nblock content\n~~~{valid_suffix}\n"
+        )
+        assert tuple(block.kind for block in blocks) == ("fenced_code",)
+        assert _markdown_tables(
+            f"~~~text\n| hidden |\n~~~{valid_suffix}\n"
+        ) == ()
+
+    for invalid_suffix in ("\u00a0", "\u2003", "not-a-closer"):
+        closed_later = (
+            "~~~text\n"
+            f"~~~{invalid_suffix}\n"
+            "C2B is currently implemented.\n"
+            "## C2B0 Accepted Durable-State Composition Overlay\n"
+            "~~~\n"
+        )
+        assert _markdown_atx_headings(
+            closed_later,
+            role="operating_model.repair3",
+        ) == ()
+        assert _unfenced_markdown(
+            closed_later,
+            role="operating_model.repair3",
+        ) == ""
+
+        with pytest.raises(AssertionError) as headings_rejected:
+            _markdown_atx_headings(
+                f"~~~text\n~~~{invalid_suffix}\n",
+                role="operating_model.repair3",
+            )
+        assert str(headings_rejected.value) == (
+            "operating_model.repair3|heading=<none>|failure=unbalanced_fence"
+        )
+        with pytest.raises(AssertionError) as blocks_rejected:
+            _structured_markdown_blocks(f"~~~text\n~~~{invalid_suffix}\n")
+        assert str(blocks_rejected.value) == (
+            "operating_model.markdown_blocks|block=<none>|failure=unbalanced_fence"
+        )
+        with pytest.raises(AssertionError) as tables_rejected:
+            _markdown_tables(f"~~~text\n~~~{invalid_suffix}\n")
+        assert str(tables_rejected.value) == (
+            "operating_model.markdown_tables|block=<none>|failure=unbalanced_fence"
+        )

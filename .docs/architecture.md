@@ -539,3 +539,23 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
   private atomic path. Receipt provisioning remains reopened, and no worker,
   service, scheduler, admission, orchestration, publication, or cross-repo
   authority exists.
+
+## C2B0 Accepted Durable-State Target Topology
+
+Status: `ACCEPTED TARGET CONTRACT`; implementation absent.
+
+C2B targets private role-based durable-development modules in the existing
+Coordinator SQLite database. They must reuse the existing concrete writer
+issuance/fencing authority, operation guard, shared mutation slot, resource
+binding, nominal transaction capability, and single transaction controller.
+There is no second database, writer, controller, session authority, generic
+mutation dispatcher, public `StateStore` widening, or public `WriterSession`
+widening.
+
+The target private transaction roles separate program initialization,
+author-effect establishment, bound validation/review/cancellation-effect
+establishment, source-observation ingest, and progression decisions. Durable
+intent must precede future external I/O, but no C2B0 source or I/O exists. The
+current managed tip remains schema 0001 and there is no C2B reader, writer,
+transaction, worker, Bridge dependency, ES dependency, service, queue,
+scheduler, or autonomous loop.

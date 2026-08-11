@@ -392,5 +392,15 @@ the first ES scenario, publication, and production autonomy remain `DEFERRED OR
 BLOCKED EFFECT` until their separately authorized tranches. This selection is
 not end-to-end execution and does not reprioritize the current ES P0.
 
+C2A1 pure semantic values and coherence relations remain the current
+implementation. C2B0 now accepts the target durable-development state contract
+in `.docs/c2b-durable-development-state.md`: one existing Coordinator database
+and writer authority, eight decision kinds, distinct author and bound effect
+roles, privacy-safe persistence, and staged migrations 0002/0003. C2B itself
+remains unimplemented. The current managed database tip is still schema 0001;
+there is no C2B source, SQL, migration, durable record, ingest, decision
+runtime, authority verifier, worker, process, Git effect, direct-local route,
+or ES route.
+
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.

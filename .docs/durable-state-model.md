@@ -49,9 +49,15 @@ requires a separately accepted implementation contract.
 C2A freezes the semantic field, identity, digest, and relation contracts and
 creates no durable state. C2A1 implements only internal immutable no-I/O values
 and the six named pure coherence validators; those values neither read nor
-write SQLite and confer no durable or executable authority. Managed schema 0001
-remains unchanged. A future C2B would require a separately accepted durable
-schema and forward migration; no migration number is reserved here.
+write SQLite and confer no durable or executable authority. The current
+implemented database remains application generation 1 with schema 0001 and the
+`0001_initial` catalog entry only; migration 0001 bytes, history, and table
+meanings remain unchanged. The accepted C2B0 target contract now reserves
+`0002_development_program_and_effect_state` and
+`0003_development_observation_and_progression_state`, and freezes their exact
+target responsibilities and inventories. No 0002/0003 SQL, catalog entry,
+schema object, installed migration, application-generation change, C2B reader,
+writer, or mutation is currently implemented.
 
 Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
 `auditing`, repair, commit, and cleanup names do not transfer runtime authority
@@ -65,9 +71,11 @@ behavior, state names, and disabled-stage behavior remain unchanged.
 
 Direct-local worker execution, capsule construction or custody, review,
 validation, repair, Git effects, ES routing, publication, and autonomous
-progression are deferred or blocked effects. Exact future state shape, schema,
-migrations, safe-reference representation, and observation storage are future
-implementation details.
+progression are deferred or blocked effects. C2B remains target-only. The
+reserved target migration inventories are fixed by
+`.docs/c2b-durable-development-state.md`; later SQL encoding, safe-reference
+representation, observation-storage mechanics, and runtime integration remain
+future implementation details.
 
 The work-item state schema id is:
 
@@ -398,3 +406,36 @@ migration 0002. B4c now makes public `apply_global_stop_update()` a guarded
 adapter to the B4b private entry without moving SQL, receipt verification,
 evaluator, sequence, write, rollback, COMMIT, or uncertainty ownership into
 `WriterSession`.
+
+## C2B0 Accepted Durable-Development Target
+
+Status: `ACCEPTED TARGET CONTRACT`; current schema remains 0001 and the target
+records below do not exist. The implemented catalog contains only
+`0001_initial`, and implemented application generation remains 1. Migrations
+0002 and 0003 are reserved target identities, not installed or current schema.
+
+C2B selects a hybrid representation: mutable CAS-protected
+`development_program_heads`, `development_work_item_heads`,
+`development_effect_heads`, `development_delivery_heads`,
+`development_observation_ref_heads`, and one-way
+`development_first_slice_latch`, plus immutable role-specific records and
+mutation receipts. It reuses the existing database and writer authority.
+Schema-0001 backlog/work-item/transition identities remain compatibility facts
+and do not become target program truth.
+
+C2B persists complete canonical mappings and digests for AttemptFence,
+EffectFence, WorkerCommand, DeliveryEnvelope, and validated WorkerObservation.
+It persists all fifteen embedded ceiling integers without treating them as
+standalone authority. WorkSpec and candidate-capsule manifests receive only
+privacy-safe projections; objective text, requirements, exclusions, capsule
+entries, candidate/capsule bytes, paths, modes, file digests, lengths,
+credentials, endpoints, prompts, transcripts, and workspace material remain
+outside SQLite.
+
+The accepted target comprises migrations
+`0002_development_program_and_effect_state` and
+`0003_development_observation_and_progression_state`, twenty-eight new tables,
+forty-six new triggers, and two explicit indexes. Neither migration or any C2B
+reader, writer, mutation, ingest, decision runtime, authority verifier, or
+latch behavior is currently implemented; there are no target catalog entries,
+SQL files, or schema objects and no current application-generation change.

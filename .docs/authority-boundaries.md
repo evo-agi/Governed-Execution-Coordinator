@@ -337,3 +337,27 @@ Coordinator P1 reports are closed typed public projections. They cannot widen
 authority, cannot mutate state, and cannot carry raw private content,
 endpoints, local paths, platform identifiers, credentials, trust material, or
 execution claims.
+
+## C2B0 Target Authority, Source, And Custody Closure
+
+Status: `ACCEPTED TARGET CONTRACT`; no runtime authority is added.
+
+Coordinator may later author and durably record its own program progression,
+effect-intent, ingest-disposition, decision, eligibility, and latch facts
+through the existing writer authority. The external source still authors each
+source invocation and observation. A Coordinator ingest disposition is not a
+source observation, and neither is a Coordinator progression decision.
+Decision, effect intent, delivery, acknowledgement, runtime termination, and
+semantic abandonment remain distinct facts.
+
+The accepted-intent/work-specification authority semantically authors private
+WorkSpec material. Coordinator SQLite may retain only safe bindings and is a
+safe-reference holder, not the physical custodian. The custodian and
+attempt-bound retrieval authorization remain deferred; a safe ref or digest is
+not retrieval authority. Chat, model sessions, reports, connectors, and Bridge
+ledgers cannot become hidden custody.
+
+An external authority system remains the author of executable standing
+authority. C2B records at most safe bindings and a future verifier-authored
+status. No verifier exists. Persistence, a digest, a relation, a Coordinator
+decision, or a caller Boolean never becomes executable authorization.

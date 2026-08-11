@@ -14,7 +14,35 @@ def _compact(text: str) -> str:
     return " ".join(text.split())
 
 
-def _markdown_atx_headings(text: str) -> tuple[tuple[int, str, int, int], ...]:
+def _require(condition: bool, diagnostic: str) -> None:
+    if not condition:
+        raise AssertionError(diagnostic)
+
+
+def _markdown_fence_candidate(content: str) -> tuple[str, int, str] | None:
+    stripped = content.lstrip(" ")
+    indent = len(content) - len(stripped)
+    if indent > 3 or not stripped or stripped[0] not in "`~":
+        return None
+    marker = stripped[0]
+    run_length = len(stripped) - len(stripped.lstrip(marker))
+    if run_length < 3:
+        return None
+    remainder = stripped[run_length:]
+    if marker == "`" and "`" in remainder:
+        return None
+    return marker, run_length, remainder
+
+
+def _markdown_closer_suffix_is_ascii_space_tab(suffix: str) -> bool:
+    return all(character in {" ", "\t"} for character in suffix)
+
+
+def _markdown_atx_headings(
+    text: str,
+    *,
+    role: str = "architecture.markdown",
+) -> tuple[tuple[int, str, int, int], ...]:
     """Parse bounded ATX headings outside backtick or tilde fenced blocks."""
     headings: list[tuple[int, str, int, int]] = []
     fence: tuple[str, int] | None = None
@@ -23,45 +51,146 @@ def _markdown_atx_headings(text: str) -> tuple[tuple[int, str, int, int], ...]:
         content = line.rstrip("\r\n")
         stripped = content.lstrip(" ")
         indent = len(content) - len(stripped)
-        if indent <= 3 and stripped and stripped[0] in "`~":
-            marker = stripped[0]
-            run_length = len(stripped) - len(stripped.lstrip(marker))
-            remainder = stripped[run_length:]
-            if run_length >= 3:
-                if fence is None:
-                    fence = (marker, run_length)
-                    offset += len(line)
-                    continue
-                if marker == fence[0] and run_length >= fence[1] and not remainder.strip():
-                    fence = None
-                    offset += len(line)
-                    continue
+        candidate = _markdown_fence_candidate(content)
+        if candidate is not None:
+            marker, run_length, remainder = candidate
+            if fence is None:
+                fence = (marker, run_length)
+                offset += len(line)
+                continue
+            if (
+                marker == fence[0]
+                and run_length >= fence[1]
+                and _markdown_closer_suffix_is_ascii_space_tab(remainder)
+            ):
+                fence = None
+                offset += len(line)
+                continue
         if fence is None and indent <= 3:
             match = re.fullmatch(r"(#{1,6})[ \t]+(.+?)[ \t]*", stripped)
             if match is not None:
                 title = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
-                assert title
+                _require(bool(title), f"{role}|heading=<atx>|failure=empty")
                 headings.append((len(match.group(1)), title, offset, offset + len(line)))
         offset += len(line)
-    assert fence is None, "unclosed or mismatched fenced code block"
+    _require(fence is None, f"{role}|heading=<none>|failure=unbalanced_fence")
     return tuple(headings)
 
 
-def _bounded_markdown_section(text: str, heading: str, level: int) -> str:
-    headings = _markdown_atx_headings(text)
+def _unfenced_markdown(text: str, *, role: str) -> str:
+    visible: list[str] = []
+    fence: tuple[str, int] | None = None
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        stripped = content.lstrip(" ")
+        indent = len(content) - len(stripped)
+        candidate = _markdown_fence_candidate(content)
+        if fence is not None:
+            if (
+                candidate is not None
+                and candidate[0] == fence[0]
+                and candidate[1] >= fence[1]
+                and _markdown_closer_suffix_is_ascii_space_tab(candidate[2])
+            ):
+                fence = None
+            continue
+        if candidate is not None:
+            fence = (candidate[0], candidate[1])
+            continue
+        visible.append(line)
+    _require(fence is None, f"{role}|heading=<none>|failure=unbalanced_fence")
+    return "".join(visible)
+
+
+def _bounded_markdown_section(
+    text: str,
+    heading: str,
+    level: int,
+    *,
+    role: str = "architecture.document",
+    allow_eof: bool = False,
+) -> str:
+    headings = _markdown_atx_headings(text, role=role)
     matches = [item for item in headings if item[1] == heading]
-    assert len(matches) == 1
+    _require(bool(matches), f"{role}|heading={heading}|failure=missing")
+    _require(len(matches) == 1, f"{role}|heading={heading}|failure=duplicate")
     selected = matches[0]
-    assert selected[0] == level
+    _require(selected[0] == level, f"{role}|heading={heading}|failure=wrong_level")
     selected_index = headings.index(selected)
     boundaries = tuple(
         following
         for following in headings[selected_index + 1 :]
         if following[0] <= level
     )
-    assert boundaries, "bounded section must have a later same-or-higher heading"
-    end = boundaries[0][2]
+    _require(
+        bool(boundaries) or allow_eof,
+        f"{role}|heading={heading}|failure=missing_same_or_higher_boundary",
+    )
+    end = len(text) if not boundaries else boundaries[0][2]
     return text[selected[3] : end]
+
+
+def _assert_c2b0_durable_current_target_contract(text: str) -> None:
+    role = "architecture.durable_state"
+    headings = _markdown_atx_headings(text, role=role)
+    first_section = next((item for item in headings if item[0] == 2), None)
+    _require(
+        first_section is not None,
+        "architecture.durable_state|heading=<current-status>|failure=missing_h2_boundary",
+    )
+    assert first_section is not None
+    current = _compact(_unfenced_markdown(text[: first_section[2]], role=f"{role}.current"))
+    target = _compact(
+        _unfenced_markdown(
+            _bounded_markdown_section(
+                text,
+                "C2B0 Accepted Durable-Development Target",
+                2,
+                role=role,
+                allow_eof=True,
+            ),
+            role=f"{role}.target",
+        )
+    )
+    for phrase in (
+        "current implemented database remains application generation 1 with schema 0001",
+        "`0001_initial` catalog entry only",
+        "migration 0001 bytes, history, and table meanings remain unchanged",
+        "accepted C2B0 target contract now reserves",
+        "`0002_development_program_and_effect_state`",
+        "`0003_development_observation_and_progression_state`",
+        "No 0002/0003 SQL, catalog entry, schema object, installed migration, application-generation change, C2B reader, writer, or mutation is currently implemented.",
+    ):
+        _require(
+            phrase in current,
+            "architecture.durable_state|heading=<current-status>|failure=current_target_distinction",
+        )
+    for phrase in (
+        "Migrations 0002 and 0003 are reserved target identities, not installed or current schema.",
+        "The accepted target comprises migrations",
+        "Neither migration or any C2B reader, writer, mutation, ingest, decision runtime, authority verifier, or latch behavior is currently implemented",
+    ):
+        _require(
+            phrase in target,
+            "architecture.durable_state|heading=C2B0 Accepted Durable-Development Target|failure=target_status",
+        )
+    visible = _unfenced_markdown(text, role=role).lower()
+    for forbidden in (
+        "a future C2B would require a separately accepted durable schema",
+        "no migration number is reserved here",
+        "Exact future state shape, schema, migrations",
+        "Exact C2B schema remains wholly open.",
+        "C2B is currently implemented.",
+        "Migrations 0002 and 0003 are installed current schema.",
+        "0002 is installed.",
+        "0003 is installed.",
+        "Application generation is currently 2.",
+        "No migration number is reserved.",
+    ):
+        _require(
+            forbidden.lower() not in visible,
+            "architecture.durable_state|heading=<current-status>|failure=stale_or_installed_claim",
+        )
 
 
 def _assert_candidate_capsule_durable_state_contract(text: str) -> None:
@@ -220,8 +349,146 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     assert "The current finite-backlog, standing-lease, zero-only budget, READY-only dependency, and disabled-stage contracts remain current v1 compatibility behavior but are not frozen as the target model." in durable
     assert "C2A freezes the semantic field, identity, digest, and relation contracts and creates no durable state." in durable
     assert "C2A1 implements only internal immutable no-I/O values and the six named pure coherence validators" in durable
-    assert "Managed schema 0001 remains unchanged." in durable
-    assert "A future C2B would require a separately accepted durable schema and forward migration; no migration number is reserved here." in durable
+    _assert_c2b0_durable_current_target_contract(
+        _text(".docs/durable-state-model.md")
+    )
+
+
+def test_c2b0_current_and_target_status_are_consistent() -> None:
+    text = _text(".docs/durable-state-model.md")
+    _assert_c2b0_durable_current_target_contract(text)
+
+    fenced_stale = (
+        text
+        + "\n```text\nA future C2B would require a separately accepted durable schema.\n"
+        + "No migration number is reserved here.\n```\n"
+    )
+    _assert_c2b0_durable_current_target_contract(fenced_stale)
+
+
+def test_c2b0_stale_current_target_forms_are_rejected_in_memory() -> None:
+    text = _text(".docs/durable-state-model.md")
+    mutations = (
+        text + "\nA future C2B would require a separately accepted durable schema.\n",
+        text + "\nNo migration number is reserved here.\n",
+        text + "\nExact future state shape, schema, migrations remain wholly open.\n",
+        text + "\nC2B is currently implemented.\n",
+        text + "\nMigrations 0002 and 0003 are installed current schema.\n",
+    )
+    for mutation in mutations:
+        with pytest.raises(AssertionError) as rejected:
+            _assert_c2b0_durable_current_target_contract(mutation)
+        assert str(rejected.value) == (
+            "architecture.durable_state|heading=<current-status>|failure=stale_or_installed_claim"
+        )
+
+    target_claim = "The accepted target comprises migrations"
+    fenced_target_only = text.replace(
+        target_claim,
+        f"```text\n{target_claim}\n```",
+        1,
+    )
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_durable_current_target_contract(fenced_target_only)
+    assert str(rejected.value) == (
+        "architecture.durable_state|heading=C2B0 Accepted Durable-Development Target|failure=target_status"
+    )
+
+
+def test_c2b0_current_target_status_rejects_all_additive_stale_claims() -> None:
+    text = _text(".docs/durable-state-model.md")
+    stale_claims = (
+        "Exact C2B schema remains wholly open.",
+        "0002 is installed.",
+        "0003 is installed.",
+        "Application generation is currently 2.",
+        "No migration number is reserved.",
+        "C2B is currently implemented.",
+    )
+    for stale in stale_claims:
+        with pytest.raises(AssertionError) as rejected:
+            _assert_c2b0_durable_current_target_contract(text + f"\n{stale}\n")
+        assert str(rejected.value) == (
+            "architecture.durable_state|heading=<current-status>|failure=stale_or_installed_claim"
+        )
+
+    fenced = text + "\n~~~example`info\n" + "\n".join(stale_claims) + "\n~~~\n"
+    _assert_c2b0_durable_current_target_contract(fenced)
+
+
+def test_c2b0_markdown_parsers_reject_invalid_backtick_info_authority_bypass() -> None:
+    text = _text(".docs/durable-state-model.md")
+    mutation = (
+        text
+        + "\n```bad`info\nC2B is currently implemented.\n"
+        + "```\n```\n"
+    )
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_durable_current_target_contract(mutation)
+    assert str(rejected.value) == (
+        "architecture.durable_state|heading=<current-status>|failure=stale_or_installed_claim"
+    )
+
+    valid_tilde = text + "\n~~~bad`info\nC2B is currently implemented.\n~~~\n"
+    _assert_c2b0_durable_current_target_contract(valid_tilde)
+
+
+def test_c2b0_markdown_parsers_reject_invalid_backtick_info_duplicate_heading_bypass() -> None:
+    text = _text(".docs/durable-state-model.md")
+    mutation = (
+        text
+        + "\n```bad`info\n## C2B0 Accepted Durable-Development Target\n"
+        + "```\n```\n"
+    )
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_durable_current_target_contract(mutation)
+    assert str(rejected.value) == (
+        "architecture.durable_state|heading=C2B0 Accepted Durable-Development Target|failure=duplicate"
+    )
+
+
+def test_architecture_markdown_closer_suffix_is_ascii_space_tab_only() -> None:
+    for valid_suffix in ("", " ", "\t", " \t"):
+        sample = f"~~~text\n## Hidden\n~~~{valid_suffix}\n## Visible\n"
+        headings = _markdown_atx_headings(sample, role="architecture.repair3")
+        assert tuple(item[1] for item in headings) == ("Visible",)
+
+    for invalid_suffix in ("\u00a0", "\u2003", "not-a-closer"):
+        closed_later = (
+            "~~~text\n"
+            f"~~~{invalid_suffix}\n"
+            "C2B is currently implemented.\n"
+            "## C2B0 Accepted Durable-Development Target\n"
+            "~~~\n"
+        )
+        assert _markdown_atx_headings(
+            closed_later,
+            role="architecture.repair3",
+        ) == ()
+        assert _unfenced_markdown(
+            closed_later,
+            role="architecture.repair3",
+        ) == ""
+
+        with pytest.raises(AssertionError) as rejected:
+            _markdown_atx_headings(
+                f"~~~text\n~~~{invalid_suffix}\n",
+                role="architecture.repair3",
+            )
+        assert str(rejected.value) == (
+            "architecture.repair3|heading=<none>|failure=unbalanced_fence"
+        )
+
+
+def test_architecture_markdown_missing_heading_has_bounded_diagnostic() -> None:
+    text = _text(".docs/durable-state-model.md")
+    with pytest.raises(AssertionError) as rejected:
+        _assert_c2b0_durable_current_target_contract(
+            "````text\n" + text + "````\n"
+        )
+    assert str(rejected.value) == (
+        "architecture.durable_state|heading=<current-status>|failure=missing_h2_boundary"
+    )
 
 
 def test_operational_progression_boundary_pins_target_only_current_reality_and_worker_boundary() -> None:
@@ -687,3 +954,57 @@ def test_candidate_capsule_durable_state_section_rejects_structural_drift() -> N
     for mutation in mutations:
         with pytest.raises(AssertionError):
             _assert_candidate_capsule_durable_state_contract(mutation)
+
+
+def test_c2b0_target_topology_reuses_current_private_authority_without_implementation() -> None:
+    architecture_text = _text(".docs/architecture.md")
+    architecture = _compact(
+        _unfenced_markdown(
+            _bounded_markdown_section(
+                architecture_text,
+                "C2B0 Accepted Durable-State Target Topology",
+                2,
+                role="architecture.summary",
+                allow_eof=True,
+            ),
+            role="architecture.summary.section",
+        )
+    )
+    owner_text = _text(".docs/c2b-durable-development-state.md")
+    owner = _compact(
+        _bounded_markdown_section(
+            owner_text,
+            "12. Complete Target Mutation Families",
+            2,
+            role="architecture.c2b0_owner",
+        )
+        + _bounded_markdown_section(
+            owner_text,
+            "27. Explicit Nonimplementation",
+            2,
+            role="architecture.c2b0_owner",
+            allow_eof=True,
+        )
+    )
+
+    for phrase in (
+        "Status: `ACCEPTED TARGET CONTRACT`; implementation absent.",
+        "existing Coordinator SQLite database",
+        "existing concrete writer issuance/fencing authority",
+        "operation guard",
+        "shared mutation slot",
+        "single transaction controller",
+        "no second database, writer, controller, session authority, generic mutation dispatcher",
+        "public `StateStore` widening",
+        "public `WriterSession` widening",
+        "no C2B reader, writer, transaction, worker, Bridge dependency, ES dependency",
+    ):
+        assert phrase in architecture
+
+    for phrase in (
+        "_establish_development_author_effect_intent",
+        "_establish_development_bound_effect_intent",
+        "C2B0 implements none of them.",
+        "C2B0 creates no source module, SQL, schema object, migration, database row",
+    ):
+        assert phrase in owner

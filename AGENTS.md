@@ -482,6 +482,20 @@ Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.
 
+C2B0 is the accepted target-only durable-development state contract governed by
+`.docs/c2b-durable-development-state.md`. It selects the existing Coordinator
+SQLite database, writer issuance/fencing authority, operation guard, mutation
+slot, and transaction controller; it adds no second authority system and no
+public `StateStore` or `WriterSession` surface. The closed first-slice decision
+kinds are `initialize`, `accept`, `repair`, `replan`, `terminal_reject`,
+`block`, `redeliver`, and `cancel`. Author-effect establishment and bound
+validation/review/cancellation-effect establishment are separate future private
+transaction roles. Private WorkSpec custody and restart-safe retrieval remain
+deferred. C2B0 adds documentation and direct contract tests only: C2B durable
+records, migrations 0002/0003, readers, mutations, observation ingest,
+decisions, latch behavior, authority verification, worker/process execution,
+Git effects, direct-local behavior, and ES routing remain unimplemented.
+
 ## P1 Prohibitions
 
 P1/P1.1 must not implement worker execution, a scheduling loop, a queue

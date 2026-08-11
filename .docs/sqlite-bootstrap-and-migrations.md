@@ -331,3 +331,152 @@ not implement transition or global-stop mutation storage. B3a adds
 contract-only canonical persistence and provenance rules; it does not open
 SQLite for transition apply, insert events, update work items, or add
 admission.
+
+## C2B0 Target Migration Sequence
+
+Status: `ACCEPTED TARGET CONTRACT`; no target SQL is installed. The implemented
+application generation and managed database tip remain 1/`0001_initial`.
+
+C2B1 is a framework-only source/test reset with no SQL or database change. It
+keeps implemented application generation 1 and the terminal catalog tip at
+0001. It changes only migration-framework source and tests.
+
+C2B2 advances implemented application generation from 1 to 2 when migration
+0002 is introduced, and the terminal catalog tip becomes 0002. C2B3 remains
+generation 2 with terminal tip 0002. C2B4 adds migration 0003 while retaining
+application generation 2, and the terminal tip becomes 0003. C2B5 and C2B6
+remain generation 2 with terminal tip 0003.
+
+Migration compatibility bounds describe the application generations allowed
+to own a database when that migration is the installed terminal tip. Every
+installed row remains immutable and must exactly equal its packaged catalog
+entry in sequence, migration ID, checksum, compatibility bounds, and
+destructive flag. Historical rows are not required to include the running
+application generation: historical migration 0001 remains `[1,1]`, while 0002
+and 0003 are `[2,2]`. Migration 0001 bytes, checksum, history, bounds, and table
+meanings are never rewritten.
+
+Ordinary product or writer open requires exact complete catalog history, the
+exact current terminal sequence and migration ID, terminal compatibility that
+contains the current application generation, and complete final-schema
+verification. Ordinary open never silently migrates and never accepts an older
+prefix.
+
+Explicit migration preflight may recognize one exact non-empty supported older
+catalog prefix. Every installed row must have exact packaged checksum and
+metadata; gaps, unknown or partial rows, and divergent bounds or flags are
+rejected. The packaged remainder must be one exact contiguous suffix leading to
+the current terminal tip. A supported older prefix is migration-eligible only,
+not ordinarily product-openable before migration.
+
+The cumulative paths are exact:
+
+```text
+C2B2 fresh installation: 0001 -> 0002
+C2B4-or-later fresh installation: 0001 -> 0002 -> 0003
+C2B2 upgrade from exact 0001: apply only 0002
+C2B4-or-later upgrade from exact 0001: apply 0002 then 0003
+C2B4-or-later upgrade from exact 0002: apply only 0003
+```
+
+For every path above, the complete intended packaged suffix is one
+administrative transaction:
+
+```text
+C2B2 fresh installation transaction: [0001, 0002]
+C2B4-or-later fresh installation transaction: [0001, 0002, 0003]
+C2B2 upgrade from exact 0001 transaction: [0002]
+C2B4-or-later upgrade from exact 0001 transaction: [0002, 0003]
+C2B4-or-later upgrade from exact 0002 transaction: [0003]
+```
+
+Every migration selected for that suffix contributes all of the following to
+the same administrative transaction:
+
+```text
+DDL
+managed invariant changes
+matching migration-history insertion
+```
+
+No suffix migration may commit before a later migration in the same selected
+suffix is attempted. A history row without its schema effects, schema effects
+without the matching history row, and a partially installed suffix are all
+forbidden. Failure before commit restores the complete exact prior supported
+prefix with no partial DDL, invariant change, or history row and never rewrites
+0001. Ordinary product or writer open never performs migration.
+
+If an administrative commit attempt raises, migration recovery must:
+
+```text
+close the uncertain connection
+reopen through the migration recovery path
+reread the complete exact migration history
+reread the complete live-schema invariants
+compare both the exact prior supported prefix and exact intended completed suffix tip
+```
+
+The evidence classifications are exact:
+
+```text
+committed_exact
+history equals the prior prefix plus the complete intended suffix
+every suffix row matches packaged sequence, ID, checksum, compatibility bounds, and destructive flag
+live schema equals the complete intended terminal-tip schema
+the prior prefix remains unchanged
+no partial, extra, unknown, or divergent object exists
+```
+
+```text
+definitely_not_committed
+history equals the exact prior supported prefix
+live schema equals the exact prior supported-prefix schema
+no intended suffix history row exists
+no intended suffix schema object or invariant exists
+no partial or unexpected object exists
+```
+
+```text
+unresolved
+history and schema disagree
+only part of the intended suffix is present
+history-only suffix evidence exists
+schema-only suffix evidence exists
+an unknown or divergent history row exists
+an unexpected schema object exists
+either exact verification cannot be completed
+```
+
+An `unresolved` result forbids automatic rerun and automatic append of a
+missing remainder. An operator or separately accepted recovery must complete
+before another migration attempt. This migration-specific rule is distinct
+from the semantic progression-mutation retry contract.
+
+A generation-1 binary rejects sequences 2 and 3 as newer and unsupported. A
+generation-2 terminal-0002 binary ordinarily opens exact 0002 and rejects 0003
+as newer. A generation-2 terminal-0003 binary ordinarily opens exact 0003 and
+treats exact 0001 or 0002 only as explicitly migratable supported prefixes.
+Final schema authority is the cumulative packaged migration sequence; no
+cumulative schema snapshot is introduced.
+
+The accepted later migrations are:
+
+```text
+0002_development_program_and_effect_state: [2,2], non-destructive, 19 tables, 30 triggers, 1 explicit index, no seed rows
+0003_development_observation_and_progression_state: [2,2], non-destructive, 9 tables, 16 triggers, 1 explicit index, one available latch seed
+```
+
+Exact target tips are:
+
+```text
+0001: 11 user tables, 0 explicit indexes, 16 triggers
+0002: 30 user tables, 1 explicit index, 46 triggers
+0003: 39 user tables, 2 explicit indexes, 62 triggers
+```
+
+The two explicit indexes are
+`uq_development_effect_intents_author_command` and
+`idx_development_source_observation_claims_digest`. The only 0003 bootstrap row
+is `direct_local_first_productive_acceptance` in state `available`, version 0,
+with null consumed bindings. `.docs/c2b-durable-development-state.md` owns the
+exact target table, trigger, privacy, and transaction responsibilities.

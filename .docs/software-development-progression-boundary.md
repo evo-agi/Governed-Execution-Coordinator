@@ -372,3 +372,31 @@ unsatisfied required-before-runtime gates. A separately accepted implementation
 contract must still freeze the applicable runtime, direct-local or ES adapter,
 transport, and persistence mechanics before schema, service, worker, adapter,
 Git/CI, or runtime execution work.
+
+## C2B0 Accepted Durable Progression Closure
+
+Status: `ACCEPTED TARGET CONTRACT`; the C0 historical statements above remain
+historical and C2B remains unimplemented.
+
+The exact ordered decision kinds are `initialize`, `accept`, `repair`,
+`replan`, `terminal_reject`, `block`, `redeliver`, and `cancel`. `initialize`
+creates program version 1 of kind `initial` and preassigns the first semantic
+attempt and candidate. `cancel` is a distinct immutable decision, advances no
+program version, preassigns a cancellation effect/fence/first delivery, and is
+not global stop, block, terminal rejection, acknowledgement, termination, or
+abandonment.
+
+Every durable effect has a non-null immediate `basis_decision_ref`. An author
+effect uses the exact `initialize`, `repair`, or attempt-selecting `replan`
+decision that preassigned its attempt/candidate. Validation and review reuse
+the selection decision bound to the existing attempt. Cancellation uses the
+exact cancel decision and target. `block` and `terminal_reject` cannot
+substitute as cancellation bases.
+
+Author-effect establishment creates the semantic attempt, candidate identity,
+AttemptFence, author effect/fence, sole originating `WorkerCommandV1`, initial
+delivery, heads, and receipt. Bound validation, review, and cancellation
+effects reuse that attempt, candidate, AttemptFence, originating command, and
+post-bound author EffectFence. They create no attempt, candidate, second
+command, author effect, or program version. A new semantic attempt remains
+possible only after an explicit attempt-selecting Coordinator decision.

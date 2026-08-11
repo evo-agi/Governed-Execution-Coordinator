@@ -392,3 +392,24 @@ Classification: `DEFERRED OR BLOCKED EFFECT`. All source/runtime work and effect
 beyond one future local feature-branch commit remain blocked. Classification:
 `PROCESS-ONLY GOVERNANCE`. Future audit isolation requirements live in the C1
 composition record and are not worker behavior.
+
+## C2B0 Durable Intent And Restart Overlay
+
+Status: `ACCEPTED TARGET CONTRACT`; no worker or process implementation.
+
+Future author, validation, review, and cancellation external I/O requires its
+exact durable effect intent and initial delivery to commit first. A cancel
+decision must commit before the cancellation effect, and the cancellation
+effect must commit before any future external cancellation request. A durable
+decision or effect is not delivery acknowledgement, ES admission, runtime
+termination, semantic abandonment, or acceptance.
+
+The C2B target retains only a privacy-safe WorkSpec projection. SQLite cannot
+reconstruct the private WorkSpec, and a safe ref or digest cannot authorize
+retrieval. Restart-safe author establishment and worker launch remain blocked
+until a separately accepted physical-custody, retention, authorization, and
+attempt-bound retrieval contract exists.
+
+C2B0 adds no worker, supervisor, process launch, source invocation, external
+cancellation, capsule store, model/provider client, direct-local adapter, ES
+adapter, Git effect, service/API/IPC, queue, scheduler, or runtime behavior.

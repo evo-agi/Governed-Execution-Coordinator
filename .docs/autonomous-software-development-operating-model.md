@@ -434,3 +434,29 @@ loop.
 The direct-local bootstrap, worker, capsule custody implementation, first
 scenario, local commit effect, ES migration, and every publication effect each
 require a separately accepted implementation or owner-repository tranche.
+
+## C2B0 Accepted Durable-State Composition Overlay
+
+Classification: `ACCEPTED TARGET CONTRACT`.
+
+C2B0 closes only the target durable-state seams governed in
+`.docs/c2b-durable-development-state.md`; the historical C1 ledger above
+remains unchanged. Target program genesis uses an immutable `initialize`
+decision. The exact decision domain also includes the distinct risk-reducing
+`cancel` decision. Author-effect establishment is separate from bound
+validation, review, and cancellation-effect establishment, and none performs
+external I/O.
+
+For the C2B target, active coding global stop blocks initialization,
+author/validation/review effects, productive delivery or redelivery,
+acceptance, repair, productive replan, publication eligibility, latch
+consumption, and Git eligibility. It permits source evidence retention,
+terminal reject/block decisions, a cancel decision, cancellation-effect
+planning and cancellation delivery, and cancellation evidence ingest. This is
+a C2B target selection, not a retroactive C1 invariant.
+
+C2B5 owns source-observation ingest, cancel/redeliver decisions, and bound
+validation/review/cancellation effects. C2B6 owns remaining program
+progression, publication eligibility, and the first-slice latch. C2B0
+implements neither tranche and adds no schema, migration, runtime, worker,
+Bridge change, or ES change.
