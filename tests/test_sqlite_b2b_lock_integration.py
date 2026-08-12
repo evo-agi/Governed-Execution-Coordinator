@@ -15,6 +15,9 @@ from ge_nwp_coordinator.sqlite_errors import SQLiteStateErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import (
     DatabaseClassification,
+    MigrationCatalog,
+    MigrationDefinition,
+    _initialize_database_with_catalog,
     initialize_database,
     inspect_database,
     migrate_database,
@@ -124,12 +127,95 @@ def test_initialize_exception_after_lock_releases_resource(
     def fail_apply(*args, **kwargs):
         raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_FAILED)
 
-    monkeypatch.setattr(sqlite_migration, "_apply_migration_in_transaction", fail_apply)
+    monkeypatch.setattr(sqlite_migration, "_apply_migration_definition_in_transaction", fail_apply)
     with pytest.raises(SQLiteStateError, match="migration_failed"):
         initialize_database(location)
 
     with acquire_state_authority_lock(location):
         pass
+
+
+def test_initialize_commit_recovery_retains_common_lock_and_reopens_bound_database(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path)
+    original_commit = sqlite_migration._attempt_migration_commit
+    original_open = sqlite_migration._open_bound_existing_sqlite_connection
+    original_recovery = sqlite_migration._recover_migration_outcome
+    open_modes: list[bool] = []
+    recovery_observed = False
+
+    def commit_then_raise(connection):
+        original_commit(connection)
+        raise sqlite3.OperationalError("commit acknowledgement unavailable")
+
+    def record_bound_open(binding, *, read_only, **kwargs):
+        open_modes.append(read_only)
+        return original_open(binding, read_only=read_only, **kwargs)
+
+    def recover_while_lock_retained(*args, **kwargs):
+        nonlocal recovery_observed
+        with pytest.raises(StateAuthorityLockError):
+            acquire_state_authority_lock(location)
+        recovery_observed = True
+        return original_recovery(*args, **kwargs)
+
+    monkeypatch.setattr(sqlite_migration, "_attempt_migration_commit", commit_then_raise)
+    monkeypatch.setattr(sqlite_migration, "_open_bound_existing_sqlite_connection", record_bound_open)
+    monkeypatch.setattr(sqlite_migration, "_recover_migration_outcome", recover_while_lock_retained)
+
+    result = initialize_database(location)
+
+    assert result.classification is DatabaseClassification.MANAGED
+    assert open_modes == [False, True]
+    assert recovery_observed is True
+
+
+def test_destructive_catalog_is_refused_before_common_lock_or_writable_open(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path)
+    sql_bytes = b"CREATE TABLE neutral_destructive_probe (value INTEGER);\n"
+    definition = MigrationDefinition(
+        migration_id="0001_neutral_destructive_probe",
+        sequence=1,
+        resource_name="0001_neutral_destructive_probe.sql",
+        sql_bytes=sql_bytes,
+        checksum=hashlib.sha256(sql_bytes).hexdigest(),
+        min_app_schema=1,
+        max_app_schema=1,
+        destructive=True,
+        description="neutral destructive preflight probe",
+    )
+    calls: list[str] = []
+    monkeypatch.setattr(
+        sqlite_migration,
+        "acquire_state_authority_lock",
+        lambda *args, **kwargs: calls.append("lock"),
+    )
+    monkeypatch.setattr(
+        sqlite_migration,
+        "_open_sqlite_connection",
+        lambda *args, **kwargs: calls.append("writable"),
+    )
+    monkeypatch.setattr(
+        sqlite_migration,
+        "_expected_schema_manifest_for_sequence",
+        lambda *args, **kwargs: calls.append("manifest"),
+    )
+
+    with pytest.raises(SQLiteStateError, match="migration_failed"):
+        _initialize_database_with_catalog(
+            location,
+            MigrationCatalog((definition,)),
+            current_app_schema=1,
+            verify_managed_invariants=False,
+        )
+
+    assert calls == []
+    assert not location.state_root.exists()
 
 
 def test_migrate_while_lock_held_fails_safely_without_migration_change(tmp_path: Path) -> None:
@@ -155,17 +241,17 @@ def test_migrate_exception_after_lock_releases_resource(
 ) -> None:
     location = _location(tmp_path)
     initialize_database(location)
-    original_inspect = sqlite_migration._inspect_open_database
+    original_assess = sqlite_migration._assess_location_database
     calls = 0
 
-    def fail_transaction_inspect(connection, catalog):
+    def fail_locked_assessment(*args, **kwargs):
         nonlocal calls
         calls += 1
-        if calls >= 3:
+        if calls >= 2:
             raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_FAILED)
-        return original_inspect(connection, catalog)
+        return original_assess(*args, **kwargs)
 
-    monkeypatch.setattr(sqlite_migration, "_inspect_open_database", fail_transaction_inspect)
+    monkeypatch.setattr(sqlite_migration, "_assess_location_database", fail_locked_assessment)
     with pytest.raises(SQLiteStateError, match="migration_failed"):
         migrate_database(location)
 
@@ -230,14 +316,14 @@ def test_two_simultaneous_initialize_calls_do_not_partially_initialize(
     location = _location(tmp_path)
     entered = threading.Event()
     release = threading.Event()
-    original = sqlite_migration._apply_migration_in_transaction
+    original = sqlite_migration._apply_migration_definition_in_transaction
 
-    def slow_apply(connection, migration, *, fresh_install):
+    def slow_apply(connection, migration):
         entered.set()
         assert release.wait(5)
-        return original(connection, migration, fresh_install=fresh_install)
+        return original(connection, migration)
 
-    monkeypatch.setattr(sqlite_migration, "_apply_migration_in_transaction", slow_apply)
+    monkeypatch.setattr(sqlite_migration, "_apply_migration_definition_in_transaction", slow_apply)
     results: list[str] = []
 
     def call_initialize() -> None:
@@ -280,7 +366,10 @@ def test_two_simultaneous_migrate_calls_do_not_partially_migrate(
         nonlocal call_count, pause_used
         with counter_lock:
             call_count += 1
-            should_pause = call_count >= 2 and not pause_used
+            # C2B1 Repair 1 performs history-only and complete assessment before
+            # locking, then repeats both under the common authority lock. The
+            # third observational open is therefore the first lock-held read.
+            should_pause = call_count >= 3 and not pause_used
             if should_pause:
                 pause_used = True
         if should_pause:

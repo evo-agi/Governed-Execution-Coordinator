@@ -1,7 +1,7 @@
 # SQLite Backend Threat Model
 
-Status: B2b bootstrap/inspection/validation/migration implementation plus the
-common state-authority lock for initialize/migrate administration. B2c
+Status: C2B1 bounded administrative migration framework over the B1/B1.1/B2b
+bootstrap/inspection/validation and common state-authority lock foundation. B2c
 implements durable writer issuance and internal writer-session acquisition.
 B3a implements canonical persistence and provenance contracts only. B3c1b adds
 private operation-lease-only rollback-only writer-fencing/capability mechanics
@@ -125,10 +125,29 @@ Partial or corrupt database:
 
 Failed migration:
 
-- migrations are transactional and forward-only;
-- interrupted migration rolls back;
+- the complete catalog or selected contiguous suffix is one transaction and
+  no selected migration may commit early;
+- before `COMMIT` begins, failure attempts rollback and close;
+- once `COMMIT` begins, rollback is forbidden;
+- a commit-attempt exception or unprovable cleanup is classified by exact
+  filesystem-bound history/schema readback under the retained common lock;
+- exact completed evidence succeeds, exact prior evidence is
+  `migration_failed`, and every other result is
+  `migration_outcome_unresolved`;
+- unresolved evidence fails closed with no automatic retry, suffix rerun, or
+  missing-remainder completion;
 - old binary/new schema refuses;
 - restore, not reverse migration, is rollback.
+
+Migration-specific threats include a packaged resource/checksum escape,
+top-level SQL transaction-control or `PRAGMA`/attach/vacuum escape, unbounded or
+malformed history, duplicate/gapped/unknown/divergent history, history/schema
+disagreement, cumulative-schema drift, symlink/hard-link/binding replacement,
+recovery-open failure, and outward leakage of paths, SQL, resource bytes,
+schema inventory, or raw SQLite errors. C2B1 rejects the SQL/resource plan
+before mutation, bounds history and live-schema classification, independently
+verifies cumulative packaged SQL against live schema, uses the common lock and
+filesystem binding for mutation/recovery, and exposes only closed safe errors.
 
 B1.1/B2b add concrete coverage for bootstrap filesystem threats, split
 observational/admin connection posture, absent/empty/managed/unknown database

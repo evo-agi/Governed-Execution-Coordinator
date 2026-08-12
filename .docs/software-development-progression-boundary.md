@@ -373,10 +373,29 @@ contract must still freeze the applicable runtime, direct-local or ES adapter,
 transport, and persistence mechanics before schema, service, worker, adapter,
 Git/CI, or runtime execution work.
 
+## C2B1 Current Migration-Administration Boundary
+
+Status: `CURRENT IMPLEMENTED CONTRACT` for explicit SQLite administration
+only. C2B0 remains the historical accepted-target contract tranche.
+
+C2B1 implements exact-current ordinary open and explicit supported-prefix
+migration in `sqlite_migration.py`. Complete-catalog initialization and
+complete contiguous suffix migration use one administrative transaction and
+three-way commit readback under the retained common lock. Migration eligibility,
+history, schema evidence, and recovery evidence are administrative facts only;
+they are not development-program admission, selection, attempt, observation,
+decision, acceptance, effect, publication, or completion truth.
+
+Durable development progression, source-observation ingest, semantic decisions,
+effect establishment or execution, WorkSpec custody, worker/process behavior,
+capsule storage, Git effects, direct-local execution, ES routing, and autonomous
+runtime remain unimplemented. C2B1 adds no product progression transaction,
+reader, writer, public API, service, scheduler, queue, or publication authority.
+
 ## C2B0 Accepted Durable Progression Closure
 
 Status: `ACCEPTED TARGET CONTRACT`; the C0 historical statements above remain
-historical and C2B remains unimplemented.
+historical and durable C2B progression remains unimplemented.
 
 The exact ordered decision kinds are `initialize`, `accept`, `repair`,
 `replan`, `terminal_reject`, `block`, `redeliver`, and `cancel`. `initialize`

@@ -199,16 +199,16 @@ MIGRATION_RECOVERY_STEPS = (
 )
 
 MIGRATION_COMMITTED_EXACT = (
-    "committed_exact",
+    "COMMITTED_EXACT",
     "history equals the prior prefix plus the complete intended suffix",
-    "every suffix row matches packaged sequence, ID, checksum, compatibility bounds, and destructive flag",
+    "every suffix row's persisted projection resolves exactly to one packaged non-destructive definition",
     "live schema equals the complete intended terminal-tip schema",
     "the prior prefix remains unchanged",
     "no partial, extra, unknown, or divergent object exists",
 )
 
 MIGRATION_DEFINITELY_NOT_COMMITTED = (
-    "definitely_not_committed",
+    "DEFINITELY_NOT_COMMITTED",
     "history equals the exact prior supported prefix",
     "live schema equals the exact prior supported-prefix schema",
     "no intended suffix history row exists",
@@ -217,7 +217,7 @@ MIGRATION_DEFINITELY_NOT_COMMITTED = (
 )
 
 MIGRATION_UNRESOLVED = (
-    "unresolved",
+    "UNRESOLVED",
     "history and schema disagree",
     "only part of the intended suffix is present",
     "history-only suffix evidence exists",
@@ -265,6 +265,24 @@ MIGRATION_FORBIDDEN_CLAIMS = (
     "an unexpected live-schema object is committed_exact.",
     "incomplete exact history or live-schema verification is committed_exact.",
     "after an unresolved migration commit, the missing migration-suffix remainder is automatically appended.",
+)
+
+C2B1_REPAIR1_FORBIDDEN_CLAIMS = (
+    "c2b1 is target-only.",
+    "application generation 2 is current.",
+    "migration 0002 is current.",
+    "migration 0003 is current.",
+    "ordinary open migrates a supported prefix.",
+    "every historical row must include the running application generation.",
+    "destructive is a schema_migrations column.",
+    "non-filesystem migration resources are currently supported.",
+    "symlinked migration resources are accepted.",
+    "all migration failures use ordinary rollback.",
+    "migration history alone is final-schema authority.",
+    "an unresolved migration is automatically retried.",
+    "the complete migration suffix is automatically rerun.",
+    "the missing migration-suffix remainder is automatically appended.",
+    "durable c2b records and runtime are current.",
 )
 
 LATCH_CONTRACT = (
@@ -319,8 +337,8 @@ TRIGGER_AGGREGATE_ROLE_CLAIMS = (
 )
 
 TRANCHE_LINES = (
-    "C2B0: documentation and direct documentation-contract tests only",
-    "C2B1: application generation 1; terminal tip 0001; migration-framework reset only; no SQL or database change",
+    "C2B0: historical documentation and direct documentation-contract tests only",
+    "C2B1: current application generation 1; terminal tip 0001; migration-framework reset only; no SQL or schema change; no durable development state",
     "C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, private readers; no mutation API",
     "C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O",
     "C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API",
@@ -600,7 +618,7 @@ def _assert_sqlite_migration_summary(text: str) -> None:
     for phrase in (
         "no target SQL is installed",
         "application generation and managed database tip remain 1/`0001_initial`",
-        "C2B1 is a framework-only source/test reset with no SQL or database change",
+        "C2B1 is a framework-only source/test reset with no SQL or database change and is now current migration administration",
         "C2B2 advances implemented application generation from 1 to 2",
         "terminal catalog tip becomes 0002",
         "C2B3 remains generation 2 with terminal tip 0002",
@@ -609,7 +627,7 @@ def _assert_sqlite_migration_summary(text: str) -> None:
         "historical migration 0001 remains `[1,1]`, while 0002 and 0003 are `[2,2]`",
         "Ordinary open never silently migrates and never accepts an older prefix",
         "one exact non-empty supported older catalog prefix",
-        "gaps, unknown or partial rows, and divergent bounds or flags are rejected",
+        "gaps, unknown or partial rows, and divergent bounds are rejected",
         "one exact contiguous suffix leading to the current terminal tip",
         "the complete intended packaged suffix is one administrative transaction",
         "Failure before commit restores the complete exact prior supported prefix",
@@ -640,7 +658,7 @@ def _assert_sqlite_migration_summary(text: str) -> None:
         f"{role}|heading={heading}|failure=transaction_or_recovery_mapping",
     )
     lowered = prose.lower()
-    for forbidden in MIGRATION_FORBIDDEN_CLAIMS:
+    for forbidden in (*MIGRATION_FORBIDDEN_CLAIMS, *C2B1_REPAIR1_FORBIDDEN_CLAIMS):
         _require(
             forbidden not in lowered,
             f"{role}|heading={heading}|failure=forbidden_migration_claim",
@@ -847,7 +865,7 @@ def _assert_schema_contract(text: str) -> None:
     assert "Migration `0001_initial` retains immutable bytes, checksum, history, and meanings." in migration_0001, (
         "c2b0.migration|heading=20. Migration-Framework Strategy|failure=0001_immutability"
     )
-    assert "C2B1 is a framework-only source/test reset: it adds no SQL or database change" in migration_0001, (
+    assert "C2B1 is a framework-only source/test reset: it adds no SQL or database change and is now the current migration-administration implementation" in migration_0001, (
         "c2b0.migration|heading=20. Migration-Framework Strategy|failure=c2b1_scope"
     )
     blocks_0002 = _text_blocks(migration_0002)
@@ -1058,14 +1076,15 @@ def _assert_current_target_status(text: str) -> None:
     status = _section_prose(text, SECTION_HEADINGS[0])
     required = (
         "The current implemented application generation remains 1",
-        "the packaged catalog and managed database tip remain `0001_initial`",
+        "The current C2B1 migration framework is implemented",
+        "The packaged catalog and managed database tip remain `0001_initial`",
         "schema 0001 is unchanged",
         "The accepted C2B target reserves migrations",
         "`0002_development_program_and_effect_state`",
         "`0003_development_observation_and_progression_state`",
         "exact target responsibilities and inventories are frozen below",
         "No 0002/0003 SQL, catalog entry, schema object, installed migration, application-generation change",
-        "C2B reader, writer, mutation, transaction, ingest",
+        "No target C2B reader, writer, mutation, transaction, ingest",
     )
     for phrase in required:
         _require(
@@ -1093,9 +1112,9 @@ def _assert_current_target_status(text: str) -> None:
 def _assert_application_generation_contract(text: str) -> None:
     strategy = _section_prose(text, SECTION_HEADINGS[19])
     for phrase in (
-        "C2B1 is a framework-only source/test reset: it adds no SQL or database change",
-        "the implemented application generation remains 1",
-        "current catalog and terminal tip remain `0001_initial`",
+        "C2B1 is a framework-only source/test reset: it adds no SQL or database change and is now the current migration-administration implementation",
+        "The implemented application generation remains 1",
+        "the current catalog and terminal tip remain exactly `0001_initial`",
         "C2B2 advances the implemented application generation from 1 to 2",
         "catalog terminal tip becomes 0002",
         "C2B3 remains application generation 2 with terminal migration 0002",
@@ -1135,7 +1154,7 @@ def _assert_cumulative_migration_contract(text: str) -> None:
         "Ordinary open never silently migrates and never accepts an older prefix.",
         "one exact non-empty supported older catalog prefix",
         "exact packaged checksum and metadata",
-        "no gaps, unknown rows, partial rows, or divergent bounds or flags",
+        "no gaps, unknown rows, partial rows, divergent bounds, or ambiguous catalog resolution",
         "one exact contiguous packaged suffix leads to the current terminal tip",
         "migration-eligible only; it is not ordinarily product-openable before migration",
         "the complete intended packaged suffix is one administrative transaction",
@@ -1158,7 +1177,8 @@ def _assert_migration_failure_and_history_contract(text: str) -> None:
     strategy = _section_prose(text, SECTION_HEADINGS[19])
     for phrase in (
         "Every installed migration row remains immutable",
-        "sequence, migration ID, checksum, compatibility bounds, and destructive flag",
+        "The persisted projection contains sequence, migration ID, checksum, `applied_at`, and compatibility bounds",
+        "`schema_migrations` has no `destructive` column",
         "Historical `0001_initial` therefore remains `[1,1]`",
         "migrations 0002 and 0003 are each `[2,2]`",
         "do not require every historical row to include the running application generation",
@@ -1408,9 +1428,9 @@ def test_current_versus_target_and_one_writer_are_explicit() -> None:
     status = _section_prose(text, SECTION_HEADINGS[0])
     authority = _compact(_section(text, SECTION_HEADINGS[1]))
     for phrase in (
-        "Classification: `ACCEPTED TARGET CONTRACT`.",
-        "C2B0 changes documentation and direct documentation-contract tests only.",
-        "The current implementation is absent.",
+        "Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration administration",
+        "C2B0 was the historical documentation-and-direct-contract-test tranche.",
+        "C2B durable software-development state under the existing writer authority remains target-only.",
         "The current implemented application generation remains 1",
         "one existing Coordinator SQLite database",
         "one existing writer issuance and fencing authority",
@@ -1805,8 +1825,8 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
 
     lower_level = _replace_once(
         text,
-        "Classification: `ACCEPTED TARGET CONTRACT`.\n\nC2B0 changes",
-        "Classification: `ACCEPTED TARGET CONTRACT`.\n\n### Local Detail\n\nC2B0 changes",
+        "representation and C2B2-C2B6 behavior below.\n\nC2B0 was",
+        "representation and C2B2-C2B6 behavior below.\n\n### Local Detail\n\nC2B0 was",
     )
     _assert_current_target_status(lower_level)
 
@@ -1843,8 +1863,8 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
     for boundary in ("## Relocated Status", "# Relocated Status"):
         mutation = _replace_once(
             text,
-            "Classification: `ACCEPTED TARGET CONTRACT`.\n\nC2B0 changes",
-            f"Classification: `ACCEPTED TARGET CONTRACT`.\n\n{boundary}\n\nC2B0 changes",
+            "representation and C2B2-C2B6 behavior below.\n\nC2B0 was",
+            f"representation and C2B2-C2B6 behavior below.\n\n{boundary}\n\nC2B0 was",
         )
         with pytest.raises(AssertionError) as rejected:
             _assert_current_target_status(mutation)
@@ -1865,7 +1885,7 @@ def test_c2b0_summary_sections_ignore_fenced_target_claims() -> None:
             _text(".docs/architecture.md"),
             "c2b0.summary.architecture",
             "C2B0 Accepted Durable-State Target Topology",
-            "Status: `ACCEPTED TARGET CONTRACT`; implementation absent.",
+            "Status: `ACCEPTED TARGET CONTRACT`; durable topology implementation absent.",
         ),
         (
             _text(".docs/autonomous-software-development-operating-model.md"),
@@ -1877,7 +1897,7 @@ def test_c2b0_summary_sections_ignore_fenced_target_claims() -> None:
             _text(".docs/software-development-progression-boundary.md"),
             "c2b0.summary.progression",
             "C2B0 Accepted Durable Progression Closure",
-            "C2B remains unimplemented.",
+            "durable C2B progression remains unimplemented.",
         ),
     )
     for text, role, heading, required in summaries:
@@ -2428,8 +2448,8 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
 
     same_or_higher = _replace_once(
         text,
-        "Classification: `ACCEPTED TARGET CONTRACT`.\n\nC2B0 changes",
-        "Classification: `ACCEPTED TARGET CONTRACT`.\n\n# Relocated Status\n\nC2B0 changes",
+        "representation and C2B2-C2B6 behavior below.\n\nC2B0 was",
+        "representation and C2B2-C2B6 behavior below.\n\n# Relocated Status\n\nC2B0 was",
     )
     with pytest.raises(AssertionError) as rejected:
         _assert_current_target_status(same_or_higher)
@@ -2776,6 +2796,25 @@ def test_c2b0_unresolved_remainder_append_is_forbidden_through_both_validators()
     assert str(sqlite_rejected.value) == (
         "c2b0.sqlite_migration|heading=C2B0 Target Migration Sequence|failure=forbidden_migration_claim"
     )
+
+
+def test_c2b1_required_documentation_negative_matrix() -> None:
+    sqlite = _text(".docs/sqlite-bootstrap-and-migrations.md")
+    marker = "An `unresolved` result forbids automatic rerun and automatic append of a"
+    _assert_sqlite_migration_summary(sqlite)
+
+    for contradiction in C2B1_REPAIR1_FORBIDDEN_CLAIMS:
+        mutation = _replace_once(
+            sqlite,
+            marker,
+            contradiction + "\n\n" + marker,
+        )
+        with pytest.raises(AssertionError) as rejected:
+            _assert_sqlite_migration_summary(mutation)
+        assert str(rejected.value) == (
+            "c2b0.sqlite_migration|heading=C2B0 Target Migration Sequence|"
+            "failure=forbidden_migration_claim"
+        )
 
 
 def test_c2b0_markdown_closer_suffix_is_ascii_space_tab_only() -> None:

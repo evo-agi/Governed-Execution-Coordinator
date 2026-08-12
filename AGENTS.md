@@ -127,6 +127,33 @@ authoritative Coordinator writer, create work items/events/decision
 receipts/global-stop changes through product APIs, or enable executable A2
 behavior.
 
+C2B1 is the current bounded administrative migration-framework reset. The
+implemented application generation remains 1, the production catalog and tip
+remain exactly `0001_initial`, and that is still the only production SQL
+migration. Ordinary inspection, validation, writer acquisition, and product
+mutation admit only exact complete current history with terminal-only
+application-generation compatibility and an exact cumulative packaged-SQL
+schema/invariant match. Public inspection remains only
+absent/empty/managed/unknown; a private nine-condition assessment makes an
+exact supported non-empty older prefix eligible only for explicit
+`migrate_database()`. Initialization applies the complete catalog and explicit
+migration applies the complete contiguous suffix in one administrative
+transaction with one planned timestamp and one commit attempt. Selected
+destructive metadata is catalog-only, is not a `schema_migrations` column, and
+is rejected before the common lock or writable activity. Pre-commit failures
+attempt rollback; commit-attempt or unprovable-cleanup uncertainty is resolved
+under the retained common lock by filesystem-bound readback as exactly
+committed, definitely not committed, or unresolved. Unresolved migration
+evidence raises `migration_outcome_unresolved` and forbids automatic retry or
+suffix-remainder append. Cumulative packaged SQL is expected-schema authority;
+history is installed-migration evidence and live schema is independently
+verified observation.
+
+C2B1 adds no durable development record, reader, writer, mutation, observation
+ingest, decision runtime, authority verifier, WorkSpec custody, worker/process
+execution, capsule storage, Git effect, direct-local behavior, ES routing,
+service, scheduler, queue, publication, or autonomous-loop authority.
+
 Versioned Coordinator input schemas are closed-world in P1/P1.1. Unknown
 fields, misspelled fields, duplicate JSON object keys, and unversioned
 extension or metadata bags must fail before canonicalization or digest
@@ -482,7 +509,8 @@ Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
 weaken, or replace global stop without a typed operator decision.
 
-C2B0 is the accepted target-only durable-development state contract governed by
+C2B0 is the historical documentation-and-contract-test tranche that accepted
+the target-only durable-development state contract governed by
 `.docs/c2b-durable-development-state.md`. It selects the existing Coordinator
 SQLite database, writer issuance/fencing authority, operation guard, mutation
 slot, and transaction controller; it adds no second authority system and no
@@ -491,8 +519,9 @@ kinds are `initialize`, `accept`, `repair`, `replan`, `terminal_reject`,
 `block`, `redeliver`, and `cancel`. Author-effect establishment and bound
 validation/review/cancellation-effect establishment are separate future private
 transaction roles. Private WorkSpec custody and restart-safe retrieval remain
-deferred. C2B0 adds documentation and direct contract tests only: C2B durable
-records, migrations 0002/0003, readers, mutations, observation ingest,
+deferred. C2B0 added documentation and direct contract tests only. C2B1 now
+implements only the administrative migration framework described above; C2B
+durable records, migrations 0002/0003, readers, mutations, observation ingest,
 decisions, latch behavior, authority verification, worker/process execution,
 Git effects, direct-local behavior, and ES routing remain unimplemented.
 

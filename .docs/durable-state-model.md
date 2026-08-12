@@ -7,9 +7,12 @@ authoritative C1 composition record is
 `.docs/autonomous-software-development-operating-model.md`; process-only audit
 governance there is not durable state.
 
-A2-P1/P1.1 defines state contracts. B1/B1.1 adds explicit operator-local
-SQLite bootstrap, observational validation, live-schema integrity checks, and
-migration infrastructure. B2a corrects the writer-session authority contract.
+A2-P1/P1.1 defines state contracts. B1/B1.1 added explicit operator-local
+SQLite bootstrap and observational validation. C2B1 is the current bounded
+administrative migration framework: exact-current ordinary open, explicit
+supported-prefix migration, terminal-only compatibility, cumulative
+packaged-SQL schema authority, whole-suffix one-transaction application, and
+three-way commit readback. B2a corrects the writer-session authority contract.
 B2b adds the common state-authority lock for initialize/migrate administration.
 B2c adds durable writer issuance and an internal concrete SQLite
 `WriterSession`. B3a adds canonical persistence and provenance contracts only.
@@ -51,13 +54,17 @@ creates no durable state. C2A1 implements only internal immutable no-I/O values
 and the six named pure coherence validators; those values neither read nor
 write SQLite and confer no durable or executable authority. The current
 implemented database remains application generation 1 with schema 0001 and the
-`0001_initial` catalog entry only; migration 0001 bytes, history, and table
-meanings remain unchanged. The accepted C2B0 target contract now reserves
+`0001_initial` catalog entry and production SQL resource only; migration 0001
+bytes, history, and table meanings remain unchanged. C2B1 changes bounded
+administrative migration mechanics, not durable development state. The
+accepted C2B0 target contract reserves
 `0002_development_program_and_effect_state` and
 `0003_development_observation_and_progression_state`, and freezes their exact
 target responsibilities and inventories. No 0002/0003 SQL, catalog entry,
-schema object, installed migration, application-generation change, C2B reader,
-writer, or mutation is currently implemented.
+schema object, installed migration, application-generation change, C2B durable
+record, reader, writer, mutation, observation ingest, decision runtime,
+authority verifier, WorkSpec custody, worker/runtime behavior, or effect is
+currently implemented.
 
 Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
 `auditing`, repair, commit, and cleanup names do not transfer runtime authority
@@ -71,7 +78,8 @@ behavior, state names, and disabled-stage behavior remain unchanged.
 
 Direct-local worker execution, capsule construction or custody, review,
 validation, repair, Git effects, ES routing, publication, and autonomous
-progression are deferred or blocked effects. C2B remains target-only. The
+progression are deferred or blocked effects. Durable C2B representation and
+progression remain target-only; C2B1 migration administration is current. The
 reserved target migration inventories are fixed by
 `.docs/c2b-durable-development-state.md`; later SQL encoding, safe-reference
 representation, observation-storage mechanics, and runtime integration remain
@@ -413,6 +421,9 @@ Status: `ACCEPTED TARGET CONTRACT`; current schema remains 0001 and the target
 records below do not exist. The implemented catalog contains only
 `0001_initial`, and implemented application generation remains 1. Migrations
 0002 and 0003 are reserved target identities, not installed or current schema.
+C2B1 currently owns only `sqlite_migration.py` administrative transactions;
+those transactions are not a second product writer, a C2B product mutation
+transaction, or durable progression truth.
 
 C2B selects a hybrid representation: mutable CAS-protected
 `development_program_heads`, `development_work_item_heads`,

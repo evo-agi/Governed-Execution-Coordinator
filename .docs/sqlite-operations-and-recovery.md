@@ -1,7 +1,8 @@
 # SQLite Operations And Recovery
 
-Status: B2b bootstrap/inspection/validation/migration implementation plus the
-shared state-authority advisory lock for initialize/migrate administration.
+Status: C2B1 bounded migration administration over the B1/B1.1/B2b
+bootstrap/inspection/validation and shared state-authority advisory-lock
+foundation.
 B2c adds durable writer issuance and internal writer-session acquisition. B3a
 adds contract-only future transition persistence rules. B3c1b adds private
 rollback-only writer fencing with no public mutation runtime. B3c4b adds
@@ -10,6 +11,10 @@ adds public transition delegation, B4b adds private global-stop persistence,
 and B4c adds guarded public global-stop delegation. Receipt provisioning remains
 separate, and no worker, service, scheduler, orchestration, publication, or
 cross-repository authority exists.
+
+The current migration application generation is 1, the terminal catalog is
+exactly `0001_initial`, and `0001_initial.sql` is the sole production migration
+resource. Migrations 0002/0003 and application generation 2 remain absent.
 
 ## Filesystem Posture
 
@@ -90,16 +95,17 @@ B5 hardening topics, not solved B2b properties.
 
 ## Bootstrap And Migration Operations
 
-B1.1 exposes split offline operations:
+C2B1 exposes split offline operations:
 
 - inspect an existing fixed database path observationally, returning absent,
   empty, managed, or unknown without creating or mutating files;
 - validate an existing managed database observationally, including journal
   posture, migration-history/catalog equality, live-schema manifest equality,
   and managed current-state invariants;
-- initialize an absent or empty local database with migration `0001_initial`;
-- migrate an existing managed older supported database through packaged
-  forward-only migrations.
+- initialize an absent or empty local database with the complete current
+  catalog (currently only `0001_initial`);
+- migrate an exact supported non-empty older prefix through the complete
+  contiguous packaged suffix.
 
 Initialize and migrate acquire the common state-authority lock after
 observational preflight and revalidate while holding the lock. A no-op
@@ -110,29 +116,53 @@ database, or lock file.
 Ordinary future product operations must not run migrations implicitly merely by
 opening the database.
 
-Before applying migrations, B1.1 classifies the database:
+Public inspection retains absent, empty, managed, and unknown. `managed` means
+only exact complete current history, the exact current terminal ID,
+terminal-only compatibility, cumulative schema equality, and managed
+invariants. An exact supported older prefix is public `UNKNOWN`; it is never
+ordinary `MANAGED`.
+
+Before applying migrations, C2B1 uses the closed private assessment:
 
 - absent: fixed database file missing;
 - empty: existing database/placeholder with no user-defined schema objects;
-- managed: authoritative migration history equals the packaged catalog, the
-  full live schema manifest matches, and managed current-state invariants pass;
-- unknown/partially initialized: any unrecognized table, view, explicit index,
-  trigger, invalid migration history, duplicate sequence or id, checksum
-  mismatch, migration gap, newer unsupported schema, incompatible or non-equal
-  bounds, unsupported journal posture, malformed schema, or failed current-state
-  invariant.
+- current: exact complete current history and terminal schema;
+- supported older prefix: exact non-empty proper prefix with exact cumulative
+  prefix schema and a complete packaged path to the current tip;
+- unsupported older, newer unsupported, corrupt history, partial migration, and
+  database-not-empty-unmanaged: distinct fail-closed states.
 
 Unknown databases fail closed. B1 does not adopt, drop, repair, or rewrite
 unknown schema.
 
-Observational inspect/validate use create-disabled opening where practical and
+Observational inspect/validate and every ordinary product/writer open use
+create-disabled opening where practical and
 never issue persistent `journal_mode` changes. Wrong-posture WAL databases are
-reported as unsupported/unknown instead of being converted. Migration
-transactions are explicit and forward-only. Migration `0001_initial` creates
-`schema_migrations` and all schema objects, verifies the schema manifest and
-bootstrap seed, inserts its migration-history row, and commits as one
-transaction. Failed migrations roll back; reverse migrations are not a rollback
-mechanism.
+reported as unsupported/unknown instead of being converted. Ordinary open
+never migrates and rejects a supported prefix.
+
+Explicit migration validates the entire selected plan and refuses destructive
+or transaction-escaping SQL before lock acquisition or writable activity. It
+retains the common lock through locked revalidation, filesystem-bound writable
+open, one `BEGIN IMMEDIATE`, complete suffix application, one planned
+timestamp, final history/schema verification, one commit attempt, cleanup, and
+any recovery. No migration in the selected suffix commits early.
+
+Before commit starts, failure attempts rollback and close to restore the exact
+opening state. After commit begins, rollback is forbidden. Raised commit or
+unprovable cleanup triggers filesystem-bound readback under the retained lock:
+
+- `COMMITTED_EXACT` returns success only for exact completed history plus exact
+  cumulative target schema and invariants;
+- `DEFINITELY_NOT_COMMITTED` raises `migration_failed` only for exact prior
+  history/schema with no suffix evidence;
+- `UNRESOLVED` raises `migration_outcome_unresolved` for every partial,
+  divergent, unknown, or unverifiable result.
+
+There is no automatic retry, complete-suffix rerun, or missing-remainder append
+after unresolved evidence. Explicit operator intervention and a later separate
+eligibility proof are required. This administrative graph is distinct from
+semantic mutation `commit_outcome_unknown` retry.
 
 ## Writer Issuance Operation
 
@@ -203,10 +233,10 @@ Backups:
 - must include schema checksum metadata;
 - must not include report projections as authoritative state.
 
-B1 implements no backup files and no destructive migrations. Future destructive
-migrations require a separately verified backup receipt before the migration
-runner may proceed. Migration history records migration identity, checksum, and
-compatibility bounds, not raw backup paths.
+C2B1 implements no backup files and rejects every selected destructive
+definition before lock or writable activity. Migration history records the
+persisted definition projection—sequence, ID, checksum, `applied_at`, and
+compatibility bounds—not a destructive column or raw backup path.
 
 ## Restore
 

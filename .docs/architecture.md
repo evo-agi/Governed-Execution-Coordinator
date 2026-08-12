@@ -389,10 +389,11 @@ in:
 - `.docs/sqlite-operations-and-recovery.md`;
 - `.docs/writer-session-authority.md`.
 
-## B1 SQLite Bootstrap And Migrations
+## C2B1 SQLite Bootstrap And Administrative Migrations
 
-B1/B1.1 implements only explicit operator-local SQLite bootstrap, observation,
-validation, and migration infrastructure:
+B1/B1.1 historically established explicit operator-local SQLite bootstrap and
+observational validation. C2B1 currently owns the bounded administrative
+migration transaction in `sqlite_migration.py`:
 
 - fixed per-user local state-location policy using the canonical NWP
   Coordinator component name, not the repository display name;
@@ -401,18 +402,22 @@ validation, and migration infrastructure:
 - split standard-library SQLite connection posture verification for
   observational existing-database reads, administrative initialization, and
   managed-write migration;
-- packaged, versioned, forward-only migration catalog;
-- initial schema installation into an explicitly requested local database;
+- closed packaged, versioned, forward-only migration catalog;
+- complete-catalog installation into an explicitly requested local database;
 - non-mutating absent/empty/managed/unknown classification;
-- migration-history/catalog equality and application-compatibility validation;
-- full live-schema manifest verification derived from packaged migration bytes;
+- exact persisted-history/catalog equality and terminal-only
+  application-compatibility validation;
+- exact-current ordinary open and explicit supported-prefix migration;
+- cumulative live-schema manifest verification derived from packaged migration
+  bytes through the selected terminal;
+- whole-suffix one-transaction application and three-way commit readback;
 - bootstrap and generic managed current-state invariant checks.
 
-B1.1 inspect/validate do not create missing roots or databases, do not change
+B1.1/C2B1 inspect/validate do not create missing roots or databases, do not change
 persistent journal posture, do not repair or adopt unknown databases, and do
 not auto-migrate. Initialize and migrate are explicit operator-local
 administrative mutations. B2b initialize/migrate acquire the common
-state-authority lock and revalidate while holding it. B1/B2b do not implement a
+state-authority lock and revalidate while holding it. C2B1/B2b do not implement a
 SQLite `StateStore`, product mutation methods, database-backed product reads,
 reports over the database, coordinator service behavior, worker execution,
 authorization, scheduling, repair, local commit, publication, or deployment.
@@ -421,8 +426,14 @@ only, not product mutations.
 Normal future runtime must not run migrations concurrently with an active
 Coordinator writer.
 
-The B1 bootstrap and migration contract is documented in
+The current C2B1 bootstrap and migration contract is documented in
 `.docs/sqlite-bootstrap-and-migrations.md`.
+
+This administrative transaction reuses the one common exclusion lock and
+filesystem binding but is not the Coordinator product writer, not a second
+progression controller, and not C2B semantic truth. C2B durable-state topology,
+C2B product mutation transactions, C2B readers/writers, observation ingest,
+decision runtime, effects, and worker/runtime behavior remain absent.
 
 ## B2a Writer-Session Contract
 
@@ -542,7 +553,9 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
 
 ## C2B0 Accepted Durable-State Target Topology
 
-Status: `ACCEPTED TARGET CONTRACT`; implementation absent.
+Status: `ACCEPTED TARGET CONTRACT`; durable topology implementation absent.
+C2B1 administrative migration source is current but is outside this product
+topology.
 
 C2B targets private role-based durable-development modules in the existing
 Coordinator SQLite database. They must reuse the existing concrete writer
@@ -555,7 +568,7 @@ widening.
 The target private transaction roles separate program initialization,
 author-effect establishment, bound validation/review/cancellation-effect
 establishment, source-observation ingest, and progression decisions. Durable
-intent must precede future external I/O, but no C2B0 source or I/O exists. The
-current managed tip remains schema 0001 and there is no C2B reader, writer,
-transaction, worker, Bridge dependency, ES dependency, service, queue,
-scheduler, or autonomous loop.
+intent must precede future external I/O, but no C2B durable-state source or I/O
+exists. The current managed tip remains schema 0001 and there is no C2B product
+reader, writer, mutation transaction, worker, Bridge dependency, ES dependency,
+service, queue, scheduler, or autonomous loop.

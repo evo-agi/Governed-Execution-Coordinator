@@ -154,12 +154,13 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
     )
     for phrase in (
         "current implemented database remains application generation 1 with schema 0001",
-        "`0001_initial` catalog entry only",
+        "`0001_initial` catalog entry and production SQL resource only",
         "migration 0001 bytes, history, and table meanings remain unchanged",
-        "accepted C2B0 target contract now reserves",
+        "C2B1 changes bounded administrative migration mechanics, not durable development state",
+        "accepted C2B0 target contract reserves",
         "`0002_development_program_and_effect_state`",
         "`0003_development_observation_and_progression_state`",
-        "No 0002/0003 SQL, catalog entry, schema object, installed migration, application-generation change, C2B reader, writer, or mutation is currently implemented.",
+        "No 0002/0003 SQL, catalog entry, schema object, installed migration, application-generation change, C2B durable record, reader, writer, mutation, observation ingest, decision runtime, authority verifier, WorkSpec custody, worker/runtime behavior, or effect is currently implemented.",
     ):
         _require(
             phrase in current,
@@ -988,7 +989,8 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
     )
 
     for phrase in (
-        "Status: `ACCEPTED TARGET CONTRACT`; implementation absent.",
+        "Status: `ACCEPTED TARGET CONTRACT`; durable topology implementation absent.",
+        "C2B1 administrative migration source is current but is outside this product topology.",
         "existing Coordinator SQLite database",
         "existing concrete writer issuance/fencing authority",
         "operation guard",
@@ -997,7 +999,7 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
         "no second database, writer, controller, session authority, generic mutation dispatcher",
         "public `StateStore` widening",
         "public `WriterSession` widening",
-        "no C2B reader, writer, transaction, worker, Bridge dependency, ES dependency",
+        "no C2B product reader, writer, mutation transaction, worker, Bridge dependency, ES dependency",
     ):
         assert phrase in architecture
 

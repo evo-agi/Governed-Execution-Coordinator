@@ -1,7 +1,8 @@
 # SQLite State Backend ADR
 
-Status: accepted architecture; B2b implements bootstrap, observational
-inspection/validation, migrations, and the common state-authority advisory
+Status: accepted architecture; C2B1 implements the current bounded
+administrative migration framework over the earlier B1/B1.1/B2b bootstrap,
+observational inspection/validation, and common state-authority advisory
 lock for initialize/migrate administration. B2a corrects the writer-session
 authority contract. B2c implements durable writer issuance and internal
 writer-session acquisition for managed SQLite databases. B3a implements
@@ -125,7 +126,8 @@ B1/B1.1 may contain:
   migrate operations;
 - migration-history/catalog equality and schema/application compatibility
   validation;
-- live-schema manifest verification for the initial migration;
+- cumulative live-schema manifest verification derived from exact packaged SQL
+  through the selected terminal migration;
 - bootstrap and generic managed current-state invariant validation.
 
 B1/B2b must not contain:
@@ -425,25 +427,46 @@ behavior.
 
 ## Migration Architecture
 
-The authoritative migration source of truth is the `schema_migrations` table.
-Migration ids are ordered and checksummed. Migrations are forward-only,
-transactional, and require backup before destructive changes. Interrupted
-migrations roll back. Old binaries must refuse newer schemas. New binaries
-either migrate older schemas or refuse safely. Automatic downgrade is not
-supported; restore is the rollback path.
+C2B1 separates three authorities. `schema_migrations` is authoritative
+installed-migration evidence. The exact cumulative code-owned packaged SQL
+sequence is authoritative expected schema. The bounded live-schema manifest is
+an independently verified observation. History alone never proves schema, and
+live schema never self-proves its migration history.
+
+Migration IDs are ordered and checksummed. A row persists sequence, migration
+ID, checksum, `applied_at`, and compatibility bounds. Exact equality of
+sequence/ID/checksum/bounds resolves one packaged definition; `destructive` is
+catalog-only and is not a history column. A selected destructive definition is
+rejected before the common lock or writable activity. Migrations are
+forward-only; automatic downgrade is unsupported and restore is the recovery
+path for a separately authorized destructive change.
+
+Ordinary open admits only the exact complete current terminal and applies
+application-generation compatibility only to that installed terminal. A
+supported older prefix remains public `UNKNOWN` and is eligible only for
+explicit migration. Complete initialization and a complete contiguous suffix
+each use one administrative `BEGIN IMMEDIATE`, one planned timestamp, and one
+commit attempt. Before commit begins, failure attempts rollback and close. Once
+commit begins, rollback is forbidden: a raised commit or unprovable cleanup is
+resolved under the retained common lock by filesystem-bound readback as
+`COMMITTED_EXACT`, `DEFINITELY_NOT_COMMITTED`, or `UNRESOLVED`. Unresolved
+evidence raises `migration_outcome_unresolved` and permits no automatic retry
+or remainder append.
 
 `PRAGMA user_version`, if used later, is only a checked convenience mirror.
 
-B1/B1.1 implements the initial migration catalog and runner. Migration SQL is
+C2B1 implements the lasting migration catalog and runner while retaining
+application generation 1, tip `0001_initial`, and one production SQL resource.
+Migration SQL is
 loaded only from code-owned package resources and never from arbitrary
 filesystem paths. Connection PRAGMAs are set and verified by bootstrap code and
 are not part of migration identity. Observational B1.1 inspection/validation
 uses a separate create-disabled connection path and queries persistent journal
 posture instead of changing it. Administrative initialize remains the
 create-capable path. Administrative migrate requires managed observational
-preflight before opening read/write. B2b initialize and migrate acquire the
-same state-authority lock after observational preflight and revalidate while
-the lock is held. B2c writer acquisition requires an existing managed
+preflight before opening read/write. Initialize and migrate acquire the same
+state-authority lock after observational preflight, revalidate while holding
+it, and use the filesystem-bound database seam for mutation and recovery. B2c writer acquisition requires an existing managed
 database, revalidates while holding that same lock, validates again inside
 `BEGIN IMMEDIATE`, updates only `writer_ownership`, commits, closes the
 acquisition connection, and retains the lock in the returned internal session.

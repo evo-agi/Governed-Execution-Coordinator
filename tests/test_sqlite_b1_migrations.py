@@ -9,12 +9,13 @@ import stat
 import pytest
 
 from ge_nwp_coordinator.sqlite_connection import _open_sqlite_connection
-from ge_nwp_coordinator.sqlite_errors import SQLiteStateError
+from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import (
     DatabaseClassification,
+    MigrationCatalog,
     MigrationDefinition,
-    _apply_migration,
+    _initialize_database_with_catalog,
     _migration_statements,
     _user_tables,
     initialize_database,
@@ -38,6 +39,135 @@ EXPECTED_TABLES = {
     "global_stop_current",
     "global_stop_events",
 }
+
+PRE_C2B1_SQLITE_STATE_ERROR_CODES = (
+    ("UNSAFE_STATE_ROOT", "unsafe_state_root"),
+    ("UNSAFE_DATABASE_FILE", "unsafe_database_file"),
+    ("UNSUPPORTED_FILESYSTEM", "unsupported_filesystem"),
+    ("DATABASE_NOT_EMPTY_UNMANAGED", "database_not_empty_unmanaged"),
+    ("MIGRATION_HISTORY_MISSING", "migration_history_missing"),
+    ("MIGRATION_HISTORY_INVALID", "migration_history_invalid"),
+    ("MIGRATION_CHECKSUM_MISMATCH", "migration_checksum_mismatch"),
+    ("MIGRATION_GAP", "migration_gap"),
+    ("DATABASE_SCHEMA_TOO_NEW", "database_schema_too_new"),
+    ("DATABASE_SCHEMA_INCOMPATIBLE", "database_schema_incompatible"),
+    ("MIGRATION_FAILED", "migration_failed"),
+    ("SCHEMA_VERIFICATION_FAILED", "schema_verification_failed"),
+    ("SCHEMA_FINGERPRINT_MISMATCH", "schema_fingerprint_mismatch"),
+    ("SQLITE_POSTURE_UNAVAILABLE", "sqlite_posture_unavailable"),
+)
+
+C2B1_SQLITE_STATE_ERROR_CODES = (
+    ("UNSAFE_STATE_ROOT", "unsafe_state_root"),
+    ("UNSAFE_DATABASE_FILE", "unsafe_database_file"),
+    ("UNSUPPORTED_FILESYSTEM", "unsupported_filesystem"),
+    ("DATABASE_NOT_EMPTY_UNMANAGED", "database_not_empty_unmanaged"),
+    ("MIGRATION_HISTORY_MISSING", "migration_history_missing"),
+    ("MIGRATION_HISTORY_INVALID", "migration_history_invalid"),
+    ("MIGRATION_CHECKSUM_MISMATCH", "migration_checksum_mismatch"),
+    ("MIGRATION_GAP", "migration_gap"),
+    ("DATABASE_SCHEMA_TOO_NEW", "database_schema_too_new"),
+    ("DATABASE_SCHEMA_INCOMPATIBLE", "database_schema_incompatible"),
+    ("MIGRATION_FAILED", "migration_failed"),
+    ("MIGRATION_OUTCOME_UNRESOLVED", "migration_outcome_unresolved"),
+    ("SCHEMA_VERIFICATION_FAILED", "schema_verification_failed"),
+    ("SCHEMA_FINGERPRINT_MISMATCH", "schema_fingerprint_mismatch"),
+    ("SQLITE_POSTURE_UNAVAILABLE", "sqlite_posture_unavailable"),
+)
+
+
+def test_sqlite_state_error_code_inventory_preserves_prior_order_and_freezes_final_order() -> None:
+    observed_members = tuple(
+        (name, member.value)
+        for name, member in SQLiteStateErrorCode.__members__.items()
+    )
+    observed_iteration = tuple(
+        (member.name, member.value) for member in SQLiteStateErrorCode
+    )
+    observed_prior = tuple(
+        item
+        for item in observed_members
+        if item[0] != "MIGRATION_OUTCOME_UNRESOLVED"
+    )
+    observed_new = tuple(item for item in observed_members if item not in observed_prior)
+
+    assert observed_members == C2B1_SQLITE_STATE_ERROR_CODES
+    assert observed_iteration == C2B1_SQLITE_STATE_ERROR_CODES
+    assert observed_prior == PRE_C2B1_SQLITE_STATE_ERROR_CODES
+    assert observed_new == (
+        ("MIGRATION_OUTCOME_UNRESOLVED", "migration_outcome_unresolved"),
+    )
+    assert len(SQLiteStateErrorCode.__members__) == len(tuple(SQLiteStateErrorCode))
+    assert len({value for _name, value in observed_members}) == len(observed_members)
+
+    def matches_literal_oracle(candidate: tuple[tuple[str, str], ...]) -> bool:
+        candidate_prior = tuple(
+            item
+            for item in candidate
+            if item[0] != "MIGRATION_OUTCOME_UNRESOLVED"
+        )
+        candidate_new = tuple(item for item in candidate if item not in candidate_prior)
+        return (
+            candidate == C2B1_SQLITE_STATE_ERROR_CODES
+            and candidate_prior == PRE_C2B1_SQLITE_STATE_ERROR_CODES
+            and candidate_new
+            == (("MIGRATION_OUTCOME_UNRESOLVED", "migration_outcome_unresolved"),)
+            and len({name for name, _value in candidate}) == len(candidate)
+            and len({value for _name, value in candidate}) == len(candidate)
+        )
+
+    assert not matches_literal_oracle(C2B1_SQLITE_STATE_ERROR_CODES[1:])
+    assert not matches_literal_oracle(
+        (
+            C2B1_SQLITE_STATE_ERROR_CODES[1],
+            C2B1_SQLITE_STATE_ERROR_CODES[0],
+            *C2B1_SQLITE_STATE_ERROR_CODES[2:],
+        )
+    )
+    assert not matches_literal_oracle(
+        (
+            ("UNSAFE_ROOT_RENAMED", "unsafe_state_root"),
+            *C2B1_SQLITE_STATE_ERROR_CODES[1:],
+        )
+    )
+    assert not matches_literal_oracle(
+        (
+            ("UNSAFE_STATE_ROOT", "unsafe_root_changed"),
+            *C2B1_SQLITE_STATE_ERROR_CODES[1:],
+        )
+    )
+    assert not matches_literal_oracle(
+        tuple(
+            item
+            for item in C2B1_SQLITE_STATE_ERROR_CODES
+            if item[0] != "MIGRATION_OUTCOME_UNRESOLVED"
+        )
+    )
+    assert not matches_literal_oracle(
+        (
+            *C2B1_SQLITE_STATE_ERROR_CODES[:11],
+            *C2B1_SQLITE_STATE_ERROR_CODES[12:],
+            C2B1_SQLITE_STATE_ERROR_CODES[11],
+        )
+    )
+    assert not matches_literal_oracle(
+        (
+            *C2B1_SQLITE_STATE_ERROR_CODES,
+            ("MIGRATION_FAILED_ALIAS", "migration_failed"),
+        )
+    )
+    assert not matches_literal_oracle(
+        (
+            *C2B1_SQLITE_STATE_ERROR_CODES,
+            ("SECOND_UNRESOLVED", "migration_outcome_unresolved"),
+        )
+    )
+    assert not matches_literal_oracle(
+        (
+            *C2B1_SQLITE_STATE_ERROR_CODES,
+            ("SECOND_C2B1_MEMBER", "second_c2b1_member"),
+        )
+    )
 
 
 def _location(tmp_path: Path) -> CoordinatorStateLocation:
@@ -322,11 +452,11 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=2) ], "migration_gap"),
+        ([ _catalog_row(sequence=2) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
-        ([ _catalog_row(migration_id="0002_future", sequence=2, checksum="f" * 64, max_app_schema=2) ], "migration_gap"),
-        ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "database_schema_too_new"),
-        ([ _catalog_row(min_app_schema=0, max_app_schema=0) ], "database_schema_incompatible"),
+        ([ _catalog_row(migration_id="0002_future", sequence=2, checksum="f" * 64, max_app_schema=2) ], "database_schema_too_new"),
+        ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
+        ([ _catalog_row(min_app_schema=0, max_app_schema=0) ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=0, max_app_schema=1) ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=1, max_app_schema=2) ], "migration_history_invalid"),
         ([ _catalog_row(applied_at="not-a-real-timestamp") ], "migration_history_invalid"),
@@ -448,22 +578,28 @@ def test_schema_drift_with_correct_history_checksum_is_not_accepted(tmp_path: Pa
 
 def test_failing_migration_rolls_back_schema_and_history(tmp_path: Path) -> None:
     location = _location(tmp_path)
+    sql_bytes = b"CREATE TABLE schema_migrations (migration_id TEXT);\nCREATE TABLE stray (value INTEGER);\n"
     bad = MigrationDefinition(
         migration_id="0001_initial",
         sequence=1,
         resource_name="bad.sql",
-        sql_bytes=b"CREATE TABLE schema_migrations (migration_id TEXT);\nCREATE TABLE stray (value INTEGER);\n",
-        checksum="0" * 64,
+        sql_bytes=sql_bytes,
+        checksum=hashlib.sha256(sql_bytes).hexdigest(),
         min_app_schema=1,
         max_app_schema=1,
         destructive=False,
         description="bad migration for rollback test",
     )
 
+    with pytest.raises(SQLiteStateError, match="migration_failed"):
+        _initialize_database_with_catalog(
+            location,
+            MigrationCatalog((bad,)),
+            current_app_schema=1,
+            verify_managed_invariants=False,
+        )
     connection = _open_sqlite_connection(location)
     try:
-        with pytest.raises(SQLiteStateError, match="schema_verification_failed"):
-            _apply_migration(connection, bad)
         assert _user_tables(connection) == set()
     finally:
         connection.close()

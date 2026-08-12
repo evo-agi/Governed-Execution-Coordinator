@@ -18,6 +18,7 @@ class SQLiteStateErrorCode(str, Enum):
     DATABASE_SCHEMA_TOO_NEW = "database_schema_too_new"
     DATABASE_SCHEMA_INCOMPATIBLE = "database_schema_incompatible"
     MIGRATION_FAILED = "migration_failed"
+    MIGRATION_OUTCOME_UNRESOLVED = "migration_outcome_unresolved"
     SCHEMA_VERIFICATION_FAILED = "schema_verification_failed"
     SCHEMA_FINGERPRINT_MISMATCH = "schema_fingerprint_mismatch"
     SQLITE_POSTURE_UNAVAILABLE = "sqlite_posture_unavailable"

@@ -1586,6 +1586,36 @@ def test_c2b0_markdown_parsers_reject_invalid_backtick_info_duplicate_heading_by
     )
 
 
+def test_c2b1_current_administrative_composition_does_not_promote_progression() -> None:
+    section = _compact(
+        _unfenced_markdown(
+            _bounded_markdown_section(
+                _doc(),
+                "C2B1 Current Administrative Composition",
+                2,
+                role="operating_model.c2b1_current",
+                allow_eof=True,
+            ),
+            role="operating_model.c2b1_current.section",
+        )
+    )
+    for phrase in (
+        "`CURRENT IMPLEMENTED CONTRACT` for migration administration only",
+        "C2B0 remains the historical contract-freeze tranche",
+        "exact-current ordinary SQLite open",
+        "explicit supported-prefix migration",
+        "terminal-only application-generation compatibility",
+        "cumulative packaged-SQL schema authority",
+        "complete-suffix single-transaction migration",
+        "three-way migration commit readback",
+        "Application generation remains 1",
+        "catalog tip remains `0001_initial`",
+        "administrative evidence is not program, progression, decision, effect, acceptance, publication, or runtime truth",
+        "C2B2-C2B6 remain target-only",
+    ):
+        assert phrase in section
+
+
 def test_operating_model_markdown_closer_suffix_is_ascii_space_tab_only() -> None:
     for valid_suffix in ("", " ", "\t", " \t"):
         sample = f"~~~text\n## Hidden\n~~~{valid_suffix}\n## Visible\n"

@@ -9,12 +9,16 @@ security, writer, migration, and recovery mechanics.
 
 ## 1. Status, Classification, And Layering
 
-Classification: `ACCEPTED TARGET CONTRACT`.
+Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration
+administration and `ACCEPTED TARGET CONTRACT` for the durable-development
+representation and C2B2-C2B6 behavior below.
 
-C2B0 changes documentation and direct documentation-contract tests only. C2B
-is target durable software-development state in the existing Coordinator
-database under the existing writer authority. The current implementation is
-absent. External effects are absent. A C2B public API is absent.
+C2B0 was the historical documentation-and-direct-contract-test tranche. C2B1
+now implements only the bounded administrative migration framework in the
+existing Coordinator database. C2B durable software-development state under
+the existing writer authority remains target-only. Durable development
+records and behavior are absent, external effects are absent, and a C2B public
+API is absent.
 
 The contract uses these layers:
 
@@ -34,16 +38,27 @@ remain `FUTURE IMPLEMENTATION DETAIL`. Private WorkSpec custody, external
 authority verification, worker launch, capsule storage, Git effects,
 direct-local execution, and ES routing remain `DEFERRED MECHANIC` work.
 
-The current implemented application generation remains 1, the packaged catalog
-and managed database tip remain `0001_initial`, and schema 0001 is unchanged.
+The current implemented application generation remains 1. The current C2B1
+migration framework is implemented, while durable development state remains
+target-only. The packaged
+catalog and managed database tip remain `0001_initial`, schema 0001 is
+unchanged, and there is exactly one production SQL migration. C2B1 implements
+exact-current ordinary open, explicit supported-prefix migration,
+terminal-only compatibility, cumulative packaged-SQL schema authority,
+whole-suffix single-transaction administration, and three-way migration
+commit recovery. It implements no durable-development representation or
+runtime authority.
 The accepted C2B target reserves migrations
 `0002_development_program_and_effect_state` and
 `0003_development_observation_and_progression_state`; their exact target
 responsibilities and inventories are frozen below. No 0002/0003 SQL, catalog
 entry, schema object, installed migration, application-generation change, C2B
-reader, writer, mutation, transaction, ingest, recovery path, worker, process,
+durable record, product reader, product writer, product mutation transaction,
+ingest or progression recovery path, worker, process,
 model integration, capsule store, Git effect, adapter, ES route, service,
 scheduler, queue, or autonomous loop currently exists.
+No target C2B reader, writer, mutation, transaction, ingest, or durable runtime
+exists; C2B1 migration administration does not satisfy any of those roles.
 
 ## 2. One Database, One Writer, And Fact Ownership
 
@@ -636,9 +651,14 @@ Retirement or expansion requires a separately reviewed future migration.
 ## 20. Migration-Framework Strategy
 
 Migration `0001_initial` retains immutable bytes, checksum, history, and
-meanings. Every installed migration row remains immutable and must exactly equal
-its packaged catalog entry in sequence, migration ID, checksum, compatibility
-bounds, and destructive flag. Compatibility bounds describe the application
+meanings. Every installed migration row remains immutable and is the persisted
+projection of one packaged definition. The persisted projection contains
+sequence, migration ID, checksum, `applied_at`, and compatibility bounds.
+`applied_at` is validated persisted row data, not packaged catalog metadata and
+not definition identity. Exact sequence, migration ID, checksum, and bounds
+resolve one definition; that definition supplies the catalog-only
+`destructive` value. `schema_migrations` has no `destructive` column.
+Compatibility bounds describe the application
 generations allowed to own a database when that migration is the installed
 terminal tip; they do not require every historical row to include the running
 application generation. Historical `0001_initial` therefore remains `[1,1]`,
@@ -657,16 +677,20 @@ complete final-schema verification
 Ordinary open never silently migrates and never accepts an older prefix. An
 explicit migration preflight may recognize one exact non-empty supported older
 catalog prefix only when every installed row has exact packaged checksum and
-metadata, there are no gaps, unknown rows, partial rows, or divergent bounds or
-flags, and one exact contiguous packaged suffix leads to the current terminal
+metadata, there are no gaps, unknown rows, partial rows, divergent bounds, or
+ambiguous catalog resolution, and one exact contiguous packaged suffix leads to the current terminal
 tip. A supported older prefix is migration-eligible only; it is not ordinarily
 product-openable before migration.
 
-C2B1 is a framework-only source/test reset: it adds no SQL or database change,
-the implemented application generation remains 1, and the current catalog and
-terminal tip remain `0001_initial`. It must distinguish current database,
-supported older prefix requiring explicit migration, unsupported older
-database, newer unsupported database, corrupt history, and partial migration.
+C2B1 is a framework-only source/test reset: it adds no SQL or database change
+and is now the current migration-administration implementation. The implemented
+application generation remains 1, and the current
+catalog and terminal tip remain exactly `0001_initial`. It privately
+distinguishes absent, empty, current, supported older prefix, unsupported older,
+newer unsupported, corrupt history, partial migration, and non-empty unmanaged
+state while preserving the public absent/empty/managed/unknown classification.
+Any selected destructive definition is rejected before common-lock acquisition,
+writable open, `BEGIN IMMEDIATE`, or database mutation.
 
 C2B2 advances the implemented application generation from 1 to 2 when it adds
 migration 0002, and its catalog terminal tip becomes 0002. C2B3 remains
@@ -725,16 +749,16 @@ compare both the exact prior supported prefix and exact intended completed suffi
 The evidence classifications are exact:
 
 ```text
-committed_exact
+COMMITTED_EXACT
 history equals the prior prefix plus the complete intended suffix
-every suffix row matches packaged sequence, ID, checksum, compatibility bounds, and destructive flag
+every suffix row's persisted projection resolves exactly to one packaged non-destructive definition
 live schema equals the complete intended terminal-tip schema
 the prior prefix remains unchanged
 no partial, extra, unknown, or divergent object exists
 ```
 
 ```text
-definitely_not_committed
+DEFINITELY_NOT_COMMITTED
 history equals the exact prior supported prefix
 live schema equals the exact prior supported-prefix schema
 no intended suffix history row exists
@@ -743,7 +767,7 @@ no partial or unexpected object exists
 ```
 
 ```text
-unresolved
+UNRESOLVED
 history and schema disagree
 only part of the intended suffix is present
 history-only suffix evidence exists
@@ -754,7 +778,8 @@ either exact verification cannot be completed
 ```
 
 An `unresolved` result forbids automatic rerun and automatic append of a
-missing remainder. An operator or separately accepted recovery must complete
+missing remainder. This is the `UNRESOLVED` evidence outcome and raises only
+`migration_outcome_unresolved`. An operator or separately accepted recovery must complete
 before another migration attempt. This migration-specific rule is distinct
 from the semantic progression-mutation retry contract.
 
@@ -943,8 +968,8 @@ implementation tranche.
 The exact sequence is:
 
 ```text
-C2B0: documentation and direct documentation-contract tests only
-C2B1: application generation 1; terminal tip 0001; migration-framework reset only; no SQL or database change
+C2B0: historical documentation and direct documentation-contract tests only
+C2B1: current application generation 1; terminal tip 0001; migration-framework reset only; no SQL or schema change; no durable development state
 C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, private readers; no mutation API
 C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O
 C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API

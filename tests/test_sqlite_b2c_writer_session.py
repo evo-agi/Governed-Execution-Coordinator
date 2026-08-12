@@ -18,6 +18,7 @@ import weakref
 import pytest
 
 import ge_nwp_coordinator
+import ge_nwp_coordinator.sqlite_migration as migration_module
 import ge_nwp_coordinator.sqlite_writer_session as writer_module
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import (
@@ -339,6 +340,36 @@ def test_absent_empty_and_unknown_databases_refuse_without_writer_row_or_lock(tm
         acquire_sqlite_writer_session(unknown)
     assert unknown_error.value.reason is SQLiteWriterAcquisitionFailureReason.DATABASE_NOT_MANAGED
     assert not unknown.state_authority_lock_path.exists()
+
+
+def test_writer_unknown_state_rejects_without_replacing_production_catalog(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    with sqlite3.connect(location.database_path) as connection:
+        connection.execute(
+            "CREATE TABLE neutral_writer_unknown (value INTEGER NOT NULL)"
+        )
+
+    inspection = validate_database(location)
+    assert inspection.classification.name == "UNKNOWN"
+    assert inspection.classification.value == "unknown"
+    assert inspection.reason == "schema_fingerprint_mismatch"
+    opening_digest = hashlib.sha256(location.database_path.read_bytes()).hexdigest()
+
+    def forbidden_migration(*args, **kwargs):
+        raise AssertionError("writer acquisition invoked migration")
+
+    monkeypatch.setattr(migration_module, "_run_bound_migration_plan", forbidden_migration)
+
+    with pytest.raises(SQLiteWriterAcquisitionError) as exc_info:
+        acquire_sqlite_writer_session(location)
+
+    assert exc_info.value.reason is SQLiteWriterAcquisitionFailureReason.DATABASE_NOT_MANAGED
+    assert _writer_rows(location) == []
+    assert hashlib.sha256(location.database_path.read_bytes()).hexdigest() == opening_digest
 
 
 def test_managed_database_acquires_and_increments_generations(tmp_path: Path) -> None:

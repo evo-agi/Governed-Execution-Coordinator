@@ -258,10 +258,13 @@ The P1 runtime has no supported policy, configuration, callback, or environment
 path that enables future worker, repair, or local-commit stages.
 
 B0 selected SQLite, one private local database, as the future first production
-state backend architecture. B1/B1.1 implements secure local database bootstrap,
-non-mutating inspection/validation for existing databases, live-schema
-integrity checks, and forward-only migrations for explicitly requested
-operator-local administration. B2a corrects the writer-session contract, and
+state backend architecture. B1/B1.1 implemented secure local database bootstrap
+and non-mutating inspection/validation. C2B1 now implements the bounded
+administrative migration framework: exact-current ordinary open, explicit
+supported-prefix migration, terminal-only compatibility, cumulative
+packaged-SQL schema derivation, complete-catalog initialization, whole-suffix
+one-transaction migration, and three-way commit-uncertainty readback under the
+retained common lock. B2a corrects the writer-session contract, and
 B2b adds the shared state-authority advisory lock plus initialize/migrate
 integration. B2b uses explicit close/context-manager release with a
 finalizer-backed cleanup fallback for abandoned lock objects; finalization is
@@ -393,14 +396,17 @@ BLOCKED EFFECT` until their separately authorized tranches. This selection is
 not end-to-end execution and does not reprioritize the current ES P0.
 
 C2A1 pure semantic values and coherence relations remain the current
-implementation. C2B0 now accepts the target durable-development state contract
+implementation. C2B0 historically accepted the target durable-development state contract
 in `.docs/c2b-durable-development-state.md`: one existing Coordinator database
 and writer authority, eight decision kinds, distinct author and bound effect
-roles, privacy-safe persistence, and staged migrations 0002/0003. C2B itself
-remains unimplemented. The current managed database tip is still schema 0001;
-there is no C2B source, SQL, migration, durable record, ingest, decision
-runtime, authority verifier, worker, process, Git effect, direct-local route,
-or ES route.
+roles, privacy-safe persistence, and staged migrations 0002/0003. C2B1
+migration-framework source is implemented. Current state remains application
+generation 1, tip `0001_initial`, and exactly one production SQL migration.
+Migration 0002, migration 0003, generation 2, C2B durable records,
+C2B readers/writers/mutations, observation ingest, decision runtime, authority
+verification, WorkSpec custody, worker/process execution, capsule storage, Git
+effects, direct-local execution, ES routing, and any service, scheduler, queue,
+publication, or autonomous loop remain absent.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.

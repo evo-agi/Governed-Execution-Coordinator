@@ -460,3 +460,25 @@ validation/review/cancellation effects. C2B6 owns remaining program
 progression, publication eligibility, and the first-slice latch. C2B0
 implements neither tranche and adds no schema, migration, runtime, worker,
 Bridge change, or ES change.
+
+## C2B1 Current Administrative Composition
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration
+only. C2B0 remains the historical contract-freeze tranche for the target
+composition above.
+
+C2B1 implements exact-current ordinary SQLite open, explicit supported-prefix
+migration, terminal-only application-generation compatibility, cumulative
+packaged-SQL schema authority, complete-catalog initialization, complete-suffix
+single-transaction migration, and three-way migration commit readback while
+retaining the common state-authority lock and filesystem binding. Application
+generation remains 1, the catalog tip remains `0001_initial`, and there is one
+production SQL resource. This administrative evidence is not program,
+progression, decision, effect, acceptance, publication, or runtime truth.
+
+C2B1 implements no durable C2B record, migration 0002/0003, generation 2,
+reader, writer, product mutation, observation ingest, semantic decision,
+authority verification, WorkSpec custody, worker/process execution, capsule
+storage, Git effect, direct-local route, ES route, service, scheduler, queue,
+publication, or autonomous loop. C2B2-C2B6 remain target-only and their
+composition is unchanged.

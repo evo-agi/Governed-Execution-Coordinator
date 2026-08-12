@@ -720,8 +720,8 @@ def test_c2b0_progression_overlay_is_fence_aware_and_bounded() -> None:
     )
 
     boundary = text.replace(
-        "Status: `ACCEPTED TARGET CONTRACT`; the C0 historical statements above remain\nhistorical and C2B remains unimplemented.\n\nThe exact ordered decision kinds are",
-        "Status: `ACCEPTED TARGET CONTRACT`; the C0 historical statements above remain\nhistorical and C2B remains unimplemented.\n\n# Relocated Progression\n\nThe exact ordered decision kinds are",
+        "Status: `ACCEPTED TARGET CONTRACT`; the C0 historical statements above remain\nhistorical and durable C2B progression remains unimplemented.\n\nThe exact ordered decision kinds are",
+        "Status: `ACCEPTED TARGET CONTRACT`; the C0 historical statements above remain\nhistorical and durable C2B progression remains unimplemented.\n\n# Relocated Progression\n\nThe exact ordered decision kinds are",
         1,
     )
     with pytest.raises(AssertionError) as rejected:
