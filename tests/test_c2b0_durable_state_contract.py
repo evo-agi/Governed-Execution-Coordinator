@@ -37,6 +37,13 @@ SECTION_HEADINGS = (
     "25. Transaction And Replay Algebra",
     "26. Exact Target Tranche Sequence",
     "27. Explicit Nonimplementation",
+    "28. C2B2 Field-Level Freeze Classification",
+    "29. C2B2 Field-Level Structured Contract Ledger",
+    "30. Receipt Scalar Result And Persisted Graph Coherence",
+    "31. Common Mutation-Graph Digest Primitive",
+    "32. C2B2 Private Reader Boundary",
+    "33. Family Replay Deferral And Tranche Ownership",
+    "34. C2B2 Freeze Nonimplementation",
 )
 
 DECISION_KINDS = (
@@ -3973,3 +3980,33 @@ def test_c2b0_repair5_full_audit_counterfactual_matrix() -> None:
         assert str(unclosed_rejected.value) == (
             "c2b0.text_blocks|block=<none>|failure=unbalanced_fence"
         )
+
+
+def test_c2b2_field_level_freeze_is_delegated_without_implementation() -> None:
+    owner = _owner()
+    classification = _compact(_section(owner, SECTION_HEADINGS[27]))
+    ledger = _section(owner, SECTION_HEADINGS[28])
+    coherence = _compact(_section(owner, SECTION_HEADINGS[29]))
+    graph = _compact(_section(owner, SECTION_HEADINGS[30]))
+    readers = _compact(_section(owner, SECTION_HEADINGS[31]))
+    replay = _compact(_section(owner, SECTION_HEADINGS[32]))
+    absent = _compact(_section(owner, SECTION_HEADINGS[33]))
+
+    assert "CURRENT IMPLEMENTED CONTRACT: C2B1 migration administration" in classification
+    assert "ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT" in classification
+    assert "LATER-TRANCHE TARGET CONTRACT" in classification
+    assert "ABSENT: migration 0002 repository SQL" in classification
+    assert "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_BEGIN -->" in ledger
+    assert "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_END -->" in ledger
+    assert "redeliver` and `cancel` do not advance a version" in coherence
+    assert "eighteen receipt fields other than `mutation_graph_digest`" in graph
+    assert "type(capability) is _SQLiteMutationReadCapability" in readers
+    assert "complete mutation-family replay" in replay
+    assert "C2B4: migration-0003 row contracts/readers only; not a mutation tranche" in replay
+    assert "documentation and contract tests only" in absent
+
+    assert not (
+        ROOT
+        / "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql"
+    ).exists()
+    assert not (ROOT / "tests/test_c2b2_field_level_contract.py").is_symlink()
