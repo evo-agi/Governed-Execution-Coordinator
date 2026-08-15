@@ -23,8 +23,10 @@ grammar, or Git ceiling.
 
 C2A1 implements pure internal values and the named pure coherence validators.
 The implementation consists of exactly one standard-library-only, role-based
-internal source module. It has no current production consumer and is not
-imported or re-exported by `ge_nwp_coordinator.__init__`.
+internal source module. C2B2 Slice-2 row reconstruction is its sole private
+production consumer. The C2A1 module is not imported or re-exported by
+`ge_nwp_coordinator.__init__`, and the consumer transfers no C2A semantic
+ownership.
 
 The implemented immutable values are:
 
@@ -324,7 +326,8 @@ and future annotations. It imports no Coordinator module, test support, Bridge,
 or Execution Substrate code. It performs no filesystem, working-directory,
 environment, clock acquisition, randomness, network, process, Git, or SQLite
 operation. It has no hidden cache, mutable registry, logging, package entry
-point, or current production caller.
+point, runtime caller, reader authority, or durable mutation. Its sole private
+production consumer is C2B2 Slice-2 pure row reconstruction.
 
 C2A1 does not implement executable authorization, durable state, ingest,
 unknown-outcome decisions, process execution, capsule custody, Git effects, or

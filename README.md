@@ -405,8 +405,12 @@ application generation to 2 and the terminal catalog to
 nineteen-table physical C2B core schema while preserving migration 0001 and
 cumulative packaged SQL as schema authority. Fresh initialization applies
 `[0001, 0002]`, explicit migration applies `[0002]` to an exact older prefix,
-and ordinary product open never migrates. Migration 0003, C2B2 pure row/value
-source, C2B2 private readers, C2B mutations, family replay/recovery, C2B3,
+and ordinary product open never migrates. C2B2 pure row/value source is now
+implemented only as four private pure no-I/O modules for exact
+tuple decoding, immutable validation, row and result-projection digests,
+bounded C2A reconstruction, WorkSpec safe projection, and supplied-entry graph
+hashing. Migration 0003, C2B2 private database readers, SQL/capability use, C2B
+mutations, family replay/recovery, complete family graph verification, C2B3,
 observation ingest, decision runtime, authority verification, WorkSpec custody,
 worker/process execution, capsule storage, Git effects, direct-local execution,
 ES routing, and any service, scheduler, queue, publication, or autonomous loop

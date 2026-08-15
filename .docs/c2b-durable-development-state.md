@@ -10,16 +10,17 @@ security, writer, migration, and recovery mechanics.
 ## 1. Status, Classification, And Layering
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration
-administration plus C2B2 Slice 1 physical schema representability, and
-`ACCEPTED TARGET CONTRACT` for C2B2 pure row/value and private-reader behavior
-and C2B3-C2B6 behavior below.
+administration, C2B2 Slice 1 physical schema representability, and C2B2 Slice
+2 pure private row/value behavior; `ACCEPTED TARGET CONTRACT` covers C2B2
+private readers and later integration plus C2B3-C2B6 behavior below.
 
 C2B0 was the historical documentation-and-direct-contract-test tranche. C2B1
 implements the bounded administrative migration framework in the existing
-Coordinator database. C2B2 Slice 1 now implements migration 0002 and physical
-representability for the frozen nineteen-table core without implementing a
-C2B row/value module, private reader, mutation, replay, recovery, or C2B3
-behavior. External effects and a C2B public API remain absent.
+Coordinator database. C2B2 Slice 1 implements migration 0002 and physical
+representability for the frozen nineteen-table core. C2B2 Slice 2 implements
+four pure private row/value modules without implementing a private reader,
+mutation, replay, recovery, product runtime caller, or C2B3 behavior. External
+effects and a C2B public API remain absent.
 
 The contract uses these layers:
 
@@ -51,8 +52,8 @@ commit recovery. Migration 0002 implements the frozen physical core schema but
 does not make its tables populated product truth or runtime authority.
 Migration `0003_development_observation_and_progression_state` remains reserved;
 the exact responsibilities and inventories are frozen below. No 0003 SQL,
-C2B2 row/value source, product reader, product writer, product mutation
-transaction, ingest or progression recovery path, worker, process,
+C2B2 private reader, product writer, product mutation transaction, ingest or
+progression recovery path, worker, process,
 model integration, capsule store, Git effect, adapter, ES route, service,
 scheduler, queue, or autonomous loop currently exists.
 No target C2B reader, writer, mutation, transaction, ingest, or durable runtime
@@ -319,7 +320,7 @@ Target constraints are:
 
 ```text
 development_author_commands.command_ref: primary key
-development_author_commands.author_effect_intent_ref: unique
+development_author_commands.effect_intent_ref: unique
 development_author_commands.candidate_ref: unique
 development_effect_intents.command_ref: non-unique foreign key
 development_effect_intents: one author_candidate effect per command
@@ -969,7 +970,7 @@ The exact sequence is:
 ```text
 C2B0: historical documentation and direct documentation-contract tests only
 C2B1: historical application generation 1 / terminal tip 0001 migration-framework reset; no SQL or schema change; no durable development state
-C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, private readers; no mutation API
+C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, and pure private row/value source; private readers remain later C2B2 work; no mutation API
 C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O
 C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API
 C2B5: application generation 2; terminal tip 0003; source-observation ingest, cancel and redeliver decisions, bound validation/review/cancellation effects, knowledge and recovery; no external I/O
@@ -1000,14 +1001,15 @@ makes no effect dispatch-eligible.
 ## 28. C2B2 Field-Level Freeze Classification
 
 This section and Sections 29–34 are the repository-owned C2B2 field-level
-freeze. C2B2 Slice 1 implements only its physical SQL representation; the
-remaining row/value and reader contracts remain accepted targets.
+freeze. C2B2 Slice 1 implements its physical SQL representation and Slice 2
+implements the row/value contract; private readers and later integration remain
+accepted targets.
 
 ```text
-CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation at generation 2 / tip 0002_development_program_and_effect_state
-ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT: pure row/value contracts and private readers over the migration-0002 core
+CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation at generation 2 / tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source
+ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT: private readers and later integration over the migration-0002 core
 LATER-TRANCHE TARGET CONTRACT: family-specific mutation, exact replay, recovery, and complete graph verification
-ABSENT: C2B2 pure row/value source, C2B2 private readers, C2B mutations, and C2B product runtime
+ABSENT: C2B2 private readers, C2B mutations, exact replay, recovery, and C2B product runtime caller
 ```
 
 The proposal supplied authoring evidence. It is not runtime input, an installed
@@ -2698,13 +2700,12 @@ mapping, decisions, receipts, common graph primitive, and private readers.
   },
   "classification": {
     "absent": [
-      "C2B2 pure row/value source",
       "C2B2 private readers",
-      "C2B mutations",
-      "C2B product runtime"
+      "C2B mutations and exact replay or recovery",
+      "C2B product runtime caller"
     ],
-    "accepted_c2b2_field_level_target_contract": "pure row/value contracts and private readers over the migration-0002 core",
-    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state",
+    "accepted_c2b2_field_level_target_contract": "private readers and later integration over the migration-0002 core",
+    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source",
     "later_tranche_target_contract": "family-specific mutation, exact replay, recovery, and complete graph verification"
   },
   "common_graph_digest_primitive": {
@@ -13838,9 +13839,10 @@ contract authority.
 ## 34. C2B2 Freeze Nonimplementation
 
 The field-level freeze tranche created documentation and contract tests only.
-C2B2 Slice 1 now implements its literal migration-0002 SQL and physical schema
-representation, but creates no migration-0003 material, pure row/value
-production source, database rows, product reader, mutation or recovery API, public API,
+C2B2 Slice 1 implements its literal migration-0002 SQL and physical schema
+representation, and Slice 2 implements pure private row/value source without
+changing the physical schema. Neither slice creates migration-0003 material,
+database rows, a product reader, mutation or recovery API, public API,
 `StateStore` or `WriterSession` widening, package-root export, dependency,
 worker, provider, capsule, Git, direct-local, ES, Bridge, service, IPC, queue,
 scheduler, reconciler, or autonomous loop. The implemented migration contract

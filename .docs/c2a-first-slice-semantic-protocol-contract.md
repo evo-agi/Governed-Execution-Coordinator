@@ -1452,9 +1452,10 @@ source do not themselves create durable C2A tables or durable C2A runtime rows.
 The generation-2 physical schema is a C2B2 Slice-1 implementation fact, distinct
 from C2A/C2A1 semantic authority.
 
-Migration 0003 remains absent. C2B2 pure row/value source, C2B2 private readers,
-C2B mutation, replay, and recovery, and C2B3 behavior remain absent; C2B3 has
-not started. Worker, process, or model execution, Git effects, direct-local
+Migration 0003 remains absent. C2B2 Slice 2 now provides one pure private
+row/value reconstruction consumer of the unchanged C2A1 values. C2B2 private
+readers, C2B mutation, replay, and recovery, and C2B3 behavior remain absent;
+C2B3 has not started. Worker, process, or model execution, Git effects, direct-local
 execution, ES routing, Bridge integration, publication, service, API, and IPC
 also remain absent.
 

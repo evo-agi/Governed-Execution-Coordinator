@@ -17,8 +17,9 @@ GOVERNANCE`. The authoritative C1 composition record is
 ## Current Status
 
 The Coordinator now owns bounded internal durable SQLite mutation authority for
-coding-work state and one separate pure no-I/O C2A1 semantic-value layer. The
-current implementation includes internal durable writer
+coding-work state, one separate pure no-I/O C2A1 semantic-value layer, and the
+private pure no-I/O C2B2 row/value layer for the nineteen migration-0002 row
+families. The current implementation includes internal durable writer
 issuance, private atomic transition persistence, guarded public transition
 delegation, private atomic global-stop persistence, guarded public global-stop
 delegation, verification of already-persisted operator-decision receipts,
@@ -390,7 +391,7 @@ in:
 - `.docs/sqlite-operations-and-recovery.md`;
 - `.docs/writer-session-authority.md`.
 
-## C2B1/C2B2-Slice-1 SQLite Bootstrap And Administrative Migrations
+## C2B1/C2B2 SQLite Administration And Pure Row Values
 
 B1/B1.1 historically established explicit operator-local SQLite bootstrap and
 observational validation. C2B1 owns the bounded administrative migration
@@ -436,14 +437,19 @@ Normal future runtime must not run migrations concurrently with an active
 Coordinator writer.
 
 The current bootstrap and migration contract is documented in
-`.docs/sqlite-bootstrap-and-migrations.md`, and C2B2 Slice 1 implementation
-status is recorded in `.docs/c2b2-migration-0002.md`.
+`.docs/sqlite-bootstrap-and-migrations.md`, C2B2 Slice 1 implementation status
+is recorded in `.docs/c2b2-migration-0002.md`, and Slice 2 pure row/value
+status is recorded in `.docs/c2b2-pure-durable-row-values.md`.
 
 This administrative transaction reuses the one common exclusion lock and
 filesystem binding but is not the Coordinator product writer, not a second
-progression controller, and not C2B semantic truth. C2B durable-state topology,
-C2B product mutation transactions, C2B readers/writers, observation ingest,
-decision runtime, effects, and worker/runtime behavior remain absent.
+progression controller, and not C2B semantic truth. Slice 2 separately provides
+only private pure tuple-to-value validation, eighteen self-digest checks, five
+receipt result projections, bounded C2A reconstruction, WorkSpec safe
+projection, and the common supplied-entry graph digest primitive. It performs
+no SQL and has no production caller. C2B product mutation transactions, private
+database readers, family replay/recovery, observation ingest, decision runtime,
+effects, and worker/runtime behavior remain absent.
 
 ## B2a Writer-Session Contract
 
@@ -564,9 +570,10 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
 ## C2B0 Accepted Durable-State Target Topology
 
 Status: `ACCEPTED TARGET CONTRACT`; C2B2 Slice 1 physically represents the
-nineteen-table core, while durable product-topology behavior remains absent.
-C2B1/C2B2-Slice-1 administrative migration source is current but is outside
-this product topology.
+nineteen-table core and Slice 2 implements its private pure row/value layer,
+while database readers and durable product-topology behavior remain absent.
+C2B1/C2B2-Slice-1 administrative migration source and C2B2-Slice-2 pure
+row/value source are current but confer no product authority.
 
 C2B targets private role-based durable-development modules in the existing
 Coordinator SQLite database. They must reuse the existing concrete writer
@@ -579,8 +586,9 @@ widening.
 The target private transaction roles separate program initialization,
 author-effect establishment, bound validation/review/cancellation-effect
 establishment, source-observation ingest, and progression decisions. Durable
-intent must precede future external I/O. C2B2 Slice 1 now provides only the
-migration-0002 physical schema at current generation 2; no C2B pure row/value
-source or C2B product reader, writer, mutation transaction, worker, Bridge
-dependency, ES dependency, service, queue, scheduler, or autonomous loop
-exists.
+intent must precede future external I/O. C2B2 Slice 1 provides the
+migration-0002 physical schema at current generation 2, and Slice 2 provides
+private pure row/value source for its nineteen tables. No C2B product reader,
+writer, mutation transaction, complete family graph verifier, replay/recovery,
+C2B3 behavior, worker, Bridge dependency, ES dependency, service, queue,
+scheduler, or autonomous loop exists.

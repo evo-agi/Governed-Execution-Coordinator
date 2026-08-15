@@ -43,8 +43,10 @@ The status classifications used by C1 are:
 Classification: `CURRENT IMPLEMENTED CONTRACT`. Coordinator currently provides
 bounded durable SQLite mutation authority for the existing coding-work
 transition and `global_stop` contracts, plus a separate internal C2A1 pure
-semantic-value and coherence layer. It has no software-development program
-runtime, semantic-attempt runtime, dispatcher, scheduler, queue consumer,
+semantic-value and coherence layer and private pure C2B2 row/value source for
+all nineteen migration-0002 tables. It has no C2B2 database reader,
+software-development program runtime, semantic-attempt runtime, dispatcher,
+scheduler, queue consumer,
 worker, worker supervisor, subprocess launcher, model/provider client, ES
 client, capsule builder or store, observation-ingest loop, validation executor,
 review executor, repair executor, Git effect handler, publisher,
@@ -463,11 +465,11 @@ progression, publication eligibility, and the first-slice latch. C2B0
 implements neither tranche and adds no schema, migration, runtime, worker,
 Bridge change, or ES change.
 
-## C2B1/C2B2-Slice-1 Current Administrative Composition
+## C2B1/C2B2 Current Administrative And Pure-Value Composition
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration
-only. C2B0 remains the historical contract-freeze tranche for the target
-composition above.
+and private pure no-I/O row/value validation only. C2B0 remains the historical
+contract-freeze tranche for the target composition above.
 
 C2B1 implements exact-current ordinary SQLite open, explicit supported-prefix
 migration, terminal-only application-generation compatibility, cumulative
@@ -476,14 +478,20 @@ single-transaction migration, and three-way migration commit readback while
 retaining the common state-authority lock and filesystem binding. C2B2 Slice 1
 uses those mechanics at application generation 2, catalog tip
 `0002_development_program_and_effect_state`, and two production SQL resources.
-It adds physical schema representability only. This administrative evidence is not program,
-progression, decision, effect, acceptance, publication, or runtime truth.
+Slice 1 adds physical schema representability only. This administrative
+evidence is not program, progression, decision, effect, acceptance,
+publication, or runtime truth.
 
-C2B2 Slice 1 implements no C2B pure row/value source, private reader, product
-writer, product mutation, family replay/recovery, C2B3, migration 0003,
-observation ingest, semantic decision,
-authority verification, WorkSpec custody, worker/process execution, capsule
+C2B2 Slice 2 implements only four private pure row/value modules: exact ordered
+tuple boundaries for the nineteen tables, immutable validated values, eighteen
+row self-digest checks, five receipt result projections, bounded C2A
+reconstruction, WorkSpec safe projection, and the common supplied-entry graph
+digest primitive. It adds no SQL, reader capability, database reader,
+production caller, product writer, product mutation, family replay/recovery,
+complete family graph verification, C2B3, migration 0003, observation ingest,
+semantic decision, authority verification, WorkSpec custody, worker/process
+execution, capsule
 storage, Git effect, direct-local route, ES route, service, scheduler, queue,
-publication, or autonomous loop. Remaining C2B2 behavior and C2B3-C2B6 remain
-target-only; their composition is unchanged beyond the implemented
-migration-0002 physical core.
+publication, or autonomous loop. Remaining C2B2 reader/integration behavior and
+C2B3-C2B6 remain target-only; their composition is unchanged beyond the
+implemented migration-0002 physical core and its pure row/value layer.

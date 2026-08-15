@@ -21,6 +21,10 @@ from c2a_contract_support import (
 
 EXPECTED_PRODUCTION_FILES = (
     "__init__.py",
+    "_development_decision_row_values.py",
+    "_development_effect_row_values.py",
+    "_development_program_row_values.py",
+    "_development_row_value_support.py",
     "_worker_execution_semantic_values.py",
     "backlog.py",
     "canonicalization.py",
@@ -159,8 +163,10 @@ CURRENT_SCHEMA_STATUS_CONTRADICTIONS = (
 
 CURRENT_ABSENCE_WORDING = (
     "Migration 0003 remains absent.",
-    "C2B2 pure row/value source, C2B2 private readers, C2B mutation, replay, "
-    "and recovery, and C2B3 behavior remain absent; C2B3 has not started.",
+    "C2B2 Slice 2 now provides one pure private row/value reconstruction "
+    "consumer of the unchanged C2A1 values.",
+    "C2B2 private readers, C2B mutation, replay, and recovery, and C2B3 "
+    "behavior remain absent; C2B3 has not started.",
     "Worker, process, or model execution, Git effects, direct-local execution, "
     "ES routing, Bridge integration, publication, service, API, and IPC also "
     "remain absent.",
@@ -171,10 +177,13 @@ AGENTS_CURRENT_SCHEMA_WORDING = (
     "`0002_development_program_and_effect_state` is the implemented current "
     "physical terminal migration.",
     "Migration 0003 remains unimplemented and deferred.",
-    "C2B2 pure row/value source and private readers, C2B mutation, replay, and "
-    "recovery, observation ingest, decisions, latch behavior, authority "
-    "verification, worker/process execution, Git effects, direct-local "
-    "behavior, and ES routing remain unimplemented.",
+    "C2B2 pure row/value source is now implemented only as the private no-I/O "
+    "Slice-2 layer.",
+    "Private database readers, SQL/capability use, C2B mutation, replay and "
+    "recovery, complete family graph verification, observation ingest, "
+    "decisions, latch behavior, authority verification, worker/process "
+    "execution, Git effects, direct-local behavior, and ES routing remain "
+    "unimplemented.",
     "C2B3 has not started.",
 )
 
@@ -251,6 +260,15 @@ EXACT_GOLDEN_DIGESTS = {
     "WorkerObservationV1": "b605b2779fa5b46ebff2d23d7026c643debde509c015e840608b0991f1c52a6f",
     "CandidateCapsuleManifestV1": "b48948a9a0e65cde48edb96b66a2ce2e66eb8ee4abc286b93af0d22cf270d99c",
 }
+
+C2B2_C2A_ROW_RECONSTRUCTION_MODELS = frozenset(
+    {
+        "AttemptFenceV1",
+        "DeliveryEnvelopeV1",
+        "EffectFenceV1",
+        "WorkerCommandV1",
+    }
+)
 
 
 PROVENANCE_CONTROL = {
@@ -432,18 +450,49 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     )
 
     semantic_path = package_dir / "_worker_execution_semantic_values.py"
+    effect_row_path = package_dir / "_development_effect_row_values.py"
+    program_row_path = package_dir / "_development_program_row_values.py"
     source_paths = tuple(path for path in package_dir.rglob("*.py") if path.is_file())
-    nonsemantic_source_text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in source_paths
-        if path != semantic_path
-    )
+    source_text_by_path = {
+        path: path.read_text(encoding="utf-8") for path in source_paths
+    }
     semantic_source = semantic_path.read_text(encoding="utf-8")
     schema_text = (ROOT / "schemas/sqlite/coordinator-state-v1.sql").read_text(encoding="utf-8") + (package_dir / "sqlite_migrations/0001_initial.sql").read_text(encoding="utf-8")
-    for schema_id in EXACT_GOLDEN_DIGESTS:
-        assert GOLDEN_META[schema_id][0] in semantic_source
-        assert GOLDEN_META[schema_id][0] not in nonsemantic_source_text
-        assert GOLDEN_META[schema_id][0] not in schema_text
+    for model in EXACT_GOLDEN_DIGESTS:
+        schema_id = GOLDEN_META[model][0]
+        assert schema_id in semantic_source
+        expected_sources = {semantic_path}
+        if model in C2B2_C2A_ROW_RECONSTRUCTION_MODELS:
+            expected_sources.add(effect_row_path)
+        assert {
+            path for path, text in source_text_by_path.items() if schema_id in text
+        } == expected_sources
+        assert schema_id not in schema_text
+
+    program_imports = {
+        alias.name
+        for node in ast.parse(source_text_by_path[program_row_path]).body
+        if isinstance(node, ast.ImportFrom)
+        and node.level == 1
+        and node.module == "_worker_execution_semantic_values"
+        for alias in node.names
+    }
+    effect_imports = {
+        alias.name
+        for node in ast.parse(source_text_by_path[effect_row_path]).body
+        if isinstance(node, ast.ImportFrom)
+        and node.level == 1
+        and node.module == "_worker_execution_semantic_values"
+        for alias in node.names
+    }
+    assert program_imports == {"WorkSpecV1"}
+    assert effect_imports == {
+        "AttemptFenceV1",
+        "DeliveryEnvelopeV1",
+        "EffectFenceV1",
+        "WorkerCommandV1",
+        "WorkerExecutionValueError",
+    }
     for sentinel in C2A_RUNTIME_IMPLEMENTATION_SENTINELS:
         assert sentinel not in semantic_source
 

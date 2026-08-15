@@ -23,6 +23,10 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
     {
         "schemas/sqlite/coordinator-state-v1.sql",
         "src/ge_nwp_coordinator/__init__.py",
+        "src/ge_nwp_coordinator/_development_decision_row_values.py",
+        "src/ge_nwp_coordinator/_development_effect_row_values.py",
+        "src/ge_nwp_coordinator/_development_program_row_values.py",
+        "src/ge_nwp_coordinator/_development_row_value_support.py",
         "src/ge_nwp_coordinator/_worker_execution_semantic_values.py",
         "src/ge_nwp_coordinator/backlog.py",
         "src/ge_nwp_coordinator/canonicalization.py",

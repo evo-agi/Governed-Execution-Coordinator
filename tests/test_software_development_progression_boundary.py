@@ -711,6 +711,25 @@ def test_c2b0_progression_overlay_pins_decisions_bases_and_bound_effect_limits()
     _assert_c2b0_progression_overlay(_doc())
 
 
+def test_c2b2_current_pure_value_boundary_preserves_progression_nonimplementation() -> None:
+    section = _compact(
+        _section(
+            _doc(),
+            "C2B1/C2B2 Current Migration And Pure-Value Boundary",
+            "C2B0 Accepted Durable Progression Closure",
+        )
+    )
+    for phrase in (
+        "private pure no-I/O row/value validation only",
+        "Slice 1 uses this administrative boundary at application generation 2",
+        "Slice 2 adds private pure row/value source for those nineteen tables",
+        "no SQLite, SQL, capability use, database reader, or production caller",
+        "No C2B product mutation, complete family graph verification, family replay or recovery, or C2B3 behavior is added",
+        "Durable development progression, source-observation ingest, semantic decisions, effect establishment or execution",
+    ):
+        assert phrase in section
+
+
 def test_c2b0_progression_overlay_is_fence_aware_and_bounded() -> None:
     text = _doc()
     required = "The exact ordered decision kinds are"

@@ -156,13 +156,17 @@ first observation. SQLite `3.37.0` is required before state-root creation,
 common-lock acquisition, writable open, `BEGIN`, or mutation, so a permitted
 reobservation cannot widen into an ungated migration-0002 effect.
 
-C2B2 Slice 1 implements only physical durable schema representability: nineteen
+C2B2 Slice 1 implements physical durable schema representability: nineteen
 STRICT tables, thirty immutable guards, one partial unique index, generation-2
 fresh initialization, exact 0001-to-0002 explicit migration, SQLite 3.37.0
 runtime preflight, sequence-scoped zero-seed verification, and cumulative
-schema verification through 0002. It adds no C2B2 pure row/value module,
-private reader, mutation API, family graph locator, exact family replay,
-commit-outcome recovery, public surface, or C2B3 behavior. The historical B3/B4
+schema verification through 0002. C2B2 Slice 2 adds exactly four private pure
+no-I/O row/value modules for all nineteen tables, eighteen row self-digests,
+five receipt result projections, bounded C2A reconstruction, WorkSpec safe
+projection, and the common supplied-entry graph digest primitive. It adds no
+SQL, private database reader, read capability, mutation API, family graph
+locator or completeness proof, exact family replay, commit-outcome recovery,
+public surface, production caller, or C2B3 behavior. The historical B3/B4
 coherent fixture retains schema-0001 graph meanings inside a current physical
 generation-2 temporary database and leaves all nineteen C2B tables empty.
 
@@ -541,10 +545,12 @@ implements only the administrative migration framework described above. C2B2
 Slice 1 now implements the generation-2 physical schema, and
 `0002_development_program_and_effect_state` is the implemented current physical
 terminal migration. Migration 0003 remains unimplemented and deferred. C2B2
-pure row/value source and private readers, C2B mutation, replay, and recovery,
-observation ingest, decisions, latch behavior, authority verification,
-worker/process execution, Git effects, direct-local behavior, and ES routing
-remain unimplemented. C2B3 has not started.
+pure row/value source is now implemented only as the private no-I/O Slice-2
+layer. Private database readers, SQL/capability use, C2B mutation, replay and
+recovery, complete family graph verification, observation ingest, decisions,
+latch behavior, authority verification, worker/process execution, Git effects,
+direct-local behavior, and ES routing remain unimplemented. C2B3 has not
+started.
 
 ## P1 Prohibitions
 

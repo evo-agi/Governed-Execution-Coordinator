@@ -57,12 +57,15 @@ implemented database is application generation 2 with terminal catalog entry
 `0002_development_program_and_effect_state`; migration 0001 bytes, history, and
 table meanings remain unchanged. C2B1 supplies bounded administrative migration
 mechanics, and C2B2 Slice 1 adds only the frozen physical nineteen-table core.
+Slice 2 adds only private pure no-I/O row/value contracts for those nineteen
+tables, including bounded C2A reconstruction and digest verification; it has no
+database reader or production caller.
 The accepted C2B0 target contract also reserves
 `0003_development_observation_and_progression_state` and freezes its exact
-target responsibilities and inventory. No migration-0003 SQL, C2B pure
-row/value source, reader, writer, mutation, observation ingest, decision runtime,
-authority verifier, WorkSpec custody, worker/runtime behavior, or effect is
-currently implemented.
+target responsibilities and inventory. No migration-0003 SQL, C2B private
+reader, writer, mutation, replay/recovery, observation ingest, decision
+runtime, authority verifier, WorkSpec custody, worker/runtime behavior, or
+effect is currently implemented.
 
 Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
 `auditing`, repair, commit, and cleanup names do not transfer runtime authority
@@ -78,8 +81,8 @@ the cumulative physical tip is now migration 0002.
 Direct-local worker execution, capsule construction or custody, review,
 validation, repair, Git effects, ES routing, publication, and autonomous
 progression are deferred or blocked effects. C2B physical core representability
-is current; C2B row/value, reader, mutation, and progression behavior remain
-target-only. The
+and private pure row/value validation are current; C2B database readers,
+mutation, replay/recovery, and progression behavior remain target-only. The
 reserved target migration inventories are fixed by
 `.docs/c2b-durable-development-state.md`; later SQL encoding, safe-reference
 representation, observation-storage mechanics, and runtime integration remain
@@ -419,9 +422,11 @@ evaluator, sequence, write, rollback, COMMIT, or uncertainty ownership into
 ## C2B0 Accepted Durable-Development Target
 
 Status: `ACCEPTED TARGET CONTRACT` for remaining C2B behavior. C2B2 Slice 1 has
-implemented the migration-0002 physical core at application generation 2, but
-the target product records below are not populated or accessible through C2B
-row/value or reader code. Migration 0003 remains a reserved target identity.
+implemented the migration-0002 physical core at application generation 2, and
+Slice 2 can purely validate already-fetched tuples as private row values. The
+target product records below are not populated or accessible through a C2B
+database reader or product runtime. Migration 0003 remains a reserved target
+identity.
 C2B1 owns `sqlite_migration.py` administrative transactions;
 those transactions are not a second product writer, a C2B product mutation
 transaction, or durable progression truth.
@@ -449,5 +454,7 @@ The accepted complete target comprises implemented migration
 `0003_development_observation_and_progression_state`, twenty-eight new tables,
 forty-six new triggers, and two explicit indexes across both migrations.
 Migration 0002 currently contributes nineteen tables, thirty triggers, and one
-explicit index. Migration 0003 and all C2B row/value, reader, writer, mutation,
-ingest, decision runtime, authority-verifier, and latch behavior remain absent.
+explicit index. Migration 0003 and all C2B database reader, writer, mutation,
+replay/recovery, ingest, decision runtime, authority-verifier, and latch
+behavior remain absent; the current pure row/value layer does not populate or
+retrieve durable state.

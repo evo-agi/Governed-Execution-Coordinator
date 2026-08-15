@@ -17,6 +17,12 @@ OWNER_PATH = ROOT / ".docs/c2b-durable-development-state.md"
 BEGIN_MARKER = "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_BEGIN -->"
 END_MARKER = "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_END -->"
 OWNER_LEDGER_TEST_NAME = "test_c2b2_owner_ledger_matches_the_independent_literal_oracle"
+EXPECTED_SLICE2_PRODUCTION_MODULES = (
+    "_development_decision_row_values.py",
+    "_development_effect_row_values.py",
+    "_development_program_row_values.py",
+    "_development_row_value_support.py",
+)
 
 EXPECTED_ORACLE_IMPORTS = (
     ("__future__", "from-import", "annotations", None),
@@ -1737,13 +1743,12 @@ EXPECTED_CONTRACT = {
   },
   "classification": {
     "absent": [
-      "C2B2 pure row/value source",
       "C2B2 private readers",
-      "C2B mutations",
-      "C2B product runtime"
+      "C2B mutations and exact replay or recovery",
+      "C2B product runtime caller"
     ],
-    "accepted_c2b2_field_level_target_contract": "pure row/value contracts and private readers over the migration-0002 core",
-    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state",
+    "accepted_c2b2_field_level_target_contract": "private readers and later integration over the migration-0002 core",
+    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source",
     "later_tranche_target_contract": "family-specific mutation, exact replay, recovery, and complete graph verification"
   },
   "common_graph_digest_primitive": {
@@ -13056,18 +13061,18 @@ def _validate_classification(contract: dict[str, Any]) -> None:
         "classification",
     )
     _require(
-        contract["classification"]["current_implemented_contract"].endswith(
-            "generation 2 and terminal tip 0002_development_program_and_effect_state"
-        ),
+        "application generation 2 and terminal tip "
+        "0002_development_program_and_effect_state plus Slice 2 pure private "
+        "row/value source"
+        in contract["classification"]["current_implemented_contract"],
         "current_generation_tip",
     )
     _require(
         contract["classification"]["absent"]
         == [
-            "C2B2 pure row/value source",
             "C2B2 private readers",
-            "C2B mutations",
-            "C2B product runtime",
+            "C2B mutations and exact replay or recovery",
+            "C2B product runtime caller",
         ],
         "absent_inventory",
     )
@@ -15527,7 +15532,7 @@ def test_c2b2_decision_replay_and_ownership_counterfactuals_fail() -> None:
         _expect_contract_rejection(candidate, "nonimplementation")
 
 
-def test_c2b2_freeze_adds_no_source_sql_public_api_or_dependency() -> None:
+def test_historical_field_freeze_nonimplementation_object_is_preserved() -> None:
     _validate_boundary(EXPECTED_CONTRACT)
     assert EXPECTED_CONTRACT["nonimplementation"] == {
         "complete_family_replay": False,
@@ -15543,3 +15548,11 @@ def test_c2b2_freeze_adds_no_source_sql_public_api_or_dependency() -> None:
         "state_store_method": False,
         "writer_session_method": False,
     }
+
+
+def test_slice2_source_boundary_is_exactly_four_private_modules() -> None:
+    package = ROOT / "src/ge_nwp_coordinator"
+    present = tuple(
+        sorted(path.name for path in package.glob("_development_*row_value*.py"))
+    )
+    assert present == EXPECTED_SLICE2_PRODUCTION_MODULES
