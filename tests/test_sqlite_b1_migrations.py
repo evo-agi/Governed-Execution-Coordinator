@@ -38,7 +38,47 @@ EXPECTED_TABLES = {
     "transition_events",
     "global_stop_current",
     "global_stop_events",
+    "development_program_heads",
+    "development_program_versions",
+    "development_accepted_intent_revisions",
+    "development_work_item_heads",
+    "development_work_item_revisions",
+    "development_program_version_work_items",
+    "development_revision_edges",
+    "development_work_spec_bindings",
+    "development_semantic_attempts",
+    "development_attempt_fences",
+    "development_authority_evaluations",
+    "development_effect_intents",
+    "development_effect_fences",
+    "development_author_commands",
+    "development_effect_heads",
+    "development_delivery_attempts",
+    "development_delivery_heads",
+    "development_decisions",
+    "development_mutation_receipts",
 }
+
+EXPECTED_LITERAL_MIGRATION_CATALOG = (
+    (
+        1,
+        "0001_initial",
+        "0001_initial.sql",
+        "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148",
+        1,
+        1,
+        False,
+    ),
+    (
+        2,
+        "0002_development_program_and_effect_state",
+        "0002_development_program_and_effect_state.sql",
+        "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c",
+        2,
+        2,
+        False,
+    ),
+)
 
 PRE_C2B1_SQLITE_STATE_ERROR_CODES = (
     ("UNSAFE_STATE_ROOT", "unsafe_state_root"),
@@ -243,15 +283,69 @@ def _catalog_row(
     min_app_schema: int = 1,
     max_app_schema: int = 1,
 ) -> tuple[str, int, str, str, int, int]:
-    migration = load_migration_catalog().migrations[0]
+    expected = EXPECTED_LITERAL_MIGRATION_CATALOG[0]
     return (
-        migration_id or migration.migration_id,
+        migration_id or expected[1],
         sequence,
-        checksum or migration.checksum,
+        checksum or expected[3],
         applied_at,
         min_app_schema,
         max_app_schema,
     )
+
+
+def _catalog_row_0002(
+    *,
+    migration_id: str | None = None,
+    sequence: int = 2,
+    checksum: str | None = None,
+    applied_at: str = "2026-07-16T00:00:00Z",
+    min_app_schema: int = 2,
+    max_app_schema: int = 2,
+) -> tuple[str, int, str, str, int, int]:
+    expected = EXPECTED_LITERAL_MIGRATION_CATALOG[1]
+    return (
+        migration_id or expected[1],
+        sequence,
+        checksum or expected[3],
+        applied_at,
+        min_app_schema,
+        max_app_schema,
+    )
+
+
+def _migration_catalog_projection(
+    catalog: MigrationCatalog,
+) -> tuple[tuple[int, str, str, str, int, int, bool], ...]:
+    return tuple(
+        (
+            migration.sequence,
+            migration.migration_id,
+            migration.resource_name,
+            migration.checksum,
+            migration.min_app_schema,
+            migration.max_app_schema,
+            migration.destructive,
+        )
+        for migration in catalog.migrations
+    )
+
+
+def _assert_literal_migration_catalog_truth(
+    candidate: tuple[tuple[int, str, str, str, int, int, bool], ...],
+) -> None:
+    assert type(candidate) is tuple
+    assert candidate == EXPECTED_LITERAL_MIGRATION_CATALOG
+
+
+def _catalog_counterfactual(
+    row_index: int,
+    field_index: int,
+    value: object,
+) -> tuple[tuple[object, ...], ...]:
+    candidate = [list(row) for row in EXPECTED_LITERAL_MIGRATION_CATALOG]
+    candidate[row_index][field_index] = value
+    return tuple(tuple(row) for row in candidate)
 
 
 def _database_from_migration(
@@ -398,32 +492,78 @@ def test_managed_wal_database_is_not_rewritten_by_inspection(tmp_path: Path) -> 
     assert (_file_digest(location.database_path), _header_versions(location.database_path)) == before
 
 
-def test_initialize_database_installs_migration_0001(tmp_path: Path) -> None:
+def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: Path) -> None:
     location = _location(tmp_path)
 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 1
-    assert inspection.latest_sequence == 1
-    assert inspection.current_migration_id == "0001_initial"
+    assert inspection.current_sequence == 2
+    assert inspection.latest_sequence == 2
+    assert inspection.current_migration_id == "0002_development_program_and_effect_state"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
 
 
-def test_authoritative_migration_row_matches_packaged_catalog(tmp_path: Path) -> None:
+def test_migration_catalog_and_history_match_independent_literal_truth(tmp_path: Path) -> None:
     location = _location(tmp_path)
     catalog = load_migration_catalog()
 
+    _assert_literal_migration_catalog_truth(_migration_catalog_projection(catalog))
     initialize_database(location)
 
     with sqlite3.connect(location.database_path) as connection:
-        row = connection.execute(
-            "SELECT migration_id, sequence, schema_digest, min_app_schema, max_app_schema FROM schema_migrations"
-        ).fetchone()
-    migration = catalog.migrations[0]
-    assert row == ("0001_initial", 1, migration.checksum, 1, 1)
+        rows = connection.execute(
+            "SELECT sequence, migration_id, schema_digest, min_app_schema, max_app_schema, applied_at "
+            "FROM schema_migrations ORDER BY sequence"
+        ).fetchall()
+    assert tuple(row[:5] for row in rows) == tuple(
+        (sequence, migration_id, checksum, min_app_schema, max_app_schema)
+        for (
+            sequence,
+            migration_id,
+            _resource_name,
+            checksum,
+            min_app_schema,
+            max_app_schema,
+            _destructive,
+        ) in EXPECTED_LITERAL_MIGRATION_CATALOG
+    )
+    assert len({row[5] for row in rows}) == 1
+    assert rows[0][5].endswith("Z")
+
+
+def test_literal_migration_catalog_truth_rejects_every_required_counterfactual() -> None:
+    literal_before = EXPECTED_LITERAL_MIGRATION_CATALOG
+    swapped_ids = (
+        (
+            EXPECTED_LITERAL_MIGRATION_CATALOG[0][0],
+            EXPECTED_LITERAL_MIGRATION_CATALOG[1][1],
+            *EXPECTED_LITERAL_MIGRATION_CATALOG[0][2:],
+        ),
+        (
+            EXPECTED_LITERAL_MIGRATION_CATALOG[1][0],
+            EXPECTED_LITERAL_MIGRATION_CATALOG[0][1],
+            *EXPECTED_LITERAL_MIGRATION_CATALOG[1][2:],
+        ),
+    )
+    counterfactuals = {
+        "wrong catalog length": EXPECTED_LITERAL_MIGRATION_CATALOG[:1],
+        "wrong sequence": _catalog_counterfactual(1, 0, 3),
+        "wrong id": _catalog_counterfactual(1, 1, "0002_other"),
+        "swapped ids": swapped_ids,
+        "wrong resource": _catalog_counterfactual(1, 2, "0002_other.sql"),
+        "wrong checksum": _catalog_counterfactual(1, 3, "0" * 64),
+        "wrong minimum generation": _catalog_counterfactual(1, 4, 1),
+        "wrong maximum generation": _catalog_counterfactual(1, 5, 3),
+        "destructive true": _catalog_counterfactual(1, 6, True),
+    }
+
+    for candidate in counterfactuals.values():
+        with pytest.raises(AssertionError):
+            _assert_literal_migration_catalog_truth(candidate)  # type: ignore[arg-type]
+        assert EXPECTED_LITERAL_MIGRATION_CATALOG is literal_before
 
 
 def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: Path) -> None:
@@ -433,7 +573,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 1
+    assert _count(location, "schema_migrations") == 2
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -444,7 +584,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 1
+    assert inspection.current_sequence == inspection.latest_sequence == 2
     assert _file_digest(location.database_path) == before
 
 
@@ -452,9 +592,9 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=2) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=3) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
-        ([ _catalog_row(migration_id="0002_future", sequence=2, checksum="f" * 64, max_app_schema=2) ], "database_schema_too_new"),
+        ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=0, max_app_schema=0) ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=0, max_app_schema=1) ], "migration_history_invalid"),
@@ -475,7 +615,10 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
     duplicate = _minimal_history_database(tmp_path / "duplicate", [_catalog_row(), _catalog_row()])
     _assert_unknown(inspect_database(duplicate), "migration_history_invalid")
 
-    unknown = _minimal_history_database(tmp_path / "unknown", [_catalog_row(), _catalog_row(migration_id="0002_future", sequence=2, checksum="f" * 64)])
+    unknown = _minimal_history_database(
+        tmp_path / "unknown",
+        [_catalog_row(), _catalog_row_0002(), _catalog_row_0002(migration_id="0003_future", sequence=3)],
+    )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")
 
 

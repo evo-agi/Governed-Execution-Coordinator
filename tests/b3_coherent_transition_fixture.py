@@ -1,9 +1,11 @@
 """Tests-only synthetic B3 coherent transition fixture graph.
 
 This module is not admission, not authorization, not production state initialization,
-and not runtime authority. It directly seeds a temporary schema-0001 managed
-SQLite database for future B3c tests, then validates the seeded rows through
-existing Coordinator row contracts.
+and not runtime authority. It directly seeds a historical schema-0001 B3/B4 graph
+inside a temporary current-generation managed SQLite database, then validates the
+seeded rows through existing Coordinator row contracts. The cumulative physical
+schema is generation 2 / migration 0002; the seeded graph's meanings remain the
+existing schema-0001 meanings.
 """
 
 from __future__ import annotations
@@ -84,6 +86,29 @@ _LEASE_ID = "lease-b3-fixture"
 _BACKLOG_ID = "backlog-b3-fixture"
 _WORK_ITEM_ID = "wi-b3-fixture"
 _DEPENDENCY_DECISION_REF = "deps-b3-fixture-ready"
+_CURRENT_PHYSICAL_SEQUENCE = 2
+_CURRENT_PHYSICAL_MIGRATION_ID = "0002_development_program_and_effect_state"
+_C2B2_PHYSICAL_TABLES = (
+    "development_program_heads",
+    "development_program_versions",
+    "development_accepted_intent_revisions",
+    "development_work_item_heads",
+    "development_work_item_revisions",
+    "development_program_version_work_items",
+    "development_revision_edges",
+    "development_work_spec_bindings",
+    "development_semantic_attempts",
+    "development_attempt_fences",
+    "development_authority_evaluations",
+    "development_effect_intents",
+    "development_effect_fences",
+    "development_author_commands",
+    "development_effect_heads",
+    "development_delivery_attempts",
+    "development_delivery_heads",
+    "development_decisions",
+    "development_mutation_receipts",
+)
 
 
 class BlockedFixtureAuthorityContract(RuntimeError):
@@ -190,10 +215,11 @@ def make_coherent_transition_fixture_for_test(
     inspection = initialize_database(location)
     if (
         inspection.classification is not DatabaseClassification.MANAGED
-        or inspection.current_sequence != 1
+        or inspection.current_sequence != _CURRENT_PHYSICAL_SEQUENCE
         or inspection.current_sequence != inspection.latest_sequence
+        or inspection.current_migration_id != _CURRENT_PHYSICAL_MIGRATION_ID
     ):
-        raise RuntimeError("fixture-managed-schema-0001-required")
+        raise RuntimeError("fixture-managed-generation-2-schema-required")
 
     graph = _build_graph_for_test(
         ready_dependency=ready_dependency,
@@ -201,14 +227,23 @@ def make_coherent_transition_fixture_for_test(
         dependencies_satisfied=dependencies_satisfied,
     )
     _seed_graph_for_test(location, graph)
-    _require_managed_schema_0001_for_test(location)
+    _require_current_physical_schema_for_test(location)
+    _require_c2b2_physical_tables_empty_for_test(location)
+
+    first_writer_session = acquire_sqlite_writer_session(location)
+    try:
+        if first_writer_session.metadata.generation != 1:
+            raise RuntimeError("fixture-initial-writer-generation-1-required")
+    finally:
+        first_writer_session.close()
 
     writer_session = acquire_sqlite_writer_session(location)
     try:
         metadata = writer_session.metadata
-        if metadata.generation != 1:
-            raise RuntimeError("fixture-writer-generation-1-required")
-        _require_managed_schema_0001_for_test(location)
+        if metadata.generation != _CURRENT_PHYSICAL_SEQUENCE:
+            raise RuntimeError("fixture-writer-generation-2-required")
+        _require_current_physical_schema_for_test(location)
+        _require_c2b2_physical_tables_empty_for_test(location)
         return CoherentTransitionFixture(
             location=location,
             writer_session=writer_session,
@@ -768,14 +803,26 @@ def _insert_row_for_test(
     )
 
 
-def _require_managed_schema_0001_for_test(location: CoordinatorStateLocation) -> None:
+def _require_current_physical_schema_for_test(location: CoordinatorStateLocation) -> None:
     inspection = validate_database(location)
     if (
         inspection.classification is not DatabaseClassification.MANAGED
-        or inspection.current_sequence != 1
+        or inspection.current_sequence != _CURRENT_PHYSICAL_SEQUENCE
         or inspection.current_sequence != inspection.latest_sequence
+        or inspection.current_migration_id != _CURRENT_PHYSICAL_MIGRATION_ID
     ):
-        raise RuntimeError("fixture-managed-schema-0001-required")
+        raise RuntimeError("fixture-managed-generation-2-schema-required")
+
+
+def _require_c2b2_physical_tables_empty_for_test(location: CoordinatorStateLocation) -> None:
+    connection = open_existing_sqlite_connection(location, read_only=True)
+    try:
+        for table_name in _C2B2_PHYSICAL_TABLES:
+            row = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+            if row != (0,):
+                raise RuntimeError("fixture-c2b2-physical-table-not-empty")
+    finally:
+        connection.close()
 
 
 def _table_count_for_test(location: CoordinatorStateLocation, table_name: str) -> int:

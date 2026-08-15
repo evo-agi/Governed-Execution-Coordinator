@@ -1216,7 +1216,9 @@ def test_public_boundaries_static_neutralization_and_b4c_adapter_keeps_private_e
     assert "_run_atomic_global_stop_apply" in writer_source
     assert "_run_atomic_global_stop_apply" not in PACKAGE_EXPORT_PATH.read_text(encoding="utf-8")
     assert not hasattr(ge_nwp_coordinator, "_run_atomic_global_stop_apply")
-    assert not list(MIGRATION_DIR.glob("0002*"))
+    assert sorted(path.name for path in MIGRATION_DIR.glob("0002*")) == [
+        "0002_development_program_and_effect_state.sql"
+    ]
 
     with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
         result = fixture.writer_session.apply_global_stop_update(_command(), _decision())

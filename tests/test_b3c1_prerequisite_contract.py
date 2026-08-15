@@ -541,6 +541,9 @@ def test_docs_cross_reference_b3c1a_b3c1b_and_no_mutation_or_migration_exists() 
     assert "class _SQLiteMutationReadCapability" in source
 
     migrations = sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql"))
-    assert migrations == ["0001_initial.sql"]
+    assert migrations == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

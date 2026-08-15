@@ -84,16 +84,19 @@ upsert, update, delete, register, import, or manufacture receipts. Receipt
 provisioning remains a separately governed reopened seam outside B4a, B4b, and
 B4c.
 
-Tests may seed receipt rows only in temporary schema-0001 fixtures. Accepted
-public-path tests prove tests-only receipt verification, public delegation, and
-persistence mechanics; they do not prove production operator-policy
-authorization.
+Tests may seed receipt rows only as part of the historical schema-0001 B3/B4
+graph hosted in a temporary current-generation-2, terminal-0002 fixture.
+Accepted public-path tests prove tests-only receipt verification, public
+delegation, and persistence mechanics; they do not prove production
+operator-policy authorization or any C2B behavior. The fixture boundary is
+owned by `.docs/b3-tests-only-coherent-fixtures.md`.
 
 ## Non-Claims
 
 B4c does not change public transition delegation, `StateStore`, `WriterSession`
 signatures, package exports, schema identifiers, migration `0001`, or migration
-posture. There is still no migration `0002`.
+posture. Migration `0002` is the current physical C2B2 Slice-1 extension; B4c
+itself neither adds nor consumes C2B runtime behavior.
 
 B4c adds no receipt-provisioning integration, CLI, MCP, connector, worker,
 service, scheduler, report, admission, authorization verifier, orchestration,

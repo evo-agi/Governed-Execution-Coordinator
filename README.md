@@ -231,13 +231,12 @@ described above. The historical sequence includes:
   ownership, `StateStore` widening, schema-ID bump, migration 0002, worker,
   service, scheduler, publication, or cross-repository authority.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
-  temporary managed schema-0001 database, directly seeds synthetic
-  authoritative rows through a test-setup transaction, validates them through
-  existing row contracts, acquires real internal writer issuance as temporary
-  test evidence, and optionally persists a domain-rejected event/replay row.
-  It adds no production fixture module, admission, authorization verifier,
-  concrete capability, fencing, context assembly, mutation runtime, accepted
-  operator-policy authority, executable transition proof, or migration 0002.
+  temporary current-generation-2 database at terminal migration 0002 while
+  directly seeding only the historical schema-0001 B3/B4 graph. All nineteen
+  C2B tables remain empty. The exact physical-versus-semantic and writer
+  lifecycle contract is owned by `.docs/b3-tests-only-coherent-fixtures.md`;
+  the fixture adds no production module, admission, authorization verifier,
+  C2B row/value source, reader, mutation, replay, or runtime authority.
 
 P1.1 models expected-version mismatch, stale writer sessions, idempotency key
 reuse, and authoritative not-found cases as apply conflicts with no event.
@@ -400,13 +399,18 @@ implementation. C2B0 historically accepted the target durable-development state 
 in `.docs/c2b-durable-development-state.md`: one existing Coordinator database
 and writer authority, eight decision kinds, distinct author and bound effect
 roles, privacy-safe persistence, and staged migrations 0002/0003. C2B1
-migration-framework source is implemented. Current state remains application
-generation 1, tip `0001_initial`, and exactly one production SQL migration.
-Migration 0002, migration 0003, generation 2, C2B durable records,
-C2B readers/writers/mutations, observation ingest, decision runtime, authority
-verification, WorkSpec custody, worker/process execution, capsule storage, Git
-effects, direct-local execution, ES routing, and any service, scheduler, queue,
-publication, or autonomous loop remain absent.
+migration-framework source is implemented. C2B2 Slice 1 advances the current
+application generation to 2 and the terminal catalog to
+`0002_development_program_and_effect_state`; the literal migration adds the
+nineteen-table physical C2B core schema while preserving migration 0001 and
+cumulative packaged SQL as schema authority. Fresh initialization applies
+`[0001, 0002]`, explicit migration applies `[0002]` to an exact older prefix,
+and ordinary product open never migrates. Migration 0003, C2B2 pure row/value
+source, C2B2 private readers, C2B mutations, family replay/recovery, C2B3,
+observation ingest, decision runtime, authority verification, WorkSpec custody,
+worker/process execution, capsule storage, Git effects, direct-local execution,
+ES routing, and any service, scheduler, queue, publication, or autonomous loop
+remain absent.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.

@@ -601,14 +601,11 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
         assert phrase in open_decisions
 
 
-def test_c0_does_not_add_public_package_dependency_or_schema_surfaces() -> None:
+def test_c0_does_not_add_public_surfaces_and_slice1_schema_remains_physical_only() -> None:
     init_text = _text("src/ge_nwp_coordinator/__init__.py")
     pyproject = tomllib.loads(_text("pyproject.toml"))
-    schema_sources = "\n".join(
-        path.read_text(encoding="utf-8")
-        for root in (ROOT / "schemas", ROOT / "src" / "ge_nwp_coordinator" / "sqlite_migrations")
-        for path in root.rglob("*")
-        if path.is_file()
+    migration_0002 = _text(
+        "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql"
     )
 
     assert pyproject["project"]["dependencies"] == []
@@ -629,17 +626,22 @@ def test_c0_does_not_add_public_package_dependency_or_schema_surfaces() -> None:
         assert f'"{token}"' not in init_text
 
     for token in (
-        "development_programs",
-        "accepted_intent_revisions",
-        "objective_revisions",
-        "work_graph_revisions",
-        "semantic_attempts",
-        "effect_intents",
-        "delivery_attempts",
-        "publication_intents",
-        "source_observations",
+        "development_program_heads",
+        "development_program_versions",
+        "development_accepted_intent_revisions",
+        "development_semantic_attempts",
+        "development_effect_intents",
+        "development_delivery_attempts",
     ):
-        assert token not in schema_sources
+        assert token in migration_0002
+
+    for token in (
+        "development_objective_revisions",
+        "development_work_graph_revisions",
+        "development_publication_intents",
+        "development_source_observations",
+    ):
+        assert token not in migration_0002
 
 
 def _assert_c2b0_progression_overlay(text: str) -> None:
@@ -693,9 +695,9 @@ def _assert_c2b0_progression_overlay(text: str) -> None:
     visible = _unfenced_markdown(text, role=role).lower()
     for forbidden in (
         "Exact C2B schema remains wholly open.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
         "No migration number is reserved.",
         "C2B is currently implemented.",
     ):

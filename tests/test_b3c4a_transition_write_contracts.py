@@ -1270,7 +1270,9 @@ def test_b3c4a_is_consumed_only_by_private_b3c4b_runtime_and_current_public_boun
     assert "_acquire_mutation_lease" not in apply_transition_source
 
     assert "sqlite_transition_write_contracts" not in PACKAGE_EXPORT_PATH.read_text()
-    assert not list(MIGRATION_DIR.glob("0002*"))
+    assert sorted(path.name for path in MIGRATION_DIR.glob("0002*")) == [
+        "0002_development_program_and_effect_state.sql"
+    ]
 
 
 def test_docs_pin_b3c4a_boundary_and_follow_on_tranches() -> None:

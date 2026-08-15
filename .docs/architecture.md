@@ -321,13 +321,14 @@ migration 0002. Fresh evaluator output is explicitly non-durable and
 non-receipt until B3c4 persists and commits it.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
-temporary managed schema-0001 database, directly seed synthetic authoritative
-rows through a test-setup transaction, validate those rows through existing row
-contracts, acquire real internal writer issuance as temporary test evidence, and
-optionally persist a domain-rejected event/replay row produced by the pure
-evaluator. The fixture graph is not production admission, not authorization, not
-runtime authority, not product state initialization, not accepted
-operator-policy authority, and not an executable transition proof.
+temporary current-generation-2 database at terminal migration
+`0002_development_program_and_effect_state`, while directly seeding only the
+historical schema-0001 B3/B4 graph. All nineteen C2B tables remain empty. The
+fixture graph is not production admission, authorization, runtime authority,
+product state initialization, accepted operator-policy authority, an executable
+transition proof, or proof of C2B row/value, reader, mutation, or replay
+behavior. The exact physical-versus-semantic and writer-lifecycle contract is
+owned by `.docs/b3-tests-only-coherent-fixtures.md`.
 
 B3c1 prerequisite contracts are documented in
 `.docs/b3c1-prerequisite-contract.md`. They freeze the
@@ -389,11 +390,12 @@ in:
 - `.docs/sqlite-operations-and-recovery.md`;
 - `.docs/writer-session-authority.md`.
 
-## C2B1 SQLite Bootstrap And Administrative Migrations
+## C2B1/C2B2-Slice-1 SQLite Bootstrap And Administrative Migrations
 
 B1/B1.1 historically established explicit operator-local SQLite bootstrap and
-observational validation. C2B1 currently owns the bounded administrative
-migration transaction in `sqlite_migration.py`:
+observational validation. C2B1 owns the bounded administrative migration
+transaction in `sqlite_migration.py`; C2B2 Slice 1 now uses it at application
+generation 2 and terminal migration 0002:
 
 - fixed per-user local state-location policy using the canonical NWP
   Coordinator component name, not the repository display name;
@@ -413,6 +415,13 @@ migration transaction in `sqlite_migration.py`:
 - whole-suffix one-transaction application and three-way commit readback;
 - bootstrap and generic managed current-state invariant checks.
 
+The administrative runtime-capability preflight is derived from the maximum
+immutable catalog target, not from the suffix suggested by the first
+observation. For the generation-2 catalog, both initialization and explicit
+migration require SQLite `3.37.0` before state-root creation, common-lock
+acquisition, writable open, `BEGIN`, or mutation; a permitted reobservation
+therefore cannot widen the selected suffix beyond the already-gated capability.
+
 B1.1/C2B1 inspect/validate do not create missing roots or databases, do not change
 persistent journal posture, do not repair or adopt unknown databases, and do
 not auto-migrate. Initialize and migrate are explicit operator-local
@@ -426,8 +435,9 @@ only, not product mutations.
 Normal future runtime must not run migrations concurrently with an active
 Coordinator writer.
 
-The current C2B1 bootstrap and migration contract is documented in
-`.docs/sqlite-bootstrap-and-migrations.md`.
+The current bootstrap and migration contract is documented in
+`.docs/sqlite-bootstrap-and-migrations.md`, and C2B2 Slice 1 implementation
+status is recorded in `.docs/c2b2-migration-0002.md`.
 
 This administrative transaction reuses the one common exclusion lock and
 filesystem binding but is not the Coordinator product writer, not a second
@@ -553,9 +563,10 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
 
 ## C2B0 Accepted Durable-State Target Topology
 
-Status: `ACCEPTED TARGET CONTRACT`; durable topology implementation absent.
-C2B1 administrative migration source is current but is outside this product
-topology.
+Status: `ACCEPTED TARGET CONTRACT`; C2B2 Slice 1 physically represents the
+nineteen-table core, while durable product-topology behavior remains absent.
+C2B1/C2B2-Slice-1 administrative migration source is current but is outside
+this product topology.
 
 C2B targets private role-based durable-development modules in the existing
 Coordinator SQLite database. They must reuse the existing concrete writer
@@ -568,7 +579,8 @@ widening.
 The target private transaction roles separate program initialization,
 author-effect establishment, bound validation/review/cancellation-effect
 establishment, source-observation ingest, and progression decisions. Durable
-intent must precede future external I/O, but no C2B durable-state source or I/O
-exists. The current managed tip remains schema 0001 and there is no C2B product
-reader, writer, mutation transaction, worker, Bridge dependency, ES dependency,
-service, queue, scheduler, or autonomous loop.
+intent must precede future external I/O. C2B2 Slice 1 now provides only the
+migration-0002 physical schema at current generation 2; no C2B pure row/value
+source or C2B product reader, writer, mutation transaction, worker, Bridge
+dependency, ES dependency, service, queue, scheduler, or autonomous loop
+exists.

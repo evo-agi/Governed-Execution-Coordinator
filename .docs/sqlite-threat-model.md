@@ -15,6 +15,11 @@ global-stop persistence, and B4c adds guarded public global-stop delegation.
 Receipt provisioning remains separate, and no worker, service, scheduler,
 publication, or cross-repository authority exists.
 
+C2B2 Slice 1 advances only the managed physical schema to application
+generation 2 / terminal migration 0002. Its nineteen empty-at-install tables do
+not add C2B row/value code, readers, mutations, runtime authority, or new
+filesystem or process authority.
+
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
 state-authority lock for administration. B2c implements writer issuance and an

@@ -53,16 +53,14 @@ C2A freezes the semantic field, identity, digest, and relation contracts and
 creates no durable state. C2A1 implements only internal immutable no-I/O values
 and the six named pure coherence validators; those values neither read nor
 write SQLite and confer no durable or executable authority. The current
-implemented database remains application generation 1 with schema 0001 and the
-`0001_initial` catalog entry and production SQL resource only; migration 0001
-bytes, history, and table meanings remain unchanged. C2B1 changes bounded
-administrative migration mechanics, not durable development state. The
-accepted C2B0 target contract reserves
-`0002_development_program_and_effect_state` and
-`0003_development_observation_and_progression_state`, and freezes their exact
-target responsibilities and inventories. No 0002/0003 SQL, catalog entry,
-schema object, installed migration, application-generation change, C2B durable
-record, reader, writer, mutation, observation ingest, decision runtime,
+implemented database is application generation 2 with terminal catalog entry
+`0002_development_program_and_effect_state`; migration 0001 bytes, history, and
+table meanings remain unchanged. C2B1 supplies bounded administrative migration
+mechanics, and C2B2 Slice 1 adds only the frozen physical nineteen-table core.
+The accepted C2B0 target contract also reserves
+`0003_development_observation_and_progression_state` and freezes its exact
+target responsibilities and inventory. No migration-0003 SQL, C2B pure
+row/value source, reader, writer, mutation, observation ingest, decision runtime,
 authority verifier, WorkSpec custody, worker/runtime behavior, or effect is
 currently implemented.
 
@@ -72,14 +70,16 @@ to Coordinator.
 
 The current finite-backlog, standing-lease, zero-only budget, READY-only
 dependency, and disabled-stage contracts remain current v1 compatibility
-behavior but are not frozen as the target model. Current schema 0001, migration
-inventory, `WriterSession`, transition/global-stop persistence, evaluator
-behavior, state names, and disabled-stage behavior remain unchanged.
+behavior but are not frozen as the target model. Schema-0001 meanings,
+migration-0001 identity, `WriterSession`, transition/global-stop persistence,
+evaluator behavior, state names, and disabled-stage behavior remain unchanged;
+the cumulative physical tip is now migration 0002.
 
 Direct-local worker execution, capsule construction or custody, review,
 validation, repair, Git effects, ES routing, publication, and autonomous
-progression are deferred or blocked effects. Durable C2B representation and
-progression remain target-only; C2B1 migration administration is current. The
+progression are deferred or blocked effects. C2B physical core representability
+is current; C2B row/value, reader, mutation, and progression behavior remain
+target-only. The
 reserved target migration inventories are fixed by
 `.docs/c2b-durable-development-state.md`; later SQL encoding, safe-reference
 representation, observation-storage mechanics, and runtime integration remain
@@ -276,14 +276,15 @@ observed non-negative integer maximum; B3c4b now performs private sequence
 allocation through the pure allocator only after fresh evaluation.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They use a
-temporary managed schema-0001 database, directly seed synthetic authoritative
-rows through a test-setup transaction, reconstruct through existing B3b1/B3b2b
-and B3c0b contracts, and acquire real internal writer issuance as temporary
-test evidence. Unsupported authorization remains production/default, optional
-persisted events are domain-rejected, and no accepted executable transition is
-proved. The fixtures do not add production admission, authorization, product
-state initialization, runtime authority, a concrete capability, fencing, context
-assembly, mutation, or migration 0002.
+temporary current-generation-2 database at terminal migration
+`0002_development_program_and_effect_state`, but directly seed only the
+historical schema-0001 B3/B4 graph and leave all nineteen C2B tables empty.
+Unsupported authorization remains production/default, optional persisted events
+are domain-rejected, and no accepted executable transition is proved. The
+fixtures add no production admission, authorization, product state
+initialization, runtime authority, C2B row/value source, reader, mutation, or
+replay behavior. `.docs/b3-tests-only-coherent-fixtures.md` owns the exact
+physical-versus-semantic and writer-lifecycle contract.
 
 Committed accepted and domain-rejected transitions commit exactly one
 `TransitionEvent`. The event is the receipt. B3c3 rollback-only fresh
@@ -417,11 +418,11 @@ evaluator, sequence, write, rollback, COMMIT, or uncertainty ownership into
 
 ## C2B0 Accepted Durable-Development Target
 
-Status: `ACCEPTED TARGET CONTRACT`; current schema remains 0001 and the target
-records below do not exist. The implemented catalog contains only
-`0001_initial`, and implemented application generation remains 1. Migrations
-0002 and 0003 are reserved target identities, not installed or current schema.
-C2B1 currently owns only `sqlite_migration.py` administrative transactions;
+Status: `ACCEPTED TARGET CONTRACT` for remaining C2B behavior. C2B2 Slice 1 has
+implemented the migration-0002 physical core at application generation 2, but
+the target product records below are not populated or accessible through C2B
+row/value or reader code. Migration 0003 remains a reserved target identity.
+C2B1 owns `sqlite_migration.py` administrative transactions;
 those transactions are not a second product writer, a C2B product mutation
 transaction, or durable progression truth.
 
@@ -443,10 +444,10 @@ entries, candidate/capsule bytes, paths, modes, file digests, lengths,
 credentials, endpoints, prompts, transcripts, and workspace material remain
 outside SQLite.
 
-The accepted target comprises migrations
-`0002_development_program_and_effect_state` and
+The accepted complete target comprises implemented migration
+`0002_development_program_and_effect_state` plus target migration
 `0003_development_observation_and_progression_state`, twenty-eight new tables,
-forty-six new triggers, and two explicit indexes. Neither migration or any C2B
-reader, writer, mutation, ingest, decision runtime, authority verifier, or
-latch behavior is currently implemented; there are no target catalog entries,
-SQL files, or schema objects and no current application-generation change.
+forty-six new triggers, and two explicit indexes across both migrations.
+Migration 0002 currently contributes nineteen tables, thirty triggers, and one
+explicit index. Migration 0003 and all C2B row/value, reader, writer, mutation,
+ingest, decision runtime, authority-verifier, and latch behavior remain absent.

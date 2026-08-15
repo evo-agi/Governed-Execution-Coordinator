@@ -455,9 +455,10 @@ or remainder append.
 
 `PRAGMA user_version`, if used later, is only a checked convenience mirror.
 
-C2B1 implements the lasting migration catalog and runner while retaining
-application generation 1, tip `0001_initial`, and one production SQL resource.
-Migration SQL is
+C2B1 implements the lasting migration catalog and runner. C2B2 Slice 1 now uses
+that runner at application generation 2, tip
+`0002_development_program_and_effect_state`, with exactly two production SQL
+resources while preserving migration 0001. Migration SQL is
 loaded only from code-owned package resources and never from arbitrary
 filesystem paths. Connection PRAGMAs are set and verified by bootstrap code and
 are not part of migration identity. Observational B1.1 inspection/validation

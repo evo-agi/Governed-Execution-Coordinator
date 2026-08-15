@@ -991,7 +991,10 @@ def test_reader_source_has_no_production_capability_factory_transaction_or_mutat
 def test_tests_only_schema_setup_is_not_a_fixture_or_production_capability_program() -> None:
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()
     assert not (PACKAGE_DIR / "sqlite_transition_readers.py").exists()
-    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
+    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     assert json.loads(json.dumps({"capability": "tests-only"})) == {"capability": "tests-only"}
 
 

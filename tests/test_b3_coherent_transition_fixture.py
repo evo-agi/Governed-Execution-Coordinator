@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import inspect
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import ge_nwp_coordinator
+import b3_coherent_transition_fixture as fixture_module
 from b3_coherent_transition_fixture import (
     FIXTURE_TIMESTAMP,
     BlockedFixtureAuthorityContract,
@@ -18,6 +20,8 @@ from b3_coherent_transition_fixture import (
     make_coherent_transition_fixture_for_test,
     read_back_fixture_for_test,
     transition_event_count_for_test,
+    _C2B2_PHYSICAL_TABLES,
+    _require_c2b2_physical_tables_empty_for_test,
     _replace_work_item_budget_limit_for_test,
     _replace_work_item_lease_for_test,
 )
@@ -28,7 +32,9 @@ from ge_nwp_coordinator.persistence_contracts import (
 )
 from ge_nwp_coordinator.sqlite_connection import open_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
+from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 from ge_nwp_coordinator.sqlite_migration import DatabaseClassification, validate_database
+from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator.state_machine import WorkItemState
 from ge_nwp_coordinator.state_store import StateStore, WriterSession
 
@@ -38,6 +44,72 @@ PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 TEST_FIXTURE_PATH = ROOT / "tests/b3_coherent_transition_fixture.py"
 MIGRATION_PATH = PACKAGE_DIR / "sqlite_migrations/0001_initial.sql"
 EXPECTED_MIGRATION_0001_CHECKSUM = "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148"
+EXPECTED_C2B2_PHYSICAL_TABLES = (
+    "development_program_heads",
+    "development_program_versions",
+    "development_accepted_intent_revisions",
+    "development_work_item_heads",
+    "development_work_item_revisions",
+    "development_program_version_work_items",
+    "development_revision_edges",
+    "development_work_spec_bindings",
+    "development_semantic_attempts",
+    "development_attempt_fences",
+    "development_authority_evaluations",
+    "development_effect_intents",
+    "development_effect_fences",
+    "development_author_commands",
+    "development_effect_heads",
+    "development_delivery_attempts",
+    "development_delivery_heads",
+    "development_decisions",
+    "development_mutation_receipts",
+)
+_PROHIBITED_FIXTURE_DEPENDENCY_SEGMENTS = frozenset(
+    {
+        "c2b_values",
+        "c2b_readers",
+        "c2b_mutation",
+        "c2b3_replay",
+    }
+)
+_PROHIBITED_FIXTURE_DEPENDENCY_DIAGNOSTIC = "prohibited_fixture_dependency"
+
+
+def _fixture_import_source_bindings(tree: ast.AST) -> tuple[tuple[str, str | None], ...]:
+    source_bindings: list[tuple[str, str | None]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            source_bindings.extend((alias.name, alias.asname) for alias in node.names)
+            continue
+        if not isinstance(node, ast.ImportFrom):
+            continue
+
+        relative_module = f"{'.' * node.level}{node.module or ''}"
+        if node.module is not None:
+            source_bindings.append((relative_module, None))
+        for alias in node.names:
+            separator = "." if node.module is not None else ""
+            source_bindings.append(
+                (f"{relative_module}{separator}{alias.name}", alias.asname)
+            )
+    return tuple(source_bindings)
+
+
+def _assert_fixture_import_boundary(source: str) -> tuple[str, ...]:
+    tree = ast.parse(source)
+    imported_sources = tuple(
+        source_path
+        for source_path, _local_binding in _fixture_import_source_bindings(tree)
+    )
+    if any(
+        segment.casefold() in _PROHIBITED_FIXTURE_DEPENDENCY_SEGMENTS
+        for source_path in imported_sources
+        for segment in source_path.split(".")
+        if segment
+    ):
+        raise AssertionError(_PROHIBITED_FIXTURE_DEPENDENCY_DIAGNOSTIC)
+    return imported_sources
 
 
 def _writer_generations_for_test(fixture: CoherentTransitionFixture) -> tuple[int, ...]:
@@ -117,14 +189,164 @@ def test_fixture_module_exists_only_under_tests_and_exports_no_production_surfac
     ]
 
 
-def test_base_fixture_uses_temp_managed_schema_0001_and_builds_exact_graph(tmp_path: Path) -> None:
+def test_fixture_has_no_c2b_row_adapter_reader_or_mutation_dependency() -> None:
+    source = TEST_FIXTURE_PATH.read_text(encoding="utf-8")
+    imported_modules = _assert_fixture_import_boundary(source)
+    assert "sqlite3" in imported_modules
+    assert "ge_nwp_coordinator.sqlite_migration" in imported_modules
+    assert EXPECTED_C2B2_PHYSICAL_TABLES == _C2B2_PHYSICAL_TABLES
+    assert len(EXPECTED_C2B2_PHYSICAL_TABLES) == 19
+    assert len(set(EXPECTED_C2B2_PHYSICAL_TABLES)) == 19
+    empty_guard_source = inspect.getsource(_require_c2b2_physical_tables_empty_for_test)
+    assert empty_guard_source.count('connection.execute(f"SELECT COUNT(*) FROM {table_name}")') == 1
+    for forbidden in (
+        "INSERT INTO development_",
+        "UPDATE development_",
+        "DELETE FROM development_",
+        "apply_development",
+        "read_development",
+    ):
+        assert forbidden not in source
+
+
+def _assert_prohibited_fixture_dependency(import_statement: str) -> None:
+    source = TEST_FIXTURE_PATH.read_text(encoding="utf-8")
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_fixture_import_boundary(f"{source}\n{import_statement}\n")
+    assert str(exc_info.value) == _PROHIBITED_FIXTURE_DEPENDENCY_DIAGNOSTIC
+    assert exc_info.value.args == (_PROHIBITED_FIXTURE_DEPENDENCY_DIAGNOSTIC,)
+
+
+def test_fixture_import_boundary_rejects_ast_import_c2b_values() -> None:
+    _assert_prohibited_fixture_dependency("import ge_nwp_coordinator.c2b_values")
+
+
+def test_fixture_importfrom_rejects_package_alias_c2b_values() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator import c2b_values"
+    )
+
+
+def test_fixture_importfrom_rejects_package_alias_c2b_readers() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator import c2b_readers"
+    )
+
+
+def test_fixture_importfrom_rejects_package_alias_c2b_mutation() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator import c2b_mutation"
+    )
+
+
+def test_fixture_importfrom_rejects_package_alias_c2b3_replay() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator import c2b3_replay"
+    )
+
+
+def test_fixture_importfrom_rejects_aliased_package_member() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator import c2b_values as values_alias"
+    )
+
+
+def test_fixture_importfrom_rejects_aliased_submodule_member() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator.c2b_readers import Reader as ReaderAlias"
+    )
+
+
+def test_fixture_importfrom_rejects_module_none_relative_member() -> None:
+    _assert_prohibited_fixture_dependency("from . import c2b_mutation")
+
+
+def test_fixture_importfrom_rejects_parent_relative_package_member() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ..ge_nwp_coordinator import c2b3_replay"
+    )
+
+
+def test_fixture_importfrom_rejects_star_import_from_protected_module() -> None:
+    _assert_prohibited_fixture_dependency(
+        "from ge_nwp_coordinator.c2b_values import *"
+    )
+
+
+def test_fixture_import_boundary_accepts_current_fixture_source() -> None:
+    source = TEST_FIXTURE_PATH.read_text(encoding="utf-8")
+    imported_sources = _assert_fixture_import_boundary(source)
+    assert "sqlite3" in imported_sources
+    assert "ge_nwp_coordinator.sqlite_migration" in imported_sources
+
+
+def test_fixture_import_boundary_accepts_ordinary_aliased_imports() -> None:
+    imported_sources = _assert_fixture_import_boundary(
+        "import json.tool as json_tool\n"
+        "from pathlib import Path as LocalPath\n"
+    )
+    assert imported_sources == ("json.tool", "pathlib", "pathlib.Path")
+
+
+def test_fixture_import_boundary_accepts_benign_near_name_segments() -> None:
+    imported_sources = _assert_fixture_import_boundary(
+        "import ge_nwp_coordinator.not_c2b_values\n"
+        "from ge_nwp_coordinator import my_c2b_values_note as note_alias\n"
+        "from . import not_c2b_readers\n"
+    )
+    assert "ge_nwp_coordinator.not_c2b_values" in imported_sources
+    assert "ge_nwp_coordinator.my_c2b_values_note" in imported_sources
+    assert ".not_c2b_readers" in imported_sources
+
+
+def test_fixture_nonempty_c2b_table_rejection_closes_read_connection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _NonemptyCursor:
+        def fetchone(self) -> tuple[int]:
+            return (1,)
+
+    class _ReadConnection:
+        def __init__(self) -> None:
+            self.statements: list[str] = []
+            self.closed = False
+
+        def execute(self, statement: str) -> _NonemptyCursor:
+            self.statements.append(statement)
+            return _NonemptyCursor()
+
+        def close(self) -> None:
+            self.closed = True
+
+    connection = _ReadConnection()
+    monkeypatch.setattr(
+        fixture_module,
+        "open_existing_sqlite_connection",
+        lambda location, *, read_only: connection,
+    )
+    location = CoordinatorStateLocation.from_trusted_root(tmp_path / "nonempty-c2b-state")
+
+    with pytest.raises(RuntimeError, match="^fixture-c2b2-physical-table-not-empty$"):
+        _require_c2b2_physical_tables_empty_for_test(location)
+
+    assert connection.statements == [
+        f"SELECT COUNT(*) FROM {EXPECTED_C2B2_PHYSICAL_TABLES[0]}"
+    ]
+    assert connection.closed is True
+
+
+def test_base_fixture_uses_current_physical_schema_and_builds_historical_exact_graph(
+    tmp_path: Path,
+) -> None:
     with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
         assert fixture.location.state_root.is_relative_to(tmp_path)
         assert not fixture.location.state_root.is_relative_to(ROOT)
         inspection = validate_database(fixture.location)
         assert inspection.classification is DatabaseClassification.MANAGED
-        assert inspection.current_sequence == 1
-        assert inspection.latest_sequence == 1
+        assert inspection.current_sequence == 2
+        assert inspection.latest_sequence == 2
+        assert inspection.current_migration_id == "0002_development_program_and_effect_state"
 
         assert fixture.lease_identity_validation.identity_valid is True
         assert fixture.lease_identity_validation.lease_ref == fixture.lease.lease_id
@@ -151,6 +373,15 @@ def test_base_fixture_uses_temp_managed_schema_0001_and_builds_exact_graph(tmp_p
         assert dependency_receipt_count_for_test(fixture) == 0
         assert global_stop_event_count_for_test(fixture) == 0
         assert transition_event_count_for_test(fixture) == 0
+
+        connection = open_existing_sqlite_connection(fixture.location, read_only=True)
+        try:
+            assert tuple(
+                (table_name, connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone())
+                for table_name in EXPECTED_C2B2_PHYSICAL_TABLES
+            ) == tuple((table_name, (0,)) for table_name in EXPECTED_C2B2_PHYSICAL_TABLES)
+        finally:
+            connection.close()
 
 
 def test_b3b2b_readers_reconstruct_exact_seeded_rows_and_binding_passes(tmp_path: Path) -> None:
@@ -195,17 +426,24 @@ def test_optional_ready_dependency_graph_is_coherent_and_no_neutral_receipt_is_s
         ) == fixture.backlog.work_items[0]
 
 
-def test_real_writer_issuance_is_generation_one_and_session_closes_deterministically(tmp_path: Path) -> None:
+def test_real_writer_issuance_is_generation_two_and_session_closes_deterministically(tmp_path: Path) -> None:
     with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
         session = fixture.writer_session
+        location = fixture.location
         assert session.active is True
         assert fixture.metadata == session.metadata
-        assert fixture.metadata.generation == 1
-        assert _writer_generations_for_test(fixture) == (1,)
+        assert fixture.metadata.generation == 2
+        assert _writer_generations_for_test(fixture) == (2,)
         assert validate_database(fixture.location).classification is DatabaseClassification.MANAGED
     assert session.active is False
     session.close()
     assert session.active is False
+
+    downstream_session = acquire_sqlite_writer_session(location)
+    try:
+        assert downstream_session.metadata.generation == 3
+    finally:
+        downstream_session.close()
 
 
 def test_fixture_repr_hides_location_session_models_and_private_material(tmp_path: Path) -> None:
@@ -337,13 +575,29 @@ def test_docs_and_static_contracts_record_tests_only_fixture_status() -> None:
         "B3c2 event/idempotency/sequence readers are private transaction-internal tests only",
         "B3c3 rollback-only dry-run runtime remains private",
         "B3c4b now implements private atomic persistence",
+        "current cumulative application generation `2`",
+        "terminal migration `0002_development_program_and_effect_state`",
+        "first acquisition has generation `1` and is closed",
+        "retains its second acquisition at generation `2`",
+        "next downstream acquisition is therefore generation `3`",
+        "All nineteen C2B physical tables remain empty",
+        "does not populate or consume C2B2 durable records",
+        "does not prove C2B2 row/value, reader, mutation, family replay, or recovery behavior",
     ):
         assert phrase in normalized
+    for stale in (
+        "generation `1` for a fresh temporary database",
+        "No migration 0002 is required for this tests-only tranche",
+    ):
+        assert stale not in doc
 
 
 def test_migration_boundary_related_surfaces_and_repo_artifacts_remain_frozen() -> None:
     assert hashlib.sha256(MIGRATION_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
-    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
+    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
 
     source_paths = tuple(
         path

@@ -373,7 +373,7 @@ contract must still freeze the applicable runtime, direct-local or ES adapter,
 transport, and persistence mechanics before schema, service, worker, adapter,
 Git/CI, or runtime execution work.
 
-## C2B1 Current Migration-Administration Boundary
+## C2B1/C2B2-Slice-1 Current Migration-Administration Boundary
 
 Status: `CURRENT IMPLEMENTED CONTRACT` for explicit SQLite administration
 only. C2B0 remains the historical accepted-target contract tranche.
@@ -385,6 +385,12 @@ three-way commit readback under the retained common lock. Migration eligibility,
 history, schema evidence, and recovery evidence are administrative facts only;
 they are not development-program admission, selection, attempt, observation,
 decision, acceptance, effect, publication, or completion truth.
+
+C2B2 Slice 1 uses this administrative boundary at application generation 2 and
+terminal migration `0002_development_program_and_effect_state`. It implements
+only physical representability for the frozen nineteen-table core. No C2B
+row/value source, private reader, product mutation, family replay or recovery,
+or C2B3 behavior is added.
 
 Durable development progression, source-observation ingest, semantic decisions,
 effect establishment or execution, WorkSpec custody, worker/process behavior,

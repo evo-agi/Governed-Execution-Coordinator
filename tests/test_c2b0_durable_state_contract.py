@@ -1,3 +1,4 @@
+import ast
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -8,6 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 OWNER_PATH = ROOT / ".docs" / "c2b-durable-development-state.md"
+SQLITE_MIGRATION_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_migration.py"
 
 SECTION_HEADINGS = (
     "1. Status, Classification, And Layering",
@@ -97,6 +99,82 @@ TABLES_0002 = (
     "development_delivery_heads",
     "development_decisions",
     "development_mutation_receipts",
+)
+
+_C2B_MIGRATION_LITERAL_ALLOWLIST = frozenset(
+    (
+        "EXPECTED_TABLES",
+        "Constant",
+        table_name,
+        "schema introspection and verification",
+    )
+    for table_name in TABLES_0002
+) | frozenset(
+    (
+        "_EMPTY_AFTER_C2B2_MIGRATION_TABLES",
+        "Constant",
+        table_name,
+        "sequence-scoped migration-completion zero-seed checks",
+    )
+    for table_name in TABLES_0002
+) | frozenset(
+    {
+        (
+            "_C2B2_MIGRATION_ID",
+            "Constant",
+            "0002_development_program_and_effect_state",
+            "literal migration catalog/resource metadata",
+        ),
+        (
+            "_PACKAGED_MIGRATION_SPECS",
+            "Constant",
+            "0002_development_program_and_effect_state.sql",
+            "literal migration catalog/resource metadata",
+        ),
+    }
+)
+
+_C2B_MIGRATION_NAME_REFERENCE_ALLOWLIST = frozenset(
+    {
+        (
+            "_PACKAGED_MIGRATION_SPECS",
+            "Name",
+            "_C2B2_MIGRATION_ID",
+            "literal migration catalog/resource metadata",
+        ),
+        (
+            "_require_sqlite_runtime_for_selected_migrations",
+            "Name",
+            "_C2B2_MIGRATION_ID",
+            "the SQLite runtime-floor gate",
+        ),
+        (
+            "_verify_applied_migration_zero_seed_invariants",
+            "Name",
+            "_C2B2_MIGRATION_ID",
+            "sequence-scoped migration-completion zero-seed checks",
+        ),
+        (
+            "_verify_empty_c2b2_migration_tables",
+            "Name",
+            "_EMPTY_AFTER_C2B2_MIGRATION_TABLES",
+            "sequence-scoped migration-completion zero-seed checks",
+        ),
+    }
+)
+
+_C2B_MIGRATION_MODULE_CONSTANTS = frozenset(
+    {"_C2B2_MIGRATION_ID", "_EMPTY_AFTER_C2B2_MIGRATION_TABLES"}
+)
+_C2B_MIGRATION_NAMED_CALLABLES = frozenset(
+    {"_verify_empty_c2b2_migration_tables"}
+)
+_C2B_MIGRATION_REFERENCING_CALLABLES = frozenset(
+    {
+        "_require_sqlite_runtime_for_selected_migrations",
+        "_verify_applied_migration_zero_seed_invariants",
+        "_verify_empty_c2b2_migration_tables",
+    }
 )
 
 TABLES_0003 = (
@@ -345,13 +423,162 @@ TRIGGER_AGGREGATE_ROLE_CLAIMS = (
 
 TRANCHE_LINES = (
     "C2B0: historical documentation and direct documentation-contract tests only",
-    "C2B1: current application generation 1; terminal tip 0001; migration-framework reset only; no SQL or schema change; no durable development state",
+    "C2B1: historical application generation 1 / terminal tip 0001 migration-framework reset; no SQL or schema change; no durable development state",
     "C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, private readers; no mutation API",
     "C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O",
     "C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API",
     "C2B5: application generation 2; terminal tip 0003; source-observation ingest, cancel and redeliver decisions, bound validation/review/cancellation effects, knowledge and recovery; no external I/O",
     "C2B6: application generation 2; terminal tip 0003; accept, repair, replan, terminal_reject, block, publication eligibility, latch, version/head recovery; no external I/O",
 )
+
+
+def _c2b_enclosing_symbol(
+    node: ast.AST,
+    parents: dict[ast.AST, ast.AST],
+) -> str:
+    current = node
+    while current in parents:
+        parent = parents[current]
+        if isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return parent.name
+        if isinstance(parent, ast.Assign) and isinstance(parents.get(parent), ast.Module):
+            targets = tuple(
+                target.id for target in parent.targets if isinstance(target, ast.Name)
+            )
+            assert len(targets) == 1
+            return targets[0]
+        current = parent
+    return "<module>"
+
+
+def _assert_sqlite_migration_c2b_structure(
+    source: str,
+) -> tuple[tuple[str, str, str, str], ...]:
+    tree = ast.parse(source)
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    literal_purposes = {
+        (enclosing, category, token): purpose
+        for enclosing, category, token, purpose in _C2B_MIGRATION_LITERAL_ALLOWLIST
+    }
+    name_purposes = {
+        (enclosing, category, token): purpose
+        for enclosing, category, token, purpose in _C2B_MIGRATION_NAME_REFERENCE_ALLOWLIST
+    }
+    observed_literals: list[tuple[str, str, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Constant) or type(node.value) is not str:
+            continue
+        value = node.value
+        if value in {
+            "0002_development_program_and_effect_state",
+            "0002_development_program_and_effect_state.sql",
+        }:
+            observed_literals.append(
+                (_c2b_enclosing_symbol(node, parents), "Constant", value)
+            )
+        for table_name in TABLES_0002:
+            if re.search(
+                rf"(?<![0-9A-Za-z_]){re.escape(table_name)}(?![0-9A-Za-z_])",
+                value,
+            ):
+                observed_literals.append(
+                    (_c2b_enclosing_symbol(node, parents), "Constant", table_name)
+                )
+
+    observed_names = [
+        (
+            _c2b_enclosing_symbol(node, parents),
+            "Name",
+            node.id,
+        )
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name)
+        and isinstance(node.ctx, ast.Load)
+        and node.id in _C2B_MIGRATION_MODULE_CONSTANTS
+    ]
+    assert len(observed_literals) == len(literal_purposes)
+    assert frozenset(observed_literals) == frozenset(literal_purposes)
+    assert len(observed_names) == len(name_purposes)
+    assert frozenset(observed_names) == frozenset(name_purposes)
+
+    module_constants = frozenset(
+        target.id
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        for target in statement.targets
+        if isinstance(target, ast.Name)
+        and re.search(r"c2b|development", target.id, flags=re.IGNORECASE)
+    )
+    named_callables = frozenset(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        and re.search(r"c2b|development", node.name, flags=re.IGNORECASE)
+    )
+    referencing_callables = frozenset(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        and (
+            re.search(r"c2b|development", node.name, flags=re.IGNORECASE)
+            or any(
+                isinstance(descendant, ast.Name)
+                and re.search(
+                    r"c2b|development",
+                    descendant.id,
+                    flags=re.IGNORECASE,
+                )
+                for descendant in ast.walk(node)
+            )
+            or any(
+                isinstance(descendant, ast.Constant)
+                and type(descendant.value) is str
+                and (
+                    descendant.value
+                    in {
+                        "0002_development_program_and_effect_state",
+                        "0002_development_program_and_effect_state.sql",
+                    }
+                    or any(
+                        re.search(
+                            rf"(?<![0-9A-Za-z_]){re.escape(table_name)}(?![0-9A-Za-z_])",
+                            descendant.value,
+                        )
+                        for table_name in TABLES_0002
+                    )
+                )
+                for descendant in ast.walk(node)
+            )
+        )
+    )
+    assert module_constants == _C2B_MIGRATION_MODULE_CONSTANTS
+    assert named_callables == _C2B_MIGRATION_NAMED_CALLABLES
+    assert referencing_callables == _C2B_MIGRATION_REFERENCING_CALLABLES
+
+    return tuple(
+        sorted(
+            (
+                enclosing,
+                category,
+                token,
+                literal_purposes[(enclosing, category, token)],
+            )
+            for enclosing, category, token in observed_literals
+        )
+        + sorted(
+            (
+                enclosing,
+                category,
+                token,
+                name_purposes[(enclosing, category, token)],
+            )
+            for enclosing, category, token in observed_names
+        )
+    )
 
 
 def _text(path: Path | str) -> str:
@@ -606,9 +833,9 @@ def _assert_summary_target(
         "Exact C2B schema remains wholly open.",
         "C2B is currently implemented.",
         "C2B migrations 0002 and 0003 are installed.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
     ):
         _require(
             forbidden.lower() not in visible,
@@ -623,11 +850,11 @@ def _assert_sqlite_migration_summary(text: str) -> None:
     prose = _compact(_unfenced_markdown(section, role=f"{role}.section"))
     blocks = _text_blocks(section)
     for phrase in (
-        "no target SQL is installed",
-        "application generation and managed database tip remain 1/`0001_initial`",
-        "C2B1 is a framework-only source/test reset with no SQL or database change and is now current migration administration",
-        "C2B2 advances implemented application generation from 1 to 2",
-        "terminal catalog tip becomes 0002",
+        "`CURRENT IMPLEMENTED CONTRACT` for C2B2 Slice 1 generation 2 / terminal 0002",
+        "`ACCEPTED TARGET CONTRACT` for migration 0003",
+        "C2B1 is a framework-only source/test reset with no SQL or database change",
+        "C2B2 Slice 1 advances implemented application generation from 1 to 2",
+        "makes the terminal catalog tip 0002",
         "C2B3 remains generation 2 with terminal tip 0002",
         "C2B4 adds migration 0003 while retaining application generation 2",
         "C2B5 and C2B6 remain generation 2 with terminal tip 0003",
@@ -872,7 +1099,7 @@ def _assert_schema_contract(text: str) -> None:
     assert "Migration `0001_initial` retains immutable bytes, checksum, history, and meanings." in migration_0001, (
         "c2b0.migration|heading=20. Migration-Framework Strategy|failure=0001_immutability"
     )
-    assert "C2B1 is a framework-only source/test reset: it adds no SQL or database change and is now the current migration-administration implementation" in migration_0001, (
+    assert "C2B1 is the framework-only source/test reset that added no SQL or database change" in migration_0001, (
         "c2b0.migration|heading=20. Migration-Framework Strategy|failure=c2b1_scope"
     )
     blocks_0002 = _text_blocks(migration_0002)
@@ -1082,15 +1309,14 @@ def _assert_tranche_contract(text: str) -> None:
 def _assert_current_target_status(text: str) -> None:
     status = _section_prose(text, SECTION_HEADINGS[0])
     required = (
-        "The current implemented application generation remains 1",
-        "The current C2B1 migration framework is implemented",
-        "The packaged catalog and managed database tip remain `0001_initial`",
-        "schema 0001 is unchanged",
-        "The accepted C2B target reserves migrations",
-        "`0002_development_program_and_effect_state`",
+        "The current implemented application generation is 2",
+        "C2B1 migration mechanics remain implemented",
+        "managed database tip through `0002_development_program_and_effect_state`",
+        "schema-0001 migration bytes or meanings",
+        "Migration `0003_development_observation_and_progression_state` remains reserved",
         "`0003_development_observation_and_progression_state`",
-        "exact target responsibilities and inventories are frozen below",
-        "No 0002/0003 SQL, catalog entry, schema object, installed migration, application-generation change",
+        "exact responsibilities and inventories are frozen below",
+        "No 0003 SQL, C2B2 row/value source, product reader, product writer",
         "No target C2B reader, writer, mutation, transaction, ingest",
     )
     for phrase in required:
@@ -1106,9 +1332,9 @@ def _assert_current_target_status(text: str) -> None:
         "exact c2b schema remains wholly open.",
         "c2b is currently implemented",
         "migrations 0002 and 0003 are currently installed",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "application generation is currently 2.",
+        "application generation is currently 3.",
     ):
         _require(
             stale not in visible,
@@ -1119,11 +1345,11 @@ def _assert_current_target_status(text: str) -> None:
 def _assert_application_generation_contract(text: str) -> None:
     strategy = _section_prose(text, SECTION_HEADINGS[19])
     for phrase in (
-        "C2B1 is a framework-only source/test reset: it adds no SQL or database change and is now the current migration-administration implementation",
-        "The implemented application generation remains 1",
-        "the current catalog and terminal tip remain exactly `0001_initial`",
-        "C2B2 advances the implemented application generation from 1 to 2",
-        "catalog terminal tip becomes 0002",
+        "C2B1 is the framework-only source/test reset that added no SQL or database change",
+        "C2B2 Slice 1 now uses that framework at implemented application generation 2",
+        "current catalog and terminal tip `0002_development_program_and_effect_state`",
+        "C2B2 Slice 1 advances the implemented application generation from 1 to 2",
+        "makes its catalog terminal tip 0002",
         "C2B3 remains application generation 2 with terminal migration 0002",
         "C2B4 adds migration 0003 while retaining application generation 2",
         "terminal tip becomes 0003",
@@ -1435,10 +1661,10 @@ def test_current_versus_target_and_one_writer_are_explicit() -> None:
     status = _section_prose(text, SECTION_HEADINGS[0])
     authority = _compact(_section(text, SECTION_HEADINGS[1]))
     for phrase in (
-        "Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration administration",
+        "Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration administration plus C2B2 Slice 1 physical schema representability",
         "C2B0 was the historical documentation-and-direct-contract-test tranche.",
-        "C2B durable software-development state under the existing writer authority remains target-only.",
-        "The current implemented application generation remains 1",
+        "C2B2 Slice 1 now implements migration 0002 and physical representability",
+        "The current implemented application generation is 2",
         "one existing Coordinator SQLite database",
         "one existing writer issuance and fencing authority",
         "one existing operation guard",
@@ -1579,7 +1805,7 @@ def test_c2b0_stale_no_migration_reserved_wording_is_rejected() -> None:
     mutations = (
         _replace_once(
             text,
-            "The accepted C2B target reserves migrations",
+            "Migration `0003_development_observation_and_progression_state` remains reserved",
             "No migration number is reserved here; a future C2B requires a separately accepted durable schema and forward migration.",
         ),
         text + "\nExact future state shape, schema, migrations remain wholly open.\n",
@@ -1598,9 +1824,9 @@ def test_c2b0_current_target_status_rejects_all_additive_stale_claims() -> None:
     text = _owner()
     stale_claims = (
         "Exact C2B schema remains wholly open.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
         "No migration number is reserved.",
         "C2B is currently implemented.",
     )
@@ -1654,7 +1880,7 @@ def test_c2b0_application_generation_transition_is_exact() -> None:
     for mutation in (
         _replace_once(
             text,
-            "C2B2 advances the implemented application generation from 1 to 2",
+            "C2B2 Slice 1 advances the implemented application generation from 1 to 2",
             "C2B2 leaves the implemented application generation at 1",
         ),
         _replace_once(
@@ -1670,7 +1896,7 @@ def test_c2b0_application_generation_transition_is_exact() -> None:
         )
     sqlite_mutation = _replace_once(
         sqlite_text,
-        "C2B2 advances implemented application generation from 1 to 2",
+        "C2B2 Slice 1 advances implemented application generation from 1 to 2",
         "C2B2 leaves implemented application generation at 1",
     )
     with pytest.raises(AssertionError) as rejected:
@@ -1832,8 +2058,8 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
 
     lower_level = _replace_once(
         text,
-        "representation and C2B2-C2B6 behavior below.\n\nC2B0 was",
-        "representation and C2B2-C2B6 behavior below.\n\n### Local Detail\n\nC2B0 was",
+        "and C2B3-C2B6 behavior below.\n\nC2B0 was",
+        "and C2B3-C2B6 behavior below.\n\n### Local Detail\n\nC2B0 was",
     )
     _assert_current_target_status(lower_level)
 
@@ -1870,8 +2096,8 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
     for boundary in ("## Relocated Status", "# Relocated Status"):
         mutation = _replace_once(
             text,
-            "representation and C2B2-C2B6 behavior below.\n\nC2B0 was",
-            f"representation and C2B2-C2B6 behavior below.\n\n{boundary}\n\nC2B0 was",
+            "and C2B3-C2B6 behavior below.\n\nC2B0 was",
+            f"and C2B3-C2B6 behavior below.\n\n{boundary}\n\nC2B0 was",
         )
         with pytest.raises(AssertionError) as rejected:
             _assert_current_target_status(mutation)
@@ -1886,13 +2112,13 @@ def test_c2b0_summary_sections_ignore_fenced_target_claims() -> None:
             _text(".docs/durable-state-model.md"),
             "c2b0.summary.durable_state",
             "C2B0 Accepted Durable-Development Target",
-            "The accepted target comprises migrations",
+            "The accepted complete target comprises implemented migration",
         ),
         (
-            _text(".docs/architecture.md"),
-            "c2b0.summary.architecture",
-            "C2B0 Accepted Durable-State Target Topology",
-            "Status: `ACCEPTED TARGET CONTRACT`; durable topology implementation absent.",
+                _text(".docs/architecture.md"),
+                "c2b0.summary.architecture",
+                "C2B0 Accepted Durable-State Target Topology",
+                "C2B2 Slice 1 physically represents the nineteen-table core",
         ),
         (
             _text(".docs/autonomous-software-development-operating-model.md"),
@@ -2277,9 +2503,9 @@ def test_c2b0_repair2_full_audit_counterfactual_matrix() -> None:
 
     for stale in (
         "Exact C2B schema remains wholly open.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
         "No migration number is reserved.",
         "C2B is currently implemented.",
     ):
@@ -2444,8 +2670,8 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
 
     fenced_target = _replace_once(
         text,
-        "The accepted C2B target reserves migrations",
-        "```text\nThe accepted C2B target reserves migrations\n```",
+        "Migration `0003_development_observation_and_progression_state` remains reserved",
+        "```text\nMigration `0003_development_observation_and_progression_state` remains reserved\n```",
     )
     with pytest.raises(AssertionError) as rejected:
         _assert_current_target_status(fenced_target)
@@ -2455,8 +2681,8 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
 
     same_or_higher = _replace_once(
         text,
-        "representation and C2B2-C2B6 behavior below.\n\nC2B0 was",
-        "representation and C2B2-C2B6 behavior below.\n\n# Relocated Status\n\nC2B0 was",
+        "and C2B3-C2B6 behavior below.\n\nC2B0 was",
+        "and C2B3-C2B6 behavior below.\n\n# Relocated Status\n\nC2B0 was",
     )
     with pytest.raises(AssertionError) as rejected:
         _assert_current_target_status(same_or_higher)
@@ -2547,7 +2773,7 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
     generation_mutations = (
         _replace_once(
             text,
-            "C2B2 advances the implemented application generation from 1 to 2",
+            "C2B2 Slice 1 advances the implemented application generation from 1 to 2",
             "C2B2 leaves the implemented application generation at 1",
         ),
         _replace_once(
@@ -2609,7 +2835,7 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
     status_mutations = (
         _replace_once(
             text,
-            "The accepted C2B target reserves migrations",
+            "Migration `0003_development_observation_and_progression_state` remains reserved",
             "No migration number is reserved here",
         ),
         text + "\nExact future state shape, schema, migrations remain wholly open.\n",
@@ -2623,7 +2849,7 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
         )
 
 
-def test_c2b0_adds_no_source_schema_runtime_dependency_or_public_export() -> None:
+def test_c2b0_adds_no_runtime_and_slice1_adds_only_migration_schema() -> None:
     nonimplementation = _compact(_section(_owner(), SECTION_HEADINGS[26]))
     for phrase in (
         "creates no source module, SQL, schema object, migration, database row",
@@ -2636,22 +2862,32 @@ def test_c2b0_adds_no_source_schema_runtime_dependency_or_public_export() -> Non
     ):
         assert phrase in nonimplementation
 
-    assert not (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql").exists()
+    assert (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql").is_file()
     assert not (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0003_development_observation_and_progression_state.sql").exists()
     assert not any("c2b" in path.name.lower() for path in (ROOT / "src").rglob("*.py"))
     assert not any("development" in path.name.lower() for path in (ROOT / "src/ge_nwp_coordinator").glob("*.py"))
 
-    source = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "src").rglob("*.py"))
+    production_sources = {
+        path: path.read_text(encoding="utf-8")
+        for path in (ROOT / "src").rglob("*.py")
+    }
+    source = "\n".join(production_sources.values())
+    migration_source = production_sources.pop(SQLITE_MIGRATION_PATH)
+    non_migration_source = "\n".join(production_sources.values())
+    _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(
         path.read_text(encoding="utf-8")
         for root in (ROOT / "schemas", ROOT / "src/ge_nwp_coordinator/sqlite_migrations")
         for path in root.rglob("*")
         if path.is_file()
     )
-    for token in TABLES_0002 + TABLES_0003:
+    for token in TABLES_0002:
+        assert token not in non_migration_source
+        assert token in schema
+    for token in TABLES_0003:
         assert token not in source
         assert token not in schema
-    assert "CURRENT_APPLICATION_SCHEMA = 1" in source
+    assert "CURRENT_APPLICATION_SCHEMA = 2" in source
 
     pyproject = tomllib.loads(_text("pyproject.toml"))
     assert pyproject["project"]["dependencies"] == []
@@ -2666,6 +2902,55 @@ def test_c2b0_adds_no_source_schema_runtime_dependency_or_public_export() -> Non
     )
     assert "ExecutionSubstrateClient" not in source
     assert "OpenAIBridgeClient" not in source
+
+
+def test_sqlite_migration_c2b_references_match_exact_migration_only_allowlist() -> None:
+    inventory = _assert_sqlite_migration_c2b_structure(
+        SQLITE_MIGRATION_PATH.read_text(encoding="utf-8")
+    )
+    table_entries = tuple(entry for entry in inventory if entry[2] in TABLES_0002)
+    assert len(table_entries) == 38
+    assert frozenset(entry[2] for entry in table_entries) == frozenset(TABLES_0002)
+    assert all(
+        entry[3]
+        in {
+            "literal migration catalog/resource metadata",
+            "schema introspection and verification",
+            "sequence-scoped migration-completion zero-seed checks",
+            "the SQLite runtime-floor gate",
+        }
+        for entry in inventory
+    )
+
+
+@pytest.mark.parametrize(
+    "mutant",
+    (
+        """
+def _read_development_program_head(connection):
+    return connection.execute("SELECT * FROM development_program_heads").fetchone()
+""",
+        """
+def _decode_development_program_head(row):
+    return {"development_program_heads": row}
+""",
+        """
+def _mutate_development_program_head(connection):
+    connection.execute("INSERT INTO development_program_heads VALUES (?)", ("x",))
+""",
+        """
+class _DevelopmentProgramValue:
+    pass
+""",
+    ),
+    ids=("private-reader", "row-decoder", "insert-mutation", "value-class"),
+)
+def test_sqlite_migration_c2b_structural_allowlist_rejects_runtime_mutants(
+    mutant: str,
+) -> None:
+    live = SQLITE_MIGRATION_PATH.read_text(encoding="utf-8")
+    with pytest.raises(AssertionError):
+        _assert_sqlite_migration_c2b_structure(live + mutant)
 
 
 def test_direct_negative_decision_basis_effect_and_stop_mutations_fail() -> None:
@@ -3982,7 +4267,7 @@ def test_c2b0_repair5_full_audit_counterfactual_matrix() -> None:
         )
 
 
-def test_c2b2_field_level_freeze_is_delegated_without_implementation() -> None:
+def test_c2b2_field_level_freeze_has_physical_slice_only() -> None:
     owner = _owner()
     classification = _compact(_section(owner, SECTION_HEADINGS[27]))
     ledger = _section(owner, SECTION_HEADINGS[28])
@@ -3992,10 +4277,10 @@ def test_c2b2_field_level_freeze_is_delegated_without_implementation() -> None:
     replay = _compact(_section(owner, SECTION_HEADINGS[32]))
     absent = _compact(_section(owner, SECTION_HEADINGS[33]))
 
-    assert "CURRENT IMPLEMENTED CONTRACT: C2B1 migration administration" in classification
+    assert "CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation" in classification
     assert "ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT" in classification
     assert "LATER-TRANCHE TARGET CONTRACT" in classification
-    assert "ABSENT: migration 0002 repository SQL" in classification
+    assert "ABSENT: C2B2 pure row/value source" in classification
     assert "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_BEGIN -->" in ledger
     assert "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_END -->" in ledger
     assert "redeliver` and `cancel` do not advance a version" in coherence
@@ -4005,8 +4290,8 @@ def test_c2b2_field_level_freeze_is_delegated_without_implementation() -> None:
     assert "C2B4: migration-0003 row contracts/readers only; not a mutation tranche" in replay
     assert "documentation and contract tests only" in absent
 
-    assert not (
+    assert (
         ROOT
         / "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql"
-    ).exists()
+    ).is_file()
     assert not (ROOT / "tests/test_c2b2_field_level_contract.py").is_symlink()

@@ -38,9 +38,23 @@ or executable authorization.
 The current implementation remains bounded SQLite transition and coding
 `global_stop` mutation through the guarded `WriterSession` authority boundary,
 including receipt verification, writer fencing, idempotency, compare-and-swap,
-exact replay, commit uncertainty, and explicit retry. Current schema 0001,
-`FiniteBacklog`, standing-lease identity, disabled-stage behavior, and coding
-`global_stop` remain unchanged compatibility or current contracts.
+exact replay, commit uncertainty, and explicit retry. `FiniteBacklog`,
+standing-lease identity, disabled-stage behavior, and coding `global_stop`
+remain unchanged compatibility or current contracts.
+
+When the C2A contract was originally frozen, the current physical application
+generation was 1 and the terminal migration was `0001_initial`. That is the
+historical C2A freeze baseline, not the current physical repository state. The
+current physical application generation is 2 and the current terminal migration
+is `0002_development_program_and_effect_state`. Migration `0001_initial` remains
+the preserved historical schema-v1 migration; migration 0002 is implemented by
+C2B2 Slice 1.
+
+C2A did not create or own migration 0002. C2A semantic fields, values,
+identities, relations, and pure-value source do not themselves create durable
+C2A tables or durable C2A runtime rows. The generation-2 physical schema is a
+C2B2 Slice-1 implementation fact. C2A/C2A1 semantic authority remains distinct
+from C2B2 physical-schema authority.
 
 C2A1 implements only the nine immutable internal values, exact mapping and
 identity mechanics, two pure factories, and six pure coherence validators. It
@@ -1420,14 +1434,29 @@ coherence validators. C2A1 adds no SQLite table or column, durable C2A state,
 migration, package export, dependency, script, entry point, worker, adapter,
 supervisor, process, filesystem store, Git handler, network client, model
 client, Bridge or ES integration, scheduler, queue, service, API, IPC,
-reconciler, or autonomous loop. Coordinator managed schema 0001 and current B4c
-behavior remain exactly unchanged.
+reconciler, or autonomous loop. When C2A was frozen, physical application
+generation 1 and terminal migration `0001_initial` were the current baseline.
+That schema-0001 statement is historical only. The current repository is at
+physical application generation 2 with terminal migration
+`0002_development_program_and_effect_state`, implemented by C2B2 Slice 1.
+Current B4c behavior remains unchanged.
 
 C2A1 implements the exact bounded source contract in
 `.docs/c2a1-pure-semantic-values.md`; it may not launch a process or implement
-durable mutation. A later C2B requires separate acceptance for a durable schema
-design and forward migration. C2A assigns no migration number and authorizes no
-schema work.
+durable mutation. The historical C2A freeze required separate later acceptance
+for durable schema design and forward migration. C2B2 Slice 1 subsequently
+implemented migration 0002 under its own physical-schema authority. C2A did not
+create or own migration 0002. C2A assigns no migration number and authorizes no
+schema work. Its semantic fields, values, identities, relations, and pure-value
+source do not themselves create durable C2A tables or durable C2A runtime rows.
+The generation-2 physical schema is a C2B2 Slice-1 implementation fact, distinct
+from C2A/C2A1 semantic authority.
+
+Migration 0003 remains absent. C2B2 pure row/value source, C2B2 private readers,
+C2B mutation, replay, and recovery, and C2B3 behavior remain absent; C2B3 has
+not started. Worker, process, or model execution, Git effects, direct-local
+execution, ES routing, Bridge integration, publication, service, API, and IPC
+also remain absent.
 
 Still deferred are raw JSON decoding and full-record wire encoding, executable
 authorization verification, revocation source and freshness, observation
@@ -1435,8 +1464,8 @@ ingest, unknown-outcome decisions, process framing, executable and artifact
 identity, packaging and release, terminal receipt, containment, credential
 handoff, physical capsule storage and retrieval, validation and review
 execution, model invocation, Git commands and credentials, direct-local
-bootstrap, ES routing, reconciliation, schema persistence, migration, service,
-API, IPC, scheduler, queue, and autonomous-loop mechanics. Pure canonical
+bootstrap, ES routing, reconciliation, later schema persistence or migration,
+service, API, IPC, scheduler, queue, and autonomous-loop mechanics. Pure canonical
 identity-byte construction and the six named coherence validators are current
 C2A1 behavior rather than deferred runtime mechanics.
 

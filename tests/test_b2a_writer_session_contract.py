@@ -522,9 +522,12 @@ def test_fork_exec_and_thread_requirements_are_documented_without_overclaim() ->
         assert phrase in writer_doc
 
 
-def test_schema_fit_has_no_migration_0002_and_0001_is_unchanged() -> None:
+def test_schema_fit_preserves_0001_and_allows_later_migrations() -> None:
     migrations = sorted(path.name for path in (ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("*.sql"))
-    assert migrations == ["0001_initial.sql"]
+    assert migrations == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
 

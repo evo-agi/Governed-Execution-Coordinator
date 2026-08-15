@@ -748,7 +748,8 @@ def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface
         assert forbidden not in source
     assert "sqlite3" not in (ROOT / "src/ge_nwp_coordinator/persistence_contracts.py").read_text(encoding="utf-8")
     assert sorted(path.name for path in (ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("*.sql")) == [
-        "0001_initial.sql"
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
     ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
@@ -777,6 +778,11 @@ def test_b3a_contract_doc_pins_non_runtime_scope_and_future_reconstruction() -> 
         "COALESCE(MAX(event_sequence), -1) + 1",
         "commit_outcome_unknown",
         "B3a adds no admission API",
+        "temporary current-generation-2 database at terminal migration `0002_development_program_and_effect_state`",
+        "historical schema-0001 B3/B4 graph",
+        "All nineteen C2B tables remain empty",
+        "neither add nor consume C2B2 runtime behavior",
+        "`.docs/b3-tests-only-coherent-fixtures.md`",
     ):
         assert phrase in normalized
     for phrase in (
@@ -787,3 +793,5 @@ def test_b3a_contract_doc_pins_non_runtime_scope_and_future_reconstruction() -> 
         assert phrase in normalized_adr
     assert "typed-context shape" not in adr
     assert "invokes the `StateStore` port" not in adr
+    assert "temporary managed schema-0001 database" not in doc
+    assert "No migration 0002 is required for these prerequisite contracts" not in doc

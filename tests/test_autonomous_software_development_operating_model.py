@@ -1073,7 +1073,8 @@ def test_compatibility_component_exclusions_and_cross_repository_drift_are_pinne
         "current disabled-stage behavior",
         "current coding `global_stop`",
         "current `WriterSession` authority",
-        "sole `0001_initial.sql` migration",
+        "schema-0001 compatibility meanings and unchanged `0001_initial.sql` identity",
+        "current generation-2 migration-0002 physical tip",
         "`control-plane-normal-shell/v1` as an ES/CP compatibility edge",
         "Coding and operational progression remain separately versioned domains",
         "operational progression is excluded from the first software-development slice",
@@ -1109,7 +1110,8 @@ def test_c1_adds_no_source_schema_packaging_or_runtime_enablement() -> None:
 
     migrations = ROOT / "src" / "ge_nwp_coordinator" / "sqlite_migrations"
     assert sorted(path.name for path in migrations.glob("*.sql")) == [
-        "0001_initial.sql"
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
     ]
 
 
@@ -1501,9 +1503,9 @@ def _assert_c2b0_composition_overlay(text: str) -> None:
     visible = _unfenced_markdown(text, role=role).lower()
     for forbidden in (
         "Exact C2B schema remains wholly open.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
         "No migration number is reserved.",
         "C2B is currently implemented.",
     ):
@@ -1591,7 +1593,7 @@ def test_c2b1_current_administrative_composition_does_not_promote_progression() 
         _unfenced_markdown(
             _bounded_markdown_section(
                 _doc(),
-                "C2B1 Current Administrative Composition",
+                "C2B1/C2B2-Slice-1 Current Administrative Composition",
                 2,
                 role="operating_model.c2b1_current",
                 allow_eof=True,
@@ -1608,10 +1610,11 @@ def test_c2b1_current_administrative_composition_does_not_promote_progression() 
         "cumulative packaged-SQL schema authority",
         "complete-suffix single-transaction migration",
         "three-way migration commit readback",
-        "Application generation remains 1",
-        "catalog tip remains `0001_initial`",
+        "application generation 2",
+        "catalog tip `0002_development_program_and_effect_state`",
+        "physical schema representability only",
         "administrative evidence is not program, progression, decision, effect, acceptance, publication, or runtime truth",
-        "C2B2-C2B6 remain target-only",
+        "Remaining C2B2 behavior and C2B3-C2B6 remain target-only",
     ):
         assert phrase in section
 

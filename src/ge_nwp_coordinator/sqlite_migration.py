@@ -28,12 +28,14 @@ from ge_nwp_coordinator.sqlite_security import existing_state_database_path
 from ge_nwp_coordinator.sqlite_writer_state import _parse_writer_ownership_rows
 from ge_nwp_coordinator.state_authority_lock import acquire_state_authority_lock
 
-CURRENT_APPLICATION_SCHEMA = 1
+CURRENT_APPLICATION_SCHEMA = 2
 MIGRATION_PACKAGE = "ge_nwp_coordinator.sqlite_migrations"
 SQLITE_HEADER = b"SQLite format 3\x00"
 ROLLBACK_JOURNAL_FILE_FORMAT_VERSION = 1
 MAX_MIGRATION_RESOURCE_BYTES = 1_048_576
 MIGRATION_RESOURCE_READ_CHUNK_BYTES = 65_536
+_C2B2_MIGRATION_ID = "0002_development_program_and_effect_state"
+_SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
     code
@@ -76,6 +78,25 @@ EXPECTED_TABLES = frozenset(
         "transition_events",
         "global_stop_current",
         "global_stop_events",
+        "development_program_heads",
+        "development_program_versions",
+        "development_accepted_intent_revisions",
+        "development_work_item_heads",
+        "development_work_item_revisions",
+        "development_program_version_work_items",
+        "development_revision_edges",
+        "development_work_spec_bindings",
+        "development_semantic_attempts",
+        "development_attempt_fences",
+        "development_authority_evaluations",
+        "development_effect_intents",
+        "development_effect_fences",
+        "development_author_commands",
+        "development_effect_heads",
+        "development_delivery_attempts",
+        "development_delivery_heads",
+        "development_decisions",
+        "development_mutation_receipts",
     }
 )
 
@@ -90,6 +111,30 @@ EMPTY_AFTER_BOOTSTRAP_TABLES = frozenset(
         "work_items",
         "transition_events",
         "global_stop_events",
+    }
+)
+
+_EMPTY_AFTER_C2B2_MIGRATION_TABLES = frozenset(
+    {
+        "development_program_heads",
+        "development_program_versions",
+        "development_accepted_intent_revisions",
+        "development_work_item_heads",
+        "development_work_item_revisions",
+        "development_program_version_work_items",
+        "development_revision_edges",
+        "development_work_spec_bindings",
+        "development_semantic_attempts",
+        "development_attempt_fences",
+        "development_authority_evaluations",
+        "development_effect_intents",
+        "development_effect_fences",
+        "development_author_commands",
+        "development_effect_heads",
+        "development_delivery_attempts",
+        "development_delivery_heads",
+        "development_decisions",
+        "development_mutation_receipts",
     }
 )
 
@@ -274,6 +319,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=1,
         destructive=False,
         description="Initial local SQLite Coordinator state schema",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_C2B2_MIGRATION_ID,
+        sequence=2,
+        resource_name="0002_development_program_and_effect_state.sql",
+        literal_checksum="5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="Durable development program and effect state schema",
     ),
 )
 
@@ -580,6 +635,7 @@ def _initialize_database_with_catalog(
         _MigrationDatabaseDisposition.CURRENT,
     }:
         _raise_assessment_failure(candidate)
+    _require_sqlite_runtime_for_administrative_catalog_target(catalog)
     initial_suffix = (
         catalog.migrations
         if candidate.disposition is not _MigrationDatabaseDisposition.CURRENT
@@ -681,6 +737,7 @@ def _migrate_database_with_catalog(
         _MigrationDatabaseDisposition.SUPPORTED_OLDER_PREFIX,
     }:
         _raise_assessment_failure(candidate)
+    _require_sqlite_runtime_for_administrative_catalog_target(catalog)
     preflight_suffix = catalog.migrations[candidate.current_sequence :]
     _validate_selected_suffix(preflight_suffix)
     preflight = _assess_location_database(
@@ -1045,7 +1102,8 @@ def _assess_open_database(
         posture = apply_observational_connection_posture(connection)
         if posture.journal_mode != "delete":
             raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
-        objects = _user_schema_objects(connection, catalog=catalog)
+        has_objects = _has_any_user_schema_object(connection)
+        has_history_table = _has_schema_migrations_table(connection)
     except SQLiteStateError as exc:
         if preserve_operational_errors and _is_operational_validation_error(exc):
             raise
@@ -1053,9 +1111,9 @@ def _assess_open_database(
             _MigrationDatabaseDisposition.CORRUPT_HISTORY,
             reason=SQLiteStateErrorCode(exc.error_class),
         )
-    if not objects:
+    if not has_objects:
         return _MigrationDatabaseAssessment(_MigrationDatabaseDisposition.EMPTY)
-    if ("table", "schema_migrations") not in objects:
+    if not has_history_table:
         return _MigrationDatabaseAssessment(
             _MigrationDatabaseDisposition.DATABASE_NOT_EMPTY_UNMANAGED,
             reason=SQLiteStateErrorCode.DATABASE_NOT_EMPTY_UNMANAGED,
@@ -1366,6 +1424,45 @@ def _validate_selected_suffix(suffix: tuple[MigrationDefinition, ...]) -> None:
         previous_sequence = migration.sequence
 
 
+def _require_sqlite_runtime_for_selected_migrations(
+    migrations: tuple[MigrationDefinition, ...],
+) -> None:
+    if type(migrations) is not tuple:
+        raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+    if any(migration.migration_id == _C2B2_MIGRATION_ID for migration in migrations):
+        _require_sqlite_strict_runtime()
+
+
+def _require_sqlite_runtime_for_administrative_catalog_target(
+    catalog: MigrationCatalog,
+) -> None:
+    """Gate the maximum catalog capability before an administrative effect."""
+
+    if type(catalog) is not MigrationCatalog:
+        raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+    _require_sqlite_runtime_for_selected_migrations(catalog.migrations)
+
+
+def _require_sqlite_runtime_for_schema_prefix(
+    catalog: MigrationCatalog,
+    sequence: int,
+) -> None:
+    if type(catalog) is not MigrationCatalog or type(sequence) is not int:
+        raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+    _require_sqlite_runtime_for_selected_migrations(catalog.migrations[:sequence])
+
+
+def _require_sqlite_strict_runtime() -> None:
+    version = sqlite3.sqlite_version_info
+    if (
+        type(version) is not tuple
+        or len(version) != 3
+        or any(type(component) is not int or component < 0 for component in version)
+        or version < _SQLITE_STRICT_MINIMUM_VERSION
+    ):
+        raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+
+
 def _validate_catalog_statement_plans(catalog: MigrationCatalog) -> None:
     if type(catalog) is not MigrationCatalog:
         raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_FAILED)
@@ -1483,6 +1580,12 @@ def _run_bound_migration_plan(
                 migration.sequence,
                 verify_managed_invariants=plan.verify_managed_invariants,
                 fresh_install=plan.fresh_install,
+            )
+            _verify_applied_migration_zero_seed_invariants(
+                connection,
+                migration,
+                fresh_install=plan.fresh_install,
+                verify_managed_invariants=plan.verify_managed_invariants,
             )
             if connection.in_transaction is not True:
                 raise SQLiteStateError(SQLiteStateErrorCode.MIGRATION_FAILED)
@@ -1781,6 +1884,13 @@ def _recover_migration_outcome(
                     verify_managed_invariants=plan.verify_managed_invariants,
                     fresh_install=plan.fresh_install,
                 )
+                for migration in plan.suffix:
+                    _verify_applied_migration_zero_seed_invariants(
+                        connection,
+                        migration,
+                        fresh_install=plan.fresh_install,
+                        verify_managed_invariants=plan.verify_managed_invariants,
+                    )
                 terminal = history[-1]
                 if terminal.min_app_schema <= current_app_schema <= terminal.max_app_schema:
                     result = _MigrationRecoveryResult(
@@ -1812,15 +1922,17 @@ def _verify_schema_for_sequence(
     verify_managed_invariants: bool,
     fresh_install: bool,
 ) -> None:
-    if type(sequence) is not int or sequence < 0 or sequence > catalog.latest_sequence:
+    if (
+        type(sequence) is not int
+        or sequence < 0
+        or sequence > catalog.latest_sequence
+        or type(fresh_install) is not bool
+    ):
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
     expected_manifest = _expected_schema_manifest_for_sequence(catalog, sequence)
     _verify_live_schema_manifest(connection, expected_manifest)
     if sequence == 0:
         return
-    if fresh_install and verify_managed_invariants:
-        _verify_global_stop_clear_seed(connection)
-        _verify_empty_bootstrap_tables(connection)
     if verify_managed_invariants:
         _verify_managed_state_invariants(connection)
     _verify_foreign_key_posture(connection)
@@ -1834,6 +1946,7 @@ def _expected_schema_manifest_for_sequence(
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
     if sequence < 0 or sequence > catalog.latest_sequence:
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
+    _require_sqlite_runtime_for_schema_prefix(catalog, sequence)
     connection: sqlite3.Connection | None = None
     manifest: tuple[Any, ...] | None = None
     pending_error: SQLiteStateErrorCode | None = None
@@ -2101,8 +2214,43 @@ def _verify_global_stop_clear_seed(connection: sqlite3.Connection) -> None:
         raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
 
 
+def _verify_applied_migration_zero_seed_invariants(
+    connection: sqlite3.Connection,
+    migration: MigrationDefinition,
+    *,
+    fresh_install: bool,
+    verify_managed_invariants: bool,
+) -> None:
+    if (
+        type(migration) is not MigrationDefinition
+        or type(fresh_install) is not bool
+        or type(verify_managed_invariants) is not bool
+    ):
+        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
+    if not verify_managed_invariants:
+        return
+    if fresh_install and migration.migration_id == "0001_initial":
+        _verify_global_stop_clear_seed(connection)
+        _verify_empty_bootstrap_tables(connection)
+    if migration.migration_id == _C2B2_MIGRATION_ID:
+        _verify_empty_c2b2_migration_tables(connection)
+
+
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:
-    for table_name in EMPTY_AFTER_BOOTSTRAP_TABLES:
+    _verify_empty_tables(connection, EMPTY_AFTER_BOOTSTRAP_TABLES)
+
+
+def _verify_empty_c2b2_migration_tables(connection: sqlite3.Connection) -> None:
+    _verify_empty_tables(connection, _EMPTY_AFTER_C2B2_MIGRATION_TABLES)
+
+
+def _verify_empty_tables(
+    connection: sqlite3.Connection,
+    table_names: frozenset[str],
+) -> None:
+    if type(table_names) is not frozenset or any(type(name) is not str for name in table_names):
+        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED)
+    for table_name in table_names:
         try:
             count = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
         except sqlite3.Error as exc:

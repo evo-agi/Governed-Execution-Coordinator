@@ -52,9 +52,10 @@ service/API/IPC surface, autonomous loop, or subordinate-authorization runtime.
 
 Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
-`global_stop`, current `WriterSession`, schema 0001, and
+`global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and
 `control-plane-normal-shell/v1` compatibility remain unchanged within their
-owning contracts.
+owning contracts. The physical Coordinator schema now has generation-2
+migration 0002 in addition to the preserved migration-0001 identity.
 
 Classification: `ACCEPTED STRATEGIC TARGET`. This record is authoritative for
 the selected staged model, first exact scenario, first effect ceiling, ten
@@ -357,7 +358,8 @@ Classification: `CURRENT COMPATIBILITY EDGE`.
 C1 preserves `FiniteBacklog`, current standing-lease behavior, current zero-only
 budget behavior, current READY-only dependency behavior, current disabled-stage
 behavior, current coding `global_stop`, current `WriterSession` authority, the
-current SQLite schema and sole `0001_initial.sql` migration, and
+schema-0001 compatibility meanings and unchanged `0001_initial.sql` identity,
+the current generation-2 migration-0002 physical tip, and
 `control-plane-normal-shell/v1` as an ES/CP compatibility edge. Coding and
 operational progression remain separately versioned domains; operational
 progression is excluded from the first software-development slice.
@@ -461,7 +463,7 @@ progression, publication eligibility, and the first-slice latch. C2B0
 implements neither tranche and adds no schema, migration, runtime, worker,
 Bridge change, or ES change.
 
-## C2B1 Current Administrative Composition
+## C2B1/C2B2-Slice-1 Current Administrative Composition
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration
 only. C2B0 remains the historical contract-freeze tranche for the target
@@ -471,14 +473,17 @@ C2B1 implements exact-current ordinary SQLite open, explicit supported-prefix
 migration, terminal-only application-generation compatibility, cumulative
 packaged-SQL schema authority, complete-catalog initialization, complete-suffix
 single-transaction migration, and three-way migration commit readback while
-retaining the common state-authority lock and filesystem binding. Application
-generation remains 1, the catalog tip remains `0001_initial`, and there is one
-production SQL resource. This administrative evidence is not program,
+retaining the common state-authority lock and filesystem binding. C2B2 Slice 1
+uses those mechanics at application generation 2, catalog tip
+`0002_development_program_and_effect_state`, and two production SQL resources.
+It adds physical schema representability only. This administrative evidence is not program,
 progression, decision, effect, acceptance, publication, or runtime truth.
 
-C2B1 implements no durable C2B record, migration 0002/0003, generation 2,
-reader, writer, product mutation, observation ingest, semantic decision,
+C2B2 Slice 1 implements no C2B pure row/value source, private reader, product
+writer, product mutation, family replay/recovery, C2B3, migration 0003,
+observation ingest, semantic decision,
 authority verification, WorkSpec custody, worker/process execution, capsule
 storage, Git effect, direct-local route, ES route, service, scheduler, queue,
-publication, or autonomous loop. C2B2-C2B6 remain target-only and their
-composition is unchanged.
+publication, or autonomous loop. Remaining C2B2 behavior and C2B3-C2B6 remain
+target-only; their composition is unchanged beyond the implemented
+migration-0002 physical core.

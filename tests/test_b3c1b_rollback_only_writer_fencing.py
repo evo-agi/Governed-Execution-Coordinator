@@ -1132,7 +1132,7 @@ def test_successful_fencing_rolls_back_closes_and_leaves_state_unchanged(
     assert any(statement == "BEGIN IMMEDIATE" for statement in traced_sql)
     assert any(statement == "ROLLBACK" for statement in traced_sql)
     assert all("COMMIT" not in statement.upper() for statement in traced_sql)
-    assert _run_writer_attempt(location) == "acquired:2"
+    assert _run_writer_attempt(location) == "acquired:3"
 
 
 @pytest.mark.parametrize(
@@ -2128,4 +2128,7 @@ def test_new_module_is_private_unexported_and_static_shape_is_closed() -> None:
     assert "__all__" not in source
     assert "sqlite_transition_transaction" not in ge_nwp_coordinator.__all__
     assert "sqlite_transition_transaction" not in (PACKAGE_DIR / "__init__.py").read_text(encoding="utf-8")
-    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
+    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]

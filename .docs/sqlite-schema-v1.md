@@ -380,13 +380,14 @@ facts, not durable authority.
 
 B3a selected schema 0001 as sufficient for the first work-item transition
 persistence contract. B3b prerequisite contracts and B3b1 pure row contracts pin
-schema 0001 as sufficient for the bounded typed-reader slice: no migration 0002
-is required for admitted backlog validation, exact limit provenance, zero scalar
-budget posture, READY-only dependency receipts, global-stop-current row
-reconstruction, or internal timestamp envelopes. A future migration 0002 is
-required only if a later accepted contract needs additional durable facts, such
-as mutable current lease status, production admission authority, or
-multidimensional dynamic budget consumption not representable by schema 0001.
+schema 0001 as sufficient for the historical meanings used by the bounded
+typed-reader slice: admitted backlog validation, exact limit provenance, zero
+scalar budget posture, READY-only dependency receipts, global-stop-current row
+reconstruction, and internal timestamp envelopes. Migration 0002 is now the
+current generation-2 physical C2B2 extension; it leaves migration 0001 and those
+historical row meanings unchanged. Any later contract needing additional facts
+not representable by the cumulative generation-2 schema requires separately
+audited schema/model evolution and must not modify migration 0001.
 
 B3b2a uses schema 0001 without changing it. The ordered row-column tuples match
 the schema-0001 columns selected for internal readers, and the immutable query
@@ -414,14 +415,16 @@ reader observes the existing global `event_sequence` maximum. B3c2 adds no
 index, durable fact, event insertion, current-state update, commit, or migration
 0002.
 
-B3 tests-only coherent fixtures also use schema 0001 without changing migration
-0001. They live under `tests/` only, initialize temporary managed databases,
-directly seed synthetic authoritative rows as test setup, validate through
+B3 tests-only coherent fixtures preserve schema-0001 graph meanings without
+changing migration 0001. They live under `tests/` only, initialize temporary
+current generation-2 / migration-0002 physical databases, directly seed only
+the historical synthetic authoritative rows as test setup, validate through
 existing row contracts, acquire real writer issuance as temporary test evidence,
-and may persist only domain-rejected event/replay rows. They add no production
-fixture, admission, authorization, concrete capability, fencing, context
-assembly, mutation, accepted operator-policy authority, executable transition
-proof, migration 0002, or schema change.
+and may persist only domain-rejected event/replay rows. Their legacy seeding
+leaves all nineteen C2B tables empty. They add no production fixture, admission,
+authorization, concrete capability, fencing, context assembly, C2B row/value
+adapter or reader, mutation, accepted operator-policy authority, executable
+transition proof, migration change, or schema authority.
 
 ## B1 Initialization Guarantees
 

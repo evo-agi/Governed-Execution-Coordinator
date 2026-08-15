@@ -231,7 +231,7 @@ def test_migrate_while_lock_held_fails_safely_without_migration_change(tmp_path:
 
     assert exc_info.value.reason is StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY
     assert _digest(location.database_path) == before
-    assert _count(location, "schema_migrations") == 1
+    assert _count(location, "schema_migrations") == 2
     assert _count(location, "writer_ownership") == 0
 
 
@@ -344,7 +344,7 @@ def test_two_simultaneous_initialize_calls_do_not_partially_initialize(
 
     assert sorted(results) == ["managed", "state_authority_lock_busy"]
     assert validate_database(location).classification is DatabaseClassification.MANAGED
-    assert _count(location, "schema_migrations") == 1
+    assert _count(location, "schema_migrations") == 2
     assert _count(location, "writer_ownership") == 0
 
 
@@ -399,5 +399,5 @@ def test_two_simultaneous_migrate_calls_do_not_partially_migrate(
     assert sorted(results) == ["managed", "state_authority_lock_busy"]
     assert _digest(location.database_path) == before
     assert validate_database(location).classification is DatabaseClassification.MANAGED
-    assert _count(location, "schema_migrations") == 1
+    assert _count(location, "schema_migrations") == 2
     assert _count(location, "writer_ownership") == 0

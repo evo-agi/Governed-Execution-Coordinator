@@ -1737,13 +1737,13 @@ EXPECTED_CONTRACT = {
   },
   "classification": {
     "absent": [
-      "migration 0002 repository SQL",
-      "C2B2 production source",
+      "C2B2 pure row/value source",
+      "C2B2 private readers",
       "C2B mutations",
       "C2B product runtime"
     ],
-    "accepted_c2b2_field_level_target_contract": "application generation 2, migration 0002, core durable representation, and private readers",
-    "current_implemented_contract": "C2B1 migration administration at application generation 1 and terminal tip 0001_initial",
+    "accepted_c2b2_field_level_target_contract": "pure row/value contracts and private readers over the migration-0002 core",
+    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state",
     "later_tranche_target_contract": "family-specific mutation, exact replay, recovery, and complete graph verification"
   },
   "common_graph_digest_primitive": {
@@ -13057,15 +13057,15 @@ def _validate_classification(contract: dict[str, Any]) -> None:
     )
     _require(
         contract["classification"]["current_implemented_contract"].endswith(
-            "generation 1 and terminal tip 0001_initial"
+            "generation 2 and terminal tip 0002_development_program_and_effect_state"
         ),
         "current_generation_tip",
     )
     _require(
         contract["classification"]["absent"]
         == [
-            "migration 0002 repository SQL",
-            "C2B2 production source",
+            "C2B2 pure row/value source",
+            "C2B2 private readers",
             "C2B mutations",
             "C2B product runtime",
         ],
@@ -15260,7 +15260,7 @@ def test_oracle_architecture_rejects_production_source_derived_generation(
         "    return int(line.rsplit(\" \", 1)[1])\n\n\n"
         "_PRODUCTION_GENERATION = _derive_generation_from_production_source()\n"
         "EXPECTED_CONTRACT[\"classification\"][\"current_implemented_contract\"] = "
-        "EXPECTED_CONTRACT[\"classification\"][\"current_implemented_contract\"].replace(\"generation 1\", f\"generation {_PRODUCTION_GENERATION}\")\n"
+        "EXPECTED_CONTRACT[\"classification\"][\"current_implemented_contract\"].replace(\"generation 2\", f\"generation {_PRODUCTION_GENERATION}\")\n"
         "\nEXPECTED_TOP_LEVEL_KEYS = frozenset(\n"
     )
     assert source.count(anchor) == 1

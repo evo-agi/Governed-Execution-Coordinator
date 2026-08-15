@@ -253,11 +253,13 @@ def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
     normalized = " ".join(combined.split())
 
     for phrase in (
-        "one private local SQLite database",
-        "C2B1 implements the current bounded administrative migration framework",
-        "current application generation is 1",
-        "exact production catalog tip is `0001_initial`",
-        "sole production SQL resource",
+            "one private local SQLite database",
+            "C2B1 implements the current bounded administrative migration framework",
+            "current application generation 2",
+            "exact production catalog tip `0002_development_program_and_effect_state`",
+            "`0002_development_program_and_effect_state.sql` production SQL resources",
+        "Migration 0002 is now the current generation-2 physical C2B2 extension",
+        "leaves migration 0001 and those historical row meanings unchanged",
         "filesystem-backed regular non-symlink resource",
         "Non-filesystem or zip-backed migration resources are currently unsupported",
         "reject any selected destructive definition before expected-manifest SQLite activity",
@@ -281,6 +283,7 @@ def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
         "Bridge, Control Plane, Execution Substrate, Maintenance Agent, and Infrastructure Manager",
     ):
         assert phrase in normalized
+    assert "A future migration 0002" not in schema_doc
 
 
 def test_schema_fixture_loads_in_memory_and_has_expected_tables() -> None:

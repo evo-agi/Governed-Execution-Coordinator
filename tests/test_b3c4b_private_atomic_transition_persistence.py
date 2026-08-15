@@ -1480,7 +1480,9 @@ def test_public_caller_export_state_store_schema_and_b4_boundaries_remain_closed
     assert "_run_atomic_transition_apply" not in PACKAGE_EXPORT_PATH.read_text(encoding="utf-8")
     assert "_run_atomic_transition_apply" not in STATE_STORE_PATH.read_text(encoding="utf-8")
     assert not hasattr(ge_nwp_coordinator, "_run_atomic_transition_apply")
-    assert not list(MIGRATION_DIR.glob("0002*"))
+    assert sorted(path.name for path in MIGRATION_DIR.glob("0002*")) == [
+        "0002_development_program_and_effect_state.sql"
+    ]
 
     writer_source = WRITER_SESSION_PATH.read_text(encoding="utf-8")
     writer_tree = ast.parse(writer_source)

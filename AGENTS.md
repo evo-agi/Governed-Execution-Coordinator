@@ -127,10 +127,11 @@ authoritative Coordinator writer, create work items/events/decision
 receipts/global-stop changes through product APIs, or enable executable A2
 behavior.
 
-C2B1 is the current bounded administrative migration-framework reset. The
-implemented application generation remains 1, the production catalog and tip
-remain exactly `0001_initial`, and that is still the only production SQL
-migration. Ordinary inspection, validation, writer acquisition, and product
+C2B1 remains the bounded administrative migration framework. C2B2 Slice 1 now
+advances the implemented application generation to 2, extends the production
+catalog and tip through `0002_development_program_and_effect_state`, and adds
+that literal production SQL resource without changing migration 0001. Ordinary
+inspection, validation, writer acquisition, and product
 mutation admit only exact complete current history with terminal-only
 application-generation compatibility and an exact cumulative packaged-SQL
 schema/invariant match. Public inspection remains only
@@ -148,6 +149,22 @@ evidence raises `migration_outcome_unresolved` and forbids automatic retry or
 suffix-remainder append. Cumulative packaged SQL is expected-schema authority;
 history is installed-migration evidence and live schema is independently
 verified observation.
+
+Generation-2 administrative initialization and explicit migration preflight the
+maximum immutable catalog capability, not only the suffix inferred from the
+first observation. SQLite `3.37.0` is required before state-root creation,
+common-lock acquisition, writable open, `BEGIN`, or mutation, so a permitted
+reobservation cannot widen into an ungated migration-0002 effect.
+
+C2B2 Slice 1 implements only physical durable schema representability: nineteen
+STRICT tables, thirty immutable guards, one partial unique index, generation-2
+fresh initialization, exact 0001-to-0002 explicit migration, SQLite 3.37.0
+runtime preflight, sequence-scoped zero-seed verification, and cumulative
+schema verification through 0002. It adds no C2B2 pure row/value module,
+private reader, mutation API, family graph locator, exact family replay,
+commit-outcome recovery, public surface, or C2B3 behavior. The historical B3/B4
+coherent fixture retains schema-0001 graph meanings inside a current physical
+generation-2 temporary database and leaves all nineteen C2B tables empty.
 
 C2B1 adds no durable development record, reader, writer, mutation, observation
 ingest, decision runtime, authority verifier, WorkSpec custody, worker/process
@@ -496,14 +513,14 @@ schema or migration changes, worker, service, CLI, MCP, connector,
 publication, or related-repository authority.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
-create temporary managed schema-0001 SQLite databases through production
-initialization, directly seed synthetic authoritative rows through a test setup
-transaction, validate rows through existing pure contracts, acquire real
-internal writer issuance as temporary test evidence, and may persist only a
-domain-rejected event/replay row produced by the pure evaluator. They are not
-production admission, not authorization, not runtime authority, not product
-state initialization, not accepted operator-policy authority, not an executable
-transition proof, and not migration 0002.
+create temporary current-generation-2 SQLite databases at terminal migration
+0002 through production initialization, but directly seed only the historical
+schema-0001 B3/B4 graph and leave all nineteen C2B tables empty. The exact
+physical-versus-semantic and writer-lifecycle contract is owned by
+`.docs/b3-tests-only-coherent-fixtures.md`. They are not production admission,
+authorization, runtime authority, product state initialization, accepted
+operator-policy authority, an executable transition proof, or proof of C2B
+row/value, reader, mutation, or replay behavior.
 
 Global-stop updates use the same command/event/apply-conflict/outcome algebra.
 The Coordinator cannot manufacture operator authorization and cannot clear,
@@ -520,10 +537,14 @@ kinds are `initialize`, `accept`, `repair`, `replan`, `terminal_reject`,
 validation/review/cancellation-effect establishment are separate future private
 transaction roles. Private WorkSpec custody and restart-safe retrieval remain
 deferred. C2B0 added documentation and direct contract tests only. C2B1 now
-implements only the administrative migration framework described above; C2B
-durable records, migrations 0002/0003, readers, mutations, observation ingest,
-decisions, latch behavior, authority verification, worker/process execution,
-Git effects, direct-local behavior, and ES routing remain unimplemented.
+implements only the administrative migration framework described above. C2B2
+Slice 1 now implements the generation-2 physical schema, and
+`0002_development_program_and_effect_state` is the implemented current physical
+terminal migration. Migration 0003 remains unimplemented and deferred. C2B2
+pure row/value source and private readers, C2B mutation, replay, and recovery,
+observation ingest, decisions, latch behavior, authority verification,
+worker/process execution, Git effects, direct-local behavior, and ES routing
+remain unimplemented. C2B3 has not started.
 
 ## P1 Prohibitions
 

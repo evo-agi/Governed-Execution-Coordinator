@@ -40,6 +40,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/sqlite_location.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
         "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql",
+        "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/__init__.py",
         "src/ge_nwp_coordinator/sqlite_mutation_transaction_contracts.py",
         "src/ge_nwp_coordinator/sqlite_security.py",

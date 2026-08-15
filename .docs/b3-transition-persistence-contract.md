@@ -105,13 +105,13 @@ sequence. Both readers accept only the private transaction read capability and
 are uncalled by production source.
 
 B3 tests-only coherent fixtures live under `tests/` only. They initialize a
-temporary managed schema-0001 database, directly seed synthetic authoritative
-rows through a test-setup transaction, validate and reconstruct through existing
-B3b1/B3b2b/B3c0b contracts, acquire real internal writer issuance as temporary
-test evidence, and may persist only a domain-rejected event/replay row produced
-by the pure evaluator. Direct seeding is not admission or product mutation, and
-the fixtures prove no accepted operator-policy authority, executable transition,
-production admission, production runtime authority, or migration 0002.
+temporary current-generation-2 database at terminal migration
+`0002_development_program_and_effect_state`, while seeding only the historical
+schema-0001 B3/B4 graph. All nineteen C2B tables remain empty. Direct seeding is
+not admission or product mutation, and the fixtures prove no accepted
+operator-policy authority, executable transition, production runtime authority,
+or C2B row/value, reader, mutation, or replay behavior. The exact distinction is
+owned by `.docs/b3-tests-only-coherent-fixtures.md`.
 
 B3c1 prerequisites are documented in
 `.docs/b3c1-prerequisite-contract.md`. They replace the over-narrow capability
@@ -536,11 +536,15 @@ backlog, lease, work-item, static budget, or limit invariants were checked
 previously. The future typed-reader tranche must validate them transaction-time
 from authoritative rows.
 
-Schema 0001 is sufficient for the bounded B3b reader slice and for B3c3
-rollback-only dry-run runtime. No migration 0002 is required for these
-prerequisite contracts. Future multidimensional dynamic budget consumption
-accounting requires a separately audited versioned contract and may require
-schema/model evolution, but it must not modify migration 0001.
+Schema 0001 remains sufficient for the historical row meanings used by the
+bounded B3b reader slice and B3c3 rollback-only dry-run runtime. Those
+prerequisite tranches neither add nor consume C2B2 runtime behavior. Their
+tests-only coherent graph is now hosted in the current physical generation-2,
+terminal-0002 database as specified by
+`.docs/b3-tests-only-coherent-fixtures.md`; that physical container does not
+change the historical B3 semantics. Future multidimensional dynamic budget
+consumption accounting requires a separately audited versioned contract and
+may require schema/model evolution, but it must not modify migration 0001.
 
 The B3 tests-only coherent fixture graph uses a temporary managed DB,
 test-only seeded authoritative rows, an acquired internal writer session,

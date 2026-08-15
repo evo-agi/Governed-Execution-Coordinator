@@ -1879,7 +1879,10 @@ def test_b3c3_prerequisite_docs_and_schema_boundary_are_pinned() -> None:
 
     migration = PACKAGE_DIR / "sqlite_migrations/0001_initial.sql"
     assert hashlib.sha256(migration.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
-    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
+    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
 
 
 def test_b3c3_private_contract_signatures_are_exact() -> None:

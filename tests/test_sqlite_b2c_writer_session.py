@@ -1663,7 +1663,10 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
         assert forbidden not in source
 
     migrations = sorted(path.name for path in (ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("*.sql"))
-    assert migrations == ["0001_initial.sql"]
+    assert migrations == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
 

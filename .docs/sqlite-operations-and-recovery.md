@@ -12,9 +12,13 @@ and B4c adds guarded public global-stop delegation. Receipt provisioning remains
 separate, and no worker, service, scheduler, orchestration, publication, or
 cross-repository authority exists.
 
-The current migration application generation is 1, the terminal catalog is
-exactly `0001_initial`, and `0001_initial.sql` is the sole production migration
-resource. Migrations 0002/0003 and application generation 2 remain absent.
+The current migration application generation is 2, the terminal catalog is
+exactly `0002_development_program_and_effect_state`, and production migration
+resources are exactly `0001_initial.sql` and
+`0002_development_program_and_effect_state.sql`. Migration 0003 remains absent.
+Migration 0002 requires SQLite 3.37.0 or newer before any selected-suffix
+administrative effect. Its physical core schema adds no C2B mutation, reader,
+runtime, or execution authority.
 
 ## Filesystem Posture
 
@@ -103,7 +107,7 @@ C2B1 exposes split offline operations:
   posture, migration-history/catalog equality, live-schema manifest equality,
   and managed current-state invariants;
 - initialize an absent or empty local database with the complete current
-  catalog (currently only `0001_initial`);
+  catalog (currently `[0001_initial, 0002_development_program_and_effect_state]`);
 - migrate an exact supported non-empty older prefix through the complete
   contiguous packaged suffix.
 

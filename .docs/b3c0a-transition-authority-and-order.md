@@ -419,12 +419,13 @@ event-owned idempotency, immutable data-only query specs, and sequence
 allocation contracts. It executes no SQL and mutates no state.
 
 B3 tests-only coherent fixtures are implemented under `tests/` only for
-temporary managed schema-0001 graphs: real internal writer issuance,
-lease/backlog/current work item, unsupported authorization and optional
-dependency receipts, migration-owned clear global stop, and optional
-domain-rejected event/replay rows. Fixtures are not production admission,
-authorization, runtime authority, accepted operator-policy authority, executable
-transition proof, or migration 0002.
+historical schema-0001 B3/B4 graphs hosted in temporary current-generation-2
+databases at terminal migration `0002_development_program_and_effect_state`.
+All nineteen C2B tables remain empty. Fixtures are not production admission,
+authorization, runtime authority, accepted operator-policy authority,
+executable transition proof, or proof of C2B row/value, reader, mutation, or
+replay behavior. `.docs/b3-tests-only-coherent-fixtures.md` owns the exact
+physical-versus-semantic and writer-lifecycle contract.
 
 B3c1 prerequisite contracts are implemented in
 `.docs/b3c1-prerequisite-contract.md` for production-unintegrated

@@ -299,4 +299,6 @@ def test_docs_pin_public_result_error_matrix_and_no_b4_schema_behavior() -> None
     ):
         assert phrase in normalized
 
-    assert not list(MIGRATION_DIR.glob("0002*"))
+    assert sorted(path.name for path in MIGRATION_DIR.glob("0002*")) == [
+        "0002_development_program_and_effect_state.sql"
+    ]

@@ -135,6 +135,10 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3c0b has since implemented pure/static transition-event row, replay, idempotency, and sequence contracts",
         "B3c1 has since frozen the prerequisite contract",
         "B3 tests-only coherent fixtures are implemented under `tests/` only",
+        "historical schema-0001 B3/B4 graphs hosted in temporary current-generation-2 databases",
+        "terminal migration `0002_development_program_and_effect_state`",
+        "All nineteen C2B tables remain empty",
+        "`.docs/b3-tests-only-coherent-fixtures.md`",
         "B3c1a implements the runtime mutation slot",
         "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
             "B3c2 has since implemented private transaction-internal event/replay idempotency and observed maximum-sequence readers",
@@ -144,6 +148,9 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
             "Each future stage requires a separate implementation patch and standalone audit.",
         ):
             assert phrase in normalized
+
+    assert "temporary managed schema-0001 graphs" not in doc
+    assert "executable transition proof, or migration 0002" not in doc
 
     for path in (
         "AGENTS.md",
@@ -547,8 +554,11 @@ def test_static_runtime_boundary_still_has_no_b3c_transition_apply_implementatio
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()
 
 
-def test_migration_0001_is_unchanged_and_no_0002_exists() -> None:
+def test_historical_b3c0a_tranche_preserves_migration_0001_without_c2b_runtime() -> None:
     migrations = sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql"))
-    assert migrations == ["0001_initial.sql"]
+    assert migrations == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

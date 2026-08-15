@@ -1004,7 +1004,10 @@ def test_b3c0b_adds_no_public_export_or_state_store_writer_session_widening() ->
 
 
 def test_b3c0b_boundary_files_and_migrations_remain_frozen() -> None:
-    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
+    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     assert hashlib.sha256(MIGRATION_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()
     assert not (PACKAGE_DIR / "sqlite_transition_readers.py").exists()

@@ -38,6 +38,7 @@ EXPECTED_PRODUCTION_FILES = (
     "sqlite_location.py",
     "sqlite_migration.py",
     "sqlite_migrations/0001_initial.sql",
+    "sqlite_migrations/0002_development_program_and_effect_state.sql",
     "sqlite_migrations/__init__.py",
     "sqlite_mutation_transaction_contracts.py",
     "sqlite_security.py",
@@ -117,7 +118,68 @@ CURRENT_C2A1_CONTRADICTIONS = (
 )
 
 
-def _current_c2a_posture_valid(text: str) -> bool:
+HISTORICAL_C2A_FREEZE_GENERATION = 1
+HISTORICAL_C2A_FREEZE_MIGRATION = "0001_initial"
+CURRENT_PHYSICAL_APPLICATION_GENERATION = 2
+CURRENT_PHYSICAL_TERMINAL_MIGRATION = "0002_development_program_and_effect_state"
+ABSENT_MIGRATION = "0003"
+CURRENT_SCHEMA_STATUS_INVALID = "current_schema_status_invalid"
+
+HISTORICALLY_QUALIFIED_SCHEMA_0001_WORDING = (
+    "When the C2A contract was originally frozen, the current physical "
+    "application generation was 1 and the terminal migration was `0001_initial`.",
+    "That is the historical C2A freeze baseline, not the current physical "
+    "repository state.",
+    "When C2A was frozen, physical application generation 1 and terminal "
+    "migration `0001_initial` were the current baseline.",
+    "That schema-0001 statement is historical only.",
+)
+
+CURRENT_PHYSICAL_SCHEMA_WORDING = (
+    "The current physical application generation is 2 and the current terminal "
+    "migration is `0002_development_program_and_effect_state`.",
+    "Migration `0001_initial` remains the preserved historical schema-v1 "
+    "migration; migration 0002 is implemented by C2B2 Slice 1.",
+    "C2A did not create or own migration 0002.",
+    "The generation-2 physical schema is a C2B2 Slice-1 implementation fact.",
+    "C2A/C2A1 semantic authority remains distinct from C2B2 physical-schema "
+    "authority.",
+)
+
+CURRENT_SCHEMA_STATUS_CONTRADICTIONS = (
+    "Current schema 0001",
+    "current terminal migration 0001",
+    "migration 0002 remains unimplemented",
+    "migrations 0002 and 0003 remain unimplemented",
+    "C2A owns migration 0002",
+    "C2A owns current durable C2B rows",
+    "migration 0003 is current",
+    "current physical generation remains 1",
+)
+
+CURRENT_ABSENCE_WORDING = (
+    "Migration 0003 remains absent.",
+    "C2B2 pure row/value source, C2B2 private readers, C2B mutation, replay, "
+    "and recovery, and C2B3 behavior remain absent; C2B3 has not started.",
+    "Worker, process, or model execution, Git effects, direct-local execution, "
+    "ES routing, Bridge integration, publication, service, API, and IPC also "
+    "remain absent.",
+)
+
+AGENTS_CURRENT_SCHEMA_WORDING = (
+    "C2B2 Slice 1 now implements the generation-2 physical schema, and "
+    "`0002_development_program_and_effect_state` is the implemented current "
+    "physical terminal migration.",
+    "Migration 0003 remains unimplemented and deferred.",
+    "C2B2 pure row/value source and private readers, C2B mutation, replay, and "
+    "recovery, observation ingest, decisions, latch behavior, authority "
+    "verification, worker/process execution, Git effects, direct-local "
+    "behavior, and ES routing remain unimplemented.",
+    "C2B3 has not started.",
+)
+
+
+def _current_c2a_posture_validation(text: str) -> tuple[bool, str | None]:
     parsed = _BoundedMarkdown(text)
     status = parsed.section(f"{CLAUSES[0][0]} — {CLAUSES[0][1]}", 2)
     tranche = parsed.section(f"{CLAUSES[14][0]} — {CLAUSES[14][1]}", 2)
@@ -125,12 +187,30 @@ def _current_c2a_posture_valid(text: str) -> bool:
         parsed.outside_text(*parsed.span(f"{identifier} — {title}", 2)[:2])
         for identifier, title, _, _ in CLAUSES
     )
-    return (
+    normalized = " ".join(text.split())
+    current_schema_status_invalid = any(
+        contradiction.casefold() in normalized.casefold()
+        for contradiction in CURRENT_SCHEMA_STATUS_CONTRADICTIONS
+    )
+    diagnostic = (
+        CURRENT_SCHEMA_STATUS_INVALID if current_schema_status_invalid else None
+    )
+    valid = (
         "C2A1 implements one internal pure no-I/O semantic-value source module"
         in " ".join(status.split())
         and "C2A1 is current only for pure internal semantic values" in tranche
         and all(contradiction not in scoped for contradiction in CURRENT_C2A1_CONTRADICTIONS)
+        and all(wording in normalized for wording in HISTORICALLY_QUALIFIED_SCHEMA_0001_WORDING)
+        and all(wording in normalized for wording in CURRENT_PHYSICAL_SCHEMA_WORDING)
+        and all(wording in normalized for wording in CURRENT_ABSENCE_WORDING)
+        and not current_schema_status_invalid
     )
+    return valid, diagnostic
+
+
+def _current_c2a_posture_valid(text: str) -> bool:
+    valid, _diagnostic = _current_c2a_posture_validation(text)
+    return valid
 
 
 def _bootstrap_contract_valid(items: tuple[str, ...]) -> bool:
@@ -201,6 +281,133 @@ def _provenance_contract_valid(record: dict[str, object]) -> bool:
     )
 
 
+def test_c2a_schema_0001_wording_is_historical_and_generation_2_is_current() -> None:
+    assert HISTORICAL_C2A_FREEZE_GENERATION == 1
+    assert HISTORICAL_C2A_FREEZE_MIGRATION == "0001_initial"
+    assert CURRENT_PHYSICAL_APPLICATION_GENERATION == 2
+    assert CURRENT_PHYSICAL_TERMINAL_MIGRATION == (
+        "0002_development_program_and_effect_state"
+    )
+    assert ABSENT_MIGRATION == "0003"
+    assert CURRENT_SCHEMA_STATUS_INVALID == "current_schema_status_invalid"
+    assert CURRENT_SCHEMA_STATUS_CONTRADICTIONS == (
+        "Current schema 0001",
+        "current terminal migration 0001",
+        "migration 0002 remains unimplemented",
+        "migrations 0002 and 0003 remain unimplemented",
+        "C2A owns migration 0002",
+        "C2A owns current durable C2B rows",
+        "migration 0003 is current",
+        "current physical generation remains 1",
+    )
+
+    normalized = " ".join(DOC.split())
+    for wording in HISTORICALLY_QUALIFIED_SCHEMA_0001_WORDING:
+        assert wording in normalized
+    for wording in CURRENT_PHYSICAL_SCHEMA_WORDING:
+        assert wording in normalized
+    assert _current_c2a_posture_validation(DOC) == (True, None)
+    assert _current_c2a_posture_valid(DOC)
+
+
+def test_generation_2_physical_schema_does_not_widen_c2a_or_c2b_runtime() -> None:
+    nonimplementation = " ".join(
+        _section(DOC, f"{CLAUSES[14][0]} — {CLAUSES[14][1]}", 2).split()
+    )
+    for wording in CURRENT_ABSENCE_WORDING:
+        assert wording in nonimplementation
+    assert (
+        "C2A semantic fields, values, identities, relations, and pure-value "
+        "source do not themselves create durable C2A tables or durable C2A "
+        "runtime rows."
+    ) in " ".join(DOC.split())
+
+
+@pytest.mark.parametrize(
+    "historical_wording",
+    HISTORICALLY_QUALIFIED_SCHEMA_0001_WORDING,
+)
+def test_each_schema_0001_statement_is_explicitly_historical(
+    historical_wording: str,
+) -> None:
+    assert historical_wording in " ".join(DOC.split())
+    assert _current_c2a_posture_valid(DOC)
+
+
+@pytest.mark.parametrize(
+    "contradiction",
+    (
+        "Current schema 0001",
+        "current terminal migration 0001",
+        "migration 0002 remains unimplemented",
+        "migrations 0002 and 0003 remain unimplemented",
+        "C2A owns migration 0002",
+        "C2A owns current durable C2B rows",
+        "migration 0003 is current",
+        "current physical generation remains 1",
+    ),
+    ids=(
+        "unqualified-current-schema-0001",
+        "current-terminal-0001",
+        "migration-0002-unimplemented",
+        "migrations-0002-0003-unimplemented",
+        "c2a-owns-migration-0002",
+        "c2a-owns-durable-c2b-rows",
+        "migration-0003-current",
+        "physical-generation-1-current",
+    ),
+)
+def test_current_schema_status_contradictions_fail_closed(
+    contradiction: str,
+) -> None:
+    assert _current_c2a_posture_validation(DOC) == (True, None)
+    next_clause = f"## {CLAUSES[1][0]} — {CLAUSES[1][1]}"
+    changed = DOC.replace(next_clause, contradiction + "\n\n" + next_clause, 1)
+    valid, diagnostic = _current_c2a_posture_validation(changed)
+    assert valid is False
+    assert diagnostic == "current_schema_status_invalid"
+    assert not _current_c2a_posture_valid(changed)
+
+
+@pytest.mark.parametrize(
+    "accepted_statement",
+    (
+        "Historically, C2A froze physical application generation 1 and terminal "
+        "migration `0001_initial`; this is not the current physical repository state.",
+        "The current physical application generation is 2.",
+        "The current terminal migration is "
+        "`0002_development_program_and_effect_state`.",
+        "Migration 0003 remains absent and deferred.",
+        "C2A does not own migration 0002.",
+        "C2A does not own durable C2B rows.",
+    ),
+    ids=(
+        "historical-generation-1-migration-0001",
+        "current-generation-2",
+        "current-migration-0002",
+        "migration-0003-absent",
+        "c2a-does-not-own-migration-0002",
+        "c2a-does-not-own-durable-c2b-rows",
+    ),
+)
+def test_current_schema_status_positive_controls_remain_accepted(
+    accepted_statement: str,
+) -> None:
+    next_clause = f"## {CLAUSES[1][0]} — {CLAUSES[1][1]}"
+    changed = DOC.replace(next_clause, accepted_statement + "\n\n" + next_clause, 1)
+    assert _current_c2a_posture_validation(changed) == (True, None)
+    assert _current_c2a_posture_valid(changed)
+
+
+def test_agents_current_schema_status_is_consistent_with_c2a_history() -> None:
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    normalized = " ".join(agents.split())
+    for wording in AGENTS_CURRENT_SCHEMA_WORDING:
+        assert wording in normalized
+    for contradiction in CURRENT_SCHEMA_STATUS_CONTRADICTIONS:
+        assert contradiction.casefold() not in normalized.casefold()
+
+
 def test_worker_source_release_and_process_target_remains_nonimplemented() -> None:
     status = " ".join(_section(DOC, f"{CLAUSES[0][0]} — {CLAUSES[0][1]}", 2).split())
     assert "initial worker source and release ownership in the Coordinator repository" in status
@@ -218,7 +425,11 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     schema_paths = tuple(sorted(path.relative_to(ROOT).as_posix() for path in (ROOT / "schemas").rglob("*") if path.is_file()))
     assert schema_paths == ("schemas/sqlite/coordinator-state-v1.sql",)
     migration_paths = tuple(sorted(path.relative_to(package_dir).as_posix() for path in (package_dir / "sqlite_migrations").rglob("*") if path.is_file()))
-    assert migration_paths == ("sqlite_migrations/0001_initial.sql", "sqlite_migrations/__init__.py")
+    assert migration_paths == (
+        "sqlite_migrations/0001_initial.sql",
+        "sqlite_migrations/0002_development_program_and_effect_state.sql",
+        "sqlite_migrations/__init__.py",
+    )
 
     semantic_path = package_dir / "_worker_execution_semantic_values.py"
     source_paths = tuple(path for path in package_dir.rglob("*.py") if path.is_file())
@@ -284,7 +495,8 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     for phrase in (
         "C2A1 is current only for pure internal semantic values and the six named pure coherence validators.",
         "C2A1 adds no SQLite table or column, durable C2A state, migration, package export, dependency, script, entry point, worker, adapter, supervisor, process, filesystem store, Git handler, network client, model client, Bridge or ES integration, scheduler, queue, service, API, IPC, reconciler, or autonomous loop",
-        "Coordinator managed schema 0001 and current B4c behavior remain exactly unchanged.",
+        "C2A did not create or own migration 0002",
+        "Migration 0003 remains absent.",
         "C2A assigns no migration number and authorizes no schema work.",
     ):
         assert phrase in nonimplementation

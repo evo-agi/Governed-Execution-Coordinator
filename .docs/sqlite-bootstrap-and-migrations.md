@@ -1,12 +1,13 @@
 # SQLite Bootstrap And Migrations
 
 Status: C2B1 is the current owner of the bounded operator-local migration
-framework. The current application generation is 1, the exact production
-catalog tip is `0001_initial`, and `0001_initial.sql` is the sole production
-SQL resource. B1/B1.1 and B2b remain historical tranche names for bootstrap,
-observational validation, and common-lock integration. B2c implements durable
-writer issuance and internal SQLite `WriterSession` acquisition for managed
-databases.
+framework. C2B2 Slice 1 uses it at current application generation 2 with exact
+production catalog tip `0002_development_program_and_effect_state` and exactly
+the `0001_initial.sql` and
+`0002_development_program_and_effect_state.sql` production SQL resources.
+B1/B1.1 and B2b remain historical tranche names for bootstrap, observational
+validation, and common-lock integration. B2c implements durable writer issuance
+and internal SQLite `WriterSession` acquisition for managed databases.
 
 B1/B1.1 implements a secure local SQLite state-location policy, split
 read-only and administrative connection posture, packaged migration catalog,
@@ -51,7 +52,7 @@ The B1 SQLite bootstrap modules own:
   than set persistent journal posture;
 - migration catalog: code-owned packaged resources discovered with
   `importlib.resources`, never caller-selected or arbitrary filesystem
-  migration paths. Current C2B1 loading supports only a filesystem-backed
+  migration paths. Current loading supports only a filesystem-backed
   regular non-symlink resource at the package-owned path;
 - migration history: each `schema_migrations` row is the installed-definition
   persisted projection: sequence, migration ID, exact checksum, `applied_at`,
@@ -224,7 +225,7 @@ C2B1 preserves the public four-way classification:
   with no user-defined schema objects and no migration history;
 - managed: only exact complete current-catalog history with the exact current
   terminal sequence/ID, terminal compatibility containing application
-  generation 1, cumulative live-schema equality, and managed invariants. The
+  generation 2, cumulative live-schema equality, and managed invariants. The
   full live schema manifest matches the cumulative packaged migration
   result, and managed current-state invariants pass. For `writer_ownership`,
   no row is valid before first acquisition; a present row is valid only when
@@ -410,15 +411,14 @@ admission.
 
 ## C2B0 Target Migration Sequence
 
-Status: `ACCEPTED TARGET CONTRACT`; no target SQL is installed. The implemented
-application generation and managed database tip remain 1/`0001_initial`.
+Status: `CURRENT IMPLEMENTED CONTRACT` for C2B2 Slice 1 generation 2 / terminal
+0002, and `ACCEPTED TARGET CONTRACT` for migration 0003 and later C2B runtime.
 
 C2B1 is a framework-only source/test reset with no SQL or database change and
-is now current migration administration. It keeps implemented application generation 1 and the terminal catalog
-tip at 0001 while implementing the migration mechanics documented above.
+remains the migration-mechanics foundation documented above.
 
-C2B2 advances implemented application generation from 1 to 2 when migration
-0002 is introduced, and the terminal catalog tip becomes 0002. C2B3 remains
+C2B2 Slice 1 advances implemented application generation from 1 to 2, installs
+migration 0002, and makes the terminal catalog tip 0002. C2B3 remains
 generation 2 with terminal tip 0002. C2B4 adds migration 0003 while retaining
 application generation 2, and the terminal tip becomes 0003. C2B5 and C2B6
 remain generation 2 with terminal tip 0003.
@@ -538,7 +538,7 @@ treats exact 0001 or 0002 only as explicitly migratable supported prefixes.
 Final schema authority is the cumulative packaged migration sequence; no
 cumulative schema snapshot is introduced.
 
-The accepted later migrations are:
+The implemented current migration and accepted later migration are:
 
 ```text
 0002_development_program_and_effect_state: [2,2], non-destructive, 19 tables, 30 triggers, 1 explicit index, no seed rows
@@ -552,6 +552,22 @@ Exact target tips are:
 0002: 30 user tables, 1 explicit index, 46 triggers
 0003: 39 user tables, 2 explicit indexes, 62 triggers
 ```
+
+## C2B2 Slice 1 Runtime And Zero-Seed Rules
+
+Any selected migration suffix or expected schema prefix containing migration
+0002 requires SQLite 3.37.0 or newer for STRICT-table support. Failure of that
+preflight is `sqlite_posture_unavailable` and occurs before state-root creation,
+authority-lock acquisition, writable target open, `BEGIN IMMEDIATE`, target
+mutation, or expected-manifest execution that requires STRICT.
+
+Zero-seed verification is migration-sequence scoped. A fresh installation
+checks migration 0001's original bootstrap-empty tables and canonical clear
+global-stop singleton after 0001, then checks all nineteen migration-0002 C2B
+tables after 0002. Exact 0001-to-0002 migration performs the same nineteen-table
+check after 0002. C2B emptiness is not an ordinary exact-current managed-state
+invariant and therefore does not prevent a later authorized C2B mutation tranche
+from populating the schema.
 
 The two explicit indexes are
 `uq_development_effect_intents_author_command` and

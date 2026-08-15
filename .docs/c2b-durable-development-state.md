@@ -10,15 +10,16 @@ security, writer, migration, and recovery mechanics.
 ## 1. Status, Classification, And Layering
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration
-administration and `ACCEPTED TARGET CONTRACT` for the durable-development
-representation and C2B2-C2B6 behavior below.
+administration plus C2B2 Slice 1 physical schema representability, and
+`ACCEPTED TARGET CONTRACT` for C2B2 pure row/value and private-reader behavior
+and C2B3-C2B6 behavior below.
 
 C2B0 was the historical documentation-and-direct-contract-test tranche. C2B1
-now implements only the bounded administrative migration framework in the
-existing Coordinator database. C2B durable software-development state under
-the existing writer authority remains target-only. Durable development
-records and behavior are absent, external effects are absent, and a C2B public
-API is absent.
+implements the bounded administrative migration framework in the existing
+Coordinator database. C2B2 Slice 1 now implements migration 0002 and physical
+representability for the frozen nineteen-table core without implementing a
+C2B row/value module, private reader, mutation, replay, recovery, or C2B3
+behavior. External effects and a C2B public API remain absent.
 
 The contract uses these layers:
 
@@ -38,23 +39,20 @@ remain `FUTURE IMPLEMENTATION DETAIL`. Private WorkSpec custody, external
 authority verification, worker launch, capsule storage, Git effects,
 direct-local execution, and ES routing remain `DEFERRED MECHANIC` work.
 
-The current implemented application generation remains 1. The current C2B1
-migration framework is implemented, while durable development state remains
-target-only. The packaged
-catalog and managed database tip remain `0001_initial`, schema 0001 is
-unchanged, and there is exactly one production SQL migration. C2B1 implements
+The current implemented application generation is 2. C2B1 migration mechanics
+remain implemented, and C2B2 Slice 1 extends the packaged catalog and managed
+database tip through `0002_development_program_and_effect_state` without
+changing schema-0001 migration bytes or meanings. There are exactly two
+production SQL migrations. The migration framework implements
 exact-current ordinary open, explicit supported-prefix migration,
 terminal-only compatibility, cumulative packaged-SQL schema authority,
 whole-suffix single-transaction administration, and three-way migration
-commit recovery. It implements no durable-development representation or
-runtime authority.
-The accepted C2B target reserves migrations
-`0002_development_program_and_effect_state` and
-`0003_development_observation_and_progression_state`; their exact target
-responsibilities and inventories are frozen below. No 0002/0003 SQL, catalog
-entry, schema object, installed migration, application-generation change, C2B
-durable record, product reader, product writer, product mutation transaction,
-ingest or progression recovery path, worker, process,
+commit recovery. Migration 0002 implements the frozen physical core schema but
+does not make its tables populated product truth or runtime authority.
+Migration `0003_development_observation_and_progression_state` remains reserved;
+the exact responsibilities and inventories are frozen below. No 0003 SQL,
+C2B2 row/value source, product reader, product writer, product mutation
+transaction, ingest or progression recovery path, worker, process,
 model integration, capsule store, Git effect, adapter, ES route, service,
 scheduler, queue, or autonomous loop currently exists.
 No target C2B reader, writer, mutation, transaction, ingest, or durable runtime
@@ -682,18 +680,18 @@ ambiguous catalog resolution, and one exact contiguous packaged suffix leads to 
 tip. A supported older prefix is migration-eligible only; it is not ordinarily
 product-openable before migration.
 
-C2B1 is a framework-only source/test reset: it adds no SQL or database change
-and is now the current migration-administration implementation. The implemented
-application generation remains 1, and the current
-catalog and terminal tip remain exactly `0001_initial`. It privately
+C2B1 is the framework-only source/test reset that added no SQL or database
+change. C2B2 Slice 1 now uses that framework at implemented application
+generation 2 with current catalog and terminal tip
+`0002_development_program_and_effect_state`. The framework privately
 distinguishes absent, empty, current, supported older prefix, unsupported older,
 newer unsupported, corrupt history, partial migration, and non-empty unmanaged
 state while preserving the public absent/empty/managed/unknown classification.
 Any selected destructive definition is rejected before common-lock acquisition,
 writable open, `BEGIN IMMEDIATE`, or database mutation.
 
-C2B2 advances the implemented application generation from 1 to 2 when it adds
-migration 0002, and its catalog terminal tip becomes 0002. C2B3 remains
+C2B2 Slice 1 advances the implemented application generation from 1 to 2,
+adds migration 0002, and makes its catalog terminal tip 0002. C2B3 remains
 application generation 2 with terminal migration 0002. C2B4 adds migration 0003
 while retaining application generation 2, and its terminal tip becomes 0003.
 C2B5 and C2B6 remain application generation 2 with terminal migration 0003.
@@ -793,7 +791,8 @@ introduced.
 
 ## 21. Migration 0002
 
-The target migration is `0002_development_program_and_effect_state`, with
+The implemented literal migration is
+`0002_development_program_and_effect_state`, with
 application compatibility bounds `[2,2]`, `destructive: no`, nineteen new
 tables, and no seeded C2B rows.
 
@@ -969,7 +968,7 @@ The exact sequence is:
 
 ```text
 C2B0: historical documentation and direct documentation-contract tests only
-C2B1: current application generation 1; terminal tip 0001; migration-framework reset only; no SQL or schema change; no durable development state
+C2B1: historical application generation 1 / terminal tip 0001 migration-framework reset; no SQL or schema change; no durable development state
 C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, private readers; no mutation API
 C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O
 C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API
@@ -1001,13 +1000,14 @@ makes no effect dispatch-eligible.
 ## 28. C2B2 Field-Level Freeze Classification
 
 This section and Sections 29–34 are the repository-owned C2B2 field-level
-freeze. They refine the accepted target without changing current behavior.
+freeze. C2B2 Slice 1 implements only its physical SQL representation; the
+remaining row/value and reader contracts remain accepted targets.
 
 ```text
-CURRENT IMPLEMENTED CONTRACT: C2B1 migration administration at generation 1 / tip 0001_initial
-ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT: generation 2 / migration 0002 / core durable representation and private readers
+CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation at generation 2 / tip 0002_development_program_and_effect_state
+ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT: pure row/value contracts and private readers over the migration-0002 core
 LATER-TRANCHE TARGET CONTRACT: family-specific mutation, exact replay, recovery, and complete graph verification
-ABSENT: migration 0002 repository SQL, C2B2 source, C2B mutations, and C2B product runtime
+ABSENT: C2B2 pure row/value source, C2B2 private readers, C2B mutations, and C2B product runtime
 ```
 
 The proposal supplied authoring evidence. It is not runtime input, an installed
@@ -2698,13 +2698,13 @@ mapping, decisions, receipts, common graph primitive, and private readers.
   },
   "classification": {
     "absent": [
-      "migration 0002 repository SQL",
-      "C2B2 production source",
+      "C2B2 pure row/value source",
+      "C2B2 private readers",
       "C2B mutations",
       "C2B product runtime"
     ],
-    "accepted_c2b2_field_level_target_contract": "application generation 2, migration 0002, core durable representation, and private readers",
-    "current_implemented_contract": "C2B1 migration administration at application generation 1 and terminal tip 0001_initial",
+    "accepted_c2b2_field_level_target_contract": "pure row/value contracts and private readers over the migration-0002 core",
+    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state",
     "later_tranche_target_contract": "family-specific mutation, exact replay, recovery, and complete graph verification"
   },
   "common_graph_digest_primitive": {
@@ -13837,13 +13837,14 @@ contract authority.
 
 ## 34. C2B2 Freeze Nonimplementation
 
-This freeze creates documentation and contract tests only. It creates no
-migration-0002 repository SQL, migration-0003 material, production source,
-database state, product reader, mutation or recovery API, public API,
+The field-level freeze tranche created documentation and contract tests only.
+C2B2 Slice 1 now implements its literal migration-0002 SQL and physical schema
+representation, but creates no migration-0003 material, pure row/value
+production source, database rows, product reader, mutation or recovery API, public API,
 `StateStore` or `WriterSession` widening, package-root export, dependency,
 worker, provider, capsule, Git, direct-local, ES, Bridge, service, IPC, queue,
-scheduler, reconciler, or autonomous loop. C2B1 remains the current
-implemented migration contract at generation 1 and tip `0001_initial`.
+scheduler, reconciler, or autonomous loop. The implemented migration contract
+is generation 2 at tip `0002_development_program_and_effect_state`.
 
 ### Dedicated C2B2 Oracle Architecture And Audit-Repair Closure
 

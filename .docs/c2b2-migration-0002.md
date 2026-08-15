@@ -1,0 +1,79 @@
+# C2B2 Migration 0002
+
+Status: `CURRENT IMPLEMENTED CONTRACT` for C2B2 Slice 1 physical schema
+representability and migration administration only.
+
+This document is implementation/status evidence. The semantic owner remains
+`.docs/c2b-durable-development-state.md`; cumulative packaged SQL remains the
+only expected-schema authority. This document is not a second semantic
+authority, a cumulative schema snapshot, or a new durable tranche identity.
+
+## Implemented Boundary
+
+The current application generation is 2 and the terminal catalog entry is
+`0002_development_program_and_effect_state`. Its complete literal UTF-8 SQL
+resource is
+`src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql`:
+
+```text
+size: 154434 bytes
+SHA-256: 5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c
+compatibility: [2,2]
+destructive: false
+```
+
+Migration 0002 adds exactly nineteen STRICT tables, thirty immutable-table
+UPDATE/DELETE guards, and one partial unique application index. It creates no
+view and seeds no C2B row. Migration `0001_initial` bytes, checksum,
+compatibility, history meaning, and schema-v1 fixture remain unchanged.
+
+SQLite 3.37.0 or newer is required whenever a selected suffix or expected
+schema prefix includes migration 0002. An older or malformed runtime fails as
+`sqlite_posture_unavailable` before state-root creation, common-lock
+acquisition, writable open, transaction start, or target mutation.
+
+Fresh initialization selects `[0001, 0002]` and applies both resources and
+both migration-history rows in one `BEGIN IMMEDIATE` transaction with one
+planned timestamp and one commit attempt. Explicit migration from an exact
+supported 0001 prefix selects only `[0002]` and uses one administrative
+transaction. Ordinary product or writer open never migrates: exact 0001 is
+public `UNKNOWN` until explicit migration, while exact generation-2 tip 0002 is
+managed current state.
+
+Migration completion performs sequence-scoped zero-seed verification. After
+0001 on a fresh installation it verifies the original nine ordinary bootstrap
+tables and the canonical clear global-stop singleton. After 0002 on either a
+fresh installation or exact upgrade it verifies all nineteen C2B tables are
+empty. C2B emptiness is not an ordinary exact-current invariant because a later
+authorized mutation tranche may populate those tables.
+
+Expected live schema remains derived by applying cumulative packaged SQL
+through the selected terminal in an isolated database. History is installed
+migration evidence, and the independently observed live schema must equal that
+cumulative manifest. No schema-v2 snapshot, manifest cache, or second schema
+authority exists.
+
+## Historical Fixture Compatibility
+
+The shared tests-only B3/B4 coherent fixture preserves its historical
+schema-0001 coding-work graph, transition, fencing, replay, and global-stop
+meanings. Its temporary physical database is now exact generation 2 / terminal
+migration 0002. The retained tests-only writer session is generation 2, and
+legacy fixture seeding leaves all nineteen C2B tables empty. The fixture imports
+no C2B row/value adapter, invokes no C2B private reader, and invokes no C2B
+mutation API.
+
+## Explicit Nonimplementation
+
+C2B2 Slice 1 adds no pure C2B row/value source and no private nominal reader.
+It adds no program-initialization, author-effect, bound-effect, decision,
+receipt, observation-ingest, or other C2B mutation. It adds no family-specific
+graph roles or locators, historical mutable-head replay, exact family replay,
+or family commit-outcome recovery. C2B3 has not started.
+
+The slice adds no public DTO, package-root export, `StateStore` method,
+`WriterSession` method, API, CLI, service, IPC surface, dependency, second
+database, writer, lock, capability, mutation slot, or transaction controller.
+It creates no worker/process/model execution, capsule custody, Git effect,
+direct-local route, Execution Substrate route, Bridge behavior, scheduler,
+queue, reconciler, publication, deployment, or autonomous loop.

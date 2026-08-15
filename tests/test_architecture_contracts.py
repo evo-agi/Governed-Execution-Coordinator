@@ -153,23 +153,23 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         )
     )
     for phrase in (
-        "current implemented database remains application generation 1 with schema 0001",
-        "`0001_initial` catalog entry and production SQL resource only",
+        "current implemented database is application generation 2 with terminal catalog entry `0002_development_program_and_effect_state`",
         "migration 0001 bytes, history, and table meanings remain unchanged",
-        "C2B1 changes bounded administrative migration mechanics, not durable development state",
-        "accepted C2B0 target contract reserves",
-        "`0002_development_program_and_effect_state`",
+        "C2B1 supplies bounded administrative migration mechanics",
+        "C2B2 Slice 1 adds only the frozen physical nineteen-table core",
+        "accepted C2B0 target contract also reserves",
         "`0003_development_observation_and_progression_state`",
-        "No 0002/0003 SQL, catalog entry, schema object, installed migration, application-generation change, C2B durable record, reader, writer, mutation, observation ingest, decision runtime, authority verifier, WorkSpec custody, worker/runtime behavior, or effect is currently implemented.",
+        "No migration-0003 SQL, C2B pure row/value source, reader, writer, mutation, observation ingest, decision runtime",
     ):
         _require(
             phrase in current,
             "architecture.durable_state|heading=<current-status>|failure=current_target_distinction",
         )
     for phrase in (
-        "Migrations 0002 and 0003 are reserved target identities, not installed or current schema.",
-        "The accepted target comprises migrations",
-        "Neither migration or any C2B reader, writer, mutation, ingest, decision runtime, authority verifier, or latch behavior is currently implemented",
+        "C2B2 Slice 1 has implemented the migration-0002 physical core at application generation 2",
+        "Migration 0003 remains a reserved target identity",
+        "accepted complete target comprises implemented migration",
+        "Migration 0003 and all C2B row/value, reader, writer, mutation",
     ):
         _require(
             phrase in target,
@@ -183,9 +183,9 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         "Exact C2B schema remains wholly open.",
         "C2B is currently implemented.",
         "Migrations 0002 and 0003 are installed current schema.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
         "No migration number is reserved.",
     ):
         _require(
@@ -251,6 +251,32 @@ def test_docs_are_source_of_truth_and_pin_p1_scope() -> None:
         "Historical tranche freeze",
     ):
         assert phrase in agents or phrase in contract or phrase in architecture
+
+
+def test_architecture_pins_runtime_floor_and_fixture_physical_semantic_split() -> None:
+    architecture = _compact(_text(".docs/architecture.md"))
+    durable = _compact(_text(".docs/durable-state-model.md"))
+    agents = _compact(_text("AGENTS.md"))
+    readme = _compact(_text("README.md"))
+
+    for phrase in (
+        "administrative runtime-capability preflight is derived from the maximum immutable catalog target",
+        "require SQLite `3.37.0` before state-root creation, common-lock acquisition, writable open, `BEGIN`, or mutation",
+        "temporary current-generation-2 database at terminal migration `0002_development_program_and_effect_state`",
+        "historical schema-0001 B3/B4 graph",
+        "All nineteen C2B tables remain empty",
+        "`.docs/b3-tests-only-coherent-fixtures.md`",
+    ):
+        assert phrase in architecture
+
+    assert "current-generation-2 database at terminal migration `0002_development_program_and_effect_state`" in durable
+    assert "maximum immutable catalog capability" in agents
+    assert "current-generation-2 database at terminal migration 0002" in readme
+    for stale in (
+        "temporary managed schema-0001 database",
+        "not an executable transition proof, and not migration 0002",
+    ):
+        assert stale not in " ".join((architecture, durable, agents, readme))
 
 
 def test_repository_name_independence_is_documented() -> None:
@@ -383,7 +409,7 @@ def test_c2b0_stale_current_target_forms_are_rejected_in_memory() -> None:
             "architecture.durable_state|heading=<current-status>|failure=stale_or_installed_claim"
         )
 
-    target_claim = "The accepted target comprises migrations"
+    target_claim = "The accepted complete target comprises implemented migration"
     fenced_target_only = text.replace(
         target_claim,
         f"```text\n{target_claim}\n```",
@@ -400,9 +426,9 @@ def test_c2b0_current_target_status_rejects_all_additive_stale_claims() -> None:
     text = _text(".docs/durable-state-model.md")
     stale_claims = (
         "Exact C2B schema remains wholly open.",
-        "0002 is installed.",
+        "0002 is absent.",
         "0003 is installed.",
-        "Application generation is currently 2.",
+        "Application generation is currently 3.",
         "No migration number is reserved.",
         "C2B is currently implemented.",
     )
@@ -989,8 +1015,8 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
     )
 
     for phrase in (
-        "Status: `ACCEPTED TARGET CONTRACT`; durable topology implementation absent.",
-        "C2B1 administrative migration source is current but is outside this product topology.",
+        "C2B2 Slice 1 physically represents the nineteen-table core",
+        "C2B1/C2B2-Slice-1 administrative migration source is current but is outside this product topology.",
         "existing Coordinator SQLite database",
         "existing concrete writer issuance/fencing authority",
         "operation guard",
@@ -999,7 +1025,7 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
         "no second database, writer, controller, session authority, generic mutation dispatcher",
         "public `StateStore` widening",
         "public `WriterSession` widening",
-        "no C2B product reader, writer, mutation transaction, worker, Bridge dependency, ES dependency",
+        "no C2B pure row/value source or C2B product reader, writer, mutation transaction, worker",
     ):
         assert phrase in architecture
 

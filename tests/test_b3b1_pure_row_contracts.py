@@ -765,7 +765,10 @@ def test_b3b1_public_export_schema_and_local_boundaries_are_unchanged() -> None:
 
     assert not (PACKAGE_DIR / "sqlite_transition_readers.py").exists()
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()
-    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == ["0001_initial.sql"]
+    assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
+        "0001_initial.sql",
+        "0002_development_program_and_effect_state.sql",
+    ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
 

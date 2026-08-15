@@ -249,7 +249,7 @@ def _assert_expected_manifest_inspection_failure(inspection) -> None:
     assert inspection.classification.name == "UNKNOWN"
     assert inspection.classification.value == "unknown"
     assert inspection.current_sequence == 0
-    assert inspection.latest_sequence == 1
+    assert inspection.latest_sequence == 2
     assert inspection.current_migration_id is None
     assert inspection.reason == "schema_verification_failed"
     assert not hasattr(inspection, "administrative_eligible")
@@ -259,9 +259,9 @@ def _assert_production_managed_inspection(inspection) -> None:
     assert type(inspection) is migration_module.DatabaseInspection
     assert inspection.classification.name == "MANAGED"
     assert inspection.classification.value == "managed"
-    assert inspection.current_sequence == 1
-    assert inspection.latest_sequence == 1
-    assert inspection.current_migration_id == "0001_initial"
+    assert inspection.current_sequence == 2
+    assert inspection.latest_sequence == 2
+    assert inspection.current_migration_id == "0002_development_program_and_effect_state"
     assert inspection.reason is None
 
 
@@ -1711,7 +1711,9 @@ def test_c2b1_filesystem_migration_resources_require_regular_nonsymlink_files(
     resource_kind: str,
     expected_result: str,
 ) -> None:
-    production = migration_module.load_migration_catalog().migrations[0]
+    production_catalog = migration_module.load_migration_catalog()
+    production = production_catalog.migrations[0]
+    later_production = production_catalog.migrations[1]
     sqlite_calls = 0
 
     def forbidden_sqlite_connect(*args, **kwargs):
@@ -1727,6 +1729,9 @@ def test_c2b1_filesystem_migration_resources_require_regular_nonsymlink_files(
     package = tmp_path / resource_kind
     package.mkdir()
     resource = package / "0001_initial.sql"
+    (package / "0002_development_program_and_effect_state.sql").write_bytes(
+        later_production.sql_bytes
+    )
     private_marker = "private-resource-marker"
     if resource_kind in {"regular", "replace_before_open", "replace_during_read"}:
         resource.write_bytes(production.sql_bytes)
@@ -1799,6 +1804,7 @@ def test_c2b1_filesystem_migration_resources_require_regular_nonsymlink_files(
     if expected_result == "accepted":
         loaded = migration_module.load_migration_catalog()
         assert loaded.migrations[0].sql_bytes == production.sql_bytes
+        assert loaded.migrations[1].sql_bytes == later_production.sql_bytes
     else:
         with pytest.raises(SQLiteStateError) as exc_info:
             migration_module.load_migration_catalog()

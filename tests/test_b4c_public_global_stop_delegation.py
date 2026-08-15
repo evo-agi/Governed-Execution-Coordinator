@@ -1394,7 +1394,9 @@ def test_package_exports_state_store_migration_and_public_transition_regression(
     assert not hasattr(ge_nwp_coordinator, "_run_atomic_global_stop_apply")
     assert "sqlite_transition_transaction" not in package_exports
     assert not hasattr(StateStore, "apply_global_stop_update")
-    assert not list(MIGRATION_DIR.glob("0002*"))
+    assert sorted(path.name for path in MIGRATION_DIR.glob("0002*")) == [
+        "0002_development_program_and_effect_state.sql"
+    ]
     assert _sha256(MIGRATION_DIR / "0001_initial.sql") == MIGRATION_0001_SHA256
 
     with make_coherent_transition_fixture_for_test(
@@ -1457,6 +1459,11 @@ def test_docs_current_boundary_assertions() -> None:
     assert "caller decision remains comparison material only" in normalized_b4c
     assert "Receipt provisioning remains a separately governed reopened seam" in normalized_b4c
     assert "no generic delegate catch-all" in normalized_b4c
+    assert "historical schema-0001 B3/B4 graph hosted in a temporary current-generation-2, terminal-0002 fixture" in normalized_b4c
+    assert "Migration `0002` is the current physical C2B2 Slice-1 extension" in normalized_b4c
+    assert "B4c itself neither adds nor consumes C2B runtime behavior" in normalized_b4c
+    assert "Tests may seed receipt rows only in temporary schema-0001 fixtures" not in b4c
+    assert "There is still no migration `0002`." not in b4c
     writer_authority = (ROOT / ".docs/writer-session-authority.md").read_text(encoding="utf-8")
     assert "B4c adds operation-guarded public global-stop delegation" in writer_authority
     authority = (ROOT / ".docs/authority-boundaries.md").read_text(encoding="utf-8")
