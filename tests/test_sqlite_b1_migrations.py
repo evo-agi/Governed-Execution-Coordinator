@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 from importlib import resources
 from pathlib import Path
@@ -215,7 +216,7 @@ def _location(tmp_path: Path) -> CoordinatorStateLocation:
 
 
 def _table_names(location: CoordinatorStateLocation) -> set[str]:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         rows = connection.execute(
             "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
         ).fetchall()
@@ -223,7 +224,7 @@ def _table_names(location: CoordinatorStateLocation) -> set[str]:
 
 
 def _schema_objects(location: CoordinatorStateLocation) -> set[tuple[str, str]]:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         rows = connection.execute(
             """
             SELECT type, name
@@ -235,7 +236,7 @@ def _schema_objects(location: CoordinatorStateLocation) -> set[tuple[str, str]]:
 
 
 def _count(location: CoordinatorStateLocation, table_name: str) -> int:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         return connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
 
 
@@ -402,14 +403,14 @@ def _minimal_history_database(
 
 
 def _direct_execute(location: CoordinatorStateLocation, *statements: str) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         for statement in statements:
             connection.execute(statement)
         connection.commit()
 
 
 def _set_wal(location: CoordinatorStateLocation) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute("PRAGMA journal_mode=WAL").fetchone()
         connection.execute("CREATE TABLE IF NOT EXISTS journal_probe (value INTEGER)")
         connection.execute("DROP TABLE journal_probe")
@@ -448,7 +449,7 @@ def test_migrate_missing_database_refuses_without_creating_artifacts(tmp_path: P
 def test_existing_empty_sqlite_database_classifies_empty_without_mutation(tmp_path: Path) -> None:
     location = _location(tmp_path)
     location.state_root.mkdir(mode=0o700, parents=True)
-    with sqlite3.connect(location.database_path):
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         pass
     location.database_path.chmod(0o600)
     before = (_file_digest(location.database_path), location.database_path.stat().st_size)
@@ -513,7 +514,7 @@ def test_migration_catalog_and_history_match_independent_literal_truth(tmp_path:
     _assert_literal_migration_catalog_truth(_migration_catalog_projection(catalog))
     initialize_database(location)
 
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         rows = connection.execute(
             "SELECT sequence, migration_id, schema_digest, min_app_schema, max_app_schema, applied_at "
             "FROM schema_migrations ORDER BY sequence"
@@ -770,7 +771,7 @@ def test_initial_migration_does_not_seed_writer_events_work_or_authorization(tmp
 def test_global_stop_initialization_is_canonical_clear_state(tmp_path: Path) -> None:
     location = _location(tmp_path)
     initialize_database(location)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         row = connection.execute(
             """
             SELECT singleton_id, schema_id, version, active, stop_id, reason_class,

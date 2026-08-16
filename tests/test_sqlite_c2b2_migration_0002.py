@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 from pathlib import Path
 import sqlite3
@@ -3892,7 +3893,7 @@ def _file_sha256(path: Path) -> str:
 
 
 def _history_rows(location: CoordinatorStateLocation) -> list[tuple[Any, ...]]:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         return connection.execute(
             """
             SELECT migration_id, sequence, schema_digest, applied_at,
@@ -3946,7 +3947,9 @@ def _create_database_from_literal_sql(
     location.state_root.mkdir(mode=0o700, parents=True)
     migration_0001 = MIGRATION_0001_PATH.read_text(encoding="utf-8")
     catalog = migration_module.load_migration_catalog()
-    with sqlite3.connect(location.database_path, isolation_level=None) as connection:
+    with closing(
+        sqlite3.connect(location.database_path, isolation_level=None)
+    ) as connection, connection:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("BEGIN IMMEDIATE")
         for statement in migration_module._migration_statements(migration_0001):
@@ -4178,7 +4181,7 @@ def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_cumulat
         (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256, 2, 2),
     )
     assert history[0][3] == history[1][3]
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         counts = _schema_counts(connection)
         assert counts == {
             "tables": EXPECTED_CUMULATIVE_TABLE_COUNT,
@@ -4223,7 +4226,7 @@ def test_exact_0001_is_observationally_unknown_then_explicitly_migrates_only_000
     assert history[0] == before_history[0]
     assert history[1][0:3] == (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256)
     assert history[1][4:] == (2, 2)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         assert _schema_counts(connection) == {
             "tables": 30,
             "columns": 485,
@@ -4561,7 +4564,7 @@ def test_unexpected_c2b2_seed_during_migration_rolls_back_safely(
 
     assert exc_info.value.error_class == "schema_verification_failed"
     assert "program-1" not in repr(exc_info.value)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'"
         ).fetchone() == (0,)
@@ -4642,7 +4645,7 @@ def test_history_only_schema_only_and_partial_0002_fail_closed(
 def test_extra_object_or_view_fails_closed(tmp_path: Path, object_sql: str) -> None:
     location = _location(tmp_path, hashlib.sha256(object_sql.encode()).hexdigest()[:12])
     migration_module.initialize_database(location)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute(object_sql)
         connection.commit()
 

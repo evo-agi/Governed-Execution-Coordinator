@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from contextlib import closing
 from pathlib import Path
 import re
 import sqlite3
@@ -83,9 +84,51 @@ def _schema() -> str:
 
 def _connect_schema() -> sqlite3.Connection:
     connection = sqlite3.connect(":memory:")
-    connection.execute("PRAGMA foreign_keys = ON")
-    connection.executescript(_schema())
+    try:
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.executescript(_schema())
+    except BaseException:
+        try:
+            connection.close()
+        except BaseException:
+            pass
+        raise
     return connection
+
+
+def test_connect_schema_preserves_setup_failure_when_close_also_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    setup_error = RuntimeError("schema setup failed")
+    close_error = RuntimeError("connection close failed")
+    close_calls = 0
+
+    class DoubleFailureConnection:
+        def execute(self, statement: str) -> None:
+            assert statement == "PRAGMA foreign_keys = ON"
+
+        def executescript(self, schema: str) -> None:
+            assert schema == _schema()
+            raise setup_error
+
+        def close(self) -> None:
+            nonlocal close_calls
+            close_calls += 1
+            raise close_error
+
+    connection = DoubleFailureConnection()
+
+    def connect(database: str) -> DoubleFailureConnection:
+        assert database == ":memory:"
+        return connection
+
+    monkeypatch.setattr(sqlite3, "connect", connect)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        _connect_schema()
+
+    assert exc_info.value is setup_error
+    assert close_calls == 1
 
 
 def _tables(connection: sqlite3.Connection) -> set[str]:
@@ -287,7 +330,7 @@ def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
 
 
 def test_schema_fixture_loads_in_memory_and_has_expected_tables() -> None:
-    with _connect_schema() as connection:
+    with closing(_connect_schema()) as connection, connection:
         assert _tables(connection) == {
             "schema_migrations",
             "writer_ownership",
@@ -304,7 +347,7 @@ def test_schema_fixture_loads_in_memory_and_has_expected_tables() -> None:
 
 
 def test_schema_has_no_report_or_private_payload_tables_or_columns() -> None:
-    with _connect_schema() as connection:
+    with closing(_connect_schema()) as connection, connection:
         table_names = _tables(connection)
         serialized_tables = " ".join(sorted(table_names)).lower()
         forbidden_table_fragments = ("report", "prompt", "credential", "endpoint", "path", "worker", "bridge")
@@ -330,7 +373,7 @@ def test_schema_has_no_report_or_private_payload_tables_or_columns() -> None:
 
 
 def test_event_owned_idempotency_and_replay_snapshots_are_in_event_tables() -> None:
-    with _connect_schema() as connection:
+    with closing(_connect_schema()) as connection, connection:
         _insert_reference_records(connection)
         _insert_transition_event(connection)
         _insert_global_stop_event(connection)
@@ -361,7 +404,7 @@ def test_event_owned_idempotency_and_replay_snapshots_are_in_event_tables() -> N
 
 
 def test_event_tables_and_immutable_receipts_are_append_only_by_trigger() -> None:
-    with _connect_schema() as connection:
+    with closing(_connect_schema()) as connection, connection:
         _insert_reference_records(connection)
         _insert_transition_event(connection)
         _insert_global_stop_event(connection)
@@ -386,7 +429,7 @@ def test_event_tables_and_immutable_receipts_are_append_only_by_trigger() -> Non
 
 
 def test_current_state_tables_are_mutable_authority_with_enum_and_boolean_checks() -> None:
-    with _connect_schema() as connection:
+    with closing(_connect_schema()) as connection, connection:
         _insert_reference_records(connection)
         connection.execute("UPDATE work_items SET state = 'lease_admitted', version = 1 WHERE work_item_id = 'wi-1'")
         row = connection.execute("SELECT state, version FROM work_items WHERE work_item_id = 'wi-1'").fetchone()
@@ -410,7 +453,7 @@ def test_current_state_tables_are_mutable_authority_with_enum_and_boolean_checks
 
 
 def test_foreign_keys_bind_events_to_authoritative_records() -> None:
-    with _connect_schema() as connection:
+    with closing(_connect_schema()) as connection, connection:
         _insert_reference_records(connection)
         with pytest.raises(sqlite3.IntegrityError):
             _insert_transition_event(connection, work_item_id="missing-work-item")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 import os
 from pathlib import Path
@@ -142,7 +143,7 @@ def _assessment(
 
 
 def _history(location: CoordinatorStateLocation) -> list[tuple[object, ...]]:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         return connection.execute(
             """
             SELECT migration_id, sequence, schema_digest, applied_at,
@@ -154,7 +155,7 @@ def _history(location: CoordinatorStateLocation) -> list[tuple[object, ...]]:
 
 
 def _tables(location: CoordinatorStateLocation) -> set[str]:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         rows = connection.execute(
             """
             SELECT name
@@ -166,7 +167,7 @@ def _tables(location: CoordinatorStateLocation) -> set[str]:
 
 
 def _execute(location: CoordinatorStateLocation, statement: str, parameters=()) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute(statement, parameters)
 
 
@@ -178,7 +179,7 @@ def _empty_database(location: CoordinatorStateLocation) -> None:
 
 def _unmanaged_database(location: CoordinatorStateLocation) -> None:
     location.state_root.mkdir(mode=0o700, parents=True)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute("CREATE TABLE neutral_unmanaged (value INTEGER)")
     location.database_path.chmod(0o600)
 
@@ -1255,7 +1256,7 @@ def test_c2b1_required_recovery_matrix(
         nonlocal commit_attempts
         commit_attempts += 1
         original_commit(connection)
-        with sqlite3.connect(location.database_path) as corrupting:
+        with closing(sqlite3.connect(location.database_path)) as corrupting, corrupting:
             if corruption == "history_only":
                 corrupting.execute("DROP TABLE neutral_two")
             elif corruption == "schema_only":
@@ -1678,7 +1679,7 @@ def test_destructive_metadata_is_catalog_only_and_resolution_is_injective(tmp_pa
     catalog = _catalog(1)
     location = _location(tmp_path)
     _initialize(location, catalog)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         columns = [row[1] for row in connection.execute("PRAGMA table_info(schema_migrations)").fetchall()]
     assert "destructive" not in columns
 

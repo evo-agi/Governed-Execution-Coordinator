@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 
@@ -20,7 +21,7 @@ def _location(tmp_path: Path) -> CoordinatorStateLocation:
 
 
 def test_connection_posture_is_applied_and_verified(tmp_path: Path) -> None:
-    with _open_sqlite_connection(_location(tmp_path)) as connection:
+    with closing(_open_sqlite_connection(_location(tmp_path))) as connection, connection:
         posture = apply_connection_posture(connection)
 
         assert posture.foreign_keys is True
@@ -35,7 +36,7 @@ def test_connection_posture_is_applied_and_verified(tmp_path: Path) -> None:
 
 
 def test_foreign_keys_are_enforced(tmp_path: Path) -> None:
-    with _open_sqlite_connection(_location(tmp_path)) as connection:
+    with closing(_open_sqlite_connection(_location(tmp_path))) as connection, connection:
         connection.execute("CREATE TABLE parent (id INTEGER PRIMARY KEY)")
         connection.execute("CREATE TABLE child (parent_id INTEGER REFERENCES parent(id))")
         with pytest.raises(sqlite3.IntegrityError):
@@ -43,7 +44,7 @@ def test_foreign_keys_are_enforced(tmp_path: Path) -> None:
 
 
 def test_extension_loading_remains_disabled(tmp_path: Path) -> None:
-    with _open_sqlite_connection(_location(tmp_path)) as connection:
+    with closing(_open_sqlite_connection(_location(tmp_path))) as connection, connection:
         with pytest.raises(sqlite3.DatabaseError):
             connection.execute("SELECT load_extension('not-a-real-extension')")
 
