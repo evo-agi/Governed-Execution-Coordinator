@@ -1032,9 +1032,9 @@ mapping, decisions, receipts, common graph primitive, and private readers.
   "c2a_persistence": {
     "cross_row_invariants": [
       {
-        "aggregate_reader_enforcement": "The paged aggregate consumes all pages in one capability epoch and proves start=0, unit increments, no duplicates, and nonempty initial versions.",
+        "aggregate_reader_enforcement": "The completed aggregate validates the exact parent first, consumes every internal page in one capability object and epoch, proves start=0, unit increments, no overlap or duplicate ordinal/pair, requires each work_item_ref to appear at most once regardless of membership_ordinal or work_item_revision_ref, binds each exact work-item revision, and rejects empty membership for every currently defined program-version kind.",
         "authority_effect": "Integrity validation only; no execution or external authority is created.",
-        "exact_pass_condition": "For one program/version aggregate with n members, sorted (membership_ordinal, work_item_ref) rows have ordinals exactly 0..n-1; an initial version has n>=1.",
+        "exact_pass_condition": "An absent exact parent returns None; for every present program/version aggregate with n members, n>=1, sorted (membership_ordinal, work_item_ref) rows have ordinals exactly 0..n-1, and every work_item_ref is unique across the complete aggregate.",
         "future_mutation_preflight_enforcement": "Initialization and replan write plans precompute dense ordinals and reject duplicates or gaps before write.",
         "input_tables_and_fields": [
           "development_program_version_work_items.program_ref",
@@ -1046,7 +1046,7 @@ mapping, decisions, receipts, common graph primitive, and private readers.
         "owning_tranche": "C2B2 reader contract; C2B3 initialization and C2B6 replan mutation preflight.",
         "privacy_effect": "Only safe refs, ordinals, and digests participate.",
         "private_adapter_enforcement": "Each row adapter validates exact scalar types and row digest.",
-        "safe_failure": "database_integrity_failure for persisted gaps/duplicates/empty initial aggregate; domain rejection before write for an invalid proposed aggregate.",
+        "safe_failure": "database_integrity_failure for a malformed parent or persisted empty, gapped, overlapping, duplicate-ordinal, duplicate-pair, duplicate-work-item-ref, or mismatched membership/revision aggregate; mutation_failed before exceeding the operational maximum_members ceiling.",
         "sql_enforced_portion": "UNIQUE(program_ref, program_version_ref, membership_ordinal) rejects duplicate ordinals; SQL does not prove gaps or completeness."
       },
       {
@@ -4912,895 +4912,2047 @@ mapping, decisions, receipts, common graph primitive, and private readers.
     },
     "safe_failure": "privacy-safe closed error vocabulary; no exception string or diagnostic includes persisted private material"
   },
-  "private_readers": [
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "singleton",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_closed_mutation_receipt_envelope",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5",
-        "C2B6"
+  "private_readers": {
+    "aggregate_value_contracts": [
+      {
+        "fields": [
+          "program_head",
+          "current_program_version"
+        ],
+        "type": "DevelopmentProgramHeadAndCurrentVersionRead"
+      },
+      {
+        "fields": [
+          "initialize_decision",
+          "resulting_program_version"
+        ],
+        "type": "DevelopmentInitializeDecisionAndResultingVersionRead"
+      },
+      {
+        "fields": [
+          "work_item_head",
+          "work_item_revision",
+          "is_current"
+        ],
+        "type": "DevelopmentWorkItemHeadAndRevisionRead"
+      },
+      {
+        "fields": [
+          "membership",
+          "work_item_revision"
+        ],
+        "type": "DevelopmentProgramVersionMembershipEntry"
+      },
+      {
+        "fields": [
+          "program_version",
+          "entries"
+        ],
+        "type": "DevelopmentProgramVersionMembershipRead"
+      },
+      {
+        "fields": [
+          "semantic_attempt",
+          "effect_intent",
+          "author_command",
+          "attempt_fence",
+          "current_effect_fence",
+          "author_effect_fence"
+        ],
+        "type": "DevelopmentAttemptFenceCommandEffectRead"
+      },
+      {
+        "fields": [
+          "delivery_head",
+          "current_delivery_attempt"
+        ],
+        "type": "DevelopmentDeliveryHeadAndCurrentAttemptRead"
+      }
+    ],
+    "common_contract": {
+      "aggregate_value_posture": [
+        "manual slots",
+        "no __dict__ or weakref",
+        "factory-only construction",
+        "no subclassing",
+        "exact-type equality",
+        "unhashable",
+        "content-free repr/str",
+        "copy/deepcopy identity",
+        "pickle disabled",
+        "tuples for collections",
+        "no SQL, parameters, row tuples, mappings, cursors, connections, capabilities, or epochs retained"
       ],
-      "limit": 2,
-      "lookup_identity": [
-        "mutation_ref"
+      "capability_errors_outside_reader_safe_error": [
+        "mutation_read_capability_unavailable",
+        "mutation_read_capability_expired",
+        "process_mismatch",
+        "thread_mismatch"
       ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "mutation_receipt_by_mutation_ref",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "mutation_ref",
-            "mutation_family",
-            "command_schema_id",
-            "command_digest",
-            "program_ref",
-            "decision_ref",
-            "result_program_version_ref",
-            "result_semantic_attempt_ref",
-            "result_effect_intent_ref",
-            "result_effect_fence_ref",
-            "result_delivery_attempt_ref",
-            "result_observation_ref",
-            "result_decision_ref",
-            "result_class",
-            "result_projection_digest",
-            "mutation_graph_digest",
-            "outcome",
-            "committed_at"
-          ],
-          "table": "development_mutation_receipts"
-        }
-      ]
+      "capability_path_order": [
+        "pure lookup/resource validation",
+        "function-local import of _SQLiteMutationReadCapability",
+        "type(capability) is _SQLiteMutationReadCapability",
+        "capability borrow",
+        "literal SQL execution"
+      ],
+      "invalid_authority_zero_borrow_zero_sql_matrix": [
+        "None",
+        "arbitrary object",
+        "structural stand-in",
+        "forged borrow object",
+        "raw sqlite3.Connection",
+        "nominal subclass"
+      ],
+      "lookup_validation_failure": "database_integrity_failure",
+      "no_partial_aggregate": true,
+      "post_borrow_error_classification": {
+        "earlier_execute_or_fetch_failure_precedence": "preserved over later cursor-close failure",
+        "operational_busy_locked_closed_unknown_io": "mutation_failed",
+        "otherwise_successful_read_then_cursor_close_failure": "mutation_failed",
+        "sqlite_schema_cardinality_row_relation_contradiction": "database_integrity_failure"
+      },
+      "reader_safe_error": "mutation_failed_or_database_integrity_failure",
+      "reconnaissance_binding": {
+        "planning_decision": "BLOCKED_PENDING_READER_CONTRACT_CHANGE",
+        "turn_verdict": "COORDINATOR_C2B2_SLICE_3_RECONNAISSANCE_BLOCKED"
+      },
+      "shared_bounded_fetch_future_contract": {
+        "accepted_limits": [
+          2,
+          257
+        ],
+        "bounded_core_owns": [
+          "one borrow",
+          "one cursor",
+          "literal execute with exact tuple",
+          "fetchmany(limit)",
+          "cursor close",
+          "execute/fetch precedence over close",
+          "safe SQLite error classification"
+        ],
+        "bounded_core_owns_no": [
+          "nominal authority",
+          "semantic dispatch",
+          "table dispatch"
+        ],
+        "compatibility_wrapper": "_execute_select_fetch_two() remains with unchanged observable behavior",
+        "source_path": "src/ge_nwp_coordinator/sqlite_transition_select_support.py"
+      },
+      "status": {
+        "accepted_target": "exact twelve private readers under this reset contract",
+        "current": [
+          "generation-2 migration-0002 schema",
+          "four private pure row/value modules"
+        ],
+        "still_absent": [
+          "reader source",
+          "SELECT execution",
+          "nominal capability use by C2B2",
+          "production caller",
+          "mutation and receipt persistence",
+          "family-complete graph verification",
+          "replay and recovery",
+          "C2B3",
+          "migration 0003"
+        ]
+      }
     },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "singleton",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_closed_development_decision_envelope",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5",
-        "C2B6"
+    "empty_membership_permitted_program_version_kinds": [],
+    "future_implementation_allowlist": {
+      "existing_documentation_modifications": [
+        ".docs/c2b-durable-development-state.md",
+        ".docs/c2b2-migration-0002.md",
+        ".docs/c2b2-pure-durable-row-values.md",
+        ".docs/architecture.md",
+        ".docs/autonomous-software-development-operating-model.md",
+        ".docs/durable-state-model.md",
+        ".docs/software-development-progression-boundary.md",
+        ".docs/sqlite-threat-model.md",
+        "README.md",
+        "AGENTS.md"
       ],
-      "limit": 2,
-      "lookup_identity": [
-        "decision_ref"
+      "existing_production_source_modifications": [
+        "src/ge_nwp_coordinator/sqlite_transition_select_support.py"
       ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "decision_by_decision_ref",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "mutation_ref",
-            "decision_ref",
-            "program_ref",
-            "decision_kind",
-            "decision_variant",
-            "basis_decision_ref",
-            "basis_program_version_ref",
-            "basis_program_version_number",
-            "expected_program_head_revision",
-            "resulting_program_version_ref",
-            "resulting_program_version_number",
-            "selected_semantic_attempt_ref",
-            "selected_candidate_ref",
-            "selected_attempt_fence_ref",
-            "selected_attempt_fence_digest",
-            "target_effect_intent_ref",
-            "target_effect_class",
-            "target_effect_fence_ref",
-            "target_effect_fence_digest",
-            "expected_target_effect_head_revision",
-            "target_delivery_attempt_ref",
-            "originating_command_ref",
-            "originating_command_digest",
-            "target_capsule_manifest_ref",
-            "target_portable_capsule_digest",
-            "coding_global_stop_ref",
-            "coding_global_stop_version",
-            "source_directive_ref",
-            "source_directive_digest",
-            "source_evidence_ref",
-            "source_evidence_digest",
-            "preassigned_semantic_attempt_ref",
-            "preassigned_candidate_ref",
-            "preassigned_effect_intent_ref",
-            "preassigned_effect_fence_ref",
-            "preassigned_delivery_attempt_ref",
-            "resulting_accepted_intent_revision_ref",
-            "resulting_work_item_ref",
-            "resulting_work_item_revision_ref",
-            "reason_code",
-            "decided_at",
-            "decision_digest"
-          ],
-          "table": "development_decisions"
-        }
-      ]
+      "existing_test_modifications": [
+        "tests/test_c2b2_field_level_contract.py",
+        "tests/test_c2b0_durable_state_contract.py",
+        "tests/test_architecture_contracts.py",
+        "tests/test_autonomous_software_development_operating_model.py",
+        "tests/test_software_development_progression_boundary.py",
+        "tests/test_runtime_non_authority.py",
+        "tests/test_c2a_nonimplementation.py"
+      ],
+      "maximum_path_count": 23,
+      "new_documentation": [
+        ".docs/c2b2-private-readers.md"
+      ],
+      "new_focused_tests": [
+        "tests/test_c2b2_development_reader_contracts.py",
+        "tests/test_c2b2_private_development_readers.py"
+      ],
+      "new_production_source": [
+        "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
+        "src/ge_nwp_coordinator/_sqlite_development_readers.py"
+      ],
+      "package_or_configuration_modifications": [],
+      "schema_or_migration_modifications": [],
+      "twenty_fourth_path_disposition": "stop condition; not implicit authorization"
     },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "two_singletons",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_program_head_current_version_aggregate",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B6"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "program_head_and_current_version",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "program_ref",
-            "current_program_version_ref",
-            "current_program_version_number",
-            "head_revision",
-            "program_state",
-            "updated_at",
-            "head_digest"
-          ],
-          "table": "development_program_heads"
+    "prohibited_authority_locators": [
+      "latest timestamp",
+      "MAX(evaluated_at)",
+      "rowid",
+      "lexicographic ref order",
+      "preferred authority state",
+      "verified-first selection",
+      "unbounded subject scan",
+      "receipt digest"
+    ],
+    "roles": [
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "not_applicable",
+          "root_query": "mutation_receipt"
         },
-        {
-          "fields": [
-            "schema_id",
-            "program_version_ref",
-            "program_ref",
-            "program_version_number",
-            "program_version_kind",
-            "creating_decision_ref",
-            "accepted_intent_revision_ref",
-            "created_at",
-            "program_version_digest"
-          ],
-          "table": "development_program_versions"
+        "aggregate_fields": [],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "singleton",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentMutationReceiptRowValue",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5",
+          "C2B6"
+        ],
+        "later_tranche_exclusions": [
+          "default graph_entries to ()",
+          "graph verification",
+          "family completeness",
+          "referenced-row existence",
+          "family row location",
+          "exact replay",
+          "recovery"
+        ],
+        "lookup_identity": [
+          "mutation_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_mutation_receipt_by_mutation_ref",
+        "query_order": [
+          "mutation_receipt"
+        ],
+        "result_type": "DevelopmentMutationReceiptRowValue | None",
+        "role": "mutation_receipt_by_mutation_ref",
+        "row_digest_verification": "not_applicable: the receipt has no row self-digest",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "mutation_ref",
+              "mutation_family",
+              "command_schema_id",
+              "command_digest",
+              "program_ref",
+              "decision_ref",
+              "result_program_version_ref",
+              "result_semantic_attempt_ref",
+              "result_effect_intent_ref",
+              "result_effect_fence_ref",
+              "result_delivery_attempt_ref",
+              "result_observation_ref",
+              "result_decision_ref",
+              "result_class",
+              "result_projection_digest",
+              "mutation_graph_digest",
+              "outcome",
+              "committed_at"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "mutation_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "mutation_ref"
+            ],
+            "parameter_tuple": "(mutation_ref,)",
+            "query_id": "mutation_receipt",
+            "query_sql": "SELECT schema_id, mutation_ref, mutation_family, command_schema_id, command_digest, program_ref, decision_ref, result_program_version_ref, result_semantic_attempt_ref, result_effect_intent_ref, result_effect_fence_ref, result_delivery_attempt_ref, result_observation_ref, result_decision_ref, result_class, result_projection_digest, mutation_graph_digest, outcome, committed_at FROM development_mutation_receipts WHERE mutation_ref = ? LIMIT 2",
+            "table": "development_mutation_receipts"
+          }
+        ],
+        "signature": "(capability, mutation_ref) -> DevelopmentMutationReceiptRowValue | None",
+        "signature_inputs": [
+          "capability",
+          "mutation_ref"
+        ],
+        "slice3_cross_row_validation": [
+          "exact row shape and scalar algebra",
+          "result projection",
+          "result_projection_digest",
+          "mutation_graph_digest lowercase SHA-256 shape"
+        ]
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "not_applicable",
+          "root_query": "decision"
+        },
+        "aggregate_fields": [],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "singleton",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentDecisionRowValue",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5",
+          "C2B6"
+        ],
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "decision_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_decision_by_decision_ref",
+        "query_order": [
+          "decision"
+        ],
+        "result_type": "DevelopmentDecisionRowValue | None",
+        "role": "decision_by_decision_ref",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "mutation_ref",
+              "decision_ref",
+              "program_ref",
+              "decision_kind",
+              "decision_variant",
+              "basis_decision_ref",
+              "basis_program_version_ref",
+              "basis_program_version_number",
+              "expected_program_head_revision",
+              "resulting_program_version_ref",
+              "resulting_program_version_number",
+              "selected_semantic_attempt_ref",
+              "selected_candidate_ref",
+              "selected_attempt_fence_ref",
+              "selected_attempt_fence_digest",
+              "target_effect_intent_ref",
+              "target_effect_class",
+              "target_effect_fence_ref",
+              "target_effect_fence_digest",
+              "expected_target_effect_head_revision",
+              "target_delivery_attempt_ref",
+              "originating_command_ref",
+              "originating_command_digest",
+              "target_capsule_manifest_ref",
+              "target_portable_capsule_digest",
+              "coding_global_stop_ref",
+              "coding_global_stop_version",
+              "source_directive_ref",
+              "source_directive_digest",
+              "source_evidence_ref",
+              "source_evidence_digest",
+              "preassigned_semantic_attempt_ref",
+              "preassigned_candidate_ref",
+              "preassigned_effect_intent_ref",
+              "preassigned_effect_fence_ref",
+              "preassigned_delivery_attempt_ref",
+              "resulting_accepted_intent_revision_ref",
+              "resulting_work_item_ref",
+              "resulting_work_item_revision_ref",
+              "reason_code",
+              "decided_at",
+              "decision_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "decision_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "decision_ref"
+            ],
+            "parameter_tuple": "(decision_ref,)",
+            "query_id": "decision",
+            "query_sql": "SELECT schema_id, mutation_ref, decision_ref, program_ref, decision_kind, decision_variant, basis_decision_ref, basis_program_version_ref, basis_program_version_number, expected_program_head_revision, resulting_program_version_ref, resulting_program_version_number, selected_semantic_attempt_ref, selected_candidate_ref, selected_attempt_fence_ref, selected_attempt_fence_digest, target_effect_intent_ref, target_effect_class, target_effect_fence_ref, target_effect_fence_digest, expected_target_effect_head_revision, target_delivery_attempt_ref, originating_command_ref, originating_command_digest, target_capsule_manifest_ref, target_portable_capsule_digest, coding_global_stop_ref, coding_global_stop_version, source_directive_ref, source_directive_digest, source_evidence_ref, source_evidence_digest, preassigned_semantic_attempt_ref, preassigned_candidate_ref, preassigned_effect_intent_ref, preassigned_effect_fence_ref, preassigned_delivery_attempt_ref, resulting_accepted_intent_revision_ref, resulting_work_item_ref, resulting_work_item_revision_ref, reason_code, decided_at, decision_digest FROM development_decisions WHERE decision_ref = ? LIMIT 2",
+            "table": "development_decisions"
+          }
+        ],
+        "signature": "(capability, decision_ref) -> DevelopmentDecisionRowValue | None",
+        "signature_inputs": [
+          "capability",
+          "decision_ref"
+        ],
+        "slice3_cross_row_validation": []
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "missing, duplicate, malformed, or mismatched current program version is database_integrity_failure",
+          "root_query": "program_head"
+        },
+        "aggregate_fields": [
+          "program_head",
+          "current_program_version"
+        ],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "root_plus_one_required_child",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentProgramHeadAndCurrentVersionRead",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B6"
+        ],
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "program_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_program_head_and_current_version",
+        "query_order": [
+          "program_head",
+          "current_program_version"
+        ],
+        "result_type": "DevelopmentProgramHeadAndCurrentVersionRead | None",
+        "role": "program_head_and_current_version",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "program_ref",
+              "current_program_version_ref",
+              "current_program_version_number",
+              "head_revision",
+              "program_state",
+              "updated_at",
+              "head_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref"
+            ],
+            "parameter_tuple": "(program_ref,)",
+            "query_id": "program_head",
+            "query_sql": "SELECT schema_id, program_ref, current_program_version_ref, current_program_version_number, head_revision, program_state, updated_at, head_digest FROM development_program_heads WHERE program_ref = ? LIMIT 2",
+            "table": "development_program_heads"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "program_version_ref",
+              "program_ref",
+              "program_version_number",
+              "program_version_kind",
+              "creating_decision_ref",
+              "accepted_intent_revision_ref",
+              "created_at",
+              "program_version_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "program_head.current_program_version_ref",
+              "program_head.current_program_version_number"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "program_head.current_program_version_ref",
+              "program_head.current_program_version_number"
+            ],
+            "parameter_tuple": "(program_ref, program_head.current_program_version_ref, program_head.current_program_version_number)",
+            "query_id": "current_program_version",
+            "query_sql": "SELECT schema_id, program_version_ref, program_ref, program_version_number, program_version_kind, creating_decision_ref, accepted_intent_revision_ref, created_at, program_version_digest FROM development_program_versions WHERE program_ref = ? AND program_version_ref = ? AND program_version_number = ? LIMIT 2",
+            "table": "development_program_versions"
+          }
+        ],
+        "signature": "(capability, program_ref) -> DevelopmentProgramHeadAndCurrentVersionRead | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref"
+        ],
+        "slice3_cross_row_validation": [
+          "exact program identity",
+          "current program-version ref equality",
+          "current program-version number equality"
+        ]
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "missing, duplicate, malformed, or mismatched resulting program version is database_integrity_failure",
+          "root_query": "initialize_decision"
+        },
+        "aggregate_fields": [
+          "initialize_decision",
+          "resulting_program_version"
+        ],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "root_plus_one_required_child",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentInitializeDecisionAndResultingVersionRead",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3"
+        ],
+        "later_tranche_exclusions": [
+          "generalized arbitrary version-advancing decision reader"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "decision_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_initialize_decision_and_resulting_version",
+        "query_order": [
+          "initialize_decision",
+          "resulting_program_version"
+        ],
+        "result_type": "DevelopmentInitializeDecisionAndResultingVersionRead | None",
+        "role": "initialize_decision_and_resulting_version",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "mutation_ref",
+              "decision_ref",
+              "program_ref",
+              "decision_kind",
+              "decision_variant",
+              "basis_decision_ref",
+              "basis_program_version_ref",
+              "basis_program_version_number",
+              "expected_program_head_revision",
+              "resulting_program_version_ref",
+              "resulting_program_version_number",
+              "selected_semantic_attempt_ref",
+              "selected_candidate_ref",
+              "selected_attempt_fence_ref",
+              "selected_attempt_fence_digest",
+              "target_effect_intent_ref",
+              "target_effect_class",
+              "target_effect_fence_ref",
+              "target_effect_fence_digest",
+              "expected_target_effect_head_revision",
+              "target_delivery_attempt_ref",
+              "originating_command_ref",
+              "originating_command_digest",
+              "target_capsule_manifest_ref",
+              "target_portable_capsule_digest",
+              "coding_global_stop_ref",
+              "coding_global_stop_version",
+              "source_directive_ref",
+              "source_directive_digest",
+              "source_evidence_ref",
+              "source_evidence_digest",
+              "preassigned_semantic_attempt_ref",
+              "preassigned_candidate_ref",
+              "preassigned_effect_intent_ref",
+              "preassigned_effect_fence_ref",
+              "preassigned_delivery_attempt_ref",
+              "resulting_accepted_intent_revision_ref",
+              "resulting_work_item_ref",
+              "resulting_work_item_revision_ref",
+              "reason_code",
+              "decided_at",
+              "decision_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "decision_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "decision_ref"
+            ],
+            "parameter_tuple": "(program_ref, decision_ref)",
+            "query_id": "initialize_decision",
+            "query_sql": "SELECT schema_id, mutation_ref, decision_ref, program_ref, decision_kind, decision_variant, basis_decision_ref, basis_program_version_ref, basis_program_version_number, expected_program_head_revision, resulting_program_version_ref, resulting_program_version_number, selected_semantic_attempt_ref, selected_candidate_ref, selected_attempt_fence_ref, selected_attempt_fence_digest, target_effect_intent_ref, target_effect_class, target_effect_fence_ref, target_effect_fence_digest, expected_target_effect_head_revision, target_delivery_attempt_ref, originating_command_ref, originating_command_digest, target_capsule_manifest_ref, target_portable_capsule_digest, coding_global_stop_ref, coding_global_stop_version, source_directive_ref, source_directive_digest, source_evidence_ref, source_evidence_digest, preassigned_semantic_attempt_ref, preassigned_candidate_ref, preassigned_effect_intent_ref, preassigned_effect_fence_ref, preassigned_delivery_attempt_ref, resulting_accepted_intent_revision_ref, resulting_work_item_ref, resulting_work_item_revision_ref, reason_code, decided_at, decision_digest FROM development_decisions WHERE program_ref = ? AND decision_ref = ? LIMIT 2",
+            "table": "development_decisions"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "program_version_ref",
+              "program_ref",
+              "program_version_number",
+              "program_version_kind",
+              "creating_decision_ref",
+              "accepted_intent_revision_ref",
+              "created_at",
+              "program_version_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "initialize_decision.resulting_program_version_ref",
+              "initialize_decision.resulting_program_version_number"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "initialize_decision.resulting_program_version_ref",
+              "initialize_decision.resulting_program_version_number"
+            ],
+            "parameter_tuple": "(program_ref, initialize_decision.resulting_program_version_ref, initialize_decision.resulting_program_version_number)",
+            "query_id": "resulting_program_version",
+            "query_sql": "SELECT schema_id, program_version_ref, program_ref, program_version_number, program_version_kind, creating_decision_ref, accepted_intent_revision_ref, created_at, program_version_digest FROM development_program_versions WHERE program_ref = ? AND program_version_ref = ? AND program_version_number = ? LIMIT 2",
+            "table": "development_program_versions"
+          }
+        ],
+        "signature": "(capability, program_ref, decision_ref) -> DevelopmentInitializeDecisionAndResultingVersionRead | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "decision_ref"
+        ],
+        "slice3_cross_row_validation": [
+          "decision_kind == initialize",
+          "decision_variant == program_genesis",
+          "basis version fields are null",
+          "resulting version fields are present",
+          "program version kind == initial",
+          "program version number == 1",
+          "program version creating_decision_ref == decision_ref",
+          "program identity is exact"
+        ]
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "not_applicable",
+          "root_query": "accepted_intent_revision"
+        },
+        "aggregate_fields": [],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "singleton",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentAcceptedIntentRevisionRowValue",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B6"
+        ],
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "accepted_intent_revision_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_accepted_intent_revision_by_exact_ref",
+        "query_order": [
+          "accepted_intent_revision"
+        ],
+        "result_type": "DevelopmentAcceptedIntentRevisionRowValue | None",
+        "role": "accepted_intent_revision_by_exact_ref",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "accepted_intent_revision_ref",
+              "program_ref",
+              "accepted_intent_revision_number",
+              "prior_accepted_intent_revision_ref",
+              "source_intent_ref",
+              "source_intent_digest",
+              "safe_projection_digest",
+              "created_at",
+              "accepted_intent_revision_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "accepted_intent_revision_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "accepted_intent_revision_ref"
+            ],
+            "parameter_tuple": "(program_ref, accepted_intent_revision_ref)",
+            "query_id": "accepted_intent_revision",
+            "query_sql": "SELECT schema_id, accepted_intent_revision_ref, program_ref, accepted_intent_revision_number, prior_accepted_intent_revision_ref, source_intent_ref, source_intent_digest, safe_projection_digest, created_at, accepted_intent_revision_digest FROM development_accepted_intent_revisions WHERE program_ref = ? AND accepted_intent_revision_ref = ? LIMIT 2",
+            "table": "development_accepted_intent_revisions"
+          }
+        ],
+        "signature": "(capability, program_ref, accepted_intent_revision_ref) -> DevelopmentAcceptedIntentRevisionRowValue | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "accepted_intent_revision_ref"
+        ],
+        "slice3_cross_row_validation": []
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "missing, duplicate, malformed, or mismatched exact requested revision is database_integrity_failure",
+          "root_query": "work_item_head"
+        },
+        "aggregate_fields": [
+          "work_item_head",
+          "work_item_revision",
+          "is_current"
+        ],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "root_plus_one_required_child",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentWorkItemHeadAndRevisionRead",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5",
+          "C2B6"
+        ],
+        "historical_revision_allowed": true,
+        "is_current_rule": "true iff both head.current_work_item_revision_ref == revision.work_item_revision_ref and head.current_work_item_revision_number == revision.work_item_revision_number",
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "work_item_ref",
+          "work_item_revision_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "partial_current_match_result": "database_integrity_failure",
+        "private_function": "_read_development_work_item_head_and_revision_by_exact_ref",
+        "query_order": [
+          "work_item_head",
+          "work_item_revision"
+        ],
+        "result_type": "DevelopmentWorkItemHeadAndRevisionRead | None",
+        "role": "work_item_head_and_revision_by_exact_ref",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "work_item_ref",
+              "program_ref",
+              "current_work_item_revision_ref",
+              "current_work_item_revision_number",
+              "head_revision",
+              "work_state",
+              "updated_at",
+              "head_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "work_item_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "work_item_ref"
+            ],
+            "parameter_tuple": "(program_ref, work_item_ref)",
+            "query_id": "work_item_head",
+            "query_sql": "SELECT schema_id, work_item_ref, program_ref, current_work_item_revision_ref, current_work_item_revision_number, head_revision, work_state, updated_at, head_digest FROM development_work_item_heads WHERE program_ref = ? AND work_item_ref = ? LIMIT 2",
+            "table": "development_work_item_heads"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "work_item_revision_ref",
+              "program_ref",
+              "work_item_ref",
+              "work_item_revision_number",
+              "work_item_revision_kind",
+              "prior_work_item_revision_ref",
+              "accepted_intent_revision_ref",
+              "created_at",
+              "work_item_revision_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "work_item_ref",
+              "work_item_revision_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "work_item_ref",
+              "work_item_revision_ref"
+            ],
+            "parameter_tuple": "(program_ref, work_item_ref, work_item_revision_ref)",
+            "query_id": "work_item_revision",
+            "query_sql": "SELECT schema_id, work_item_revision_ref, program_ref, work_item_ref, work_item_revision_number, work_item_revision_kind, prior_work_item_revision_ref, accepted_intent_revision_ref, created_at, work_item_revision_digest FROM development_work_item_revisions WHERE program_ref = ? AND work_item_ref = ? AND work_item_revision_ref = ? LIMIT 2",
+            "table": "development_work_item_revisions"
+          }
+        ],
+        "signature": "(capability, program_ref, work_item_ref, work_item_revision_ref) -> DevelopmentWorkItemHeadAndRevisionRead | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "work_item_ref",
+          "work_item_revision_ref"
+        ],
+        "slice3_cross_row_validation": [
+          "program and work-item identity are exact",
+          "a valid historical requested revision is permitted",
+          "is_current is true only when current ref and current number both equal the requested revision ref and number",
+          "exactly one current ref/number match is database_integrity_failure"
+        ],
+        "work_state_revision_kind_relation": "not frozen by this reader contract"
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "zero membership or any missing, duplicate, malformed, mismatched, gapped, overlapping, or duplicate membership/revision child is database_integrity_failure",
+          "root_query": "program_version_root"
+        },
+        "aggregate_fields": [
+          "program_version",
+          "entries"
+        ],
+        "all_pages_same_capability_object_and_epoch": true,
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "one parent singleton plus internally completed paged membership and one required revision singleton per member",
+        "complete_mutation_family_replay_verification": false,
+        "continuation_exposed": false,
+        "continuation_pair": [
+          "last_returned_membership_ordinal",
+          "last_returned_work_item_ref"
+        ],
+        "decoded_private_value": "DevelopmentProgramVersionMembershipRead",
+        "duplicate_result": "database_integrity_failure",
+        "duplicate_work_item_ref_detection_order": "when the second occurrence of a work_item_ref is observed, fail before issuing a child-revision query for that duplicate occurrence",
+        "duplicate_work_item_ref_result": "database_integrity_failure",
+        "duplicate_work_item_ref_scope": [
+          "within one membership page",
+          "across two or more membership pages",
+          "across the 256/257 boundary",
+          "regardless of differing membership_ordinal",
+          "regardless of differing work_item_revision_ref"
+        ],
+        "empty_membership_permitted_program_version_kinds": [],
+        "fetch_bound": 257,
+        "future_caller": [
+          "C2B3",
+          "C2B6"
+        ],
+        "has_more_rule": "the 257th physical row is has_more evidence only and is re-read as the next page first row",
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "program_version_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "maximum_members_failure": "mutation_failed before the bound is exceeded",
+        "maximum_members_rule": "exact built-in positive int; bool and subclasses rejected before capability borrow",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [
+          "maximum_members"
+        ],
+        "ordering": [
+          "membership_ordinal ASC",
+          "work_item_ref ASC"
+        ],
+        "private_function": "_read_development_paged_program_version_membership",
+        "query_order": [
+          "program_version_root",
+          "membership_first_page",
+          "membership_continuation_page zero or more times",
+          "membership_work_item_revision once per returned membership in membership order"
+        ],
+        "result_type": "DevelopmentProgramVersionMembershipRead | None",
+        "return_bound_per_page": 256,
+        "returned_value_is_one_completed_aggregate": true,
+        "role": "paged_program_version_membership",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "program_version_ref",
+              "program_ref",
+              "program_version_number",
+              "program_version_kind",
+              "creating_decision_ref",
+              "accepted_intent_revision_ref",
+              "created_at",
+              "program_version_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "program_version_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "program_version_ref"
+            ],
+            "parameter_tuple": "(program_ref, program_version_ref)",
+            "query_id": "program_version_root",
+            "query_sql": "SELECT schema_id, program_version_ref, program_ref, program_version_number, program_version_kind, creating_decision_ref, accepted_intent_revision_ref, created_at, program_version_digest FROM development_program_versions WHERE program_ref = ? AND program_version_ref = ? LIMIT 2",
+            "table": "development_program_versions"
+          },
+          {
+            "cardinality_rule": "zero through 257 physical rows; the 257th row is has_more evidence only",
+            "condition": "always",
+            "fetch": "fetchmany(257)",
+            "fields": [
+              "schema_id",
+              "program_ref",
+              "program_version_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "membership_ordinal",
+              "created_at",
+              "membership_digest"
+            ],
+            "limit": 257,
+            "lookup_key": [
+              "program_ref",
+              "program_version_ref"
+            ],
+            "ordering": [
+              "membership_ordinal ASC",
+              "work_item_ref ASC"
+            ],
+            "parameter_order": [
+              "program_ref",
+              "program_version_ref"
+            ],
+            "parameter_tuple": "(program_ref, program_version_ref)",
+            "query_id": "membership_first_page",
+            "query_sql": "SELECT schema_id, program_ref, program_version_ref, work_item_ref, work_item_revision_ref, membership_ordinal, created_at, membership_digest FROM development_program_version_work_items WHERE program_ref = ? AND program_version_ref = ? ORDER BY membership_ordinal ASC, work_item_ref ASC LIMIT 257",
+            "table": "development_program_version_work_items"
+          },
+          {
+            "cardinality_rule": "zero through 257 physical rows; the 257th row is has_more evidence only",
+            "condition": "zero or more pages while the preceding page has_more",
+            "fetch": "fetchmany(257)",
+            "fields": [
+              "schema_id",
+              "program_ref",
+              "program_version_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "membership_ordinal",
+              "created_at",
+              "membership_digest"
+            ],
+            "limit": 257,
+            "lookup_key": [
+              "program_ref",
+              "program_version_ref",
+              "after_membership_ordinal",
+              "after_membership_ordinal",
+              "after_work_item_ref"
+            ],
+            "ordering": [
+              "membership_ordinal ASC",
+              "work_item_ref ASC"
+            ],
+            "parameter_order": [
+              "program_ref",
+              "program_version_ref",
+              "after_membership_ordinal",
+              "after_membership_ordinal",
+              "after_work_item_ref"
+            ],
+            "parameter_tuple": "(program_ref, program_version_ref, after_membership_ordinal, after_membership_ordinal, after_work_item_ref)",
+            "query_id": "membership_continuation_page",
+            "query_sql": "SELECT schema_id, program_ref, program_version_ref, work_item_ref, work_item_revision_ref, membership_ordinal, created_at, membership_digest FROM development_program_version_work_items WHERE program_ref = ? AND program_version_ref = ? AND (membership_ordinal > ? OR (membership_ordinal = ? AND work_item_ref > ?)) ORDER BY membership_ordinal ASC, work_item_ref ASC LIMIT 257",
+            "table": "development_program_version_work_items"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "once for each returned membership in membership order",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "work_item_revision_ref",
+              "program_ref",
+              "work_item_ref",
+              "work_item_revision_number",
+              "work_item_revision_kind",
+              "prior_work_item_revision_ref",
+              "accepted_intent_revision_ref",
+              "created_at",
+              "work_item_revision_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "membership.work_item_ref",
+              "membership.work_item_revision_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "membership.work_item_ref",
+              "membership.work_item_revision_ref"
+            ],
+            "parameter_tuple": "(program_ref, membership.work_item_ref, membership.work_item_revision_ref)",
+            "query_id": "membership_work_item_revision",
+            "query_sql": "SELECT schema_id, work_item_revision_ref, program_ref, work_item_ref, work_item_revision_number, work_item_revision_kind, prior_work_item_revision_ref, accepted_intent_revision_ref, created_at, work_item_revision_digest FROM development_work_item_revisions WHERE program_ref = ? AND work_item_ref = ? AND work_item_revision_ref = ? LIMIT 2",
+            "table": "development_work_item_revisions"
+          }
+        ],
+        "signature": "(capability, program_ref, program_version_ref, maximum_members) -> DevelopmentProgramVersionMembershipRead | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "program_version_ref",
+          "maximum_members"
+        ],
+        "slice3_cross_row_validation": [
+          "strict (membership_ordinal ASC, work_item_ref ASC) order",
+          "no page overlap",
+          "no duplicate (membership_ordinal, work_item_ref) pair",
+          "each work_item_ref appears at most once in the completed aggregate",
+          "dense membership ordinals exactly 0..n-1",
+          "every membership binds its exact work-item revision",
+          "completed traversal before return"
+        ],
+        "unique_work_item_ref_rule": "Each work_item_ref appears at most once in the completed DevelopmentProgramVersionMembershipRead aggregate."
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "not_applicable",
+          "root_query": "work_spec_safe_binding"
+        },
+        "aggregate_fields": [],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "singleton",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentWorkSpecBindingRowValue",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5",
+          "C2B6"
+        ],
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "program_version_ref",
+          "work_item_ref",
+          "work_item_revision_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_work_spec_safe_binding",
+        "query_order": [
+          "work_spec_safe_binding"
+        ],
+        "result_type": "DevelopmentWorkSpecBindingRowValue | None",
+        "role": "work_spec_safe_binding",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "work_spec_ref",
+              "program_ref",
+              "program_version_ref",
+              "accepted_intent_revision_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "repository_ref",
+              "base_git_object_format",
+              "base_git_oid",
+              "authorized_paths_json",
+              "validation_requirement_ref",
+              "review_requirement_ref",
+              "privacy_classification",
+              "work_spec_digest",
+              "safe_projection_digest",
+              "recorded_at",
+              "work_spec_binding_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "program_version_ref",
+              "work_item_ref",
+              "work_item_revision_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "program_version_ref",
+              "work_item_ref",
+              "work_item_revision_ref"
+            ],
+            "parameter_tuple": "(program_ref, program_version_ref, work_item_ref, work_item_revision_ref)",
+            "query_id": "work_spec_safe_binding",
+            "query_sql": "SELECT schema_id, work_spec_ref, program_ref, program_version_ref, accepted_intent_revision_ref, work_item_ref, work_item_revision_ref, repository_ref, base_git_object_format, base_git_oid, authorized_paths_json, validation_requirement_ref, review_requirement_ref, privacy_classification, work_spec_digest, safe_projection_digest, recorded_at, work_spec_binding_digest FROM development_work_spec_bindings WHERE program_ref = ? AND program_version_ref = ? AND work_item_ref = ? AND work_item_revision_ref = ? LIMIT 2",
+            "table": "development_work_spec_bindings"
+          }
+        ],
+        "signature": "(capability, program_ref, program_version_ref, work_item_ref, work_item_revision_ref) -> DevelopmentWorkSpecBindingRowValue | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "program_version_ref",
+          "work_item_ref",
+          "work_item_revision_ref"
+        ],
+        "slice3_cross_row_validation": []
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "any absent, duplicate, malformed, or relationally mismatched required child is database_integrity_failure",
+          "root_query": "effect_intent_root"
+        },
+        "aggregate_fields": [
+          "semantic_attempt",
+          "effect_intent",
+          "author_command",
+          "attempt_fence",
+          "current_effect_fence",
+          "author_effect_fence"
+        ],
+        "authority_evaluation_query": false,
+        "authority_evaluation_returned": false,
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "effect-intent root plus four required singleton children and one conditional singleton child",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_refs_and_digests_rule": "The aggregate's decoded refs and digests are evidence only.",
+        "decoded_private_value": "DevelopmentAttemptFenceCommandEffectRead",
+        "duplicate_result": "database_integrity_failure",
+        "explicit_no_proof": {
+          "capsule_identity": "not proved",
+          "capsule_custody": "not proved",
+          "semantic_acceptance": "not proved",
+          "execution_permission": "not proved"
+        },
+        "future_caller": [
+          "C2B3",
+          "C2B5",
+          "C2B6"
+        ],
+        "granting_effect": "No field, digest, row, or successful query grants authorization, route eligibility, execution permission, semantic acceptance, capsule retrieval authority, or capsule custody.",
+        "implicit_authority_locator_permitted": false,
+        "later_tranche_exclusions": [
+          "authority evaluation query or inference",
+          "capsule retrieval",
+          "cancellation-target row coherence",
+          "authority verification",
+          "graph completeness",
+          "exact replay",
+          "recovery"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "semantic_attempt_ref",
+          "effect_intent_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_attempt_fence_command_effect_aggregate",
+        "query_order": [
+          "effect_intent_root",
+          "semantic_attempt",
+          "author_command",
+          "attempt_fence",
+          "current_effect_fence",
+          "author_effect_fence only when distinct, otherwise reuse current_effect_fence"
+        ],
+        "result_type": "DevelopmentAttemptFenceCommandEffectRead | None",
+        "role": "attempt_fence_command_effect_aggregate",
+        "root_disposition": "effect_intent",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "effect_intent_ref",
+              "program_ref",
+              "program_version_ref",
+              "semantic_attempt_ref",
+              "effect_class",
+              "candidate_ref",
+              "command_ref",
+              "basis_decision_ref",
+              "cancellation_target_effect_intent_ref",
+              "expected_target_effect_head_revision",
+              "portable_capsule_digest",
+              "created_at",
+              "effect_intent_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "parameter_tuple": "(program_ref, effect_intent_ref)",
+            "query_id": "effect_intent_root",
+            "query_sql": "SELECT schema_id, effect_intent_ref, program_ref, program_version_ref, semantic_attempt_ref, effect_class, candidate_ref, command_ref, basis_decision_ref, cancellation_target_effect_intent_ref, expected_target_effect_head_revision, portable_capsule_digest, created_at, effect_intent_digest FROM development_effect_intents WHERE program_ref = ? AND effect_intent_ref = ? LIMIT 2",
+            "table": "development_effect_intents"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "semantic_attempt_ref",
+              "program_ref",
+              "program_version_ref",
+              "accepted_intent_revision_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "attempt_number",
+              "candidate_ref",
+              "attempt_phase",
+              "selection_decision_ref",
+              "created_at",
+              "semantic_attempt_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "semantic_attempt_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "semantic_attempt_ref"
+            ],
+            "parameter_tuple": "(program_ref, semantic_attempt_ref)",
+            "query_id": "semantic_attempt",
+            "query_sql": "SELECT schema_id, semantic_attempt_ref, program_ref, program_version_ref, accepted_intent_revision_ref, work_item_ref, work_item_revision_ref, attempt_number, candidate_ref, attempt_phase, selection_decision_ref, created_at, semantic_attempt_digest FROM development_semantic_attempts WHERE program_ref = ? AND semantic_attempt_ref = ? LIMIT 2",
+            "table": "development_semantic_attempts"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "command_ref",
+              "program_ref",
+              "program_version_ref",
+              "accepted_intent_revision_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "semantic_attempt_ref",
+              "effect_intent_ref",
+              "effect_class",
+              "candidate_ref",
+              "repository_ref",
+              "base_git_object_format",
+              "base_git_oid",
+              "path_ceiling_json",
+              "work_spec_ref",
+              "work_spec_digest",
+              "standing_grant_ref",
+              "standing_grant_digest",
+              "attempt_authorization_ref",
+              "attempt_authorization_digest",
+              "effect_authorization_ref",
+              "effect_authorization_digest",
+              "attempt_fence_ref",
+              "attempt_fence_digest",
+              "effect_fence_ref",
+              "effect_fence_digest",
+              "global_stop_ref",
+              "global_stop_version",
+              "validation_requirement_ref",
+              "validation_requirement_digest",
+              "review_requirement_ref",
+              "review_requirement_digest",
+              "capsule_schema_id",
+              "capsule_profile_ref",
+              "effect_max_active_invocations",
+              "effect_max_candidate_bytes",
+              "effect_max_changed_files",
+              "effect_max_cost_microusd",
+              "effect_max_cpu_seconds",
+              "effect_max_deliveries",
+              "effect_max_deployments",
+              "effect_max_local_commits",
+              "effect_max_memory_bytes",
+              "effect_max_merges",
+              "effect_max_model_input_tokens",
+              "effect_max_model_output_tokens",
+              "effect_max_pull_requests",
+              "effect_max_pushes",
+              "effect_max_wall_seconds",
+              "privacy_classification",
+              "redaction_profile_ref",
+              "command_digest",
+              "recorded_at"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "effect_intent.command_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "effect_intent.command_ref"
+            ],
+            "parameter_tuple": "(program_ref, effect_intent.command_ref)",
+            "query_id": "author_command",
+            "query_sql": "SELECT schema_id, command_ref, program_ref, program_version_ref, accepted_intent_revision_ref, work_item_ref, work_item_revision_ref, semantic_attempt_ref, effect_intent_ref, effect_class, candidate_ref, repository_ref, base_git_object_format, base_git_oid, path_ceiling_json, work_spec_ref, work_spec_digest, standing_grant_ref, standing_grant_digest, attempt_authorization_ref, attempt_authorization_digest, effect_authorization_ref, effect_authorization_digest, attempt_fence_ref, attempt_fence_digest, effect_fence_ref, effect_fence_digest, global_stop_ref, global_stop_version, validation_requirement_ref, validation_requirement_digest, review_requirement_ref, review_requirement_digest, capsule_schema_id, capsule_profile_ref, effect_max_active_invocations, effect_max_candidate_bytes, effect_max_changed_files, effect_max_cost_microusd, effect_max_cpu_seconds, effect_max_deliveries, effect_max_deployments, effect_max_local_commits, effect_max_memory_bytes, effect_max_merges, effect_max_model_input_tokens, effect_max_model_output_tokens, effect_max_pull_requests, effect_max_pushes, effect_max_wall_seconds, privacy_classification, redaction_profile_ref, command_digest, recorded_at FROM development_author_commands WHERE program_ref = ? AND command_ref = ? LIMIT 2",
+            "table": "development_author_commands"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "attempt_fence_ref",
+              "parent_standing_grant_ref",
+              "parent_standing_grant_digest",
+              "attempt_authorization_ref",
+              "attempt_authorization_digest",
+              "program_ref",
+              "program_version_ref",
+              "accepted_intent_revision_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "semantic_attempt_ref",
+              "repository_ref",
+              "base_git_object_format",
+              "base_git_oid",
+              "path_ceiling_json",
+              "allowed_effect_class_mask",
+              "aggregate_max_active_invocations",
+              "aggregate_max_candidate_bytes",
+              "aggregate_max_changed_files",
+              "aggregate_max_cost_microusd",
+              "aggregate_max_cpu_seconds",
+              "aggregate_max_deliveries",
+              "aggregate_max_deployments",
+              "aggregate_max_local_commits",
+              "aggregate_max_memory_bytes",
+              "aggregate_max_merges",
+              "aggregate_max_model_input_tokens",
+              "aggregate_max_model_output_tokens",
+              "aggregate_max_pull_requests",
+              "aggregate_max_pushes",
+              "aggregate_max_wall_seconds",
+              "expires_at",
+              "global_stop_ref",
+              "global_stop_version",
+              "attempt_fence_digest",
+              "recorded_at"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "author_command.attempt_fence_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "author_command.attempt_fence_ref"
+            ],
+            "parameter_tuple": "(program_ref, author_command.attempt_fence_ref)",
+            "query_id": "attempt_fence",
+            "query_sql": "SELECT schema_id, attempt_fence_ref, parent_standing_grant_ref, parent_standing_grant_digest, attempt_authorization_ref, attempt_authorization_digest, program_ref, program_version_ref, accepted_intent_revision_ref, work_item_ref, work_item_revision_ref, semantic_attempt_ref, repository_ref, base_git_object_format, base_git_oid, path_ceiling_json, allowed_effect_class_mask, aggregate_max_active_invocations, aggregate_max_candidate_bytes, aggregate_max_changed_files, aggregate_max_cost_microusd, aggregate_max_cpu_seconds, aggregate_max_deliveries, aggregate_max_deployments, aggregate_max_local_commits, aggregate_max_memory_bytes, aggregate_max_merges, aggregate_max_model_input_tokens, aggregate_max_model_output_tokens, aggregate_max_pull_requests, aggregate_max_pushes, aggregate_max_wall_seconds, expires_at, global_stop_ref, global_stop_version, attempt_fence_digest, recorded_at FROM development_attempt_fences WHERE program_ref = ? AND attempt_fence_ref = ? LIMIT 2",
+            "table": "development_attempt_fences"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "effect_fence_ref",
+              "parent_standing_grant_ref",
+              "parent_standing_grant_digest",
+              "effect_authorization_ref",
+              "effect_authorization_digest",
+              "attempt_fence_ref",
+              "attempt_fence_digest",
+              "program_ref",
+              "program_version_ref",
+              "accepted_intent_revision_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "semantic_attempt_ref",
+              "effect_intent_ref",
+              "effect_class",
+              "command_ref",
+              "command_digest",
+              "candidate_ref",
+              "repository_ref",
+              "base_git_object_format",
+              "base_git_oid",
+              "path_ceiling_json",
+              "effect_max_active_invocations",
+              "effect_max_candidate_bytes",
+              "effect_max_changed_files",
+              "effect_max_cost_microusd",
+              "effect_max_cpu_seconds",
+              "effect_max_deliveries",
+              "effect_max_deployments",
+              "effect_max_local_commits",
+              "effect_max_memory_bytes",
+              "effect_max_merges",
+              "effect_max_model_input_tokens",
+              "effect_max_model_output_tokens",
+              "effect_max_pull_requests",
+              "effect_max_pushes",
+              "effect_max_wall_seconds",
+              "expires_at",
+              "global_stop_ref",
+              "global_stop_version",
+              "portable_capsule_digest",
+              "cancellation_target_effect_intent_ref",
+              "cancellation_target_effect_fence_ref",
+              "cancellation_target_effect_fence_digest",
+              "effect_fence_digest",
+              "recorded_at"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "parameter_tuple": "(program_ref, effect_intent_ref)",
+            "query_id": "current_effect_fence",
+            "query_sql": "SELECT schema_id, effect_fence_ref, parent_standing_grant_ref, parent_standing_grant_digest, effect_authorization_ref, effect_authorization_digest, attempt_fence_ref, attempt_fence_digest, program_ref, program_version_ref, accepted_intent_revision_ref, work_item_ref, work_item_revision_ref, semantic_attempt_ref, effect_intent_ref, effect_class, command_ref, command_digest, candidate_ref, repository_ref, base_git_object_format, base_git_oid, path_ceiling_json, effect_max_active_invocations, effect_max_candidate_bytes, effect_max_changed_files, effect_max_cost_microusd, effect_max_cpu_seconds, effect_max_deliveries, effect_max_deployments, effect_max_local_commits, effect_max_memory_bytes, effect_max_merges, effect_max_model_input_tokens, effect_max_model_output_tokens, effect_max_pull_requests, effect_max_pushes, effect_max_wall_seconds, expires_at, global_stop_ref, global_stop_version, portable_capsule_digest, cancellation_target_effect_intent_ref, cancellation_target_effect_fence_ref, cancellation_target_effect_fence_digest, effect_fence_digest, recorded_at FROM development_effect_fences WHERE program_ref = ? AND effect_intent_ref = ? LIMIT 2",
+            "table": "development_effect_fences"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "only when author_command.effect_fence_ref differs from current_effect_fence.effect_fence_ref; otherwise reuse current_effect_fence by identity",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "effect_fence_ref",
+              "parent_standing_grant_ref",
+              "parent_standing_grant_digest",
+              "effect_authorization_ref",
+              "effect_authorization_digest",
+              "attempt_fence_ref",
+              "attempt_fence_digest",
+              "program_ref",
+              "program_version_ref",
+              "accepted_intent_revision_ref",
+              "work_item_ref",
+              "work_item_revision_ref",
+              "semantic_attempt_ref",
+              "effect_intent_ref",
+              "effect_class",
+              "command_ref",
+              "command_digest",
+              "candidate_ref",
+              "repository_ref",
+              "base_git_object_format",
+              "base_git_oid",
+              "path_ceiling_json",
+              "effect_max_active_invocations",
+              "effect_max_candidate_bytes",
+              "effect_max_changed_files",
+              "effect_max_cost_microusd",
+              "effect_max_cpu_seconds",
+              "effect_max_deliveries",
+              "effect_max_deployments",
+              "effect_max_local_commits",
+              "effect_max_memory_bytes",
+              "effect_max_merges",
+              "effect_max_model_input_tokens",
+              "effect_max_model_output_tokens",
+              "effect_max_pull_requests",
+              "effect_max_pushes",
+              "effect_max_wall_seconds",
+              "expires_at",
+              "global_stop_ref",
+              "global_stop_version",
+              "portable_capsule_digest",
+              "cancellation_target_effect_intent_ref",
+              "cancellation_target_effect_fence_ref",
+              "cancellation_target_effect_fence_digest",
+              "effect_fence_digest",
+              "recorded_at"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "author_command.effect_fence_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "author_command.effect_fence_ref"
+            ],
+            "parameter_tuple": "(program_ref, author_command.effect_fence_ref)",
+            "query_id": "author_effect_fence",
+            "query_sql": "SELECT schema_id, effect_fence_ref, parent_standing_grant_ref, parent_standing_grant_digest, effect_authorization_ref, effect_authorization_digest, attempt_fence_ref, attempt_fence_digest, program_ref, program_version_ref, accepted_intent_revision_ref, work_item_ref, work_item_revision_ref, semantic_attempt_ref, effect_intent_ref, effect_class, command_ref, command_digest, candidate_ref, repository_ref, base_git_object_format, base_git_oid, path_ceiling_json, effect_max_active_invocations, effect_max_candidate_bytes, effect_max_changed_files, effect_max_cost_microusd, effect_max_cpu_seconds, effect_max_deliveries, effect_max_deployments, effect_max_local_commits, effect_max_memory_bytes, effect_max_merges, effect_max_model_input_tokens, effect_max_model_output_tokens, effect_max_pull_requests, effect_max_pushes, effect_max_wall_seconds, expires_at, global_stop_ref, global_stop_version, portable_capsule_digest, cancellation_target_effect_intent_ref, cancellation_target_effect_fence_ref, cancellation_target_effect_fence_digest, effect_fence_digest, recorded_at FROM development_effect_fences WHERE program_ref = ? AND effect_fence_ref = ? LIMIT 2",
+            "table": "development_effect_fences"
+          }
+        ],
+        "signature": "(capability, program_ref, semantic_attempt_ref, effect_intent_ref) -> DevelopmentAttemptFenceCommandEffectRead | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "semantic_attempt_ref",
+          "effect_intent_ref"
+        ],
+        "slice3_cross_row_validation": [
+          "program identity",
+          "program version",
+          "accepted-intent revision",
+          "work item and revision",
+          "semantic attempt",
+          "candidate",
+          "repository and base OID",
+          "global-stop ref and version",
+          "intent-to-command ref",
+          "attempt-fence ref and digest",
+          "current-fence effect-intent ref",
+          "current-fence command ref and digest",
+          "author-fence ref and digest from the command",
+          "effect ceilings are no wider than attempt ceilings",
+          "author-candidate current and author fences are the same exact row",
+          "bound-effect current and author fences may differ but both cohere with the originating author command"
+        ]
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "not_applicable",
+          "root_query": "authority_evaluation"
+        },
+        "aggregate_fields": [],
+        "authority_boundary": {
+          "evidence_only": "The decoded authority-evaluation row is evidence only.",
+          "executable_permission": "The row confers no executable permission.",
+          "verified_state": "A verified state does not itself authorize a worker, adapter, route, mutation, retry, replay, or external effect.",
+          "reader_authority": "The reader does not issue, renew, reinterpret, or consume executable authority."
+        },
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "singleton",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentAuthorityEvaluationRowValue",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5"
+        ],
+        "later_tranche_exclusions": [
+          "family graph location",
+          "family completeness",
+          "exact replay",
+          "commit-outcome recovery",
+          "mutation"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "authority_evaluation_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_authority_evaluation_by_exact_ref",
+        "query_order": [
+          "authority_evaluation"
+        ],
+        "result_type": "DevelopmentAuthorityEvaluationRowValue | None",
+        "role": "authority_evaluation_by_exact_ref",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "same_subject_multiple_rows_permitted": true,
+        "selection_rule": "exact program_ref and authority_evaluation_ref only",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "authority_evaluation_ref",
+              "program_ref",
+              "evaluation_scope",
+              "evaluation_subject_ref",
+              "semantic_attempt_ref",
+              "effect_intent_ref",
+              "authority_ref",
+              "authority_digest",
+              "authority_state",
+              "reason_code",
+              "expires_at",
+              "evaluated_at",
+              "authority_evaluation_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "authority_evaluation_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "authority_evaluation_ref"
+            ],
+            "parameter_tuple": "(program_ref, authority_evaluation_ref)",
+            "query_id": "authority_evaluation",
+            "query_sql": "SELECT schema_id, authority_evaluation_ref, program_ref, evaluation_scope, evaluation_subject_ref, semantic_attempt_ref, effect_intent_ref, authority_ref, authority_digest, authority_state, reason_code, expires_at, evaluated_at, authority_evaluation_digest FROM development_authority_evaluations WHERE program_ref = ? AND authority_evaluation_ref = ? LIMIT 2",
+            "table": "development_authority_evaluations"
+          }
+        ],
+        "signature": "(capability, program_ref, authority_evaluation_ref) -> DevelopmentAuthorityEvaluationRowValue | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "authority_evaluation_ref"
+        ],
+        "slice3_cross_row_validation": [],
+        "sole_authority_evaluation_reader": true
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "not_applicable",
+          "root_query": "effect_head"
+        },
+        "aggregate_fields": [],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "singleton",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentEffectHeadRowValue",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5"
+        ],
+        "later_tranche_exclusions": [
+          "current effect-fence fetch or coherence",
+          "cancellation-target graph",
+          "effect family completeness"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "effect_intent_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_effect_head",
+        "query_order": [
+          "effect_head"
+        ],
+        "result_type": "DevelopmentEffectHeadRowValue | None",
+        "role": "effect_head",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "effect_intent_ref",
+              "program_ref",
+              "current_effect_fence_ref",
+              "head_revision",
+              "effect_state",
+              "cancellation_effect_intent_ref",
+              "updated_at",
+              "head_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "parameter_tuple": "(program_ref, effect_intent_ref)",
+            "query_id": "effect_head",
+            "query_sql": "SELECT schema_id, effect_intent_ref, program_ref, current_effect_fence_ref, head_revision, effect_state, cancellation_effect_intent_ref, updated_at, head_digest FROM development_effect_heads WHERE program_ref = ? AND effect_intent_ref = ? LIMIT 2",
+            "table": "development_effect_heads"
+          }
+        ],
+        "signature": "(capability, program_ref, effect_intent_ref) -> DevelopmentEffectHeadRowValue | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "effect_intent_ref"
+        ],
+        "singleton_only": true,
+        "slice3_cross_row_validation": [
+          "row-local digest",
+          "row-local cancellation nullability"
+        ]
+      },
+      {
+        "absence_precedence": {
+          "absent_root": "return None and execute no child SQL",
+          "malformed_or_duplicate_root": "database_integrity_failure and execute no child SQL",
+          "parent_validation_before_child_sql": true,
+          "partial_aggregate_return": "forbidden",
+          "present_root_required_child": "missing, duplicate, malformed, or mismatched current delivery attempt is database_integrity_failure",
+          "root_query": "delivery_head"
+        },
+        "aggregate_fields": [
+          "delivery_head",
+          "current_delivery_attempt"
+        ],
+        "bounded_aggregate_verification": "permitted",
+        "cardinality": "root_plus_one_required_child",
+        "complete_mutation_family_replay_verification": false,
+        "decoded_private_value": "DevelopmentDeliveryHeadAndCurrentAttemptRead",
+        "duplicate_result": "database_integrity_failure",
+        "future_caller": [
+          "C2B3",
+          "C2B5"
+        ],
+        "later_tranche_exclusions": [
+          "delivery_number == head_revision + 1 inference",
+          "delivery-state to delivery-kind mapping",
+          "family graph completeness",
+          "exact replay",
+          "recovery"
+        ],
+        "lookup_identity": [
+          "program_ref",
+          "effect_intent_ref"
+        ],
+        "malformed_row_result": "database_integrity_failure",
+        "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
+        "operational_inputs": [],
+        "private_function": "_read_development_delivery_head",
+        "query_order": [
+          "delivery_head",
+          "current_delivery_attempt"
+        ],
+        "result_type": "DevelopmentDeliveryHeadAndCurrentAttemptRead | None",
+        "role": "delivery_head",
+        "row_digest_verification": "required_before_return",
+        "safe_error": "mutation_failed_or_database_integrity_failure",
+        "selects": [
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "effect_intent_ref",
+              "program_ref",
+              "current_delivery_attempt_ref",
+              "head_revision",
+              "delivery_state",
+              "updated_at",
+              "head_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "effect_intent_ref"
+            ],
+            "parameter_tuple": "(program_ref, effect_intent_ref)",
+            "query_id": "delivery_head",
+            "query_sql": "SELECT schema_id, effect_intent_ref, program_ref, current_delivery_attempt_ref, head_revision, delivery_state, updated_at, head_digest FROM development_delivery_heads WHERE program_ref = ? AND effect_intent_ref = ? LIMIT 2",
+            "table": "development_delivery_heads"
+          },
+          {
+            "cardinality_rule": "zero rows permitted only under the enclosing root/child rule; one row succeeds; two rows are database_integrity_failure",
+            "condition": "always",
+            "fetch": "fetchmany(2)",
+            "fields": [
+              "schema_id",
+              "delivery_attempt_ref",
+              "program_ref",
+              "program_version_ref",
+              "command_ref",
+              "command_digest",
+              "semantic_attempt_ref",
+              "effect_intent_ref",
+              "attempt_fence_ref",
+              "attempt_fence_digest",
+              "effect_fence_ref",
+              "effect_fence_digest",
+              "adapter_kind",
+              "adapter_safe_correlation_ref",
+              "delivery_envelope_digest",
+              "delivery_kind",
+              "delivery_number",
+              "predecessor_delivery_attempt_ref",
+              "basis_decision_ref",
+              "recorded_at",
+              "delivery_attempt_digest"
+            ],
+            "limit": 2,
+            "lookup_key": [
+              "program_ref",
+              "effect_intent_ref",
+              "delivery_head.current_delivery_attempt_ref"
+            ],
+            "ordering": null,
+            "parameter_order": [
+              "program_ref",
+              "effect_intent_ref",
+              "delivery_head.current_delivery_attempt_ref"
+            ],
+            "parameter_tuple": "(program_ref, effect_intent_ref, delivery_head.current_delivery_attempt_ref)",
+            "query_id": "current_delivery_attempt",
+            "query_sql": "SELECT schema_id, delivery_attempt_ref, program_ref, program_version_ref, command_ref, command_digest, semantic_attempt_ref, effect_intent_ref, attempt_fence_ref, attempt_fence_digest, effect_fence_ref, effect_fence_digest, adapter_kind, adapter_safe_correlation_ref, delivery_envelope_digest, delivery_kind, delivery_number, predecessor_delivery_attempt_ref, basis_decision_ref, recorded_at, delivery_attempt_digest FROM development_delivery_attempts WHERE program_ref = ? AND effect_intent_ref = ? AND delivery_attempt_ref = ? LIMIT 2",
+            "table": "development_delivery_attempts"
+          }
+        ],
+        "signature": "(capability, program_ref, effect_intent_ref) -> DevelopmentDeliveryHeadAndCurrentAttemptRead | None",
+        "signature_inputs": [
+          "capability",
+          "program_ref",
+          "effect_intent_ref"
+        ],
+        "slice3_cross_row_validation": [
+          "exact program identity",
+          "exact effect-intent identity",
+          "current delivery-attempt ref equality"
+        ]
+      }
+    ],
+    "validation_and_audit_plan": {
+      "eight_file_compatibility_group": {
+        "comparison_evidence": {
+          "passed": 315,
+          "skipped": 0,
+          "emitted_warnings": 0
+        },
+        "evidence_classification": "comparison evidence only; not a durable compatibility contract",
+        "paths": [
+          "tests/test_c2b2_development_program_row_values.py",
+          "tests/test_c2b2_development_effect_row_values.py",
+          "tests/test_c2b2_development_decision_row_values.py",
+          "tests/test_c2b2_development_row_value_boundaries.py",
+          "tests/test_b3b2b_select_readers.py",
+          "tests/test_b3c2_transition_event_readers.py",
+          "tests/test_b4a_global_stop_readers.py",
+          "tests/test_b3c1b_rollback_only_writer_fencing.py"
+        ],
+        "requirements": [
+          "all tests pass",
+          "zero skipped tests",
+          "report every warning actually emitted"
+        ],
+        "warning_policy": {
+          "unqualified_w_error": false,
+          "warning_filters": [],
+          "pytest_warning_configuration": []
         }
+      },
+      "focused_validation": [
+        "dedicated field-level oracle under -W error",
+        "C2B owner and field-level contract under -W error",
+        "future Slice-3 reader-contract tests under -W error",
+        "future Slice-3 reader-execution tests under -W error",
+        "current-status and authority regression under -W error",
+        "migration-0002 preservation",
+        "post-hygiene strict SQLite gate under -W error",
+        "eight-file Slice-2 and existing-reader compatibility group without an unqualified -W error",
+        "full tests collection",
+        "full Coordinator suite without an unqualified -W error"
+      ],
+      "fresh_independent_audit": [
+        "exact two-path provenance",
+        "semantic diff limited to reader contract and mapping fields",
+        "all twelve signatures and result types",
+        "all literal SQL and parameter/query order",
+        "bidirectional table-role mapping",
+        "role-9 authority removal and prohibited locator matrix",
+        "role-10 exact-ref authority",
+        "role-6 historical/current semantics",
+        "role-7 parent, completion, bound, empty, and pagination semantics",
+        "missing-root and child precedence",
+        "receipt graph non-completeness",
+        "capability and error ordering",
+        "exact future 23-path allowlist",
+        "oracle literal independence and counterfactual discrimination",
+        "full validation",
+        "continued reader nonimplementation"
+      ],
+      "full_suite_warning_policy": {
+        "unqualified_w_error": false,
+        "skipped": 0,
+        "resource_warning_count": 0,
+        "pytest_unraisable_exception_warning_count": 0,
+        "permitted_warning": "only the three previously classified Python 3.13 multithreaded-fork DeprecationWarnings, if they recur",
+        "new_warning": "none"
+      },
+      "strict_validation_groups": [
+        "dedicated field-level oracle",
+        "oracle plus C2B0 owner contract",
+        "future Slice-3 reader-contract tests",
+        "future Slice-3 reader-execution tests",
+        "changed architecture, status, and non-authority tests",
+        "completed five-file SQLite-hygiene gate"
       ]
     },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "two_singletons",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_initialize_decision_result_aggregate",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "decision_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "initialize_decision_and_resulting_version",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "mutation_ref",
-            "decision_ref",
-            "program_ref",
-            "decision_kind",
-            "decision_variant",
-            "basis_decision_ref",
-            "basis_program_version_ref",
-            "basis_program_version_number",
-            "expected_program_head_revision",
-            "resulting_program_version_ref",
-            "resulting_program_version_number",
-            "selected_semantic_attempt_ref",
-            "selected_candidate_ref",
-            "selected_attempt_fence_ref",
-            "selected_attempt_fence_digest",
-            "target_effect_intent_ref",
-            "target_effect_class",
-            "target_effect_fence_ref",
-            "target_effect_fence_digest",
-            "expected_target_effect_head_revision",
-            "target_delivery_attempt_ref",
-            "originating_command_ref",
-            "originating_command_digest",
-            "target_capsule_manifest_ref",
-            "target_portable_capsule_digest",
-            "coding_global_stop_ref",
-            "coding_global_stop_version",
-            "source_directive_ref",
-            "source_directive_digest",
-            "source_evidence_ref",
-            "source_evidence_digest",
-            "preassigned_semantic_attempt_ref",
-            "preassigned_candidate_ref",
-            "preassigned_effect_intent_ref",
-            "preassigned_effect_fence_ref",
-            "preassigned_delivery_attempt_ref",
-            "resulting_accepted_intent_revision_ref",
-            "resulting_work_item_ref",
-            "resulting_work_item_revision_ref",
-            "reason_code",
-            "decided_at",
-            "decision_digest"
-          ],
-          "table": "development_decisions"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "program_version_ref",
-            "program_ref",
-            "program_version_number",
-            "program_version_kind",
-            "creating_decision_ref",
-            "accepted_intent_revision_ref",
-            "created_at",
-            "program_version_digest"
-          ],
-          "table": "development_program_versions"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "singleton",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_verified_accepted_intent_revision",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B6"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "accepted_intent_revision_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "accepted_intent_revision_by_exact_ref",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fetch": "fetchmany(2)",
-          "fields": [
-            "schema_id",
-            "accepted_intent_revision_ref",
-            "program_ref",
-            "accepted_intent_revision_number",
-            "prior_accepted_intent_revision_ref",
-            "source_intent_ref",
-            "source_intent_digest",
-            "safe_projection_digest",
-            "created_at",
-            "accepted_intent_revision_digest"
-          ],
-          "limit": 2,
-          "lookup_key": [
-            "program_ref",
-            "accepted_intent_revision_ref"
-          ],
-          "ordering": null,
-          "parameter_order": [
-            "program_ref",
-            "accepted_intent_revision_ref"
-          ],
-          "query_sql": "SELECT schema_id, accepted_intent_revision_ref, program_ref, accepted_intent_revision_number, prior_accepted_intent_revision_ref, source_intent_ref, source_intent_digest, safe_projection_digest, created_at, accepted_intent_revision_digest FROM development_accepted_intent_revisions WHERE program_ref = ? AND accepted_intent_revision_ref = ? LIMIT 2",
-          "table": "development_accepted_intent_revisions"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "bounded_singleton_graph",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_verified_work_item_head_and_revision",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5",
-        "C2B6"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "work_item_ref",
-        "work_item_revision_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "work_item_head_and_revision_by_exact_ref",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "work_item_ref",
-            "program_ref",
-            "current_work_item_revision_ref",
-            "current_work_item_revision_number",
-            "head_revision",
-            "work_state",
-            "updated_at",
-            "head_digest"
-          ],
-          "table": "development_work_item_heads"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "work_item_revision_ref",
-            "program_ref",
-            "work_item_ref",
-            "work_item_revision_number",
-            "work_item_revision_kind",
-            "prior_work_item_revision_ref",
-            "accepted_intent_revision_ref",
-            "created_at",
-            "work_item_revision_digest"
-          ],
-          "table": "development_work_item_revisions"
-        }
-      ]
-    },
-    {
-      "absence_result": "database_integrity_failure for an initial version; [] only for a non-initial version whose controlling contract permits empty membership",
-      "all_pages_same_capability_epoch": true,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "paged_collection",
-      "complete_mutation_family_replay_verification": false,
-      "continuation_pair_rule": "after_membership_ordinal and after_work_item_ref are both null or both present",
-      "decoded_private_value": "private_ordered_program_work_membership",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 257,
-      "future_caller": [
-        "C2B3",
-        "C2B6"
-      ],
-      "has_more_rule": "The 257th row proves has_more only and is not returned.",
-      "limit": 257,
-      "lookup_identity": [
-        "program_ref",
-        "program_version_ref",
-        "after_membership_ordinal",
-        "after_work_item_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": [
-        "membership_ordinal ASC",
-        "work_item_ref ASC"
-      ],
-      "return_bound": 256,
-      "role": "paged_program_version_membership",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "program_ref",
-            "program_version_ref",
-            "work_item_ref",
-            "work_item_revision_ref",
-            "membership_ordinal",
-            "created_at",
-            "membership_digest"
-          ],
-          "table": "development_program_version_work_items"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "work_item_revision_ref",
-            "program_ref",
-            "work_item_ref",
-            "work_item_revision_number",
-            "work_item_revision_kind",
-            "prior_work_item_revision_ref",
-            "accepted_intent_revision_ref",
-            "created_at",
-            "work_item_revision_digest"
-          ],
-          "table": "development_work_item_revisions"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "singleton",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_safe_work_spec_projection_binding",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5",
-        "C2B6"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "program_version_ref",
-        "work_item_ref",
-        "work_item_revision_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "work_spec_safe_binding",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "work_spec_ref",
-            "program_ref",
-            "program_version_ref",
-            "accepted_intent_revision_ref",
-            "work_item_ref",
-            "work_item_revision_ref",
-            "repository_ref",
-            "base_git_object_format",
-            "base_git_oid",
-            "authorized_paths_json",
-            "validation_requirement_ref",
-            "review_requirement_ref",
-            "privacy_classification",
-            "work_spec_digest",
-            "safe_projection_digest",
-            "recorded_at",
-            "work_spec_binding_digest"
-          ],
-          "table": "development_work_spec_bindings"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "bounded_singleton_graph",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_verified_attempt_fence_command_effect_graph",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5",
-        "C2B6"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "semantic_attempt_ref",
-        "effect_intent_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "attempt_fence_command_effect_aggregate",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "semantic_attempt_ref",
-            "program_ref",
-            "program_version_ref",
-            "accepted_intent_revision_ref",
-            "work_item_ref",
-            "work_item_revision_ref",
-            "attempt_number",
-            "candidate_ref",
-            "attempt_phase",
-            "selection_decision_ref",
-            "created_at",
-            "semantic_attempt_digest"
-          ],
-          "table": "development_semantic_attempts"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "attempt_fence_ref",
-            "parent_standing_grant_ref",
-            "parent_standing_grant_digest",
-            "attempt_authorization_ref",
-            "attempt_authorization_digest",
-            "program_ref",
-            "program_version_ref",
-            "accepted_intent_revision_ref",
-            "work_item_ref",
-            "work_item_revision_ref",
-            "semantic_attempt_ref",
-            "repository_ref",
-            "base_git_object_format",
-            "base_git_oid",
-            "path_ceiling_json",
-            "allowed_effect_class_mask",
-            "aggregate_max_active_invocations",
-            "aggregate_max_candidate_bytes",
-            "aggregate_max_changed_files",
-            "aggregate_max_cost_microusd",
-            "aggregate_max_cpu_seconds",
-            "aggregate_max_deliveries",
-            "aggregate_max_deployments",
-            "aggregate_max_local_commits",
-            "aggregate_max_memory_bytes",
-            "aggregate_max_merges",
-            "aggregate_max_model_input_tokens",
-            "aggregate_max_model_output_tokens",
-            "aggregate_max_pull_requests",
-            "aggregate_max_pushes",
-            "aggregate_max_wall_seconds",
-            "expires_at",
-            "global_stop_ref",
-            "global_stop_version",
-            "attempt_fence_digest",
-            "recorded_at"
-          ],
-          "table": "development_attempt_fences"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "command_ref",
-            "program_ref",
-            "program_version_ref",
-            "accepted_intent_revision_ref",
-            "work_item_ref",
-            "work_item_revision_ref",
-            "semantic_attempt_ref",
-            "effect_intent_ref",
-            "effect_class",
-            "candidate_ref",
-            "repository_ref",
-            "base_git_object_format",
-            "base_git_oid",
-            "path_ceiling_json",
-            "work_spec_ref",
-            "work_spec_digest",
-            "standing_grant_ref",
-            "standing_grant_digest",
-            "attempt_authorization_ref",
-            "attempt_authorization_digest",
-            "effect_authorization_ref",
-            "effect_authorization_digest",
-            "attempt_fence_ref",
-            "attempt_fence_digest",
-            "effect_fence_ref",
-            "effect_fence_digest",
-            "global_stop_ref",
-            "global_stop_version",
-            "validation_requirement_ref",
-            "validation_requirement_digest",
-            "review_requirement_ref",
-            "review_requirement_digest",
-            "capsule_schema_id",
-            "capsule_profile_ref",
-            "effect_max_active_invocations",
-            "effect_max_candidate_bytes",
-            "effect_max_changed_files",
-            "effect_max_cost_microusd",
-            "effect_max_cpu_seconds",
-            "effect_max_deliveries",
-            "effect_max_deployments",
-            "effect_max_local_commits",
-            "effect_max_memory_bytes",
-            "effect_max_merges",
-            "effect_max_model_input_tokens",
-            "effect_max_model_output_tokens",
-            "effect_max_pull_requests",
-            "effect_max_pushes",
-            "effect_max_wall_seconds",
-            "privacy_classification",
-            "redaction_profile_ref",
-            "command_digest",
-            "recorded_at"
-          ],
-          "table": "development_author_commands"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "effect_intent_ref",
-            "program_ref",
-            "program_version_ref",
-            "semantic_attempt_ref",
-            "effect_class",
-            "candidate_ref",
-            "command_ref",
-            "basis_decision_ref",
-            "cancellation_target_effect_intent_ref",
-            "expected_target_effect_head_revision",
-            "portable_capsule_digest",
-            "created_at",
-            "effect_intent_digest"
-          ],
-          "table": "development_effect_intents"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "effect_fence_ref",
-            "parent_standing_grant_ref",
-            "parent_standing_grant_digest",
-            "effect_authorization_ref",
-            "effect_authorization_digest",
-            "attempt_fence_ref",
-            "attempt_fence_digest",
-            "program_ref",
-            "program_version_ref",
-            "accepted_intent_revision_ref",
-            "work_item_ref",
-            "work_item_revision_ref",
-            "semantic_attempt_ref",
-            "effect_intent_ref",
-            "effect_class",
-            "command_ref",
-            "command_digest",
-            "candidate_ref",
-            "repository_ref",
-            "base_git_object_format",
-            "base_git_oid",
-            "path_ceiling_json",
-            "effect_max_active_invocations",
-            "effect_max_candidate_bytes",
-            "effect_max_changed_files",
-            "effect_max_cost_microusd",
-            "effect_max_cpu_seconds",
-            "effect_max_deliveries",
-            "effect_max_deployments",
-            "effect_max_local_commits",
-            "effect_max_memory_bytes",
-            "effect_max_merges",
-            "effect_max_model_input_tokens",
-            "effect_max_model_output_tokens",
-            "effect_max_pull_requests",
-            "effect_max_pushes",
-            "effect_max_wall_seconds",
-            "expires_at",
-            "global_stop_ref",
-            "global_stop_version",
-            "portable_capsule_digest",
-            "cancellation_target_effect_intent_ref",
-            "cancellation_target_effect_fence_ref",
-            "cancellation_target_effect_fence_digest",
-            "effect_fence_digest",
-            "recorded_at"
-          ],
-          "table": "development_effect_fences"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "authority_evaluation_ref",
-            "program_ref",
-            "evaluation_scope",
-            "evaluation_subject_ref",
-            "semantic_attempt_ref",
-            "effect_intent_ref",
-            "authority_ref",
-            "authority_digest",
-            "authority_state",
-            "reason_code",
-            "expires_at",
-            "evaluated_at",
-            "authority_evaluation_digest"
-          ],
-          "table": "development_authority_evaluations"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "singleton",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_verified_authority_evaluation",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "authority_evaluation_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "authority_evaluation_by_exact_ref",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fetch": "fetchmany(2)",
-          "fields": [
-            "schema_id",
-            "authority_evaluation_ref",
-            "program_ref",
-            "evaluation_scope",
-            "evaluation_subject_ref",
-            "semantic_attempt_ref",
-            "effect_intent_ref",
-            "authority_ref",
-            "authority_digest",
-            "authority_state",
-            "reason_code",
-            "expires_at",
-            "evaluated_at",
-            "authority_evaluation_digest"
-          ],
-          "limit": 2,
-          "lookup_key": [
-            "program_ref",
-            "authority_evaluation_ref"
-          ],
-          "ordering": null,
-          "parameter_order": [
-            "program_ref",
-            "authority_evaluation_ref"
-          ],
-          "query_sql": "SELECT schema_id, authority_evaluation_ref, program_ref, evaluation_scope, evaluation_subject_ref, semantic_attempt_ref, effect_intent_ref, authority_ref, authority_digest, authority_state, reason_code, expires_at, evaluated_at, authority_evaluation_digest FROM development_authority_evaluations WHERE program_ref = ? AND authority_evaluation_ref = ? LIMIT 2",
-          "table": "development_authority_evaluations"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "singleton",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_effect_head",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "effect_intent_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "effect_head",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "effect_intent_ref",
-            "program_ref",
-            "current_effect_fence_ref",
-            "head_revision",
-            "effect_state",
-            "cancellation_effect_intent_ref",
-            "updated_at",
-            "head_digest"
-          ],
-          "table": "development_effect_heads"
-        }
-      ]
-    },
-    {
-      "absence_result": null,
-      "bounded_aggregate_verification": "permitted",
-      "cardinality": "two_singletons",
-      "complete_mutation_family_replay_verification": false,
-      "decoded_private_value": "private_delivery_head_current_attempt_aggregate",
-      "duplicate_result": "database_integrity_failure",
-      "fetch_bound": 2,
-      "future_caller": [
-        "C2B3",
-        "C2B5"
-      ],
-      "limit": 2,
-      "lookup_identity": [
-        "program_ref",
-        "effect_intent_ref"
-      ],
-      "malformed_row_result": "database_integrity_failure",
-      "nominal_capability_requirement": "type(capability) is _SQLiteMutationReadCapability before borrow or SQL",
-      "ordering": null,
-      "role": "delivery_head",
-      "row_digest_verification": "required_before_return",
-      "safe_error": "mutation_failed_or_database_integrity_failure",
-      "selects": [
-        {
-          "fields": [
-            "schema_id",
-            "effect_intent_ref",
-            "program_ref",
-            "current_delivery_attempt_ref",
-            "head_revision",
-            "delivery_state",
-            "updated_at",
-            "head_digest"
-          ],
-          "table": "development_delivery_heads"
-        },
-        {
-          "fields": [
-            "schema_id",
-            "delivery_attempt_ref",
-            "program_ref",
-            "program_version_ref",
-            "command_ref",
-            "command_digest",
-            "semantic_attempt_ref",
-            "effect_intent_ref",
-            "attempt_fence_ref",
-            "attempt_fence_digest",
-            "effect_fence_ref",
-            "effect_fence_digest",
-            "adapter_kind",
-            "adapter_safe_correlation_ref",
-            "delivery_envelope_digest",
-            "delivery_kind",
-            "delivery_number",
-            "predecessor_delivery_attempt_ref",
-            "basis_decision_ref",
-            "recorded_at",
-            "delivery_attempt_digest"
-          ],
-          "table": "development_delivery_attempts"
-        }
-      ]
-    }
-  ],
+    "workstream_identity": "COORDINATOR_C2B2_SLICE_3_PRIVATE_READER_CONTRACT_RESET"
+  },
   "receipt_envelope": {
     "column_count": 19,
     "common_required_fields": [
@@ -6713,7 +7865,8 @@ mapping, decisions, receipts, common graph primitive, and private readers.
       "privacy_class": "safe_operational",
       "reader_roles": [
         "program_head_and_current_version",
-        "initialize_decision_and_resulting_version"
+        "initialize_decision_and_resulting_version",
+        "paged_program_version_membership"
       ],
       "record_schema_id": "governed-execution.nwp-development-program-version.v1",
       "role": "program_version_record",
@@ -7347,7 +8500,8 @@ mapping, decisions, receipts, common graph primitive, and private readers.
       ],
       "privacy_class": "safe_operational",
       "reader_roles": [
-        "work_item_head_and_revision_by_exact_ref"
+        "work_item_head_and_revision_by_exact_ref",
+        "paged_program_version_membership"
       ],
       "record_schema_id": "governed-execution.nwp-development-work-item-revision.v1",
       "role": "work_item_revision_record",
@@ -13816,6 +14970,178 @@ They may verify exact bounded aggregates but may not claim complete
 mutation-family replay. No public reader, public export, `StateStore` method,
 or `WriterSession` method is added.
 
+### Slice-3 reader-contract reset
+
+The accepted reconnaissance remains bound as:
+
+```text
+planning decision: BLOCKED_PENDING_READER_CONTRACT_CHANGE
+turn verdict: COORDINATOR_C2B2_SLICE_3_RECONNAISSANCE_BLOCKED
+```
+
+This reset repairs that contract defect only. It implements no reader. The
+closed `private_readers` ledger owns exactly twelve ordered role records. Each
+record freezes one private function spelling, ordered signature inputs, exact
+result type, literal fixed SELECT text, exact symbolic parameter tuple, query
+order, zero/one/many cardinality, root/child precedence, Slice-3 cross-row
+validation, and later-tranche exclusions. Every SELECT field list is the exact
+existing Slice-2 row-factory column order.
+
+Role 9, `attempt_fence_command_effect_aggregate`, has effect intent as its
+deterministic root and reads semantic attempt, author command, attempt fence,
+current effect fence, and a distinct author fence only when required. It has no
+authority-evaluation SELECT or result. Its decoded refs and digests are
+evidence only. The aggregate explicitly proves neither capsule identity,
+capsule custody, semantic acceptance, nor execution permission; no field,
+digest, row, or successful query grants authorization, route eligibility,
+execution permission, semantic acceptance, capsule retrieval authority, or
+capsule custody. Role 10,
+`authority_evaluation_by_exact_ref`, is the sole authority-evaluation reader
+and selects only exact `program_ref` plus `authority_evaluation_ref`. Multiple
+evaluations for one subject remain valid physical state. Latest timestamp,
+`MAX(evaluated_at)`, `rowid`, lexicographic ref order, preferred state,
+verified-first selection, unbounded subject scan, and receipt-digest inference
+are all forbidden authority locators. The decoded authority-evaluation row is
+evidence only. The row confers no executable permission. A verified state does
+not itself authorize a worker, adapter, route, mutation, retry, replay, or
+external effect. The reader does not issue, renew, reinterpret, or consume
+executable authority.
+
+Role 6 accepts a valid exact historical work-item revision. Its `is_current`
+field is true only when both the head's current ref and current number equal the
+requested revision's ref and number; a one-sided match is
+`database_integrity_failure`. No work-state/revision-kind relation is inferred.
+Role 7 validates the exact parent program version before child SQL, traverses
+internally under one capability object and epoch, fetches no more than 257
+physical rows and returns no more than 256 logical entries per page, re-reads
+the 257th row as the next page's first row, and exposes no continuation. It
+binds each membership to the exact work-item revision, proves strict order,
+non-overlap, duplicate-pair rejection, dense ordinals `0..n-1`, and independent
+complete-aggregate work-item-reference uniqueness, then returns one completed
+immutable aggregate. Each `work_item_ref` appears at most once, including
+within one page, across pages, and across the 256/257 boundary, regardless of a
+different ordinal or revision ref. A second occurrence is
+`database_integrity_failure` before any child-revision query for that duplicate
+occurrence, and no partial aggregate is returned. `maximum_members` is an exact
+built-in positive `int`, not semantic identity; `bool` and subclasses fail
+before capability borrow, and the reader fails `mutation_failed` before
+exceeding the ceiling. No current program-version kind permits empty
+membership.
+
+Every aggregate is all-or-nothing. An absent root returns `None` with no child
+SQL; a malformed or duplicate root fails before child SQL; and any missing,
+duplicate, malformed, or mismatched required child is
+`database_integrity_failure`. Aggregate values use manual slots, factory-only
+construction, exact-type equality, content-free `repr`/`str`, identity-preserving
+copy/deepcopy, disabled pickle, tuples for collections, and retain no SQL,
+parameters, row tuples, mappings, cursors, connections, capabilities, or
+epochs. Role 11 remains an effect-head singleton with only row-local digest and
+cancellation-nullability validation. Role 12 binds only the exact current
+delivery attempt and invents no delivery-number/head-revision or state/kind
+relation.
+
+Pure lookup and resource validation precedes function-local import of
+`_SQLiteMutationReadCapability`, exact nominal type gating, borrow, and literal
+SQL. Capability failures remain outside the reader-safe
+`mutation_failed_or_database_integrity_failure` field. After borrow,
+SQLite/schema/cardinality/row/relation contradictions are
+`database_integrity_failure`; operational busy/locked/closed/unknown I/O and a
+cursor-close failure after an otherwise successful read are `mutation_failed`.
+An earlier execute/fetch failure remains primary over a later close failure.
+
+The mutation-receipt reader validates row shape and scalar algebra, result
+projection and digest, and lowercase SHA-256 mutation-graph-digest shape. A
+receipt has no row self-digest. The reader does not default graph entries to an
+empty tuple, locate referenced rows, or claim graph verification, family
+completeness, replay, or recovery.
+
+The future shared SELECT-support change is limited to one closed internal
+bounded-fetch core accepting only limits `{2, 257}`. The existing
+`_execute_select_fetch_two()` compatibility wrapper retains unchanged
+observable behavior. The bounded core owns one borrow, one cursor, literal
+execute with the exact tuple, `fetchmany(limit)`, cursor close, execute/fetch
+precedence over close, and safe SQLite error classification. It owns no nominal
+authority or semantic/table dispatch.
+
+### Exact later Slice-3 implementation allowlist
+
+New production source -- 2:
+
+```text
+src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py
+src/ge_nwp_coordinator/_sqlite_development_readers.py
+```
+
+Existing production source modification -- 1:
+
+```text
+src/ge_nwp_coordinator/sqlite_transition_select_support.py
+```
+
+New documentation -- 1:
+
+```text
+.docs/c2b2-private-readers.md
+```
+
+Existing documentation modifications -- 10:
+
+```text
+.docs/c2b-durable-development-state.md
+.docs/c2b2-migration-0002.md
+.docs/c2b2-pure-durable-row-values.md
+.docs/architecture.md
+.docs/autonomous-software-development-operating-model.md
+.docs/durable-state-model.md
+.docs/software-development-progression-boundary.md
+.docs/sqlite-threat-model.md
+README.md
+AGENTS.md
+```
+
+New focused tests -- 2:
+
+```text
+tests/test_c2b2_development_reader_contracts.py
+tests/test_c2b2_private_development_readers.py
+```
+
+Existing test modifications -- 7:
+
+```text
+tests/test_c2b2_field_level_contract.py
+tests/test_c2b0_durable_state_contract.py
+tests/test_architecture_contracts.py
+tests/test_autonomous_software_development_operating_model.py
+tests/test_software_development_progression_boundary.py
+tests/test_runtime_non_authority.py
+tests/test_c2a_nonimplementation.py
+```
+
+Package/configuration changes and schema/migration changes are empty. The later
+maximum is exactly 23 paths; a twenty-fourth path is a stop condition, not
+implicit authorization. The future `.docs/c2b2-private-readers.md` is an
+implementation-status/private-API record only and cannot become semantic,
+schema, runtime, or reader authority.
+
+The dedicated oracle owns direct literal expected truth independently of this
+owner candidate. The dedicated oracle, oracle plus C2B0 owner contract, future
+Slice-3 reader tests, changed architecture/status/non-authority tests, and the
+completed five-file SQLite-hygiene gate are strict `-W error` groups. The exact
+eight-file Slice-2/existing-reader compatibility group runs without an
+unqualified `-W error`, without a warning filter, ignore rule, or pytest warning
+configuration, and reports every warning actually emitted. The full suite also
+runs without an unqualified `-W error`; it permits only the three already
+classified Python 3.13 multithreaded-fork `DeprecationWarning`s if they recur,
+and permits no `ResourceWarning`, `PytestUnraisableExceptionWarning`, or new
+warning. Counts are comparison evidence, not durable compatibility contracts.
+A later fresh read-only audit must recheck exact
+two-path provenance, semantic-diff limits, all signatures, SQL and ordering,
+bidirectional mapping, roles 6/7/9/10/11/12, receipt non-completeness,
+capability/error ordering, the exact 23-path allowlist, counterfactual
+discrimination, full validation, and continued reader nonimplementation. Only
+`ACCEPT` opens the contract-reset commit gate.
+
 ## 33. Family Replay Deferral And Tranche Ownership
 
 C2B2 does not freeze or implement complete mutation-family replay graphs, a
@@ -13839,6 +15165,14 @@ contract authority.
 ## 34. C2B2 Freeze Nonimplementation
 
 The field-level freeze tranche created documentation and contract tests only.
+This reset likewise changes only this owner document and its independent literal oracle.
+Current implementation remains the generation-2 migration-0002 schema and the
+four private pure Slice-2 row/value modules. The exact twelve readers are an
+accepted target: reader source, SELECT execution, C2B2 nominal-capability use,
+production callers, mutation and receipt persistence, family-complete graph
+verification, replay, recovery, C2B3, and migration 0003 remain absent. This
+turn creates no Slice-3 implementation-status document.
+
 C2B2 Slice 1 implements its literal migration-0002 SQL and physical schema
 representation, and Slice 2 implements pure private row/value source without
 changing the physical schema. Neither slice creates migration-0003 material,
