@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 import sqlite3
-from typing import Any, Protocol
+from typing import Any, NoReturn, Protocol
 
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError, SQLiteMutationStoreErrorCode
 
@@ -59,27 +59,91 @@ def _execute_select_fetch_two(
     sql: str,
     parameters: tuple[object, ...],
 ) -> list[object]:
-    connection = _borrow_sqlite_connection_for_select(capability)
+    outcome = _perform_select_fetch_bounded(
+        capability=capability,
+        sql=sql,
+        parameters=parameters,
+        limit=2,
+    )
+    del capability, sql, parameters
+    return _complete_select_fetch(outcome)
+
+
+def _execute_select_fetch_bounded(
+    *,
+    capability: _MutationReadCapability,
+    sql: str,
+    parameters: tuple[object, ...],
+    limit: int,
+) -> list[object]:
+    outcome = _perform_select_fetch_bounded(
+        capability=capability,
+        sql=sql,
+        parameters=parameters,
+        limit=limit,
+    )
+    del capability, sql, parameters, limit
+    return _complete_select_fetch(outcome)
+
+
+def _perform_select_fetch_bounded(
+    *,
+    capability: _MutationReadCapability,
+    sql: str,
+    parameters: tuple[object, ...],
+    limit: int,
+) -> list[object] | SQLiteMutationStoreErrorCode | _MutationReadCapabilityFailureReason:
+    if type(limit) is not int or limit not in (2, 257):
+        return SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+    borrowed = _borrow_connection_or_failure(capability)
+    if type(borrowed) is _MutationReadCapabilityFailureReason:
+        return borrowed
+    connection = borrowed
     cursor: Any | None = None
-    sqlite_failure: SQLiteMutationStoreError | None = None
+    failure: SQLiteMutationStoreErrorCode | None = None
     rows: Any | None = None
     try:
         cursor = connection.execute(sql, parameters)
-        rows = cursor.fetchmany(2)
+        rows = cursor.fetchmany(limit)
     except sqlite3.Error as raw_sqlite_error:
-        sqlite_failure = _classify_sqlite_select_error(raw_sqlite_error)
+        failure = _classify_sqlite_select_error(raw_sqlite_error)
     except Exception:
-        sqlite_failure = _mutation_failed()
+        failure = SQLiteMutationStoreErrorCode.MUTATION_FAILED
     finally:
         if cursor is not None:
             close_failure = _close_cursor_safely(cursor)
-            if sqlite_failure is None and close_failure is not None:
-                sqlite_failure = close_failure
-    if sqlite_failure is not None:
-        raise sqlite_failure
+            if failure is None and close_failure is not None:
+                failure = close_failure
+    if failure is not None:
+        return failure
     if type(rows) is not list:
-        raise _database_integrity_failure()
+        return SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
     return rows
+
+
+def _complete_select_fetch(
+    outcome: list[object] | SQLiteMutationStoreErrorCode | _MutationReadCapabilityFailureReason,
+) -> list[object]:
+    if type(outcome) is list:
+        return outcome
+    if type(outcome) is SQLiteMutationStoreErrorCode:
+        failure = outcome
+        outcome = []
+        _raise_select_failure(failure)
+    if type(outcome) is _MutationReadCapabilityFailureReason:
+        capability_failure = outcome
+        outcome = []
+        _raise_select_failure(capability_failure)
+    outcome = []
+    _raise_select_failure(SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)
+
+
+def _raise_select_failure(
+    failure: SQLiteMutationStoreErrorCode | _MutationReadCapabilityFailureReason,
+) -> NoReturn:
+    if type(failure) is _MutationReadCapabilityFailureReason:
+        raise _MutationReadCapabilityError(failure) from None
+    raise SQLiteMutationStoreError(failure) from None
 
 
 def _row_tuple_to_private_mapping(columns: tuple[str, ...], row: object) -> dict[str, object]:
@@ -90,42 +154,35 @@ def _row_tuple_to_private_mapping(columns: tuple[str, ...], row: object) -> dict
     return dict(zip(columns, row, strict=True))
 
 
-def _borrow_sqlite_connection_for_select(capability: _MutationReadCapability) -> sqlite3.Connection:
-    borrowed = _borrow_connection_or_capability_error(capability)
-    if isinstance(borrowed, _MutationReadCapabilityError):
-        raise borrowed
-    connection = borrowed
-    if not isinstance(connection, sqlite3.Connection):
-        raise _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
-    return connection
-
-
-def _borrow_connection_or_capability_error(
+def _borrow_connection_or_failure(
     capability: _MutationReadCapability,
-) -> sqlite3.Connection | _MutationReadCapabilityError:
+) -> sqlite3.Connection | _MutationReadCapabilityFailureReason:
     try:
-        return capability._borrow_connection_for_select()
-    except _MutationReadCapabilityError:
-        raise
+        borrowed = capability._borrow_connection_for_select()
+    except _MutationReadCapabilityError as error:
+        return error.reason
     except Exception:
-        return _MutationReadCapabilityError(_MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE)
+        return _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
+    if not isinstance(borrowed, sqlite3.Connection):
+        return _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
+    return borrowed
 
 
-def _close_cursor_safely(cursor: Any) -> SQLiteMutationStoreError | None:
+def _close_cursor_safely(cursor: Any) -> SQLiteMutationStoreErrorCode | None:
     try:
         cursor.close()
     except sqlite3.Error:
-        return _cursor_close_failed()
+        return SQLiteMutationStoreErrorCode.MUTATION_FAILED
     except Exception:
-        return _cursor_close_failed()
+        return SQLiteMutationStoreErrorCode.MUTATION_FAILED
     return None
 
 
-def _classify_sqlite_select_error(error: sqlite3.Error) -> SQLiteMutationStoreError:
+def _classify_sqlite_select_error(error: sqlite3.Error) -> SQLiteMutationStoreErrorCode:
     primary_code = _sqlite_primary_result_code(error)
     if primary_code in _SQLITE_INTEGRITY_PRIMARY_RESULT_CODES:
-        return _database_integrity_failure()
-    return _mutation_failed()
+        return SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+    return SQLiteMutationStoreErrorCode.MUTATION_FAILED
 
 
 def _sqlite_primary_result_code(error: sqlite3.Error) -> int | None:

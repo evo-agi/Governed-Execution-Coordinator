@@ -44,7 +44,8 @@ Classification: `CURRENT IMPLEMENTED CONTRACT`. Coordinator currently provides
 bounded durable SQLite mutation authority for the existing coding-work
 transition and `global_stop` contracts, plus a separate internal C2A1 pure
 semantic-value and coherence layer and private pure C2B2 row/value source for
-all nineteen migration-0002 tables. It has no C2B2 database reader,
+all nineteen migration-0002 tables. It also has twelve production-unintegrated
+private C2B2 reader roles with no public API or production caller. It has no
 software-development program runtime, semantic-attempt runtime, dispatcher,
 scheduler, queue consumer,
 worker, worker supervisor, subprocess launcher, model/provider client, ES
@@ -465,11 +466,12 @@ progression, publication eligibility, and the first-slice latch. C2B0
 implements neither tranche and adds no schema, migration, runtime, worker,
 Bridge change, or ES change.
 
-## C2B1/C2B2 Current Administrative And Pure-Value Composition
+## C2B1/C2B2 Current Administrative, Pure-Value, And Private-Reader Composition
 
-Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration
-and private pure no-I/O row/value validation only. C2B0 remains the historical
-contract-freeze tranche for the target composition above.
+Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration,
+private pure no-I/O row/value validation, and production-unintegrated private
+reader behavior only. C2B0 remains the historical contract-freeze tranche for
+the target composition above.
 
 C2B1 implements exact-current ordinary SQLite open, explicit supported-prefix
 migration, terminal-only application-generation compatibility, cumulative
@@ -492,6 +494,10 @@ complete family graph verification, C2B3, migration 0003, observation ingest,
 semantic decision, authority verification, WorkSpec custody, worker/process
 execution, capsule
 storage, Git effect, direct-local route, ES route, service, scheduler, queue,
-publication, or autonomous loop. Remaining C2B2 reader/integration behavior and
-C2B3-C2B6 remain target-only; their composition is unchanged beyond the
-implemented migration-0002 physical core and its pure row/value layer.
+publication, or autonomous loop. C2B2 Slice 3 separately implements exactly
+twelve private reader roles and twenty-four literal SELECT specifications
+through the existing nominal capability seam. It adds no production caller,
+public API, mutation, replay, recovery, C2B3, migration 0003, or external
+effect. Remaining C2B2 production integration and C2B3-C2B6 remain target-only;
+their composition is unchanged beyond the implemented migration-0002 physical
+core, pure row/value layer, and private readers.

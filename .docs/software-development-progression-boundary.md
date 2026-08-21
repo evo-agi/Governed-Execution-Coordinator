@@ -373,11 +373,12 @@ contract must still freeze the applicable runtime, direct-local or ES adapter,
 transport, and persistence mechanics before schema, service, worker, adapter,
 Git/CI, or runtime execution work.
 
-## C2B1/C2B2 Current Migration And Pure-Value Boundary
+## C2B1/C2B2 Current Migration, Pure-Value, And Private-Reader Boundary
 
 Status: `CURRENT IMPLEMENTED CONTRACT` for explicit SQLite administration and
-private pure no-I/O row/value validation only. C2B0 remains the historical
-accepted-target contract tranche.
+private pure no-I/O row/value validation plus production-unintegrated private
+reader behavior only. C2B0 remains the historical accepted-target contract
+tranche.
 
 C2B1 implements exact-current ordinary open and explicit supported-prefix
 migration in `sqlite_migration.py`. Complete-catalog initialization and
@@ -394,6 +395,12 @@ adds private pure row/value source for those nineteen tables, with no SQLite,
 SQL, capability use, database reader, or production caller. No C2B product
 mutation, complete family graph verification, family replay or recovery, or
 C2B3 behavior is added.
+
+C2B2 Slice 3 implements exactly twelve private reader roles over the Slice-2
+values through twenty-four literal SELECT specifications and the existing
+nominal transaction capability. It adds no production caller, package export,
+public reader, `StateStore`/`WriterSession` method, mutation, replay, recovery,
+C2B3 behavior, migration 0003, or external effect.
 
 Durable development progression, source-observation ingest, semantic decisions,
 effect establishment or execution, WorkSpec custody, worker/process behavior,

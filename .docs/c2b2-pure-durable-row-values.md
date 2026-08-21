@@ -10,8 +10,10 @@ its cumulative packaged SQL. This record is not a new durable tranche identity,
 schema authority, reader contract, or source of runtime truth.
 
 Slice 2 implements pure, private, no-I/O row/value source. It has no production
-caller. C2B2 private readers, cross-row database assembly, mutation, exact
-family replay, commit-outcome recovery, and every C2B3 behavior remain absent.
+caller. Slice 3 now consumes these values in production-unintegrated private
+SQLite readers recorded in `.docs/c2b2-private-readers.md`; that later slice
+does not change this pure layer. Mutation, exact family replay, commit-outcome
+recovery, and every C2B3 behavior remain absent.
 The implementation grants no retrieval, authorization, execution, acceptance,
 publication, worker, runtime, adapter, Bridge, or ES authority.
 

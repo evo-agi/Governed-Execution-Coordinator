@@ -158,9 +158,10 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         "C2B1 supplies bounded administrative migration mechanics",
         "C2B2 Slice 1 adds only the frozen physical nineteen-table core",
         "Slice 2 adds only private pure no-I/O row/value contracts for those nineteen tables",
+        "Slice 3 adds exactly twelve private reader roles over those values",
         "accepted C2B0 target contract also reserves",
         "`0003_development_observation_and_progression_state`",
-        "No migration-0003 SQL, C2B private reader, writer, mutation, replay/recovery, observation ingest, decision runtime",
+        "No migration-0003 SQL, C2B private reader production caller or public reader, writer, mutation, replay/recovery, observation ingest, decision runtime",
     ):
         _require(
             phrase in current,
@@ -169,9 +170,10 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
     for phrase in (
         "C2B2 Slice 1 has implemented the migration-0002 physical core at application generation 2",
         "Slice 2 can purely validate already-fetched tuples as private row values",
+        "Slice 3 implements twelve private reader roles, but no production caller exposes them",
         "Migration 0003 remains a reserved target identity",
         "accepted complete target comprises implemented migration",
-        "Migration 0003 and all C2B database reader, writer, mutation",
+        "Migration 0003 and all C2B reader production integration, writer, mutation",
     ):
         _require(
             phrase in target,
@@ -1018,6 +1020,7 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
 
     for phrase in (
         "C2B2 Slice 1 physically represents the nineteen-table core and Slice 2 implements its private pure row/value layer",
+        "Slice 3 implements the production-unintegrated private database readers",
         "C2B1/C2B2-Slice-1 administrative migration source and C2B2-Slice-2 pure row/value source are current but confer no product authority.",
         "existing Coordinator SQLite database",
         "existing concrete writer issuance/fencing authority",
@@ -1028,7 +1031,8 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
         "public `StateStore` widening",
         "public `WriterSession` widening",
         "Slice 2 provides private pure row/value source for its nineteen tables",
-        "No C2B product reader, writer, mutation transaction, complete family graph verifier, replay/recovery",
+        "Slice 3 provides exactly twelve private reader roles, with no public surface or production caller",
+        "No C2B product reader caller, writer, mutation transaction, complete family graph verifier, replay/recovery",
     ):
         assert phrase in architecture
 

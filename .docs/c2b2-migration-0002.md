@@ -68,8 +68,10 @@ mutation API.
 C2B2 Slice 2 now implements the pure private row/value source recorded in
 `.docs/c2b2-pure-durable-row-values.md`. It does not change migration 0002, the
 generation-2 physical schema, migration history, catalog, schema manifest, or
-any Slice-1 behavior. C2B2 private readers and every C2B product mutation,
-replay, and recovery path remain absent.
+any Slice-1 behavior. C2B2 Slice 3 now implements the production-unintegrated
+private readers recorded in `.docs/c2b2-private-readers.md`; it likewise makes
+no schema or migration change. Every C2B product mutation, replay, and recovery
+path remains absent.
 
 ## Explicit Nonimplementation
 

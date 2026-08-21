@@ -409,12 +409,20 @@ and ordinary product open never migrates. C2B2 pure row/value source is now
 implemented only as four private pure no-I/O modules for exact
 tuple decoding, immutable validation, row and result-projection digests,
 bounded C2A reconstruction, WorkSpec safe projection, and supplied-entry graph
-hashing. Migration 0003, C2B2 private database readers, SQL/capability use, C2B
+hashing. Migration 0003, C2B2 private-reader production integration, C2B
 mutations, family replay/recovery, complete family graph verification, C2B3,
 observation ingest, decision runtime, authority verification, WorkSpec custody,
 worker/process execution, capsule storage, Git effects, direct-local execution,
 ES routing, and any service, scheduler, queue, publication, or autonomous loop
 remain absent.
+
+C2B2 Slice 3 now implements the previously frozen private reader contract:
+seven private aggregate/page values, twenty-four literal query specifications,
+and twelve reader roles through the real nominal transaction capability seam.
+The readers have synthetic execution proofs but no production caller, public
+or package-root API, `StateStore`/`WriterSession` method, mutation, receipt
+persistence, complete graph proof, replay, recovery, C2B3 behavior, migration
+0003, or external effect.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.

@@ -170,6 +170,14 @@ public surface, production caller, or C2B3 behavior. The historical B3/B4
 coherent fixture retains schema-0001 graph meanings inside a current physical
 generation-2 temporary database and leaves all nineteen C2B tables empty.
 
+C2B2 Slice 3 adds exactly two private reader source modules, seven private
+aggregate/page values, twenty-four literal query specifications, twelve exact
+private reader roles, and bounded 2/257 SELECT support. It uses only the
+existing nominal mutation read capability, is production-unintegrated, and
+adds no public/package/StateStore/WriterSession reader surface, mutation,
+receipt persistence, family graph completeness, replay, recovery, C2B3,
+migration 0003, or external effect.
+
 C2B1 adds no durable development record, reader, writer, mutation, observation
 ingest, decision runtime, authority verifier, WorkSpec custody, worker/process
 execution, capsule storage, Git effect, direct-local behavior, ES routing,
@@ -546,8 +554,9 @@ Slice 1 now implements the generation-2 physical schema, and
 `0002_development_program_and_effect_state` is the implemented current physical
 terminal migration. Migration 0003 remains unimplemented and deferred. C2B2
 pure row/value source is now implemented only as the private no-I/O Slice-2
-layer. Private database readers, SQL/capability use, C2B mutation, replay and
-recovery, complete family graph verification, observation ingest, decisions,
+layer. Slice 3 private database readers and bounded SQL/capability use are now
+implemented without a production caller. C2B mutation, replay and recovery,
+complete family graph verification, observation ingest, decisions,
 latch behavior, authority verification, worker/process execution, Git effects,
 direct-local behavior, and ES routing remain unimplemented. C2B3 has not
 started.

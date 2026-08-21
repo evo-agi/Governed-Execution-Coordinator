@@ -23,6 +23,10 @@ EXPECTED_SLICE2_PRODUCTION_MODULES = (
     "_development_program_row_values.py",
     "_development_row_value_support.py",
 )
+EXPECTED_SLICE3_READER_MODULES = (
+    "_sqlite_development_reader_contracts.py",
+    "_sqlite_development_readers.py",
+)
 
 EXPECTED_ORACLE_IMPORTS = (
     ("__future__", "from-import", "annotations", None),
@@ -1743,12 +1747,12 @@ EXPECTED_CONTRACT = {
   },
   "classification": {
     "absent": [
-      "C2B2 private readers",
+      "C2B private-reader production caller or public API",
       "C2B mutations and exact replay or recovery",
       "C2B product runtime caller"
     ],
-    "accepted_c2b2_field_level_target_contract": "private readers and later integration over the migration-0002 core",
-    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source",
+    "accepted_c2b2_field_level_target_contract": "later production integration over the migration-0002 core",
+    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source and Slice 3 private reader source",
     "later_tranche_target_contract": "family-specific mutation, exact replay, recovery, and complete graph verification"
   },
   "common_graph_digest_primitive": {
@@ -4083,16 +4087,18 @@ EXPECTED_CONTRACT = {
         "source_path": "src/ge_nwp_coordinator/sqlite_transition_select_support.py"
       },
       "status": {
-        "accepted_target": "exact twelve private readers under this reset contract",
+        "accepted_target": "later production integration of the exact twelve private readers",
         "current": [
           "generation-2 migration-0002 schema",
-          "four private pure row/value modules"
+          "four private pure row/value modules",
+          "two private reader modules and shared bounded 2/257 SELECT support",
+          "seven private aggregate/page values and twenty-four literal query specifications",
+          "twelve production-unintegrated private reader roles with synthetic execution proofs"
         ],
         "still_absent": [
-          "reader source",
-          "SELECT execution",
-          "nominal capability use by C2B2",
           "production caller",
+          "public reader API or package-root export",
+          "StateStore or WriterSession reader method",
           "mutation and receipt persistence",
           "family-complete graph verification",
           "replay and recovery",
@@ -5950,8 +5956,8 @@ EXPECTED_CONTRACT = {
       "focused_validation": [
         "dedicated field-level oracle under -W error",
         "C2B owner and field-level contract under -W error",
-        "future Slice-3 reader-contract tests under -W error",
-        "future Slice-3 reader-execution tests under -W error",
+        "implemented Slice-3 reader-contract tests under -W error",
+        "implemented Slice-3 reader-execution tests under -W error",
         "current-status and authority regression under -W error",
         "migration-0002 preservation",
         "post-hygiene strict SQLite gate under -W error",
@@ -5975,7 +5981,7 @@ EXPECTED_CONTRACT = {
         "exact future 23-path allowlist",
         "oracle literal independence and counterfactual discrimination",
         "full validation",
-        "continued reader nonimplementation"
+        "continued reader production nonintegration"
       ],
       "full_suite_warning_policy": {
         "unqualified_w_error": False,
@@ -5988,13 +5994,13 @@ EXPECTED_CONTRACT = {
       "strict_validation_groups": [
         "dedicated field-level oracle",
         "oracle plus C2B0 owner contract",
-        "future Slice-3 reader-contract tests",
-        "future Slice-3 reader-execution tests",
+        "implemented Slice-3 reader-contract tests",
+        "implemented Slice-3 reader-execution tests",
         "changed architecture, status, and non-authority tests",
         "completed five-file SQLite-hygiene gate"
       ]
     },
-    "workstream_identity": "COORDINATOR_C2B2_SLICE_3_PRIVATE_READER_CONTRACT_RESET"
+    "workstream_identity": "COORDINATOR_C2B2_SLICE_3_PRIVATE_READERS"
   },
   "receipt_envelope": {
     "column_count": 19,
@@ -14230,8 +14236,8 @@ EXPECTED_EIGHT_FILE_COMPATIBILITY_GROUP = (
 EXPECTED_STRICT_READER_VALIDATION_GROUPS = (
     "dedicated field-level oracle",
     "oracle plus C2B0 owner contract",
-    "future Slice-3 reader-contract tests",
-    "future Slice-3 reader-execution tests",
+    "implemented Slice-3 reader-contract tests",
+    "implemented Slice-3 reader-execution tests",
     "changed architecture, status, and non-authority tests",
     "completed five-file SQLite-hygiene gate",
 )
@@ -14539,14 +14545,14 @@ def _validate_classification(contract: dict[str, Any]) -> None:
     _require(
         "application generation 2 and terminal tip "
         "0002_development_program_and_effect_state plus Slice 2 pure private "
-        "row/value source"
+        "row/value source and Slice 3 private reader source"
         in contract["classification"]["current_implemented_contract"],
         "current_generation_tip",
     )
     _require(
         contract["classification"]["absent"]
         == [
-            "C2B2 private readers",
+            "C2B private-reader production caller or public API",
             "C2B mutations and exact replay or recovery",
             "C2B product runtime caller",
         ],
@@ -18274,3 +18280,32 @@ def test_slice2_source_boundary_is_exactly_four_private_modules() -> None:
         sorted(path.name for path in package.glob("_development_*row_value*.py"))
     )
     assert present == EXPECTED_SLICE2_PRODUCTION_MODULES
+
+
+def test_slice3_implementation_boundary_is_exactly_two_private_reader_modules() -> None:
+    package = ROOT / "src/ge_nwp_coordinator"
+    present = tuple(
+        sorted(path.name for path in package.glob("_sqlite_development_reader*.py"))
+    )
+    assert present == EXPECTED_SLICE3_READER_MODULES
+    assert "sqlite_transition_select_support.py" in {
+        path.name for path in package.glob("sqlite_transition_select_support.py")
+    }
+    status = _owner_contract()["private_readers"]["common_contract"]["status"]
+    assert status["current"] == [
+        "generation-2 migration-0002 schema",
+        "four private pure row/value modules",
+        "two private reader modules and shared bounded 2/257 SELECT support",
+        "seven private aggregate/page values and twenty-four literal query specifications",
+        "twelve production-unintegrated private reader roles with synthetic execution proofs",
+    ]
+    assert status["still_absent"] == [
+        "production caller",
+        "public reader API or package-root export",
+        "StateStore or WriterSession reader method",
+        "mutation and receipt persistence",
+        "family-complete graph verification",
+        "replay and recovery",
+        "C2B3",
+        "migration 0003",
+    ]

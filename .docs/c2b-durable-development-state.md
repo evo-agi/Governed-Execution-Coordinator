@@ -11,8 +11,9 @@ security, writer, migration, and recovery mechanics.
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration
 administration, C2B2 Slice 1 physical schema representability, and C2B2 Slice
-2 pure private row/value behavior; `ACCEPTED TARGET CONTRACT` covers C2B2
-private readers and later integration plus C2B3-C2B6 behavior below.
+2 pure private row/value behavior, plus C2B2 Slice 3 private reader behavior;
+`ACCEPTED TARGET CONTRACT` covers later C2B2 integration plus C2B3-C2B6
+behavior below.
 
 C2B0 was the historical documentation-and-direct-contract-test tranche. C2B1
 implements the bounded administrative migration framework in the existing
@@ -20,7 +21,11 @@ Coordinator database. C2B2 Slice 1 implements migration 0002 and physical
 representability for the frozen nineteen-table core. C2B2 Slice 2 implements
 four pure private row/value modules without implementing a private reader,
 mutation, replay, recovery, product runtime caller, or C2B3 behavior. External
-effects and a C2B public API remain absent.
+effects and a C2B public API remain absent. C2B2 Slice 3 implements exactly two
+private reader modules, seven private aggregate/page values, twenty-four
+literal query specifications, and twelve private reader roles. These readers
+remain production-unintegrated and add no mutation, replay, recovery, product
+runtime caller, or C2B3 behavior.
 
 The contract uses these layers:
 
@@ -52,12 +57,13 @@ commit recovery. Migration 0002 implements the frozen physical core schema but
 does not make its tables populated product truth or runtime authority.
 Migration `0003_development_observation_and_progression_state` remains reserved;
 the exact responsibilities and inventories are frozen below. No 0003 SQL,
-C2B2 private reader, product writer, product mutation transaction, ingest or
-progression recovery path, worker, process,
+C2B2 production reader caller, product writer, product mutation transaction,
+ingest or progression recovery path, worker, process,
 model integration, capsule store, Git effect, adapter, ES route, service,
 scheduler, queue, or autonomous loop currently exists.
-No target C2B reader, writer, mutation, transaction, ingest, or durable runtime
-exists; C2B1 migration administration does not satisfy any of those roles.
+No public or product-integrated C2B reader, writer, mutation, ingest, or durable
+runtime exists; the private Slice-3 readers execute SELECTs only through an
+already-valid nominal mutation capability and do not own a transaction.
 
 ## 2. One Database, One Writer, And Fact Ownership
 
@@ -970,7 +976,7 @@ The exact sequence is:
 ```text
 C2B0: historical documentation and direct documentation-contract tests only
 C2B1: historical application generation 1 / terminal tip 0001 migration-framework reset; no SQL or schema change; no durable development state
-C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, and pure private row/value source; private readers remain later C2B2 work; no mutation API
+C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, pure private row/value source, and twelve production-unintegrated private reader roles; no mutation API
 C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O
 C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API
 C2B5: application generation 2; terminal tip 0003; source-observation ingest, cancel and redeliver decisions, bound validation/review/cancellation effects, knowledge and recovery; no external I/O
@@ -1001,15 +1007,15 @@ makes no effect dispatch-eligible.
 ## 28. C2B2 Field-Level Freeze Classification
 
 This section and Sections 29–34 are the repository-owned C2B2 field-level
-freeze. C2B2 Slice 1 implements its physical SQL representation and Slice 2
-implements the row/value contract; private readers and later integration remain
-accepted targets.
+freeze. C2B2 Slice 1 implements its physical SQL representation, Slice 2
+implements the row/value contract, and Slice 3 implements the exact private
+reader contract. Later production integration remains an accepted target.
 
 ```text
-CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation at generation 2 / tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source
-ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT: private readers and later integration over the migration-0002 core
+CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation at generation 2 / tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source and Slice 3 private reader source
+ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT: later production integration over the migration-0002 core
 LATER-TRANCHE TARGET CONTRACT: family-specific mutation, exact replay, recovery, and complete graph verification
-ABSENT: C2B2 private readers, C2B mutations, exact replay, recovery, and C2B product runtime caller
+ABSENT: C2B private-reader production caller or public API, C2B mutations, exact replay, recovery, and C2B product runtime caller
 ```
 
 The proposal supplied authoring evidence. It is not runtime input, an installed
@@ -2700,12 +2706,12 @@ mapping, decisions, receipts, common graph primitive, and private readers.
   },
   "classification": {
     "absent": [
-      "C2B2 private readers",
+      "C2B private-reader production caller or public API",
       "C2B mutations and exact replay or recovery",
       "C2B product runtime caller"
     ],
-    "accepted_c2b2_field_level_target_contract": "private readers and later integration over the migration-0002 core",
-    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source",
+    "accepted_c2b2_field_level_target_contract": "later production integration over the migration-0002 core",
+    "current_implemented_contract": "C2B2 Slice 1 migration administration and physical representation at application generation 2 and terminal tip 0002_development_program_and_effect_state plus Slice 2 pure private row/value source and Slice 3 private reader source",
     "later_tranche_target_contract": "family-specific mutation, exact replay, recovery, and complete graph verification"
   },
   "common_graph_digest_primitive": {
@@ -5040,16 +5046,18 @@ mapping, decisions, receipts, common graph primitive, and private readers.
         "source_path": "src/ge_nwp_coordinator/sqlite_transition_select_support.py"
       },
       "status": {
-        "accepted_target": "exact twelve private readers under this reset contract",
+        "accepted_target": "later production integration of the exact twelve private readers",
         "current": [
           "generation-2 migration-0002 schema",
-          "four private pure row/value modules"
+          "four private pure row/value modules",
+          "two private reader modules and shared bounded 2/257 SELECT support",
+          "seven private aggregate/page values and twenty-four literal query specifications",
+          "twelve production-unintegrated private reader roles with synthetic execution proofs"
         ],
         "still_absent": [
-          "reader source",
-          "SELECT execution",
-          "nominal capability use by C2B2",
           "production caller",
+          "public reader API or package-root export",
+          "StateStore or WriterSession reader method",
           "mutation and receipt persistence",
           "family-complete graph verification",
           "replay and recovery",
@@ -6907,8 +6915,8 @@ mapping, decisions, receipts, common graph primitive, and private readers.
       "focused_validation": [
         "dedicated field-level oracle under -W error",
         "C2B owner and field-level contract under -W error",
-        "future Slice-3 reader-contract tests under -W error",
-        "future Slice-3 reader-execution tests under -W error",
+        "implemented Slice-3 reader-contract tests under -W error",
+        "implemented Slice-3 reader-execution tests under -W error",
         "current-status and authority regression under -W error",
         "migration-0002 preservation",
         "post-hygiene strict SQLite gate under -W error",
@@ -6932,7 +6940,7 @@ mapping, decisions, receipts, common graph primitive, and private readers.
         "exact future 23-path allowlist",
         "oracle literal independence and counterfactual discrimination",
         "full validation",
-        "continued reader nonimplementation"
+        "continued reader production nonintegration"
       ],
       "full_suite_warning_policy": {
         "unqualified_w_error": false,
@@ -6945,13 +6953,13 @@ mapping, decisions, receipts, common graph primitive, and private readers.
       "strict_validation_groups": [
         "dedicated field-level oracle",
         "oracle plus C2B0 owner contract",
-        "future Slice-3 reader-contract tests",
-        "future Slice-3 reader-execution tests",
+        "implemented Slice-3 reader-contract tests",
+        "implemented Slice-3 reader-execution tests",
         "changed architecture, status, and non-authority tests",
         "completed five-file SQLite-hygiene gate"
       ]
     },
-    "workstream_identity": "COORDINATOR_C2B2_SLICE_3_PRIVATE_READER_CONTRACT_RESET"
+    "workstream_identity": "COORDINATOR_C2B2_SLICE_3_PRIVATE_READERS"
   },
   "receipt_envelope": {
     "column_count": 19,
@@ -14932,8 +14940,9 @@ locator, replay verifier, historical head postimage, writer, or resolver.
 
 C2B2 owns exactly the twelve role contracts in the structured ledger. Each
 reader has one exact ordered nonempty `future_caller` list drawn only from
-`C2B3`, `C2B5`, and `C2B6`; C2B2 has no reader implementation/caller and C2B4
-owns only migration-0003 rows/readers. The mapping is:
+`C2B3`, `C2B5`, and `C2B6`; C2B2 now has the private reader implementation but
+no production caller, and C2B4 owns only migration-0003 rows/readers. The
+mapping is:
 
 ```text
 mutation_receipt_by_mutation_ref: [C2B3, C2B5, C2B6]
@@ -14970,7 +14979,7 @@ They may verify exact bounded aggregates but may not claim complete
 mutation-family replay. No public reader, public export, `StateStore` method,
 or `WriterSession` method is added.
 
-### Slice-3 reader-contract reset
+### Slice-3 private reader implementation
 
 The accepted reconnaissance remains bound as:
 
@@ -14979,13 +14988,13 @@ planning decision: BLOCKED_PENDING_READER_CONTRACT_CHANGE
 turn verdict: COORDINATOR_C2B2_SLICE_3_RECONNAISSANCE_BLOCKED
 ```
 
-This reset repairs that contract defect only. It implements no reader. The
-closed `private_readers` ledger owns exactly twelve ordered role records. Each
-record freezes one private function spelling, ordered signature inputs, exact
-result type, literal fixed SELECT text, exact symbolic parameter tuple, query
-order, zero/one/many cardinality, root/child precedence, Slice-3 cross-row
-validation, and later-tranche exclusions. Every SELECT field list is the exact
-existing Slice-2 row-factory column order.
+The earlier reset repaired the contract defect without implementing a reader.
+Slice 3 now implements that closed contract: exactly twelve ordered private
+reader functions, seven aggregate/page values, and twenty-four literal query
+specifications across the two private source modules. Every SELECT field list
+is the exact existing Slice-2 row-factory column order. The implementation has
+private synthetic execution proofs through the real nominal capability seam,
+but it has no production caller.
 
 Role 9, `attempt_fence_command_effect_aggregate`, has effect intent as its
 deterministic root and reads semantic attempt, author command, attempt fence,
@@ -15055,7 +15064,7 @@ receipt has no row self-digest. The reader does not default graph entries to an
 empty tuple, locate referenced rows, or claim graph verification, family
 completeness, replay, or recovery.
 
-The future shared SELECT-support change is limited to one closed internal
+The implemented shared SELECT-support change is limited to one closed internal
 bounded-fetch core accepting only limits `{2, 257}`. The existing
 `_execute_select_fetch_two()` compatibility wrapper retains unchanged
 observable behavior. The bounded core owns one borrow, one cursor, literal
@@ -15063,7 +15072,7 @@ execute with the exact tuple, `fetchmany(limit)`, cursor close, execute/fetch
 precedence over close, and safe SQLite error classification. It owns no nominal
 authority or semantic/table dispatch.
 
-### Exact later Slice-3 implementation allowlist
+### Exact implemented Slice-3 path record
 
 New production source -- 2:
 
@@ -15118,15 +15127,15 @@ tests/test_runtime_non_authority.py
 tests/test_c2a_nonimplementation.py
 ```
 
-Package/configuration changes and schema/migration changes are empty. The later
+Package/configuration changes and schema/migration changes are empty. The
 maximum is exactly 23 paths; a twenty-fourth path is a stop condition, not
-implicit authorization. The future `.docs/c2b2-private-readers.md` is an
+implicit authorization. `.docs/c2b2-private-readers.md` is an
 implementation-status/private-API record only and cannot become semantic,
 schema, runtime, or reader authority.
 
 The dedicated oracle owns direct literal expected truth independently of this
-owner candidate. The dedicated oracle, oracle plus C2B0 owner contract, future
-Slice-3 reader tests, changed architecture/status/non-authority tests, and the
+owner candidate. The dedicated oracle, oracle plus C2B0 owner contract,
+implemented Slice-3 reader tests, changed architecture/status/non-authority tests, and the
 completed five-file SQLite-hygiene gate are strict `-W error` groups. The exact
 eight-file Slice-2/existing-reader compatibility group runs without an
 unqualified `-W error`, without a warning filter, ignore rule, or pytest warning
@@ -15139,8 +15148,8 @@ A later fresh read-only audit must recheck exact
 two-path provenance, semantic-diff limits, all signatures, SQL and ordering,
 bidirectional mapping, roles 6/7/9/10/11/12, receipt non-completeness,
 capability/error ordering, the exact 23-path allowlist, counterfactual
-discrimination, full validation, and continued reader nonimplementation. Only
-`ACCEPT` opens the contract-reset commit gate.
+discrimination, full validation, and continued reader production
+nonintegration. Acceptance remains reserved for a fresh read-only audit.
 
 ## 33. Family Replay Deferral And Tranche Ownership
 
@@ -15162,21 +15171,23 @@ The proposal's forty-role ledger, locators, historical postimages, and replay
 vectors are reviewed later-tranche proposal evidence, not current C2B2
 contract authority.
 
-## 34. C2B2 Freeze Nonimplementation
+## 34. C2B2 Remaining Nonimplementation
 
-The field-level freeze tranche created documentation and contract tests only.
-This reset likewise changes only this owner document and its independent literal oracle.
-Current implementation remains the generation-2 migration-0002 schema and the
-four private pure Slice-2 row/value modules. The exact twelve readers are an
-accepted target: reader source, SELECT execution, C2B2 nominal-capability use,
-production callers, mutation and receipt persistence, family-complete graph
-verification, replay, recovery, C2B3, and migration 0003 remain absent. This
-turn creates no Slice-3 implementation-status document.
+The field-level freeze and contract-reset tranches created documentation and
+contract tests only. Current implementation now comprises the generation-2
+migration-0002 schema, the four private pure Slice-2 row/value modules, and the
+exact Slice-3 private readers plus their bounded SELECT support and synthetic
+execution proofs. Production callers, a public reader API, package-root
+exports, `StateStore`/`WriterSession` reader methods, mutation and receipt
+persistence, family-complete graph verification, replay, recovery, C2B3, and
+migration 0003 remain absent. `.docs/c2b2-private-readers.md` records this
+private implementation status without becoming semantic or runtime authority.
 
 C2B2 Slice 1 implements its literal migration-0002 SQL and physical schema
-representation, and Slice 2 implements pure private row/value source without
-changing the physical schema. Neither slice creates migration-0003 material,
-database rows, a product reader, mutation or recovery API, public API,
+representation, Slice 2 implements pure private row/value source, and Slice 3
+implements production-unintegrated private SELECT readers without changing the
+physical schema. No slice creates migration-0003 material, database rows, a
+product reader caller, mutation or recovery API, public API,
 `StateStore` or `WriterSession` widening, package-root export, dependency,
 worker, provider, capsule, Git, direct-local, ES, Bridge, service, IPC, queue,
 scheduler, reconciler, or autonomous loop. The implemented migration contract

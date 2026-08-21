@@ -45,7 +45,7 @@ SECTION_HEADINGS = (
     "31. Common Mutation-Graph Digest Primitive",
     "32. C2B2 Private Reader Boundary",
     "33. Family Replay Deferral And Tranche Ownership",
-    "34. C2B2 Freeze Nonimplementation",
+    "34. C2B2 Remaining Nonimplementation",
 )
 
 DECISION_KINDS = (
@@ -424,7 +424,7 @@ TRIGGER_AGGREGATE_ROLE_CLAIMS = (
 TRANCHE_LINES = (
     "C2B0: historical documentation and direct documentation-contract tests only",
     "C2B1: historical application generation 1 / terminal tip 0001 migration-framework reset; no SQL or schema change; no durable development state",
-    "C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, and pure private row/value source; private readers remain later C2B2 work; no mutation API",
+    "C2B2: application generation advances to 2; terminal tip 0002; migration 0002; core records, base decision envelope, initialize-decision representation, pure private row/value source, and twelve production-unintegrated private reader roles; no mutation API",
     "C2B3: application generation 2; terminal tip 0002; program initialization, author-effect establishment, private delegation and recovery; no external I/O",
     "C2B4: application generation 2; terminal tip 0003; migration 0003; observation/evidence/non-initialize-decision/eligibility/latch contracts and readers; initialize representation remains C2B2-owned; no new mutation API",
     "C2B5: application generation 2; terminal tip 0003; source-observation ingest, cancel and redeliver decisions, bound validation/review/cancellation effects, knowledge and recovery; no external I/O",
@@ -1316,8 +1316,8 @@ def _assert_current_target_status(text: str) -> None:
         "Migration `0003_development_observation_and_progression_state` remains reserved",
         "`0003_development_observation_and_progression_state`",
         "exact responsibilities and inventories are frozen below",
-        "No 0003 SQL, C2B2 private reader, product writer, product mutation transaction",
-        "No target C2B reader, writer, mutation, transaction, ingest",
+        "No 0003 SQL, C2B2 production reader caller, product writer, product mutation transaction",
+        "No public or product-integrated C2B reader, writer, mutation, ingest",
     )
     for phrase in required:
         _require(
@@ -1661,10 +1661,11 @@ def test_current_versus_target_and_one_writer_are_explicit() -> None:
     status = _section_prose(text, SECTION_HEADINGS[0])
     authority = _compact(_section(text, SECTION_HEADINGS[1]))
     for phrase in (
-        "Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration administration, C2B2 Slice 1 physical schema representability, and C2B2 Slice 2 pure private row/value behavior",
+        "Classification: `CURRENT IMPLEMENTED CONTRACT` for C2B1 migration administration, C2B2 Slice 1 physical schema representability, and C2B2 Slice 2 pure private row/value behavior, plus C2B2 Slice 3 private reader behavior",
         "C2B0 was the historical documentation-and-direct-contract-test tranche.",
         "C2B2 Slice 1 implements migration 0002 and physical representability",
         "C2B2 Slice 2 implements four pure private row/value modules",
+        "C2B2 Slice 3 implements exactly two private reader modules",
         "The current implemented application generation is 2",
         "one existing Coordinator SQLite database",
         "one existing writer issuance and fencing authority",
@@ -2059,8 +2060,8 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
 
     lower_level = _replace_once(
         text,
-        "private readers and later integration plus C2B3-C2B6 behavior below.\n\nC2B0 was",
-        "private readers and later integration plus C2B3-C2B6 behavior below.\n\n### Local Detail\n\nC2B0 was",
+        "later C2B2 integration plus C2B3-C2B6\nbehavior below.\n\nC2B0 was",
+        "later C2B2 integration plus C2B3-C2B6\nbehavior below.\n\n### Local Detail\n\nC2B0 was",
     )
     _assert_current_target_status(lower_level)
 
@@ -2097,8 +2098,8 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
     for boundary in ("## Relocated Status", "# Relocated Status"):
         mutation = _replace_once(
             text,
-            "private readers and later integration plus C2B3-C2B6 behavior below.\n\nC2B0 was",
-            f"private readers and later integration plus C2B3-C2B6 behavior below.\n\n{boundary}\n\nC2B0 was",
+            "later C2B2 integration plus C2B3-C2B6\nbehavior below.\n\nC2B0 was",
+            f"later C2B2 integration plus C2B3-C2B6\nbehavior below.\n\n{boundary}\n\nC2B0 was",
         )
         with pytest.raises(AssertionError) as rejected:
             _assert_current_target_status(mutation)
@@ -2682,8 +2683,8 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
 
     same_or_higher = _replace_once(
         text,
-        "private readers and later integration plus C2B3-C2B6 behavior below.\n\nC2B0 was",
-        "private readers and later integration plus C2B3-C2B6 behavior below.\n\n# Relocated Status\n\nC2B0 was",
+        "later C2B2 integration plus C2B3-C2B6\nbehavior below.\n\nC2B0 was",
+        "later C2B2 integration plus C2B3-C2B6\nbehavior below.\n\n# Relocated Status\n\nC2B0 was",
     )
     with pytest.raises(AssertionError) as rejected:
         _assert_current_target_status(same_or_higher)
@@ -2872,10 +2873,14 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
         ROOT / "src/ge_nwp_coordinator/_development_effect_row_values.py",
         ROOT / "src/ge_nwp_coordinator/_development_decision_row_values.py",
     }
+    slice3_sources = {
+        ROOT / "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_development_readers.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
-    } == slice2_sources
+    } == slice2_sources | slice3_sources
 
     production_sources = {
         path: path.read_text(encoding="utf-8")
@@ -2884,7 +2889,9 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
     source = "\n".join(production_sources.values())
     migration_source = production_sources.pop(SQLITE_MIGRATION_PATH)
     non_c2b_source = "\n".join(
-        value for path, value in production_sources.items() if path not in slice2_sources
+        value
+        for path, value in production_sources.items()
+        if path not in slice2_sources | slice3_sources
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(
@@ -4291,9 +4298,10 @@ def test_c2b2_field_level_freeze_has_physical_and_pure_value_slices() -> None:
 
     assert "CURRENT IMPLEMENTED CONTRACT: C2B2 Slice 1 migration administration and physical representation" in classification
     assert "plus Slice 2 pure private row/value source" in classification
+    assert "and Slice 3 private reader source" in classification
     assert "ACCEPTED C2B2 FIELD-LEVEL TARGET CONTRACT" in classification
     assert "LATER-TRANCHE TARGET CONTRACT" in classification
-    assert "ABSENT: C2B2 private readers, C2B mutations, exact replay, recovery, and C2B product runtime caller" in classification
+    assert "ABSENT: C2B private-reader production caller or public API, C2B mutations, exact replay, recovery, and C2B product runtime caller" in classification
     assert "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_BEGIN -->" in ledger
     assert "<!-- C2B2_FIELD_LEVEL_CONTRACT_JSON_END -->" in ledger
     assert "redeliver` and `cancel` do not advance a version" in coherence
@@ -4301,8 +4309,8 @@ def test_c2b2_field_level_freeze_has_physical_and_pure_value_slices() -> None:
     assert "type(capability) is _SQLiteMutationReadCapability" in readers
     assert "complete mutation-family replay" in replay
     assert "C2B4: migration-0003 row contracts/readers only; not a mutation tranche" in replay
-    assert "field-level freeze tranche created documentation and contract tests only" in absent
-    assert "Slice 2 implements pure private row/value source" in absent
+    assert "field-level freeze and contract-reset tranches created documentation and contract tests only" in absent
+    assert "Slice 3 implements production-unintegrated private SELECT readers" in absent
 
     assert (
         ROOT

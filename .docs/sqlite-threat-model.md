@@ -20,6 +20,13 @@ generation 2 / terminal migration 0002. Its nineteen empty-at-install tables do
 not add C2B row/value code, readers, mutations, runtime authority, or new
 filesystem or process authority.
 
+C2B2 Slice 2 adds pure private row/value validation, and Slice 3 adds twelve
+production-unintegrated private reader roles plus a shared bounded `{2, 257}`
+SELECT core. Slice 3 requires exact nominal capability type before borrow or
+SQL, retains the existing capability error boundary, and adds no transaction,
+writer, mutation, public API, production caller, filesystem/process authority,
+replay, recovery, C2B3 behavior, migration 0003, or external effect.
+
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
 state-authority lock for administration. B2c implements writer issuance and an

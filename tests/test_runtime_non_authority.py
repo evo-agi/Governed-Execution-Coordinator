@@ -1,4 +1,4 @@
-"""Finite C1/C2A1 source and runtime non-authority evidence boundaries.
+"""Finite C1/C2A1/C2B2 source and runtime non-authority evidence boundaries.
 C2A1 adds one internal pure semantic-value module without changing schema,
 migration, packaging, package-root bindings, or executable entry surfaces.
 Future runtime behavior still requires a separately accepted source contract,
@@ -27,6 +27,8 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_development_effect_row_values.py",
         "src/ge_nwp_coordinator/_development_program_row_values.py",
         "src/ge_nwp_coordinator/_development_row_value_support.py",
+        "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
+        "src/ge_nwp_coordinator/_sqlite_development_readers.py",
         "src/ge_nwp_coordinator/_worker_execution_semantic_values.py",
         "src/ge_nwp_coordinator/backlog.py",
         "src/ge_nwp_coordinator/canonicalization.py",
@@ -822,6 +824,26 @@ def test_sqlite_import_surface_is_exact() -> None:
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }
+
+
+def test_c2b2_private_readers_have_no_public_or_production_caller_surface() -> None:
+    package_source = _read("src/ge_nwp_coordinator/__init__.py")
+    state_source = _read("src/ge_nwp_coordinator/state_store.py")
+    writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
+    production_paths = tuple(
+        ROOT / path for path in EXPECTED_PRODUCTION_PATHS if path.endswith(".py")
+    )
+    importers = {
+        path.relative_to(ROOT).as_posix()
+        for path in production_paths
+        if path.name != "_sqlite_development_readers.py"
+        and "_sqlite_development_readers" in path.read_text(encoding="utf-8")
+    }
+    assert importers == set()
+    for source in (package_source, state_source, writer_source):
+        assert "read_development" not in source
+        assert "DevelopmentProgramHeadAndCurrentVersionRead" not in source
+    assert "_sqlite_development_reader_contracts" not in package_source
 
 
 def test_state_store_and_writer_session_have_protocols_only_and_no_backend() -> None:

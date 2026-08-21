@@ -844,7 +844,8 @@ def test_classification_ledger_and_authoritative_composition_are_pinned() -> Non
     authority = _compact(_clause("C1-AOM-006", "C1-AOM-007"))
     target_topology = _compact(_clause("C1-AOM-002", "C1-AOM-003"))
     nonimplementation = _compact(_clause("C1-AOM-013"))
-    assert "It has no C2B2 database reader, software-development program runtime, semantic-attempt runtime" in current
+    assert "It also has twelve production-unintegrated private C2B2 reader roles with no public API or production caller" in current
+    assert "It has no software-development program runtime, semantic-attempt runtime" in current
     assert "Current executable authorization remains unsupported and fail-closed." in authority
     assert "This subordinate-authorization behavior is not currently implemented." in authority
     assert "Neither route is implemented by this tranche." in target_topology
@@ -1588,12 +1589,12 @@ def test_c2b0_markdown_parsers_reject_invalid_backtick_info_duplicate_heading_by
     )
 
 
-def test_c2b2_current_administrative_and_pure_value_composition_does_not_promote_progression() -> None:
+def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_promote_progression() -> None:
     section = _compact(
         _unfenced_markdown(
             _bounded_markdown_section(
                 _doc(),
-                "C2B1/C2B2 Current Administrative And Pure-Value Composition",
+                "C2B1/C2B2 Current Administrative, Pure-Value, And Private-Reader Composition",
                 2,
                 role="operating_model.c2b1_current",
                 allow_eof=True,
@@ -1602,7 +1603,7 @@ def test_c2b2_current_administrative_and_pure_value_composition_does_not_promote
         )
     )
     for phrase in (
-        "`CURRENT IMPLEMENTED CONTRACT` for migration administration and private pure no-I/O row/value validation only",
+        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, and production-unintegrated private reader behavior only",
         "C2B0 remains the historical contract-freeze tranche",
         "exact-current ordinary SQLite open",
         "explicit supported-prefix migration",
@@ -1618,7 +1619,8 @@ def test_c2b2_current_administrative_and_pure_value_composition_does_not_promote
         "eighteen row self-digest checks",
         "five receipt result projections",
         "no SQL, reader capability, database reader, production caller",
-        "Remaining C2B2 reader/integration behavior and C2B3-C2B6 remain target-only",
+        "C2B2 Slice 3 separately implements exactly twelve private reader roles and twenty-four literal SELECT specifications",
+        "Remaining C2B2 production integration and C2B3-C2B6 remain target-only",
     ):
         assert phrase in section
 

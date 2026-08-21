@@ -25,6 +25,8 @@ EXPECTED_PRODUCTION_FILES = (
     "_development_effect_row_values.py",
     "_development_program_row_values.py",
     "_development_row_value_support.py",
+    "_sqlite_development_reader_contracts.py",
+    "_sqlite_development_readers.py",
     "_worker_execution_semantic_values.py",
     "backlog.py",
     "canonicalization.py",
@@ -179,8 +181,9 @@ AGENTS_CURRENT_SCHEMA_WORDING = (
     "Migration 0003 remains unimplemented and deferred.",
     "C2B2 pure row/value source is now implemented only as the private no-I/O "
     "Slice-2 layer.",
-    "Private database readers, SQL/capability use, C2B mutation, replay and "
-    "recovery, complete family graph verification, observation ingest, "
+    "Slice 3 private database readers and bounded SQL/capability use are now "
+    "implemented without a production caller. C2B mutation, replay and recovery, "
+    "complete family graph verification, observation ingest, "
     "decisions, latch behavior, authority verification, worker/process "
     "execution, Git effects, direct-local behavior, and ES routing remain "
     "unimplemented.",
