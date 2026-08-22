@@ -559,7 +559,19 @@ implemented without a production caller. C2B mutation, replay and recovery,
 complete family graph verification, observation ingest, decisions,
 latch behavior, authority verification, worker/process execution, Git effects,
 direct-local behavior, and ES routing remain unimplemented. C2B3 has not
-started.
+started. This sentence describes current production behavior; it does not
+classify documentation-only contract freezes.
+
+C2B3A freezes only the single-work-item program-initialization target contract;
+the bounded genesis shape is not a permanent one-work-item architecture. The
+sole semantic authority is Section 35 of
+`.docs/c2b-durable-development-state.md`.
+`.docs/c2b3-program-initialization.md` is implementation-status and planning
+only. Program-initialization mutation source requires a committed C2B3A
+snapshot, independent audit, and a later exact implementation prompt.
+Author-effect establishment remains contract-incomplete and unimplemented.
+No C2B3 public/API/package surface, schema, migration, authority, route,
+worker, Bridge, or ES widening is allowed by this freeze.
 
 ## P1 Prohibitions
 

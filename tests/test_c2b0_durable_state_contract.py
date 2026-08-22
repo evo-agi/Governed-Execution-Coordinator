@@ -2,6 +2,8 @@ import ast
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import subprocess
+import sys
 import tomllib
 
 import pytest
@@ -9,7 +11,754 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 OWNER_PATH = ROOT / ".docs" / "c2b-durable-development-state.md"
+C2B3A_PLANNING_PATH = ROOT / ".docs" / "c2b3-program-initialization.md"
+C2B3A_ORACLE_PATH = ROOT / "tests" / "test_c2b3_program_initialization_contract.py"
 SQLITE_MIGRATION_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_migration.py"
+
+C2B3A_PLANNING_AUTHORITY_CLAIMS = (
+    "the planning document is semantic authority",
+    "the planning document co-owns semantic truth",
+)
+C2B3A_PLANNING_CURRENT_SOURCE_CLAIMS = (
+    "program initialization source is current",
+    "program initialization is implemented",
+    "private delegation is current",
+    "receipt persistence is current",
+    "replay runtime is current",
+    "recovery runtime is current",
+    "author-effect source is current",
+)
+C2B3A_ORACLE_ALLOWED_IMPORTS = ("ast", "copy", "pathlib", "pytest")
+C2B3A_ORACLE_ALLOWED_RELATIVE_READS = (
+    ".docs/c2b-durable-development-state.md",
+    ".docs/c2b3-program-initialization.md",
+    "tests/test_c2b3_program_initialization_contract.py",
+)
+C2B3A_ORACLE_ALLOWED_DIRECT_CALLS = (
+    "GeneratorExit",
+    "KeyboardInterrupt",
+    "Path",
+    "SystemExit",
+    "_ContractViolation",
+    "_assert_future_c2b3b_scope",
+    "_assert_oracle_architecture",
+    "_assert_original_apply_outcome",
+    "_assert_preassigned_binding",
+    "_assigned_names",
+    "_bare_reraise_reference",
+    "_candidate",
+    "_direct_allowed_import_inventory",
+    "_direct_literal_assignment",
+    "_enclosing_function_name",
+    "_exception_graph_snapshot",
+    "_expect_golden_violation",
+    "_expect_violation",
+    "_golden_candidate",
+    "_named_reraise_reference",
+    "_owner_contract",
+    "_owner_golden_vector",
+    "_planning_fence_candidate",
+    "_planning_markdown_prefix_stripped",
+    "_planning_mutant_at_position",
+    "_planning_nonfenced_normalized_lines",
+    "_planning_normalized_line",
+    "_process_control_exception_graph_contains_private_material",
+    "_read_allowed_text",
+    "_require",
+    "_traceback_signature",
+    "_validate_contract",
+    "_validate_golden_vector",
+    "_validate_planning_status",
+    "all",
+    "any",
+    "bool",
+    "deepcopy",
+    "enumerate",
+    "id",
+    "isinstance",
+    "len",
+    "list",
+    "next",
+    "repr",
+    "set",
+    "sorted",
+    "str",
+    "tuple",
+    "type",
+)
+C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS = (
+    "ORACLE_SOURCE_PARENT.resolve",
+    "after.startswith",
+    "ascii_spaced.split",
+    "ast.get_source_segment",
+    "ast.iter_child_nodes",
+    "ast.literal_eval",
+    "ast.parse",
+    "ast.walk",
+    "before.endswith",
+    "binding_rendered.lower",
+    "candidate.startswith",
+    "cardinality.pop",
+    "complete.get",
+    "digit.isdigit",
+    "expected.is_symlink",
+    "expected.resolve",
+    "expected_repr.encode",
+    "event_ledger.append",
+    "item.startswith",
+    "lookup.replace",
+    "lowered.replace",
+    "moved.append",
+    "name.lower",
+    "names.extend",
+    "newline.join",
+    "node.name.lower",
+    "normalized.endswith",
+    "observed_imports.append",
+    "observed_repr.encode",
+    "owner_source.split",
+    "parameter_names.add",
+    "parents.get",
+    "path.relative_to",
+    "payload.strip",
+    "prose.append",
+    "pytest.mark.parametrize",
+    "pytest.raises",
+    "quarantined.get",
+    "relative.as_posix",
+    "remainder.split",
+    "remaining.lstrip",
+    "resolved.read_text",
+    "separator.join",
+    "source.count",
+    "source.replace",
+    "source.split",
+    "stripped.lower",
+    "stripped_payload.splitlines",
+    "text.index",
+    "text.replace",
+    "text.rstrip",
+    "text.splitlines",
+    "vector_remainder.split",
+    "vector_tail.replace",
+)
+
+C2B3A_PROCESS_CONTROL_ORDERED_STEPS = (
+    "observe the exact process-control exception object from connection close",
+    "retain the mutation slot",
+    "retain the writer-authority lock",
+    "transfer the uncertain raw connection into the private _WriterSessionResource",
+    "publish the concrete session as commit-uncertain quarantined",
+    "confirm same-session mutation and database-backed recovery remain forbidden",
+    "confirm no operation lease, database open, BEGIN, or SQL can occur",
+    "re-raise the identical process-control exception object",
+)
+C2B3A_PROCESS_CONTROL_BRANCH_FACTS = {
+    "KeyboardInterrupt": {
+        "exception_identity_preserved": True,
+        "connection_custody_transferred_before_propagation": True,
+        "quarantine_published_before_propagation": True,
+        "writer_lock_retained_before_propagation": True,
+        "mutation_slot_retained_before_propagation": True,
+        "same_session_database_recovery_allowed": False,
+        "operation_lease_allowed_before_close_proof": False,
+        "database_open_allowed_before_close_proof": False,
+        "begin_allowed_before_close_proof": False,
+        "sql_allowed_before_close_proof": False,
+        "ordinary_store_error_conversion": False,
+        "automatic_semantic_retry": False,
+    },
+    "SystemExit": {
+        "exception_identity_preserved": True,
+        "connection_custody_transferred_before_propagation": True,
+        "quarantine_published_before_propagation": True,
+        "writer_lock_retained_before_propagation": True,
+        "mutation_slot_retained_before_propagation": True,
+        "same_session_database_recovery_allowed": False,
+        "operation_lease_allowed_before_close_proof": False,
+        "database_open_allowed_before_close_proof": False,
+        "begin_allowed_before_close_proof": False,
+        "sql_allowed_before_close_proof": False,
+        "ordinary_store_error_conversion": False,
+        "automatic_semantic_retry": False,
+    },
+    "GeneratorExit": {
+        "exception_identity_preserved": True,
+        "connection_custody_transferred_before_propagation": True,
+        "quarantine_published_before_propagation": True,
+        "writer_lock_retained_before_propagation": True,
+        "mutation_slot_retained_before_propagation": True,
+        "same_session_database_recovery_allowed": False,
+        "operation_lease_allowed_before_close_proof": False,
+        "database_open_allowed_before_close_proof": False,
+        "begin_allowed_before_close_proof": False,
+        "sql_allowed_before_close_proof": False,
+        "ordinary_store_error_conversion": False,
+        "automatic_semantic_retry": False,
+    },
+}
+C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_LEDGER = (
+    {
+        "branch_name": "KeyboardInterrupt",
+        "propagation_form": "bare_reraise",
+        "same_exception_object": True,
+        "exact_type_preserved": True,
+        "args_preserved": True,
+        "system_exit_code_preserved_or_not_applicable": "not_applicable",
+        "caught_traceback_tail_identity_preserved": True,
+        "repair_owned_traceback_frame_delta": 0,
+        "cause_before": None,
+        "cause_after": None,
+        "context_before": None,
+        "context_after": None,
+        "suppress_context_before": False,
+        "suppress_context_after": False,
+        "notes_before": "absent",
+        "notes_after": "absent",
+        "private_material_in_exception_graph": False,
+        "automatic_semantic_retry": False,
+    },
+    {
+        "branch_name": "SystemExit",
+        "propagation_form": "bare_reraise",
+        "same_exception_object": True,
+        "exact_type_preserved": True,
+        "args_preserved": True,
+        "system_exit_code_preserved_or_not_applicable": "preserved",
+        "caught_traceback_tail_identity_preserved": True,
+        "repair_owned_traceback_frame_delta": 0,
+        "cause_before": None,
+        "cause_after": None,
+        "context_before": None,
+        "context_after": None,
+        "suppress_context_before": False,
+        "suppress_context_after": False,
+        "notes_before": "absent",
+        "notes_after": "absent",
+        "private_material_in_exception_graph": False,
+        "automatic_semantic_retry": False,
+    },
+    {
+        "branch_name": "GeneratorExit",
+        "propagation_form": "bare_reraise",
+        "same_exception_object": True,
+        "exact_type_preserved": True,
+        "args_preserved": True,
+        "system_exit_code_preserved_or_not_applicable": "not_applicable",
+        "caught_traceback_tail_identity_preserved": True,
+        "repair_owned_traceback_frame_delta": 0,
+        "cause_before": None,
+        "cause_after": None,
+        "context_before": None,
+        "context_after": None,
+        "suppress_context_before": False,
+        "suppress_context_after": False,
+        "notes_before": "absent",
+        "notes_after": "absent",
+        "private_material_in_exception_graph": False,
+        "automatic_semantic_retry": False,
+    },
+)
+C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_FIELDS = (
+    "branch_name",
+    "propagation_form",
+    "same_exception_object",
+    "exact_type_preserved",
+    "args_preserved",
+    "system_exit_code_preserved_or_not_applicable",
+    "caught_traceback_tail_identity_preserved",
+    "repair_owned_traceback_frame_delta",
+    "cause_before",
+    "cause_after",
+    "context_before",
+    "context_after",
+    "suppress_context_before",
+    "suppress_context_after",
+    "notes_before",
+    "notes_after",
+    "private_material_in_exception_graph",
+    "automatic_semantic_retry",
+)
+C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY = {
+    "forbidden_material": (
+        "ordinary commit exception",
+        "ordinary close exception",
+        "raw SQLite exception",
+        "connection",
+        "cursor",
+        "controller",
+        "mutation-slot object",
+        "writer-lock object",
+        "quarantine object",
+        "database path",
+        "SQL",
+        "parameters",
+        "WorkSpec content",
+        "private test sentinel",
+    ),
+    "forbidden_surfaces": (
+        "exception args",
+        "str or repr",
+        "__cause__ graph",
+        "__context__ graph",
+        "__notes__",
+        "formatted traceback",
+        "C2B3-owned traceback-frame locals",
+        "returned or persisted values",
+        "logs or reports",
+    ),
+    "sole_permitted_outward_exception": "the identical process-control exception object",
+}
+C2B3A_PROCESS_CONTROL_POSITIVE_MODELS = (
+    (
+        "KeyboardInterrupt",
+        "test_keyboard_interrupt_close_fault_publishes_before_identical_propagation",
+        "repair4-keyboard",
+    ),
+    (
+        "SystemExit",
+        "test_system_exit_close_fault_publishes_before_identical_propagation",
+        41,
+    ),
+    (
+        "GeneratorExit",
+        "test_generator_exit_close_fault_publishes_before_identical_propagation",
+        "repair4-generator",
+    ),
+)
+C2B3A_ORACLE_PROTECTED_EXPECTED_VALUE_NAMES = (
+    "EXPECTED_INITIALIZATION_CONTRACT",
+    "EXPECTED_INITIALIZATION_GOLDEN_VECTOR",
+)
+C2B3A_ORACLE_PROTECTED_CANDIDATE_VALUE_NAMES = (
+    "owner_contract_candidate",
+    "owner_golden_vector_candidate",
+    "planning_document_candidate",
+)
+C2B3A_ORACLE_PROTECTED_READER_PARSER_NAMES = (
+    "_owner_contract",
+    "_owner_golden_vector",
+    "_planning_fence_candidate",
+    "_planning_markdown_prefix_stripped",
+    "_planning_mutant_at_position",
+    "_planning_nonfenced_normalized_lines",
+    "_planning_normalized_line",
+    "_read_allowed_text",
+)
+C2B3A_ORACLE_PROTECTED_VALIDATION_HELPER_NAMES = (
+    "_assert_future_c2b3b_scope",
+    "_assert_oracle_architecture",
+    "_assert_original_apply_outcome",
+    "_assert_preassigned_binding",
+    "_validate_contract",
+    "_validate_golden_vector",
+    "_validate_planning_status",
+)
+C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES = (
+    "_assert_future_c2b3b_scope",
+    "_assert_oracle_architecture",
+    "_assert_original_apply_outcome",
+    "_assert_preassigned_binding",
+    "_candidate",
+    "_golden_candidate",
+    "_owner_contract",
+    "_owner_golden_vector",
+    "_planning_fence_candidate",
+    "_planning_markdown_prefix_stripped",
+    "_planning_mutant_at_position",
+    "_planning_nonfenced_normalized_lines",
+    "_planning_normalized_line",
+    "_read_allowed_text",
+    "_validate_contract",
+    "_validate_golden_vector",
+    "_validate_planning_status",
+)
+C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS = (
+    "protected_name",
+    "enclosing_top_level_function",
+    "enclosing_nested_function",
+    "load_role",
+    "ancestor_kind_chain",
+    "ordinal",
+)
+C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES: tuple[tuple[object, ...], ...] = (
+    ('_read_allowed_text', '_owner_contract', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_read_allowed_text', '_owner_golden_vector', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_validate_golden_vector', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_planning_markdown_prefix_stripped', '_planning_fence_candidate', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_planning_markdown_prefix_stripped', '_planning_normalized_line', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_planning_fence_candidate', '_planning_nonfenced_normalized_lines', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+    ('_planning_normalized_line', '_planning_nonfenced_normalized_lines', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+    ('_planning_nonfenced_normalized_lines', '_validate_planning_status', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 8),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 9),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 10),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 11),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 12),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 13),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 14),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 15),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 16),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 17),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 18),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 19),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 20),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 21),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 22),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 23),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 24),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 25),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 26),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 27),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_golden_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_validate_contract', '_expect_violation', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_validate_golden_vector', '_expect_golden_violation', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_owner_contract', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+    ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+    ('_validate_contract', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+    ('_owner_golden_vector', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR',
+ 'test_owner_golden_vector_equals_independent_direct_literal',
+ None,
+ 'direct_candidate_argument',
+ ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'),
+ 1),
+    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_read_allowed_text', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_read_allowed_text', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_validate_golden_vector', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_golden_vector_is_complete_privacy_safe_single_work_ledger', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_read_allowed_text', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_read_allowed_text', 'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_assert_oracle_architecture', 'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_read_allowed_text', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 1),
+    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_read_allowed_text', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_read_allowed_text', 'test_planning_status_baseline_scans_complete_nonfenced_document', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_validate_planning_status', 'test_planning_status_baseline_scans_complete_nonfenced_document', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('planning_document_candidate', 'test_planning_status_baseline_scans_complete_nonfenced_document', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_read_allowed_text', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_validate_planning_status', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('planning_document_candidate', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_planning_mutant_at_position', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('planning_document_candidate', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_validate_planning_status', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_read_allowed_text', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_planning_mutant_at_position', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('planning_document_candidate', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_validate_planning_status', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_read_allowed_text', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_planning_mutant_at_position', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('planning_document_candidate', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_validate_planning_status', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_planning_mutant_at_position', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('planning_document_candidate', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_validate_planning_status', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+    ('_read_allowed_text', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_planning_mutant_at_position', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('planning_document_candidate', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_validate_planning_status', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_candidate',
+ 'test_genesis_decision_selected_and_preassigned_algebra_is_closed',
+ None,
+ 'direct_call_func',
+ ('Name', 'Call', 'Subscript', 'Subscript', 'Subscript', 'Assign', 'FunctionDef', 'Module'),
+ 0),
+    ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 8),
+    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 9),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 8),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 9),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 10),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 11),
+    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 12),
+    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_assert_preassigned_binding', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR',
+ 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related',
+ None,
+ 'direct_candidate_argument',
+ ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'),
+ 0),
+    ('_owner_contract', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_assert_preassigned_binding', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+    ('owner_contract_candidate', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR',
+ 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related',
+ None,
+ 'direct_candidate_argument',
+ ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'),
+ 1),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 7),
+    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 7),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+    ('_owner_contract', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_process_control_close_interruption_contract_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_process_control_exception_graph_ledger_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+    ('_owner_contract', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+    ('_candidate', 'test_nonimplementation_surface_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+)
+C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES: tuple[str, ...] = (
+    'test_owner_literal_equals_independent_expected_contract',
+    'test_owner_golden_vector_equals_independent_direct_literal',
+    'test_golden_vector_is_complete_privacy_safe_single_work_ledger',
+    'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected',
+    'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses',
+    'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs',
+    'test_oracle_architecture_counterfactuals_are_rejected',
+    'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses',
+    'test_planning_status_baseline_scans_complete_nonfenced_document',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
+    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
+    'test_planning_correctly_closed_fenced_claim_is_ignored[```]',
+    'test_planning_correctly_closed_fenced_claim_is_ignored[~~~]',
+    'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded',
+    'test_planning_markdown_prefixes_do_not_hide_forbidden_claims',
+    'test_owner_and_five_path_scope_counterfactuals_are_rejected',
+    'test_genesis_cardinality_and_selection_counterfactuals_are_rejected',
+    'test_genesis_decision_selected_and_preassigned_algebra_is_closed',
+    'test_accepted_intent_projection_counterfactuals_are_rejected',
+    'test_safe_command_counterfactuals_are_rejected',
+    'test_row_write_and_graph_counterfactuals_are_rejected',
+    'test_locator_result_receipt_and_existing_projection_are_closed',
+    'test_work_spec_locator_exact_ref_relation_and_selection_are_closed',
+    'test_replay_counterfactuals_are_rejected',
+    'test_commit_recovery_counterfactuals_are_rejected',
+    'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related',
+    'test_preassigned_binding_mutants_b01_through_b08_are_rejected',
+    'test_original_apply_outcome_and_quarantine_branch_are_exact',
+    'test_original_apply_outcome_mutants_u09_through_u14_are_rejected',
+    'test_process_control_close_interruption_contract_is_exact',
+    'test_process_control_exception_graph_ledger_is_exact',
+    'test_bare_reraise_reference_model_distinguishes_named_reraise',
+    'test_keyboard_interrupt_close_fault_publishes_before_identical_propagation',
+    'test_system_exit_close_fault_publishes_before_identical_propagation',
+    'test_generator_exit_close_fault_publishes_before_identical_propagation',
+    'test_future_c2b3b_twenty_four_path_scope_is_exact',
+    'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected',
+    'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected',
+    'test_stop_conflict_and_receipt_counterfactuals_are_rejected',
+    'test_private_conflict_and_recovery_outcome_owners_are_closed',
+    'test_privacy_and_custody_counterfactuals_are_rejected',
+    'test_later_author_effect_counterfactuals_are_rejected',
+    'test_nonimplementation_surface_is_closed',
+)
 
 SECTION_HEADINGS = (
     "1. Status, Classification, And Layering",
@@ -46,6 +795,7 @@ SECTION_HEADINGS = (
     "32. C2B2 Private Reader Boundary",
     "33. Family Replay Deferral And Tranche Ownership",
     "34. C2B2 Remaining Nonimplementation",
+    "35. C2B3A Program-Initialization Contract Freeze",
 )
 
 DECISION_KINDS = (
@@ -753,6 +1503,1198 @@ def _top_level_fenced_blocks(
 
 def _unfenced_markdown(text: str, *, role: str) -> str:
     return _markdown_scan(text, role=role)[1]
+
+
+def _c2b3a_planning_markdown_prefix_stripped(line: str) -> str:
+    remaining = line
+    while True:
+        candidate = remaining.lstrip(" \t")
+        if candidate.startswith(">"):
+            remaining = candidate[1:]
+            continue
+        if (
+            len(candidate) >= 2
+            and candidate[0] in "-+*"
+            and candidate[1] in " \t"
+        ):
+            remaining = candidate[2:]
+            continue
+        digit_end = 0
+        while digit_end < len(candidate) and candidate[digit_end].isdigit():
+            digit_end += 1
+        if (
+            digit_end > 0
+            and digit_end + 1 < len(candidate)
+            and candidate[digit_end] in ".)"
+            and candidate[digit_end + 1] in " \t"
+        ):
+            remaining = candidate[digit_end + 2 :]
+            continue
+        return candidate
+
+
+def _c2b3a_planning_fence_candidate(
+    line: str,
+) -> tuple[str, int, str] | None:
+    candidate = _c2b3a_planning_markdown_prefix_stripped(line)
+    if not candidate or candidate[0] not in "`~":
+        return None
+    marker = candidate[0]
+    run_length = 0
+    while run_length < len(candidate) and candidate[run_length] == marker:
+        run_length += 1
+    if run_length < 3:
+        return None
+    remainder = candidate[run_length:]
+    if marker == "`" and "`" in remainder:
+        return None
+    return marker, run_length, remainder
+
+
+def _c2b3a_planning_normalized_line(line: str) -> str:
+    stripped = _c2b3a_planning_markdown_prefix_stripped(line)
+    lowered = stripped.lower()
+    ascii_spaced = lowered.replace("\t", " ")
+    pieces = ascii_spaced.split(" ")
+    normalized = " ".join(piece for piece in pieces if piece)
+    if normalized.endswith("."):
+        normalized = normalized[:-1]
+    return normalized
+
+
+def _c2b3a_planning_nonfenced_normalized_lines(text: str) -> tuple[str, ...]:
+    lines = text.splitlines()
+    if not lines or lines[0] != "# C2B3 Program Initialization":
+        raise AssertionError("C2B3A_CURRENT_SOURCE_CONTRADICTION")
+    prose: list[str] = []
+    fence: tuple[str, int] | None = None
+    for line in lines:
+        candidate = _c2b3a_planning_fence_candidate(line)
+        if fence is not None:
+            if (
+                candidate is not None
+                and candidate[0] == fence[0]
+                and candidate[1] >= fence[1]
+                and all(character in " \t" for character in candidate[2])
+            ):
+                fence = None
+            continue
+        if candidate is not None:
+            fence = (candidate[0], candidate[1])
+            continue
+        normalized = _c2b3a_planning_normalized_line(line)
+        if normalized:
+            prose.append(normalized)
+    if fence is not None:
+        raise AssertionError("C2B3A_CURRENT_SOURCE_CONTRADICTION")
+    return tuple(prose)
+
+
+def _assert_c2b3a_planning_status(text: str) -> None:
+    prose = _c2b3a_planning_nonfenced_normalized_lines(text)
+    if any(claim in prose for claim in C2B3A_PLANNING_AUTHORITY_CLAIMS):
+        raise AssertionError("C2B3A_PLANNING_AUTHORITY_CONTRADICTION")
+    if any(claim in prose for claim in C2B3A_PLANNING_CURRENT_SOURCE_CLAIMS):
+        raise AssertionError("C2B3A_CURRENT_SOURCE_CONTRADICTION")
+
+
+def _c2b3a_oracle_attribute_chain(node: ast.AST) -> str | None:
+    parts: list[str] = []
+    current = node
+    while isinstance(current, ast.Attribute):
+        parts.append(current.attr)
+        current = current.value
+    if not isinstance(current, ast.Name):
+        return None
+    parts.append(current.id)
+    return ".".join(reversed(parts))
+
+
+def _c2b3a_oracle_closed_literal(node: ast.AST) -> bool:
+    if isinstance(node, ast.Constant):
+        return True
+    if isinstance(node, (ast.Tuple, ast.List)):
+        return all(_c2b3a_oracle_closed_literal(element) for element in node.elts)
+    if isinstance(node, ast.Dict):
+        return all(
+            key is not None
+            and _c2b3a_oracle_closed_literal(key)
+            and _c2b3a_oracle_closed_literal(value)
+            for key, value in zip(node.keys, node.values, strict=True)
+        )
+    return (
+        isinstance(node, ast.UnaryOp)
+        and isinstance(node.op, ast.USub)
+        and isinstance(node.operand, ast.Constant)
+        and type(node.operand.value) in {int, float, complex}
+    )
+
+
+def _c2b3a_oracle_assigned_names(node: ast.AST) -> tuple[str, ...]:
+    if isinstance(node, ast.Name):
+        return (node.id,)
+    if isinstance(node, (ast.Tuple, ast.List)):
+        names: list[str] = []
+        for element in node.elts:
+            names.extend(_c2b3a_oracle_assigned_names(element))
+        return tuple(names)
+    if isinstance(node, ast.Starred):
+        return _c2b3a_oracle_assigned_names(node.value)
+    if isinstance(node, ast.MatchAs):
+        nested = (
+            _c2b3a_oracle_assigned_names(node.pattern)
+            if node.pattern is not None
+            else ()
+        )
+        return nested + ((node.name,) if node.name is not None else ())
+    if isinstance(node, ast.MatchStar):
+        return (node.name,) if node.name is not None else ()
+    if isinstance(node, ast.MatchMapping):
+        names = tuple(
+            name
+            for pattern in node.patterns
+            for name in _c2b3a_oracle_assigned_names(pattern)
+        )
+        return names + ((node.rest,) if node.rest is not None else ())
+    if isinstance(node, (ast.MatchSequence, ast.MatchOr)):
+        return tuple(
+            name
+            for pattern in node.patterns
+            for name in _c2b3a_oracle_assigned_names(pattern)
+        )
+    if isinstance(node, ast.MatchClass):
+        return tuple(
+            name
+            for pattern in (*node.patterns, *node.kwd_patterns)
+            for name in _c2b3a_oracle_assigned_names(pattern)
+        )
+    return ()
+
+
+def _c2b3a_oracle_enclosing_function(
+    node: ast.AST,
+    parents: dict[ast.AST, ast.AST],
+) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+    current = parents.get(node)
+    while current is not None:
+        if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return current
+        current = parents.get(current)
+    return None
+
+
+def _c2b3a_oracle_function_parameters(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> tuple[str, ...]:
+    parameters = tuple(
+        argument.arg
+        for argument in (
+            *node.args.posonlyargs,
+            *node.args.args,
+            *node.args.kwonlyargs,
+        )
+    )
+    if node.args.vararg is not None:
+        parameters += (node.args.vararg.arg,)
+    if node.args.kwarg is not None:
+        parameters += (node.args.kwarg.arg,)
+    return parameters
+
+
+def _c2b3a_oracle_literal_assignment(
+    tree: ast.Module,
+    name: str,
+) -> ast.Assign:
+    assignments = tuple(
+        statement
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id == name
+    )
+    if len(assignments) != 1:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
+    assignment = assignments[0]
+    if not isinstance(assignment.value, ast.Dict):
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
+    if not _c2b3a_oracle_closed_literal(assignment.value):
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
+    return assignment
+
+
+def _c2b3a_oracle_protected_load_role(
+    node: ast.Name,
+    parents: dict[ast.AST, ast.AST],
+) -> str | None:
+    parent = parents.get(node)
+    if isinstance(parent, ast.Call) and parent.func is node:
+        return "direct_call_func"
+
+    expression: ast.AST = node
+    while isinstance(parent, ast.Subscript) and parent.value is expression:
+        expression = parent
+        parent = parents.get(expression)
+
+    if isinstance(parent, ast.Compare) and (
+        parent.left is expression or expression in parent.comparators
+    ):
+        return "direct_comparison_operand"
+    if isinstance(parent, ast.Assert) and parent.test is expression:
+        return "direct_assert_operand"
+    if isinstance(parent, ast.Call) and (
+        expression in parent.args
+        or any(keyword.value is expression for keyword in parent.keywords)
+    ):
+        return "direct_candidate_argument"
+    return None
+
+
+def _c2b3a_oracle_protected_load_sites(
+    tree: ast.Module,
+    parents: dict[ast.AST, ast.AST],
+) -> tuple[tuple[object, ...], ...]:
+    protected_names = (
+        C2B3A_ORACLE_PROTECTED_EXPECTED_VALUE_NAMES
+        + C2B3A_ORACLE_PROTECTED_CANDIDATE_VALUE_NAMES
+        + C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES
+    )
+    if len(set(protected_names)) != len(protected_names):
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
+    protected_name_set = set(protected_names)
+    loads = sorted(
+        (
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Load)
+            and node.id in protected_name_set
+        ),
+        key=lambda node: (
+            node.lineno,
+            node.col_offset,
+            node.end_lineno if node.end_lineno is not None else -1,
+            node.end_col_offset if node.end_col_offset is not None else -1,
+        ),
+    )
+    ordinals: dict[tuple[str, str | None, str | None], int] = {}
+    records: list[tuple[object, ...]] = []
+    for node in loads:
+        functions: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
+        current = parents.get(node)
+        ancestor_kinds = [type(node).__name__]
+        while current is not None:
+            ancestor_kinds.append(type(current).__name__)
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                functions.append(current)
+            current = parents.get(current)
+        top_level_function = functions[-1].name if functions else None
+        nested_function = functions[0].name if len(functions) > 1 else None
+        ordinal_key = (node.id, top_level_function, nested_function)
+        ordinal = ordinals.get(ordinal_key, 0)
+        ordinals[ordinal_key] = ordinal + 1
+        records.append(
+            (
+                node.id,
+                top_level_function,
+                nested_function,
+                _c2b3a_oracle_protected_load_role(node, parents),
+                tuple(ancestor_kinds),
+                ordinal,
+            )
+        )
+    return tuple(records)
+
+
+def _assert_c2b3a_oracle_collection_architecture(
+    tree: ast.Module,
+    parents: dict[ast.AST, ast.AST],
+) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+    forbidden_module_bindings = {
+        "__all__",
+        "__test__",
+        "pytest_plugins",
+        "pytestmark",
+    }
+    test_function_names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.name.startswith("pytest_"):
+                raise AssertionError(diagnostic)
+            if node.name.startswith("test_"):
+                if parents.get(node) is not tree or node.name in test_function_names:
+                    raise AssertionError(diagnostic)
+                test_function_names.add(node.name)
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            for target in targets:
+                root = target
+                while isinstance(root, (ast.Attribute, ast.Subscript)):
+                    root = root.value
+                if not isinstance(root, ast.Name):
+                    continue
+                if root.id in forbidden_module_bindings:
+                    raise AssertionError(diagnostic)
+                if root.id.startswith("test_"):
+                    raise AssertionError(diagnostic)
+        if isinstance(node, ast.Delete):
+            for target in node.targets:
+                root = target
+                while isinstance(root, (ast.Attribute, ast.Subscript)):
+                    root = root.value
+                if isinstance(root, ast.Name) and root.id.startswith("test_"):
+                    raise AssertionError(diagnostic)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            chain = _c2b3a_oracle_attribute_chain(node.func)
+            if chain in {"pytest.exit", "pytest.skip"}:
+                raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+    try:
+        tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    except SyntaxError:
+        raise AssertionError(diagnostic) from None
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    _assert_c2b3a_oracle_collection_architecture(tree, parents)
+    top_level_ids = {id(statement) for statement in tree.body}
+
+    import_signatures: list[tuple[str, str, str | None]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if id(node) not in top_level_ids:
+                raise AssertionError(diagnostic)
+            for item in node.names:
+                if item.asname is not None:
+                    raise AssertionError(diagnostic)
+                import_signatures.append(("import", item.name, None))
+        elif isinstance(node, ast.ImportFrom):
+            if id(node) not in top_level_ids or node.level != 0:
+                raise AssertionError(diagnostic)
+            if node.module is None:
+                raise AssertionError(diagnostic)
+            for item in node.names:
+                if item.asname is not None:
+                    raise AssertionError(diagnostic)
+                import_signatures.append(("from", node.module, item.name))
+    if tuple(import_signatures) != (
+        ("import", "ast", None),
+        ("from", "copy", "deepcopy"),
+        ("from", "pathlib", "Path"),
+        ("import", "pytest", None),
+    ):
+        raise AssertionError(diagnostic)
+    if tuple(sorted({item[1] for item in import_signatures})) != tuple(
+        sorted(C2B3A_ORACLE_ALLOWED_IMPORTS)
+    ):
+        raise AssertionError(diagnostic)
+
+    expected_names = (
+        "EXPECTED_INITIALIZATION_CONTRACT",
+        "EXPECTED_INITIALIZATION_GOLDEN_VECTOR",
+    )
+    expected_assignments = {
+        name: _c2b3a_oracle_literal_assignment(tree, name)
+        for name in expected_names
+    }
+    if any(isinstance(node, (ast.Global, ast.Nonlocal)) for node in ast.walk(tree)):
+        raise AssertionError(diagnostic)
+
+    protected_callable_bindings = set(C2B3A_ORACLE_ALLOWED_DIRECT_CALLS) | {
+        "ast",
+        "deepcopy",
+        "Path",
+        "pytest",
+    }
+    for node in ast.walk(tree):
+        bindings: tuple[str, ...] = ()
+        if isinstance(node, ast.Assign):
+            bindings = tuple(
+                name
+                for target in node.targets
+                for name in _c2b3a_oracle_assigned_names(target)
+            )
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+            bindings = _c2b3a_oracle_assigned_names(node.target)
+        elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+            bindings = _c2b3a_oracle_assigned_names(node.target)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            bindings = tuple(
+                name
+                for item in node.items
+                if item.optional_vars is not None
+                for name in _c2b3a_oracle_assigned_names(item.optional_vars)
+            )
+        elif isinstance(node, ast.ExceptHandler) and node.name is not None:
+            bindings = (node.name,)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            bindings = (node.name,) + _c2b3a_oracle_function_parameters(node)
+        elif isinstance(node, ast.ClassDef):
+            bindings = (node.name,)
+        elif isinstance(
+            node,
+            (
+                ast.MatchAs,
+                ast.MatchStar,
+                ast.MatchMapping,
+                ast.MatchSequence,
+                ast.MatchClass,
+                ast.MatchOr,
+            ),
+        ):
+            bindings = _c2b3a_oracle_assigned_names(node)
+        elif isinstance(node, ast.Delete):
+            bindings = tuple(
+                name
+                for target in node.targets
+                for name in _c2b3a_oracle_assigned_names(target)
+            )
+        for name in bindings:
+            if name in expected_names:
+                if not (
+                    isinstance(node, ast.Assign)
+                    and node is expected_assignments[name]
+                    and id(node) in top_level_ids
+                ):
+                    raise AssertionError(diagnostic)
+            if name in protected_callable_bindings:
+                permitted_definition = (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name == name
+                    and id(node) in top_level_ids
+                ) or (
+                    isinstance(node, ast.ClassDef)
+                    and node.name == "_ContractViolation"
+                    and name == "_ContractViolation"
+                    and id(node) in top_level_ids
+                )
+                if not permitted_definition:
+                    raise AssertionError(diagnostic)
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            parent = parents.get(node)
+            while parent is not None:
+                if isinstance(
+                    parent,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+                ):
+                    raise AssertionError(diagnostic)
+                parent = parents.get(parent)
+
+    function_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    forbidden_dynamic_names = {
+        "eval",
+        "exec",
+        "compile",
+        "getattr",
+        "setattr",
+        "delattr",
+        "globals",
+        "locals",
+        "vars",
+        "__import__",
+        "import_module",
+        "builtins",
+        "__builtins__",
+        "hash",
+        "open",
+    }
+    forbidden_file_attributes = {
+        "open",
+        "read_bytes",
+        "readlink",
+        "glob",
+        "rglob",
+        "iterdir",
+        "cwd",
+        "home",
+    }
+    read_text_calls: list[ast.Call] = []
+    path_calls: list[ast.Call] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            if node.id in forbidden_dynamic_names:
+                raise AssertionError(diagnostic)
+        if isinstance(node, ast.Attribute):
+            if node.attr in forbidden_dynamic_names or node.attr == "__call__":
+                raise AssertionError(diagnostic)
+            if node.attr in forbidden_file_attributes:
+                raise AssertionError(diagnostic)
+            if node.attr == "read_text":
+                parent = parents.get(node)
+                if not isinstance(parent, ast.Call) or parent.func is not node:
+                    raise AssertionError(diagnostic)
+        if isinstance(node, (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp)):
+            if isinstance(node, ast.Lambda):
+                raise AssertionError(diagnostic)
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            call_name = node.func.id
+            if call_name not in C2B3A_ORACLE_ALLOWED_DIRECT_CALLS:
+                raise AssertionError(diagnostic)
+            enclosing = _c2b3a_oracle_enclosing_function(node, parents)
+            if (
+                enclosing is not None
+                and call_name in _c2b3a_oracle_function_parameters(enclosing)
+            ):
+                raise AssertionError(diagnostic)
+            if call_name == "Path":
+                path_calls.append(node)
+            if call_name == "_read_allowed_text":
+                if (
+                    len(node.args) != 1
+                    or not isinstance(node.args[0], ast.Name)
+                    or node.args[0].id
+                    not in {"OWNER_PATH", "PLANNING_PATH", "TEST_PATH"}
+                    or node.keywords
+                ):
+                    raise AssertionError(diagnostic)
+        elif isinstance(node.func, ast.Attribute):
+            chain = _c2b3a_oracle_attribute_chain(node.func)
+            if chain not in C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS:
+                raise AssertionError(diagnostic)
+            if chain == "resolved.read_text":
+                read_text_calls.append(node)
+        else:
+            raise AssertionError(diagnostic)
+
+    if len(path_calls) != 1:
+        raise AssertionError(diagnostic)
+    path_call = path_calls[0]
+    path_parent = parents.get(path_call)
+    if (
+        len(path_call.args) != 1
+        or not isinstance(path_call.args[0], ast.Name)
+        or path_call.args[0].id != "__file__"
+        or path_call.keywords
+        or not isinstance(path_parent, ast.Assign)
+        or id(path_parent) not in top_level_ids
+        or len(path_parent.targets) != 1
+        or not isinstance(path_parent.targets[0], ast.Name)
+        or path_parent.targets[0].id != "ORACLE_SOURCE_PATH"
+    ):
+        raise AssertionError(diagnostic)
+    if len(read_text_calls) != 1:
+        raise AssertionError(diagnostic)
+    read_call = read_text_calls[0]
+    read_owner = _c2b3a_oracle_enclosing_function(read_call, parents)
+    if (
+        read_owner is None
+        or read_owner.name != "_read_allowed_text"
+        or read_call.args
+        or len(read_call.keywords) != 1
+        or read_call.keywords[0].arg != "encoding"
+        or not isinstance(read_call.keywords[0].value, ast.Constant)
+        or read_call.keywords[0].value.value != "utf-8"
+    ):
+        raise AssertionError(diagnostic)
+
+    relative_assignments = tuple(
+        statement
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id == "ALLOWED_ORACLE_RELATIVE_PATHS"
+    )
+    if len(relative_assignments) != 1:
+        raise AssertionError(diagnostic)
+    relative_assignment = relative_assignments[0]
+    if not _c2b3a_oracle_closed_literal(relative_assignment.value):
+        raise AssertionError(diagnostic)
+    try:
+        relative_reads = ast.literal_eval(relative_assignment.value)
+    except (SyntaxError, ValueError):
+        raise AssertionError(diagnostic) from None
+    if relative_reads != C2B3A_ORACLE_ALLOWED_RELATIVE_READS:
+        raise AssertionError(diagnostic)
+    helper_calls = {
+        _c2b3a_oracle_attribute_chain(node.func)
+        for node in ast.walk(read_owner)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+    if not {
+        "path.relative_to",
+        "relative.as_posix",
+        "expected.is_symlink",
+        "expected.resolve",
+        "resolved.read_text",
+    }.issubset(helper_calls):
+        raise AssertionError(diagnostic)
+    helper_comparisons = tuple(
+        node for node in ast.walk(read_owner) if isinstance(node, ast.Compare)
+    )
+    helper_compare_source = " ".join(ast.unparse(node) for node in helper_comparisons)
+    if (
+        "requested in ALLOWED_ORACLE_RELATIVE_PATHS" not in helper_compare_source
+        or "resolved == expected" not in helper_compare_source
+        or "path == expected" not in helper_compare_source
+    ):
+        raise AssertionError(diagnostic)
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            lowered_name = node.name.lower()
+            if any(
+                token in lowered_name
+                for token in ("dispatcher", "runner", "case_executor")
+            ):
+                raise AssertionError(diagnostic)
+            defaults = tuple(node.args.defaults) + tuple(
+                default
+                for default in node.args.kw_defaults
+                if default is not None
+            )
+            if any(not _c2b3a_oracle_closed_literal(default) for default in defaults):
+                raise AssertionError(diagnostic)
+            annotations = tuple(
+                annotation
+                for annotation in (
+                    node.returns,
+                    *(argument.annotation for argument in node.args.posonlyargs),
+                    *(argument.annotation for argument in node.args.args),
+                    *(argument.annotation for argument in node.args.kwonlyargs),
+                    node.args.vararg.annotation if node.args.vararg else None,
+                    node.args.kwarg.annotation if node.args.kwarg else None,
+                )
+                if annotation is not None
+            )
+            for annotation in annotations:
+                if any(isinstance(item, (ast.Call, ast.Lambda)) for item in ast.walk(annotation)):
+                    raise AssertionError(diagnostic)
+                if any(
+                    isinstance(item, ast.Name) and item.id in function_names
+                    for item in ast.walk(annotation)
+                ):
+                    raise AssertionError(diagnostic)
+            for decorator in node.decorator_list:
+                if not isinstance(decorator, ast.Call):
+                    raise AssertionError(diagnostic)
+                if (
+                    _c2b3a_oracle_attribute_chain(decorator.func)
+                    != "pytest.mark.parametrize"
+                ):
+                    raise AssertionError(diagnostic)
+                if any(
+                    not _c2b3a_oracle_closed_literal(argument)
+                    for argument in decorator.args
+                ):
+                    raise AssertionError(diagnostic)
+                if any(
+                    keyword.arg is None
+                    or not _c2b3a_oracle_closed_literal(keyword.value)
+                    for keyword in decorator.keywords
+                ):
+                    raise AssertionError(diagnostic)
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            target_names = tuple(
+                name
+                for target in targets
+                for name in _c2b3a_oracle_assigned_names(target)
+            )
+            if any(
+                token in name.lower()
+                for name in target_names
+                for token in ("registry", "dispatcher", "runners", "callables")
+            ):
+                raise AssertionError(diagnostic)
+            value = node.value
+            if value is None:
+                continue
+            for item in ast.walk(value):
+                if not isinstance(item, ast.Name) or item.id not in function_names:
+                    continue
+                parent = parents.get(item)
+                if isinstance(parent, ast.Call) and parent.func is item:
+                    continue
+                raise AssertionError(diagnostic)
+
+    expected_aliases = set(expected_names)
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            value_root = node.value
+            while isinstance(value_root, (ast.Attribute, ast.Subscript)):
+                value_root = value_root.value
+            if (
+                not isinstance(value_root, ast.Name)
+                or value_root.id not in expected_aliases
+            ):
+                continue
+            aliases = _c2b3a_oracle_assigned_names(node.targets[0])
+            for alias in aliases:
+                if alias not in expected_aliases:
+                    expected_aliases.add(alias)
+                    changed = True
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Delete)):
+            targets: tuple[ast.AST, ...]
+            if isinstance(node, ast.Assign):
+                targets = tuple(node.targets)
+            elif isinstance(node, ast.Delete):
+                targets = tuple(node.targets)
+            else:
+                targets = (node.target,)
+            for target in targets:
+                root = target
+                while isinstance(root, (ast.Attribute, ast.Subscript)):
+                    root = root.value
+                if (
+                    isinstance(root, ast.Name)
+                    and root.id in expected_aliases
+                    and not isinstance(target, ast.Name)
+                ):
+                    raise AssertionError(diagnostic)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            root = node.func.value
+            while isinstance(root, (ast.Attribute, ast.Subscript)):
+                root = root.value
+            if isinstance(root, ast.Name) and root.id in expected_aliases:
+                raise AssertionError(diagnostic)
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.For, ast.AsyncFor)):
+            loop_names = set(_c2b3a_oracle_assigned_names(node.target))
+            for descendant in ast.walk(node):
+                if (
+                    isinstance(descendant, ast.Call)
+                    and isinstance(descendant.func, ast.Name)
+                    and descendant.func.id in loop_names
+                ):
+                    raise AssertionError(diagnostic)
+        if isinstance(node, ast.comprehension):
+            loop_names = set(_c2b3a_oracle_assigned_names(node.target))
+            parent = parents.get(node)
+            while parent is not None and not isinstance(
+                parent,
+                (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp),
+            ):
+                parent = parents.get(parent)
+            if parent is None:
+                raise AssertionError(diagnostic)
+            for descendant in ast.walk(parent):
+                if (
+                    isinstance(descendant, ast.Call)
+                    and isinstance(descendant.func, ast.Name)
+                    and descendant.func.id in loop_names
+                ):
+                    raise AssertionError(diagnostic)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            chain = _c2b3a_oracle_attribute_chain(node.func)
+            if chain is not None and any(
+                token in chain.lower()
+                for token in ("hexdigest", "sha256", "source_hash", "candidate_hash")
+            ):
+                raise AssertionError(diagnostic)
+
+    if not set(C2B3A_ORACLE_PROTECTED_READER_PARSER_NAMES).issubset(
+        C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES
+    ):
+        raise AssertionError(diagnostic)
+    if not set(C2B3A_ORACLE_PROTECTED_VALIDATION_HELPER_NAMES).issubset(
+        C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES
+    ):
+        raise AssertionError(diagnostic)
+    observed_load_sites = _c2b3a_oracle_protected_load_sites(tree, parents)
+    if observed_load_sites != C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES:
+        raise AssertionError(diagnostic)
+
+
+def _c2b3a_bounded_oracle_source() -> str:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+    if C2B3A_ORACLE_PATH.is_symlink():
+        raise AssertionError(diagnostic)
+    try:
+        resolved = C2B3A_ORACLE_PATH.resolve(strict=True)
+    except (OSError, RuntimeError):
+        raise AssertionError(diagnostic) from None
+    if resolved != C2B3A_ORACLE_PATH:
+        raise AssertionError(diagnostic)
+    return resolved.read_text(encoding="utf-8")
+
+
+def _c2b3a_process_control_candidate(source: str) -> dict[str, object]:
+    try:
+        tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+        assignment = _c2b3a_oracle_literal_assignment(
+            tree,
+            "EXPECTED_INITIALIZATION_CONTRACT",
+        )
+        candidate = ast.literal_eval(assignment.value)
+    except (AssertionError, SyntaxError, ValueError):
+        raise AssertionError("C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY") from None
+    if type(candidate) is not dict:
+        raise AssertionError("C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY")
+    return candidate
+
+
+def _assert_c2b3a_process_control_candidate(candidate: object) -> None:
+    try:
+        close_not_proved = candidate["commit_uncertainty_cleanup_gate"][
+            "close_not_proved"
+        ]
+        branches = close_not_proved["process_control_exceptions"]
+    except (KeyError, TypeError):
+        raise AssertionError("C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY") from None
+    if type(branches) is not dict or tuple(branches) != (
+        "KeyboardInterrupt",
+        "SystemExit",
+        "GeneratorExit",
+    ):
+        raise AssertionError("C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY")
+    for branch_name in (
+        "KeyboardInterrupt",
+        "SystemExit",
+        "GeneratorExit",
+    ):
+        branch = branches[branch_name]
+        if type(branch) is not dict:
+            raise AssertionError("C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER")
+        if branch.get("exception_identity_preserved") is not True:
+            raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_IDENTITY")
+        if any(
+            identity_key in branch
+            for identity_key in (
+                "replacement_exception_object",
+                "changed_exception_args",
+                "changed_system_exit_code",
+            )
+        ):
+            raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_IDENTITY")
+    if close_not_proved.get(
+        "process_control_close_interruption_ordered_steps"
+    ) != C2B3A_PROCESS_CONTROL_ORDERED_STEPS:
+        raise AssertionError("C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER")
+    if branches != C2B3A_PROCESS_CONTROL_BRANCH_FACTS:
+        raise AssertionError("C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER")
+    ledger = close_not_proved.get("process_control_exception_graph_ledger")
+    if type(ledger) is not tuple or ledger != C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_LEDGER:
+        raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID")
+    if tuple(row.get("branch_name") for row in ledger) != (
+        "KeyboardInterrupt",
+        "SystemExit",
+        "GeneratorExit",
+    ):
+        raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID")
+    if any(
+        type(row) is not dict
+        or tuple(row) != C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_FIELDS
+        for row in ledger
+    ):
+        raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID")
+    privacy = candidate["commit_uncertainty_cleanup_gate"].get(
+        "process_control_exception_graph_privacy"
+    )
+    if privacy != C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY:
+        raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID")
+    forbidden_material = candidate["commit_uncertainty_cleanup_gate"].get(
+        "forbidden_outward_material"
+    )
+    if forbidden_material != (
+        "raw connection",
+        "cursor",
+        "transaction controller",
+        "mutation-slot object",
+        "writer-lock object",
+        "quarantine object",
+        "ordinary commit exception",
+        "close implementation details",
+        "SQLite path",
+        "SQL or parameters",
+        "WorkSpec material",
+    ):
+        raise AssertionError("C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER")
+
+
+def _assert_c2b3a_process_control_failure(
+    candidate: object,
+    diagnostic: str,
+) -> None:
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_process_control_candidate(candidate)
+    assert str(exc_info.value) == diagnostic
+
+
+def _assert_c2b3a_process_control_oracle_controls(source: str) -> None:
+    graph_diagnostic = "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID"
+    privacy_diagnostic = "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID"
+    try:
+        tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    except SyntaxError:
+        raise AssertionError(graph_diagnostic) from None
+    top_level_functions = {
+        statement.name: statement
+        for statement in tree.body
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    for branch_name, function_name, expected_argument in (
+        C2B3A_PROCESS_CONTROL_POSITIVE_MODELS
+    ):
+        function = top_level_functions.get(function_name)
+        if function is None:
+            raise AssertionError(graph_diagnostic)
+        function_source = ast.get_source_segment(source, function)
+        if function_source is None:
+            raise AssertionError(graph_diagnostic)
+        if "repair4-private-" in function_source:
+            raise AssertionError(privacy_diagnostic)
+
+        injected_assignments = tuple(
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == "injected_exception"
+        )
+        if len(injected_assignments) != 1:
+            raise AssertionError(graph_diagnostic)
+        injected = injected_assignments[0].value
+        if (
+            not isinstance(injected, ast.Call)
+            or not isinstance(injected.func, ast.Name)
+            or injected.func.id != branch_name
+            or len(injected.args) != 1
+            or not isinstance(injected.args[0], ast.Constant)
+            or injected.args[0].value != expected_argument
+            or injected.keywords
+        ):
+            raise AssertionError(graph_diagnostic)
+
+        caught_handlers = tuple(
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.ExceptHandler)
+            and isinstance(node.type, ast.Name)
+            and node.type.id == branch_name
+            and node.name == "caught_exception"
+        )
+        propagated_handlers = tuple(
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.ExceptHandler)
+            and isinstance(node.type, ast.Name)
+            and node.type.id == branch_name
+            and node.name == "propagated_exception"
+        )
+        if len(caught_handlers) != 1 or len(propagated_handlers) != 1:
+            raise AssertionError(graph_diagnostic)
+        caught_handler = caught_handlers[0]
+        raises = tuple(
+            node for node in ast.walk(caught_handler) if isinstance(node, ast.Raise)
+        )
+        if (
+            len(raises) != 1
+            or caught_handler.body[-1] is not raises[0]
+            or raises[0].exc is not None
+            or raises[0].cause is not None
+        ):
+            raise AssertionError(graph_diagnostic)
+
+        for node in ast.walk(caught_handler):
+            targets: tuple[ast.AST, ...] = ()
+            if isinstance(node, ast.Assign):
+                targets = tuple(node.targets)
+            elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+                targets = (node.target,)
+            for target in targets:
+                root = target
+                while isinstance(root, (ast.Attribute, ast.Subscript)):
+                    root = root.value
+                if isinstance(root, ast.Name) and root.id == "caught_exception":
+                    raise AssertionError(graph_diagnostic)
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "caught_exception"
+                and node.func.attr in {"add_note", "with_traceback"}
+            ):
+                raise AssertionError(graph_diagnostic)
+
+        direct_calls = {
+            node.func.id
+            for node in ast.walk(function)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        if not {
+            "_bare_reraise_reference",
+            "_exception_graph_snapshot",
+            "_process_control_exception_graph_contains_private_material",
+            "_traceback_signature",
+        }.issubset(direct_calls):
+            raise AssertionError(graph_diagnostic)
+        required_source = (
+            "caught_traceback_tail = caught_exception.__traceback__",
+            "propagated_exception.__traceback__ is caught_traceback_tail",
+            "caught_exception_graph == (None, None, False, False, None)",
+            "len(propagated_traceback_signature) - len(caught_traceback_signature) == 0",
+        )
+        normalized_source = ast.unparse(function)
+        if any(item not in normalized_source for item in required_source):
+            raise AssertionError(graph_diagnostic)
+
+
+def _c2b3a_process_control_oracle_mutant(
+    source: str,
+    branch_name: str,
+    replacement: str,
+) -> str:
+    caught_anchor = f"        except {branch_name} as caught_exception:\n"
+    propagated_anchor = f"    except {branch_name} as propagated_exception:\n"
+    caught_index = source.index(caught_anchor)
+    propagated_index = source.index(propagated_anchor, caught_index)
+    bare_raise = "            raise\n"
+    raise_index = source.rfind(bare_raise, caught_index, propagated_index)
+    if raise_index < 0:
+        raise AssertionError("C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID")
+    return source[:raise_index] + replacement + source[raise_index + len(bare_raise) :]
+
+
+def _assert_c2b3a_protected_factory_policy(source: str) -> None:
+    diagnostic = "C2B3A_PROTECTED_EXPECTED_FACTORY_ROUTE_INVALID"
+    try:
+        tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    except SyntaxError:
+        raise AssertionError(diagnostic) from None
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    observed = tuple(
+        record
+        for record in _c2b3a_oracle_protected_load_sites(tree, parents)
+        if record[0] in {"_candidate", "_golden_candidate"}
+    )
+    expected = tuple(
+        record
+        for record in C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES
+        if record[0] in {"_candidate", "_golden_candidate"}
+    )
+    if observed != expected or any(record[3] != "direct_call_func" for record in observed):
+        raise AssertionError(diagnostic)
+
+
+def _c2b3a_physically_import_and_collect_mutant(
+    tmp_path: Path,
+    mutant_id: str,
+    source: str,
+) -> None:
+    mirror_root = tmp_path / mutant_id.lower()
+    tests_root = mirror_root / "tests"
+    tests_root.mkdir(mode=0o700, parents=True)
+    mutant_path = tests_root / C2B3A_ORACLE_PATH.name
+    written = mutant_path.write_text(source, encoding="utf-8")
+    assert written == len(source)
+
+    import_tmp = mirror_root / "import-tmp"
+    import_pycache = mirror_root / "import-pycache"
+    collect_tmp = mirror_root / "collect-tmp"
+    collect_pycache = mirror_root / "collect-pycache"
+    collect_basetemp = mirror_root / "collect-basetemp"
+    for directory in (
+        import_tmp,
+        import_pycache,
+        collect_tmp,
+        collect_pycache,
+    ):
+        directory.mkdir(mode=0o700)
+
+    import_program = (
+        "import importlib.util,pathlib,sys; "
+        "path=pathlib.Path(sys.argv[1]).resolve(strict=True); "
+        "spec=importlib.util.spec_from_file_location(sys.argv[2],path); "
+        "module=importlib.util.module_from_spec(spec); "
+        "sys.modules[spec.name]=module; "
+        "spec.loader.exec_module(module); "
+        "assert module.TEST_PATH == path"
+    )
+    imported = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-c",
+            import_program,
+            str(mutant_path),
+            "c2b3a_" + mutant_id.lower(),
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(import_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(import_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert imported.returncode == 0, imported.stderr
+    assert imported.stdout == ""
+    assert imported.stderr == ""
+
+    collected = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "-W",
+            "error",
+            f"--basetemp={collect_basetemp}",
+            "--collect-only",
+            "-q",
+            str(mutant_path),
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(collect_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(collect_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert collected.returncode == 0, collected.stderr
+    collected_nodes = tuple(
+        line.split("::", 1)[1]
+        for line in collected.stdout.splitlines()
+        if C2B3A_ORACLE_PATH.name + "::" in line
+    )
+    assert collected_nodes == C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES
+    assert (
+        f"{len(C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES)} tests collected"
+        in collected.stdout
+    )
+    assert " warning" not in collected.stdout.lower()
+    assert collected.stderr == ""
 
 
 def _section(text: str, heading: str) -> str:
@@ -3031,7 +4973,13 @@ def test_direct_negative_privacy_schema_scope_and_tranche_mutations_fail() -> No
     with pytest.raises(AssertionError):
         _assert_schema_contract(text + "\nC2B uses one broad migration.\n")
     with pytest.raises(AssertionError):
-        _assert_tranche_contract(_replace_once(text, "bound validation/review/cancellation effects", "no bound-effect owner"))
+        _assert_tranche_contract(
+            _replace_once(
+                text,
+                "C2B5: application generation 2; terminal tip 0003; source-observation ingest, cancel and redeliver decisions, bound validation/review/cancellation effects, knowledge and recovery; no external I/O",
+                "C2B5: application generation 2; terminal tip 0003; source-observation ingest, cancel and redeliver decisions, no bound-effect owner, knowledge and recovery; no external I/O",
+            )
+        )
 
     hybrid = _compact(_section(text, SECTION_HEADINGS[3]))
     assert "one generic event ledger" in hybrid
@@ -4317,3 +6265,1212 @@ def test_c2b2_field_level_freeze_has_physical_and_pure_value_slices() -> None:
         / "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql"
     ).is_file()
     assert not (ROOT / "tests/test_c2b2_field_level_contract.py").is_symlink()
+
+
+def test_c2b3a_status_is_frozen_without_initialization_or_author_source() -> None:
+    owner = _owner()
+    freeze = _compact(_section(owner, SECTION_HEADINGS[34]))
+    planning_text = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    _assert_c2b3a_planning_status(planning_text)
+    planning = _compact(planning_text)
+    production = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py")
+    )
+
+    for phrase in (
+        "ACCEPTED TARGET CONTRACT` for the program-initialization family only",
+        "single-work-item genesis shape is a bounded first vertical slice",
+        "Program-initialization source, private delegation, product mutation, receipt persistence, replay/recovery runtime, public API, author-effect source, and migration 0003 are absent",
+        "This section is the sole semantic owner for C2B3A",
+        "planning only; not semantic authority",
+        "\"selected_semantic_attempt_ref\", None",
+        "\"selected_candidate_ref\", None",
+        "C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON_BEGIN",
+        "commit_uncertainty_cleanup_gate",
+        "private_outcome_ownership",
+        "returned binding work_spec_ref equals safe-command work_spec_ref and graph-entry expected work_spec_ref",
+        "complete_contract_frozen\": False",
+        "source_implemented\": False",
+        "`KeyboardInterrupt`, `SystemExit`, and `GeneratorExit` are the exact closed process-control close-interruption inventory",
+    ):
+        assert phrase in freeze
+
+    for phrase in (
+        "planning and implementation-status record",
+        "This document is not semantic authority",
+        "Program-initialization source, private delegation, product mutation, receipt persistence, production reader integration, exact replay runtime, commit-outcome recovery runtime, and the complete author-effect contract/source are absent",
+        "independent read-only audit",
+        "committed C2B3A owner literal",
+        "C2B3B_PRIVATE_ATOMIC_INITIALIZATION",
+        "maximum of twenty-four paths",
+        "sqlite_transition_transaction.py",
+        "sqlite_writer_session.py",
+        "sqlite_connection.py",
+        "row_and_head_ledger.postimages.initialize_decision",
+        "commit_uncertainty_cleanup_gate",
+        "private_outcome_ownership",
+        "complete_graph_locator",
+        "owns no process-control result or enum",
+        "owns the narrow close-interruption catch point",
+        "acknowledges quarantine publication before the transaction",
+        "may surface the exact close-time `KeyboardInterrupt`, `SystemExit`, or `GeneratorExit`",
+        "The exact process-control close-interruption branches are",
+    ):
+        assert phrase in planning
+
+    for source_name in (
+        "DevelopmentProgramInitializationCommandV1",
+        "DevelopmentProgramInitializationResultV1",
+        "DevelopmentProgramInitializationRecoveryResultV1",
+    ):
+        assert source_name not in production
+
+    assert not (ROOT / "src/ge_nwp_coordinator/c2b3_program_initialization.py").exists()
+
+
+def test_c2b3a_dedicated_oracle_has_independent_architecture_guard() -> None:
+    source = _c2b3a_bounded_oracle_source()
+    _assert_c2b3a_independent_oracle_architecture(source)
+
+
+def test_c2b3a_protected_callable_inventory_has_exact_seventeen_names() -> None:
+    assert C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES == (
+        "_assert_future_c2b3b_scope",
+        "_assert_oracle_architecture",
+        "_assert_original_apply_outcome",
+        "_assert_preassigned_binding",
+        "_candidate",
+        "_golden_candidate",
+        "_owner_contract",
+        "_owner_golden_vector",
+        "_planning_fence_candidate",
+        "_planning_markdown_prefix_stripped",
+        "_planning_mutant_at_position",
+        "_planning_nonfenced_normalized_lines",
+        "_planning_normalized_line",
+        "_read_allowed_text",
+        "_validate_contract",
+        "_validate_golden_vector",
+        "_validate_planning_status",
+    )
+    source = _c2b3a_bounded_oracle_source()
+    _assert_c2b3a_protected_factory_policy(source)
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    factory_records = tuple(
+        record
+        for record in _c2b3a_oracle_protected_load_sites(tree, parents)
+        if record[0] in {"_candidate", "_golden_candidate"}
+    )
+    assert sum(record[0] == "_candidate" for record in factory_records) == 125
+    assert sum(record[0] == "_golden_candidate" for record in factory_records) == 16
+
+
+@pytest.mark.parametrize(
+    ("mutant_id", "snippet"),
+    (
+        (
+            "F12",
+            "\ndef __getattr__(name):\n    if name == 'repair4_candidate_truth':\n        return _candidate()\n    raise AttributeError\n",
+        ),
+        (
+            "F13",
+            "\ndef _repair4_golden_wrapper():\n    return _golden_candidate()\n",
+        ),
+        (
+            "F14",
+            "\ndef _repair4_candidate_wrapper():\n    return _candidate()\n",
+        ),
+        (
+            "F15",
+            "\ndef __getattr__(name):\n    if name == 'repair4_golden_truth':\n        return _golden_candidate()\n    raise AttributeError\n",
+        ),
+    ),
+    ids=("F12", "F13", "F14", "F15"),
+)
+def test_c2b3a_protected_expected_factories_reject_f12_through_f15_physically(
+    mutant_id: str,
+    snippet: str,
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    insertion = "\ndef test_owner_literal_equals_independent_expected_contract"
+    assert insertion in source
+    mutant = source.replace(insertion, snippet + insertion, 1)
+    ast.parse(mutant, filename=mutant_id)
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        mutant_id,
+        mutant,
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_protected_factory_policy(mutant)
+    assert str(exc_info.value) == "C2B3A_PROTECTED_EXPECTED_FACTORY_ROUTE_INVALID"
+
+
+def test_c2b3a_process_control_contract_has_independent_literal_truth() -> None:
+    source = _c2b3a_bounded_oracle_source()
+    candidate = _c2b3a_process_control_candidate(source)
+    _assert_c2b3a_process_control_candidate(candidate)
+
+
+def test_c2b3a_process_control_exception_graph_has_independent_literal_truth() -> None:
+    source = _c2b3a_bounded_oracle_source()
+    candidate = _c2b3a_process_control_candidate(source)
+    _assert_c2b3a_process_control_candidate(candidate)
+    gate = candidate["commit_uncertainty_cleanup_gate"]
+    ledger = gate["close_not_proved"][
+        "process_control_exception_graph_ledger"
+    ]
+    assert ledger == C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_LEDGER
+    assert tuple(tuple(row) for row in ledger) == (
+        C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_FIELDS,
+        C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_FIELDS,
+        C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_FIELDS,
+    )
+    assert gate["process_control_exception_graph_privacy"] == (
+        C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY
+    )
+
+
+def test_c2b3a_process_control_exception_graph_ledger_counterfactuals_fail_closed() -> None:
+    source = _c2b3a_bounded_oracle_source()
+
+    candidate = _c2b3a_process_control_candidate(source)
+    del candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exception_graph_ledger"
+    ][0]["cause_before"]
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exception_graph_ledger"
+    ][1]["extra"] = None
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    row = candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exception_graph_ledger"
+    ][2]
+    branch_name = row.pop("branch_name")
+    row["branch_name"] = branch_name
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exception_graph_ledger"
+    ][0]["branch_name"] = "KeyboardInterruptAlias"
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exception_graph_ledger"
+    ][1]["repair_owned_traceback_frame_delta"] = 1
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"][
+        "process_control_exception_graph_privacy"
+    ]["forbidden_surfaces"] = ()
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID",
+    )
+
+
+def test_c2b3a_process_control_oracle_controls_are_independently_exact() -> None:
+    source = _c2b3a_bounded_oracle_source()
+    _assert_c2b3a_process_control_oracle_controls(source)
+
+
+def test_c2b3a_process_control_counterfactuals_p01_through_p16_fail_closed() -> None:
+    source = _c2b3a_bounded_oracle_source()
+
+    candidate = _c2b3a_process_control_candidate(source)
+    branches = candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ] = {
+        "alpha": branches["KeyboardInterrupt"],
+        "beta": branches["SystemExit"],
+        "gamma": branches["GeneratorExit"],
+    }
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    del candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["KeyboardInterrupt"]
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    del candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["SystemExit"]
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    del candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["GeneratorExit"]
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["FourthProcessControl"] = C2B3A_PROCESS_CONTROL_BRANCH_FACTS[
+        "KeyboardInterrupt"
+    ]
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_BRANCH_INVENTORY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    steps = list(
+        candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+            "process_control_close_interruption_ordered_steps"
+        ]
+    )
+    steps[4], steps[7] = steps[7], steps[4]
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_close_interruption_ordered_steps"
+    ] = tuple(steps)
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    steps = list(
+        candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+            "process_control_close_interruption_ordered_steps"
+        ]
+    )
+    steps[3], steps[7] = steps[7], steps[3]
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_close_interruption_ordered_steps"
+    ] = tuple(steps)
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["KeyboardInterrupt"]["mutation_slot_retained_before_propagation"] = False
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["SystemExit"]["writer_lock_retained_before_propagation"] = False
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["KeyboardInterrupt"]["replacement_exception_object"] = True
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_IDENTITY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["SystemExit"]["changed_system_exit_code"] = True
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_IDENTITY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["GeneratorExit"]["changed_exception_args"] = True
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_EXCEPTION_IDENTITY",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["KeyboardInterrupt"]["ordinary_store_error_conversion"] = True
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+    for replacement in (
+        "commit_outcome_unknown",
+        "mutation_failed",
+        "unresolved",
+    ):
+        candidate = _c2b3a_process_control_candidate(source)
+        candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+            "process_control_exceptions"
+        ]["SystemExit"]["replacement_outcome"] = replacement
+        _assert_c2b3a_process_control_failure(
+            candidate,
+            "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+        )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    generator_branch = candidate["commit_uncertainty_cleanup_gate"][
+        "close_not_proved"
+    ]["process_control_exceptions"]["GeneratorExit"]
+    generator_branch["same_session_database_recovery_allowed"] = True
+    generator_branch["operation_lease_allowed_before_close_proof"] = True
+    generator_branch["database_open_allowed_before_close_proof"] = True
+    generator_branch["begin_allowed_before_close_proof"] = True
+    generator_branch["sql_allowed_before_close_proof"] = True
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+    candidate = _c2b3a_process_control_candidate(source)
+    candidate["commit_uncertainty_cleanup_gate"]["close_not_proved"][
+        "process_control_exceptions"
+    ]["KeyboardInterrupt"]["automatic_semantic_retry"] = True
+    _assert_c2b3a_process_control_failure(
+        candidate,
+        "C2B3A_PROCESS_CONTROL_PUBLICATION_ORDER",
+    )
+
+
+@pytest.mark.parametrize(
+    "branch_name",
+    ("KeyboardInterrupt", "SystemExit", "GeneratorExit"),
+    ids=("KeyboardInterrupt", "SystemExit", "GeneratorExit"),
+)
+@pytest.mark.parametrize(
+    ("mutant_id", "replacement", "diagnostic"),
+    (
+        (
+            "T01",
+            "            raise caught_exception\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+        ),
+        (
+            "T02",
+            "            raise caught_exception from None\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+        ),
+        (
+            "T03",
+            "            private_cause = RuntimeError('repair4-private-cause')\n            raise caught_exception from private_cause\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID",
+        ),
+        (
+            "T04",
+            "            caught_exception.__context__ = RuntimeError('repair4-private-context')\n            raise\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID",
+        ),
+        (
+            "T05",
+            "            caught_exception.add_note('repair4-private-note')\n            raise\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID",
+        ),
+        (
+            "T06",
+            "            caught_exception.__suppress_context__ = True\n            raise\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+        ),
+        (
+            "T07",
+            "            raise type(caught_exception)(*caught_exception.args)\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+        ),
+        (
+            "T08",
+            "            return _repair4_named_reraise_helper(caught_exception)\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_INVALID",
+        ),
+        (
+            "T09",
+            "            repair4_private_commit_material = 'repair4-private-commit-material'\n            raise caught_exception\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID",
+        ),
+        (
+            "T10",
+            "            caught_exception.add_note('repair4-private-cleanup-material')\n            raise\n",
+            "C2B3A_PROCESS_CONTROL_EXCEPTION_GRAPH_PRIVACY_INVALID",
+        ),
+    ),
+    ids=("T01", "T02", "T03", "T04", "T05", "T06", "T07", "T08", "T09", "T10"),
+)
+def test_c2b3a_process_control_exception_mutants_t01_through_t10_are_physical(
+    branch_name: str,
+    mutant_id: str,
+    replacement: str,
+    diagnostic: str,
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    mutant = _c2b3a_process_control_oracle_mutant(
+        source,
+        branch_name,
+        replacement,
+    )
+    ast.parse(mutant, filename=f"{mutant_id}-{branch_name}")
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        f"{mutant_id}-{branch_name}",
+        mutant,
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_process_control_oracle_controls(mutant)
+    assert str(exc_info.value) == diagnostic
+
+
+@pytest.mark.parametrize(
+    ("mutant_id", "snippet"),
+    (
+        (
+            "A01",
+            "\ndef _a01():\n    import hashlib\n    return hashlib\n",
+        ),
+        (
+            "A02",
+            "\ndef _a02():\n    import sqlite3\n    return sqlite3\n",
+        ),
+        (
+            "A03",
+            "\ndef _a03():\n    import importlib\n    return importlib\n",
+        ),
+        (
+            "A04",
+            "\ndef _a04():\n    dynamic = eval\n    return dynamic('0')\n",
+        ),
+        (
+            "A05",
+            "\ndef _a05():\n    return builtins.eval('0')\n",
+        ),
+        (
+            "A06",
+            "\ndef _a06():\n    dynamic = __import__\n    return dynamic('ast')\n",
+        ),
+        (
+            "A07",
+            "\ndef _a07(importlib):\n    loader = importlib.import_module\n    return loader('ast')\n",
+        ),
+        (
+            "A08",
+            "\ndef _a08():\n    reader = Path.read_text\n    return reader(Path(__file__))\n",
+        ),
+        (
+            "A09",
+            "\ndef _a09():\n    return Path('/alternate').read_text(encoding='utf-8')\n",
+        ),
+        (
+            "A10",
+            "\ndef _a10():\n    return Path('/alternate').read_bytes()\n",
+        ),
+        (
+            "A11",
+            "\nEXPECTED_INITIALIZATION_CONTRACT = {}\n",
+        ),
+        (
+            "A12",
+            "\nEXPECTED_INITIALIZATION_GOLDEN_VECTOR = {}\n",
+        ),
+        (
+            "A13",
+            "\ndef _a13():\n    EXPECTED_INITIALIZATION_CONTRACT = {}\n    return EXPECTED_INITIALIZATION_CONTRACT\n",
+        ),
+        (
+            "A14",
+            "\ndef _a14(value=EXPECTED_INITIALIZATION_CONTRACT):\n    return value\n",
+        ),
+        (
+            "A15",
+            "\ndef _a15():\n    value = EXPECTED_INITIALIZATION_CONTRACT\n    def replace():\n        nonlocal value\n        value = {}\n    return replace\n",
+        ),
+        (
+            "A16",
+            "\nEXPECTED_INITIALIZATION_CONTRACT = _owner_contract()\n",
+        ),
+        (
+            "A17",
+            "\ndef _production_contract():\n    source = Path('src/ge_nwp_coordinator/sqlite_writer_session.py').read_text(encoding='utf-8')\n    return ast.literal_eval(source)\nEXPECTED_INITIALIZATION_CONTRACT = _production_contract()\n",
+        ),
+        (
+            "A18",
+            "\nEXPECTED_INITIALIZATION_GOLDEN_VECTOR = ast.literal_eval(Path('/tmp/generated-vector.py').read_text(encoding='utf-8'))\n",
+        ),
+        (
+            "A19",
+            "\ndef _a19():\n    import hashlib\n    source = _read_allowed_text(TEST_PATH)\n    return hashlib.sha256(source.encode('utf-8')).hexdigest() == '0' * 64\n",
+        ),
+        (
+            "A20",
+            "\nVALIDATOR_REGISTRY = {}\nVALIDATOR_REGISTRY.update({'contract': _validate_contract})\n",
+        ),
+        (
+            "A21",
+            "\nCALLABLES = dict(contract=_validate_contract)\n",
+        ),
+        (
+            "A22",
+            "\nCALLABLES = {'contract': _validate_contract}\nCALLABLES['contract']({})\n",
+        ),
+        (
+            "A23",
+            "\nCALLABLES = (_validate_contract,)\nfor callback in CALLABLES:\n    callback({})\n",
+        ),
+        (
+            "A24",
+            "\nCALLABLE_RESULTS = tuple(callback({}) for callback in (_validate_contract,))\n",
+        ),
+        (
+            "A25",
+            "\nclass CallableHolder:\n    registry = {'contract': _validate_contract}\ndef _a25():\n    return CallableHolder.registry['contract']({})\n",
+        ),
+        (
+            "A26",
+            "\ndef _a26(callback):\n    return callback.__call__({})\n",
+        ),
+        (
+            "A27",
+            "\ndef _a27(callback=_validate_contract):\n    return callback({})\n",
+        ),
+        (
+            "A28",
+            "\ndef _owner_conversion_decorator(function):\n    _owner_contract()\n    return function\n@_owner_conversion_decorator\ndef _a28():\n    return None\n",
+        ),
+        (
+            "A29",
+            "\ndef _a29(callback: _validate_contract):\n    return callback({})\n",
+        ),
+        (
+            "A30",
+            "\ndef _generic_validator_runner(validator, value):\n    return validator(value)\n",
+        ),
+    ),
+    ids=(
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A18",
+        "A19",
+        "A20",
+        "A21",
+        "A22",
+        "A23",
+        "A24",
+        "A25",
+        "A26",
+        "A27",
+        "A28",
+        "A29",
+        "A30",
+    ),
+)
+def test_c2b3a_independent_oracle_architecture_rejects_a01_through_a30(
+    mutant_id: str,
+    snippet: str,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    insertion = "\ndef test_owner_literal_equals_independent_expected_contract"
+    assert insertion in source
+    mutant = source.replace(insertion, snippet + insertion, 1)
+    ast.parse(mutant, filename=mutant_id)
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_independent_oracle_architecture(mutant)
+    assert str(exc_info.value) == "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+
+
+def test_c2b3a_strict_legal_protected_load_site_allowlist_is_exact() -> None:
+    source = _c2b3a_bounded_oracle_source()
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    observed = _c2b3a_oracle_protected_load_sites(tree, parents)
+    assert observed == C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES
+    assert len(observed) == 277
+    assert (
+        sum(record[3] == "direct_call_func" for record in observed),
+        sum(record[3] == "direct_candidate_argument" for record in observed),
+        sum(record[3] == "direct_comparison_operand" for record in observed),
+        sum(record[3] == "direct_assert_operand" for record in observed),
+    ) == (218, 27, 32, 0)
+    assert tuple(C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS) == (
+        "protected_name",
+        "enclosing_top_level_function",
+        "enclosing_nested_function",
+        "load_role",
+        "ancestor_kind_chain",
+        "ordinal",
+    )
+    assert all(
+        record[3]
+        in {
+            "direct_call_func",
+            "direct_comparison_operand",
+            "direct_assert_operand",
+            "direct_candidate_argument",
+        }
+        for record in observed
+    )
+
+
+def test_c2b3a_dedicated_oracle_physically_imports_collects_and_executes(
+    tmp_path: Path,
+) -> None:
+    import_tmp = tmp_path / "physical-import-tmp"
+    import_pycache = tmp_path / "physical-import-pycache"
+    collect_tmp = tmp_path / "physical-collect-tmp"
+    collect_pycache = tmp_path / "physical-collect-pycache"
+    execute_tmp = tmp_path / "physical-execute-tmp"
+    execute_pycache = tmp_path / "physical-execute-pycache"
+    collect_basetemp = tmp_path / "physical-collect-basetemp"
+    execute_basetemp = tmp_path / "physical-execute-basetemp"
+    for directory in (
+        import_tmp,
+        import_pycache,
+        collect_tmp,
+        collect_pycache,
+        execute_tmp,
+        execute_pycache,
+    ):
+        directory.mkdir(mode=0o700)
+
+    import_environment = {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONHASHSEED": "0",
+        "PYTHONPYCACHEPREFIX": str(import_pycache),
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "TMPDIR": str(import_tmp),
+    }
+    import_program = (
+        "import importlib.util,pathlib,sys; "
+        "path=pathlib.Path(sys.argv[1]).resolve(strict=True); "
+        "spec=importlib.util.spec_from_file_location('c2b3a_physical_oracle',path); "
+        "module=importlib.util.module_from_spec(spec); "
+        "sys.modules[spec.name]=module; "
+        "spec.loader.exec_module(module); "
+        "assert module.TEST_PATH == path"
+    )
+    imported = subprocess.run(
+        (sys.executable, "-B", "-c", import_program, str(C2B3A_ORACLE_PATH)),
+        cwd=ROOT,
+        env=import_environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert imported.returncode == 0, imported.stderr
+    assert imported.stdout == ""
+    assert imported.stderr == ""
+
+    collect_environment = {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONHASHSEED": "0",
+        "PYTHONPYCACHEPREFIX": str(collect_pycache),
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "TMPDIR": str(collect_tmp),
+    }
+    collected = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            f"--basetemp={collect_basetemp}",
+            "--collect-only",
+            "-q",
+            str(C2B3A_ORACLE_PATH),
+        ),
+        cwd=ROOT,
+        env=collect_environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert collected.returncode == 0, collected.stderr
+    node_prefix = "tests/test_c2b3_program_initialization_contract.py::"
+    collected_nodes = tuple(
+        line[len(node_prefix) :]
+        for line in collected.stdout.splitlines()
+        if line.startswith(node_prefix)
+    )
+    assert collected_nodes == C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES
+    assert (
+        f"{len(C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES)} tests collected"
+        in collected.stdout
+    )
+    assert collected.stderr == ""
+
+    execute_environment = {
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONHASHSEED": "0",
+        "PYTHONPYCACHEPREFIX": str(execute_pycache),
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "TMPDIR": str(execute_tmp),
+    }
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            f"--basetemp={execute_basetemp}",
+            "-vv",
+            "--tb=no",
+            str(C2B3A_ORACLE_PATH),
+        ),
+        cwd=ROOT,
+        env=execute_environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode == 0, executed.stderr
+    executed_nodes = tuple(
+        line[len(node_prefix) :].split(" PASSED", 1)[0]
+        for line in executed.stdout.splitlines()
+        if line.startswith(node_prefix) and " PASSED" in line
+    )
+    assert executed_nodes == C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES
+    assert f"{len(C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES)} passed" in executed.stdout
+    assert " skipped" not in executed.stdout
+    assert " xfailed" not in executed.stdout
+    assert " deselected" not in executed.stdout
+    assert " warning" not in executed.stdout.lower()
+    assert executed.stderr == ""
+
+
+@pytest.mark.parametrize(
+    ("mutant_id", "snippet", "position"),
+    (
+        (
+            "R01",
+            "\nR01_ALIAS = {'contract': EXPECTED_INITIALIZATION_CONTRACT}\n",
+            "before-tests",
+        ),
+        (
+            "R02",
+            "\nR02_ALIAS = {'vector': (EXPECTED_INITIALIZATION_GOLDEN_VECTOR,)}\n",
+            "before-tests",
+        ),
+        (
+            "R03",
+            "\nR03_VALUES = [EXPECTED_INITIALIZATION_CONTRACT]\n",
+            "before-tests",
+        ),
+        (
+            "R04",
+            "\nR04_VALUES = {'nested': ({'vector': EXPECTED_INITIALIZATION_GOLDEN_VECTOR},)}\n",
+            "before-tests",
+        ),
+        (
+            "R05",
+            "\nfor r05_alias in (EXPECTED_INITIALIZATION_CONTRACT,):\n    pass\n",
+            "before-tests",
+        ),
+        (
+            "R06",
+            "\nR06_VALUES = (r06_alias for r06_alias in (EXPECTED_INITIALIZATION_GOLDEN_VECTOR,))\n",
+            "before-tests",
+        ),
+        (
+            "R07",
+            "\nR07_VALUE = EXPECTED_INITIALIZATION_CONTRACT if True else {}\n",
+            "before-tests",
+        ),
+        (
+            "R08",
+            "\nR08_VALUE = repr(EXPECTED_INITIALIZATION_GOLDEN_VECTOR)\n",
+            "before-tests",
+        ),
+        (
+            "R09",
+            "\nR09_VALUE = (r09_alias := EXPECTED_INITIALIZATION_CONTRACT)\n",
+            "before-tests",
+        ),
+        (
+            "R10",
+            "\nR10_VALUE: object = EXPECTED_INITIALIZATION_GOLDEN_VECTOR\n",
+            "before-tests",
+        ),
+        (
+            "R11",
+            "\ndef _r11(value=EXPECTED_INITIALIZATION_CONTRACT):\n    return value\n",
+            "before-tests",
+        ),
+        (
+            "R12",
+            "\ndef _r12():\n    captured = EXPECTED_INITIALIZATION_GOLDEN_VECTOR\n    def nested():\n        return captured\n    return nested\n",
+            "before-tests",
+        ),
+        (
+            "R13",
+            "\nR13_VALUES = []\nR13_VALUES += [EXPECTED_INITIALIZATION_CONTRACT]\n",
+            "before-tests",
+        ),
+        (
+            "R14",
+            "\nmoved = []\nmoved.append(EXPECTED_INITIALIZATION_GOLDEN_VECTOR)\n",
+            "before-tests",
+        ),
+        (
+            "R15",
+            "\nnames = []\nnames.extend((EXPECTED_INITIALIZATION_CONTRACT,))\n",
+            "before-tests",
+        ),
+        (
+            "R16",
+            "\nmoved = []\nmoved.append(_validate_contract)\n",
+            "before-tests",
+        ),
+        (
+            "R17",
+            "\nnames = []\nnames.extend((_validate_contract,))\n",
+            "before-tests",
+        ),
+        (
+            "R18",
+            "\nmoved = []\nmoved += [_validate_contract]\n",
+            "before-tests",
+        ),
+        (
+            "R19",
+            "\nR19_CALLABLES = {}\nR19_CALLABLES['contract'] = _validate_contract\n",
+            "before-tests",
+        ),
+        (
+            "R20",
+            "\nR20_CALLABLES = tuple((_validate_contract,))\n",
+            "before-tests",
+        ),
+        (
+            "R21",
+            "\ndef _r21():\n    for r21_callable in (_validate_contract,):\n        r21_callable({})\n",
+            "before-tests",
+        ),
+        (
+            "R22",
+            "\ndef _r22():\n    return tuple(r22_callable({}) for r22_callable in (_validate_contract,))\n",
+            "before-tests",
+        ),
+        (
+            "R23",
+            "\ndef _r23():\n    r23_callables = {'contract': _validate_contract}\n    return r23_callables['contract']({})\n",
+            "before-tests",
+        ),
+        (
+            "R24",
+            "\nclass R24Holder:\n    callable = _validate_contract\n",
+            "before-tests",
+        ),
+        (
+            "R25",
+            "\ndef _r25():\n    callable_value = _validate_contract\n    return callable_value.__call__({})\n",
+            "before-tests",
+        ),
+        (
+            "R26",
+            "\nif False:\n    EXPECTED_INITIALIZATION_CONTRACT = _owner_contract()\n",
+            "before-tests",
+        ),
+        (
+            "R27",
+            "\nif False:\n    EXPECTED_INITIALIZATION_CONTRACT = {'planning': _read_allowed_text(PLANNING_PATH)}\n",
+            "before-tests",
+        ),
+        (
+            "R28",
+            "\nif False:\n    EXPECTED_INITIALIZATION_GOLDEN_VECTOR = _owner_golden_vector()\n",
+            "before-tests",
+        ),
+        (
+            "R29",
+            "\nif False:\n    EXPECTED_INITIALIZATION_GOLDEN_VECTOR = {'planning': _read_allowed_text(PLANNING_PATH)}\n",
+            "before-tests",
+        ),
+        (
+            "R30",
+            "\nif False:\n    EXPECTED_INITIALIZATION_CONTRACT = _owner_contract() or EXPECTED_INITIALIZATION_CONTRACT\n",
+            "before-tests",
+        ),
+        ("R31", "\nif False:\n    __test__ = False\n", "tail"),
+        ("R32", "\nif False:\n    pytestmark = pytest.mark.skip\n", "tail"),
+        ("R33", "\nif False:\n    pytestmark = pytest.mark.xfail\n", "tail"),
+        (
+            "R34",
+            "\nif False:\n    pytest.skip('suppressed', allow_module_level=True)\n",
+            "tail",
+        ),
+        (
+            "R35",
+            "\nif False:\n    del test_nonimplementation_surface_is_closed\n",
+            "tail",
+        ),
+        (
+            "R36",
+            "\nif False:\n    def test_r36_conditionally_defined():\n        pass\n",
+            "before-tests",
+        ),
+    ),
+    ids=(
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+    ),
+)
+def test_c2b3a_strict_oracle_provenance_rejects_r01_through_r36(
+    mutant_id: str,
+    snippet: str,
+    position: str,
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    if position == "before-tests":
+        insertion = "\ndef test_owner_literal_equals_independent_expected_contract"
+        assert insertion in source
+        mutant = source.replace(insertion, snippet + insertion, 1)
+    else:
+        mutant = source + snippet
+    ast.parse(mutant, filename=mutant_id)
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        mutant_id,
+        mutant,
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_independent_oracle_architecture(mutant)
+    assert str(exc_info.value) == "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+
+
+def _c2b3a_planning_mutant_at_position(
+    text: str,
+    claim: str,
+    position: str,
+) -> str:
+    if position == "prelude":
+        return text.replace(
+            "# C2B3 Program Initialization\n",
+            "# C2B3 Program Initialization\n\n" + claim + "\n",
+            1,
+        )
+    if position == "middle":
+        return text.replace(
+            "## Private Delegation Shape",
+            claim + "\n\n## Private Delegation Shape",
+            1,
+        )
+    if position == "after-source-layout":
+        return text.replace(
+            "## Planned C2B3B Source Layout\n",
+            "## Planned C2B3B Source Layout\n\n" + claim + "\n",
+            1,
+        )
+    assert position == "tail"
+    return text.rstrip("\n") + "\n\n" + claim + "\n"
+
+
+def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
+    planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    _assert_c2b3a_planning_status(planning)
+
+
+@pytest.mark.parametrize(
+    "position",
+    ("prelude", "middle", "after-source-layout", "tail"),
+)
+@pytest.mark.parametrize(
+    ("claim", "diagnostic"),
+    (
+        (
+            "The planning document is semantic authority.",
+            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
+        ),
+        (
+            "The planning document co-owns semantic truth.",
+            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
+        ),
+        (
+            "Program initialization source is current.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+        (
+            "Program initialization is implemented.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+        (
+            "Private delegation is current.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+        (
+            "Receipt persistence is current.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+        (
+            "Replay runtime is current.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+        (
+            "Recovery runtime is current.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+        (
+            "Author-effect source is current.",
+            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
+        ),
+    ),
+)
+def test_c2b3a_planning_additive_status_contradictions_are_rejected_everywhere(
+    claim: str,
+    diagnostic: str,
+    position: str,
+) -> None:
+    planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    mutant = _c2b3a_planning_mutant_at_position(planning, claim, position)
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_planning_status(mutant)
+    assert str(exc_info.value) == diagnostic
+
+
+@pytest.mark.parametrize("marker", ("```", "~~~"))
+def test_c2b3a_planning_correctly_closed_fenced_claim_is_ignored(
+    marker: str,
+) -> None:
+    planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    fenced = marker + "text\nAuthor-effect source is current.\n" + marker
+    mutant = _c2b3a_planning_mutant_at_position(planning, fenced, "middle")
+    _assert_c2b3a_planning_status(mutant)
+
+
+def test_c2b3a_planning_unclosed_and_pseudo_fences_are_bounded() -> None:
+    planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    unclosed = _c2b3a_planning_mutant_at_position(
+        planning,
+        "```text\nAuthor-effect source is current.",
+        "tail",
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_planning_status(unclosed)
+    assert str(exc_info.value) == "C2B3A_CURRENT_SOURCE_CONTRADICTION"
+
+    fenced = (
+        "```text\n"
+        "``` text-bearing pseudo-closer\n"
+        "> - Author-effect source is current.\n"
+        "```"
+    )
+    pseudo_closer = _c2b3a_planning_mutant_at_position(
+        planning,
+        fenced,
+        "middle",
+    )
+    _assert_c2b3a_planning_status(pseudo_closer)
+
+
+def test_c2b3a_planning_markdown_prefixes_do_not_hide_claims() -> None:
+    planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    mutant = _c2b3a_planning_mutant_at_position(
+        planning,
+        "> - Author-effect\t source   is current.",
+        "tail",
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_planning_status(mutant)
+    assert str(exc_info.value) == "C2B3A_CURRENT_SOURCE_CONTRADICTION"
