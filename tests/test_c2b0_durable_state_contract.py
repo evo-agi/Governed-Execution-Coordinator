@@ -1,4 +1,5 @@
 import ast
+import builtins
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -15,18 +16,1632 @@ C2B3A_PLANNING_PATH = ROOT / ".docs" / "c2b3-program-initialization.md"
 C2B3A_ORACLE_PATH = ROOT / "tests" / "test_c2b3_program_initialization_contract.py"
 SQLITE_MIGRATION_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_migration.py"
 
-C2B3A_PLANNING_AUTHORITY_CLAIMS = (
-    "the planning document is semantic authority",
-    "the planning document co-owns semantic truth",
+C2B3A_PLANNING_PROJECTION_APPROVED_TEXT = (
+    "# C2B3 Program Initialization\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->\n"
+    "## Non-authority declaration\n"
+    "\n"
+    "This file is a planning and implementation-status projection only. It is not\n"
+    "semantic authority. Section 35 of `.docs/c2b-durable-development-state.md` is\n"
+    "the sole C2B3A semantic owner. Planning cannot create, override, widen, narrow,\n"
+    "resolve, or change a structured owner value, and wording here cannot supply\n"
+    "operative semantics when a structured owner value exists.\n"
+    "<!-- C2B3A_PLANNING_NON_AUTHORITY_END -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->\n"
+    "## Current status\n"
+    "\n"
+    "C2B3A remains a target-contract freeze with documentation and direct\n"
+    "documentation-contract tests only. The current repair changes only the owner,\n"
+    "this planning projection, the direct oracle, and the higher-order guard. It is\n"
+    "not an independent audit and does not establish acceptance. Any changed bytes\n"
+    "require a fresh read-only audit.\n"
+    "\n"
+    "The implemented database remains application generation 2 at terminal\n"
+    "migration `0002_development_program_and_effect_state`. Program initialization,\n"
+    "private delegation, product mutation, receipt persistence, replay or recovery\n"
+    "runtime, retained-connection cleanup runtime, finalizer runtime, and author-\n"
+    "effect source remain absent.\n"
+    "\n"
+    "The structured owner value\n"
+    "`commit_close_outcome_addendum.normative_surface_and_precedence` makes\n"
+    "`commit_close_outcome_addendum` the sole operative authority for COMMIT/close\n"
+    "outcomes, process-control relationships, cleanup states and order, finalizer\n"
+    "and liveness rules, recovery and replay gates, and future C2B3B path scope.\n"
+    "The bounded prose in Section 35 and this projection have no independent\n"
+    "semantic authority.\n"
+    "<!-- C2B3A_PLANNING_CURRENT_STATUS_END -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_LEGACY_LEDGER_BEGIN -->\n"
+    "## Legacy-ledger projection\n"
+    "\n"
+    "Section 35 classifies\n"
+    "`commit_uncertainty_cleanup_gate.close_not_proved.process_control_exception_graph_ledger`\n"
+    "as `historical_runtime_observation`, with `normative=false`,\n"
+    "`operative_for_c2b3b=false`, `portable_contract=false`, and\n"
+    "`preserved_for_original_c2b3a_evidence=true`. Its target semantics are\n"
+    "superseded by `process_control_relational_policy`. No implementation, test\n"
+    "oracle, planning projection, or future prompt may use its observed graph or\n"
+    "traceback values as target requirements.\n"
+    "\n"
+    "The operative process-control rule is deliberate-action-only. C2B3 does not\n"
+    "deliberately assign, clear, restore, scrub, sanitize, or manufacture graph or\n"
+    "traceback state; it deliberately creates no primary-to-secondary relation and\n"
+    "does not serialize, persist, log, render, report, or copy raw process control.\n"
+    "Interpreter-managed graph and traceback effects remain permitted, and no exact\n"
+    "resulting graph or traceback shape is promised.\n"
+    "<!-- C2B3A_PLANNING_LEGACY_LEDGER_END -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_ACTIVE_SCOPE_BEGIN -->\n"
+    "## Active future-scope projection\n"
+    "\n"
+    "The preserved 23-expected, 24-maximum, and twenty-fifth-path-stop material is\n"
+    "historical and non-operative. `consumers_may_use` remains false. The only\n"
+    "operative future scope is the structured owner value\n"
+    "`commit_close_outcome_addendum.future_c2b3b_path_scope_status` for\n"
+    "`C2B3B_PRIVATE_ATOMIC_INITIALIZATION`.\n"
+    "\n"
+    "Production is exactly six paths:\n"
+    "\n"
+    "- `src/ge_nwp_coordinator/_development_program_initialization_contracts.py`\n"
+    "- `src/ge_nwp_coordinator/_sqlite_development_program_initialization.py`\n"
+    "- `src/ge_nwp_coordinator/sqlite_transition_transaction.py`\n"
+    "- `src/ge_nwp_coordinator/sqlite_writer_session.py`\n"
+    "- `src/ge_nwp_coordinator/sqlite_connection.py`\n"
+    "- `src/ge_nwp_coordinator/state_authority_lock.py`\n"
+    "\n"
+    "Documentation/status is exactly ten paths:\n"
+    "\n"
+    "- `.docs/c2b-durable-development-state.md`\n"
+    "- `.docs/c2b3-program-initialization.md`\n"
+    "- `.docs/c2b2-private-readers.md`\n"
+    "- `.docs/architecture.md`\n"
+    "- `.docs/durable-state-model.md`\n"
+    "- `.docs/sqlite-operations-and-recovery.md`\n"
+    "- `.docs/sqlite-threat-model.md`\n"
+    "- `.docs/writer-session-authority.md`\n"
+    "- `README.md`\n"
+    "- `AGENTS.md`\n"
+    "\n"
+    "Required changed tests are exactly eleven paths:\n"
+    "\n"
+    "- `tests/test_c2b3_program_initialization_contract.py`\n"
+    "- `tests/test_c2b3_private_atomic_program_initialization.py`\n"
+    "- `tests/test_c2b3_program_initialization_recovery.py`\n"
+    "- `tests/test_c2b3_private_program_initialization_delegation.py`\n"
+    "- `tests/test_c2b2_field_level_contract.py`\n"
+    "- `tests/test_c2b2_development_reader_contracts.py`\n"
+    "- `tests/test_sqlite_b2c_writer_session.py`\n"
+    "- `tests/test_state_authority_lock.py`\n"
+    "- `tests/test_runtime_non_authority.py`\n"
+    "- `tests/test_architecture_contracts.py`\n"
+    "- `tests/test_c2b0_durable_state_contract.py`\n"
+    "\n"
+    "The one contingency path is\n"
+    "`tests/test_c2b2_private_development_readers.py`. The exact expected count is\n"
+    "`6 + 10 + 11 = 27`; the exact maximum is 28; a twenty-ninth path is a hard\n"
+    "stop and scope-reassessment condition.\n"
+    "\n"
+    "The four newly required paths relative to the historical manifest are\n"
+    "`src/ge_nwp_coordinator/state_authority_lock.py`,\n"
+    "`.docs/writer-session-authority.md`,\n"
+    "`tests/test_state_authority_lock.py`, and\n"
+    "`tests/test_sqlite_b2c_writer_session.py`. This projection authorizes no C2B3B\n"
+    "source or implementation.\n"
+    "<!-- C2B3A_PLANNING_ACTIVE_SCOPE_END -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_VALIDATION_ACCEPTANCE_BEGIN -->\n"
+    "## Validation, source acceptance, and sequencing\n"
+    "\n"
+    "These are process and acceptance gates projected from the project lifecycle;\n"
+    "they do not make this planning file semantic authority.\n"
+    "\n"
+    "Future C2B3B tests use private temporary databases only. They never open\n"
+    "operator state, migrate operator state, or inspect operator-state contents.\n"
+    "Project-protocol existence or absence checks remain allowed, but no operator\n"
+    "database open or migration is permitted.\n"
+    "\n"
+    "Before C2B3B source is accepted, all of the following separate evidence is\n"
+    "required:\n"
+    "\n"
+    "- an accepted fresh independent read-only source-acceptance audit;\n"
+    "- the exact committed C2B3A contract baseline;\n"
+    "- a distinct committed Coordinator repository baseline;\n"
+    "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+    "  strategic baseline, produced after and bound to that committed baseline;\n"
+    "- the committed direct independent oracle;\n"
+    "- the then-current generation-2 schema and accepted C2B2 row and reader\n"
+    "  identities;\n"
+    "- the exact finite 27-expected / 28-maximum / path-29-stop source proposal and\n"
+    "  protected complement;\n"
+    "- no WorkSpec custody, lookup, retrieval, leakage, logging, report transport,\n"
+    "  or traceback retention;\n"
+    "- one-database, one-writer, one-mutation-slot, and one-controller reuse;\n"
+    "- exact replay and recovery proof requirements; and\n"
+    "- zero public, schema, migration, package, authority, route, external-I/O, or\n"
+    "  cross-repository widening.\n"
+    "\n"
+    "The committed Coordinator repository baseline and the refreshed exact\n"
+    "Coordinator snapshot or explicitly equivalent exact strategic baseline are\n"
+    "separate evidence items. Neither substitutes for the other, and the fresh\n"
+    "source-acceptance audit does not itself establish that the snapshot was\n"
+    "refreshed.\n"
+    "\n"
+    "Acceptance of this planning projection is not acceptance of future source.\n"
+    "\n"
+    "Before source mutation begins, C2B3B source implementation requires all of the\n"
+    "following separate evidence:\n"
+    "\n"
+    "- an accepted independent audit of the committed C2B3A contract baseline;\n"
+    "- a committed clean Coordinator baseline;\n"
+    "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n"
+    "  strategic baseline bound to that clean committed baseline;\n"
+    "- an exact C2B3B source implementation prompt;\n"
+    "- fresh opening repository and patch provenance;\n"
+    "- the accepted 27-expected / 28-maximum future path scope and a hard stop if a\n"
+    "  twenty-ninth path is required; and\n"
+    "- the private-test database and operator-state non-access boundaries above.\n"
+    "\n"
+    "A dirty four-file working tree is not a source baseline.\n"
+    "\n"
+    "C2B3C is the author-effect contract freeze. C2B3D cannot begin before the\n"
+    "C2B3C owner questions are closed. Pending authority evidence remains inert and\n"
+    "is not verification, permission, route eligibility, ES admission, or worker\n"
+    "authorization. C2B4, C2B5, and C2B6 remain separate later tranches. Migration\n"
+    "0003 remains reserved and unimplemented.\n"
+    "<!-- C2B3A_PLANNING_VALIDATION_ACCEPTANCE_END -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_BEGIN -->\n"
+    "## Production nonimplementation\n"
+    "\n"
+    "C2B3A implements or authorizes no production mutation, receipt, private\n"
+    "delegation, recovery resolver, author effect, worker, scheduler, queue,\n"
+    "service, model client, direct-local execution, Execution Substrate invocation,\n"
+    "Bridge integration, schema, migration, package export, public model,\n"
+    "`StateStore` method, or `WriterSession` public-protocol change. C2B3B remains\n"
+    "absent and requires a separately authorized implementation tranche and a fresh\n"
+    "independent read-only audit.\n"
+    "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_END -->\n"
+    "\n"
+    "<!-- C2B3A_PLANNING_PROJECTION_END -->\n"
 )
-C2B3A_PLANNING_CURRENT_SOURCE_CLAIMS = (
-    "program initialization source is current",
-    "program initialization is implemented",
-    "private delegation is current",
-    "receipt persistence is current",
-    "replay runtime is current",
-    "recovery runtime is current",
-    "author-effect source is current",
+C2B3A_SOURCE_ACCEPTANCE_EVIDENCE_LEDGER = (
+    "an accepted fresh independent read-only source-acceptance audit;",
+    "the exact committed C2B3A contract baseline;",
+    "a distinct committed Coordinator repository baseline;",
+    "a refreshed exact Coordinator snapshot, or an explicitly equivalent exact "
+    "strategic baseline, produced after and bound to that committed baseline;",
+    "the committed direct independent oracle;",
+    "the then-current generation-2 schema and accepted C2B2 row and reader "
+    "identities;",
+    "the exact finite 27-expected / 28-maximum / path-29-stop source proposal and "
+    "protected complement;",
+    "no WorkSpec custody, lookup, retrieval, leakage, logging, report transport, "
+    "or traceback retention;",
+    "one-database, one-writer, one-mutation-slot, and one-controller reuse;",
+    "exact replay and recovery proof requirements; and",
+    "zero public, schema, migration, package, authority, route, external-I/O, or "
+    "cross-repository widening.",
+)
+C2B3A_SOURCE_START_EVIDENCE_LEDGER = (
+    "an accepted independent audit of the committed C2B3A contract baseline;",
+    "a committed clean Coordinator baseline;",
+    "a refreshed exact Coordinator snapshot or explicitly equivalent exact "
+    "strategic baseline bound to that clean committed baseline;",
+    "an exact C2B3B source implementation prompt;",
+    "fresh opening repository and patch provenance;",
+    "the accepted 27-expected / 28-maximum future path scope and a hard stop if a "
+    "twenty-ninth path is required; and",
+    "the private-test database and operator-state non-access boundaries above.",
+)
+
+C2B3A_OWNER_PRE_ADDENDUM_SECTION_35_PREFIX = (
+    "## 35. C2B3A Program-Initialization Contract Freeze\n"
+    "\n"
+    "Classification: `ACCEPTED TARGET CONTRACT` for the program-initialization\n"
+    "family only. The single-work-item genesis shape is a bounded first vertical\n"
+    "slice, not a permanent program-cardinality architecture. `CURRENT\n"
+    "IMPLEMENTED CONTRACT` remains generation 2 at terminal migration\n"
+    "`0002_development_program_and_effect_state`, with the existing C2B2 pure\n"
+    "values and production-unintegrated readers. Program-initialization source,\n"
+    "private delegation, product mutation, receipt persistence, replay/recovery\n"
+    "runtime, public API, author-effect source, and migration 0003 are absent.\n"
+    "\n"
+    "This section is the sole semantic owner for C2B3A. The planning record\n"
+    "`.docs/c2b3-program-initialization.md` references this section and does not\n"
+    "restate or redefine its ledgers. The direct test oracle independently owns its\n"
+    "expected literal and treats the following owner literal as candidate input.\n"
+    "\n"
+    "<!-- C2B3_PROGRAM_INITIALIZATION_CONTRACT_PYTHON_BEGIN -->\n"
+    "\n"
+    "```python\n"
+    "{\n"
+    "    \"contract_identity\": {\n"
+    "        \"workstream\": \"COORDINATOR_C2B3A_PROGRAM_INITIALIZATION_CONTRACT_FREEZE\",\n"
+    "        \"repository_tranche\": \"C2B3 — Program Initialization And Author-Effect Establishment\",\n"
+    "        \"this_freeze\": \"C2B3A program-initialization contract only\",\n"
+    "        \"semantic_owner\": \".docs/c2b-durable-development-state.md#35-c2b3a-program-initialization-contract-freeze\",\n"
+    "        \"status_record\": \".docs/c2b3-program-initialization.md\",\n"
+    "        \"status_record_authority\": \"planning only; not semantic authority\",\n"
+    "        \"implementation_status\": \"contract frozen; production source absent\",\n"
+    "    },\n"
+    "    \"tranche_boundary\": {\n"
+    "        \"C2B3A\": \"program-initialization contract only\",\n"
+    "        \"C2B3B\": \"later private atomic initialization implementation\",\n"
+    "        \"C2B3C\": \"later author-effect contract freeze\",\n"
+    "        \"C2B3D\": \"later private atomic author-effect implementation\",\n"
+    "        \"combined_family_implementation\": False,\n"
+    "    },\n"
+    "    \"five_path_scope\": {\n"
+    "        \"tracked_modifications\": (\n"
+    "            \".docs/c2b-durable-development-state.md\",\n"
+    "            \"tests/test_c2b0_durable_state_contract.py\",\n"
+    "            \"AGENTS.md\",\n"
+    "        ),\n"
+    "        \"untracked_additions\": (\n"
+    "            \".docs/c2b3-program-initialization.md\",\n"
+    "            \"tests/test_c2b3_program_initialization_contract.py\",\n"
+    "        ),\n"
+    "        \"total_paths\": 5,\n"
+    "        \"production_source_paths\": (),\n"
+    "        \"migration_paths\": (),\n"
+    "        \"schema_paths\": (),\n"
+    "        \"public_api_paths\": (),\n"
+    "    },\n"
+    "    \"owner_decisions\": {\n"
+    "        \"initial_work_item_count\": 1,\n"
+    "        \"initial_work_spec_count\": 1,\n"
+    "        \"membership_ordinal\": 0,\n"
+    "        \"first_author_attempt_number\": 1,\n"
+    "        \"initial_author_basis\": (\"initialize\", \"program_genesis\"),\n"
+    "        \"planned_adapter_kind\": \"execution_substrate\",\n"
+    "        \"route_effect\": \"absent\",\n"
+    "        \"work_spec_ingress\": \"same-call transient only\",\n"
+    "        \"work_spec_custody\": \"absent\",\n"
+    "        \"recovery_lifecycle\": \"close-complete-gated later call under a newly acquired concrete session and fresh operation lease\",\n"
+    "        \"automatic_semantic_retry\": False,\n"
+    "        \"family_graph_membership\": \"family-created rows only\",\n"
+    "        \"duplicate_program_classification\": \"semantic_identity_conflict\",\n"
+    "    },\n"
+    "    \"initialization_golden_vector\": {\n"
+    "        \"owner_literal_marker\": \"C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON\",\n"
+    "        \"oracle_literal_name\": \"EXPECTED_INITIALIZATION_GOLDEN_VECTOR\",\n"
+    "        \"vector_id\": \"c2b3a-initialization-single-work-v1\",\n"
+    "        \"vector_version\": 1,\n"
+    "        \"family\": \"initialize_development_program\",\n"
+    "        \"single_work\": True,\n"
+    "        \"direct_owner_literal\": True,\n"
+    "        \"direct_independent_oracle_literal\": True,\n"
+    "        \"oracle_runtime_derivation\": False,\n"
+    "        \"proves_implementation\": False,\n"
+    "        \"required_components\": (\n"
+    "            \"all safe command input values\",\n"
+    "            \"exact WorkSpec safe-projection mapping\",\n"
+    "            \"exact accepted-intent canonical mapping and UTF-8 byte-hex\",\n"
+    "            \"accepted-intent safe-projection digest\",\n"
+    "            \"exact safe-command canonical mapping and UTF-8 byte-hex\",\n"
+    "            \"command digest\",\n"
+    "            \"one transaction timestamp\",\n"
+    "            \"all nine complete persisted row mappings and applicable self-digests\",\n"
+    "            \"program-head and work-item-head historical postimages\",\n"
+    "            \"all eight ordered graph entries with rank, role, ordinal, ref, and digest\",\n"
+    "            \"exact result projection and digest\",\n"
+    "            \"mutation-graph digest\",\n"
+    "            \"complete mutation-receipt scalar envelope\",\n"
+    "            \"private committed result\",\n"
+    "            \"private exact-replay result\",\n"
+    "        ),\n"
+    "    },\n"
+    "    \"semantic_ref_ownership\": {\n"
+    "        \"owner\": \"semantic caller\",\n"
+    "        \"preassigned_refs\": (\n"
+    "            \"mutation_ref\",\n"
+    "            \"program_ref\",\n"
+    "            \"program_version_ref\",\n"
+    "            \"accepted_intent_revision_ref\",\n"
+    "            \"decision_ref\",\n"
+    "            \"work_item_ref\",\n"
+    "            \"work_item_revision_ref\",\n"
+    "            \"work_spec_ref\",\n"
+    "            \"preassigned_semantic_attempt_ref\",\n"
+    "            \"preassigned_candidate_ref\",\n"
+    "        ),\n"
+    "        \"initializer_generated_semantic_refs\": (),\n"
+    "        \"forbidden_ref_derivations\": (\n"
+    "            \"random\",\n"
+    "            \"UUID\",\n"
+    "            \"clock-derived\",\n"
+    "            \"rowid-derived\",\n"
+    "            \"implicit\",\n"
+    "        ),\n"
+    "        \"coordinator_derived_values\": (\n"
+    "            \"fixed genesis numbers and states\",\n"
+    "            \"dense ordinal 0\",\n"
+    "            \"one transaction timestamp\",\n"
+    "            \"safe projections\",\n"
+    "            \"canonical identities\",\n"
+    "            \"row digests\",\n"
+    "            \"result projection digest\",\n"
+    "            \"mutation graph digest\",\n"
+    "            \"complete locator material\",\n"
+    "        ),\n"
+    "    },\n"
+    "    \"existing_work_spec_safe_projection\": {\n"
+    "        \"semantic_name\": \"DevelopmentWorkSpecSafeProjection\",\n"
+    "        \"schema_id\": \"governed-execution.nwp-development-work-spec-safe-projection.v1\",\n"
+    "        \"digest_domain\": \"governed-execution.nwp-development-work-spec-safe-projection.v1.identity\",\n"
+    "        \"ordered_fields\": (\n"
+    "            \"schema_id\",\n"
+    "            \"work_spec_ref\",\n"
+    "            \"program_ref\",\n"
+    "            \"program_version_ref\",\n"
+    "            \"accepted_intent_revision_ref\",\n"
+    "            \"work_item_ref\",\n"
+    "            \"work_item_revision_ref\",\n"
+    "            \"repository_ref\",\n"
+    "            \"base_git_object_format\",\n"
+    "            \"base_git_oid\",\n"
+    "            \"authorized_paths\",\n"
+    "            \"validation_requirement_ref\",\n"
+    "            \"review_requirement_ref\",\n"
+    "            \"privacy_classification\",\n"
+    "            \"work_spec_digest\",\n"
+    "            \"safe_projection_digest\",\n"
+    "        ),\n"
+    "        \"replacement_invented\": False,\n"
+    "        \"source_or_identity_modified\": False,\n"
+    "    },\n"
+    "    \"accepted_intent_safe_projection\": {\n"
+    "        \"semantic_name\": \"DevelopmentAcceptedIntentSafeProjectionV1\",\n"
+    "        \"schema_id\": \"governed-execution.nwp-development-accepted-intent-safe-projection.v1\",\n"
+    "        \"digest_domain\": \"governed-execution.nwp-development-accepted-intent-safe-projection.v1.identity\",\n"
+    "        \"ordered_fields\": (\n"
+    "            \"schema_id\",\n"
+    "            \"source_intent_ref\",\n"
+    "            \"source_intent_digest\",\n"
+    "            \"initial_work_spec_safe_projection\",\n"
+    "            \"safe_projection_digest\",\n"
+    "        ),\n"
+    "        \"identity_excludes\": (\"safe_projection_digest\",),\n"
+    "        \"nested_projection_exact_type\": \"DevelopmentWorkSpecSafeProjection\",\n"
+    "        \"derived_from\": (\n"
+    "            \"caller-supplied source_intent_ref\",\n"
+    "            \"caller-supplied source_intent_digest\",\n"
+    "            \"exact transient WorkSpecV1\",\n"
+    "            \"existing WorkSpec safe-projection builder\",\n"
+    "        ),\n"
+    "        \"caller_forbidden\": (\n"
+    "            \"completed accepted-intent projection\",\n"
+    "            \"safe_projection_digest\",\n"
+    "            \"generic mapping\",\n"
+    "            \"substitute WorkSpec safe projection\",\n"
+    "            \"subclass or structural stand-in\",\n"
+    "        ),\n"
+    "        \"private_fields_absent\": (\n"
+    "            \"objective\",\n"
+    "            \"requirements text\",\n"
+    "            \"exclusions text\",\n"
+    "            \"prompt\",\n"
+    "            \"response\",\n"
+    "            \"transcript\",\n"
+    "            \"credential\",\n"
+    "            \"endpoint\",\n"
+    "            \"retrieval material\",\n"
+    "            \"capsule content\",\n"
+    "            \"workspace path\",\n"
+    "        ),\n"
+    "        \"persisted_row_fields\": (\n"
+    "            \"source_intent_ref\",\n"
+    "            \"source_intent_digest\",\n"
+    "            \"safe_projection_digest\",\n"
+    "        ),\n"
+    "    },\n"
+    "    \"sensitive_ingress\": {\n"
+    "        \"work_spec_type\": \"exact built-in WorkSpecV1\",\n"
+    "        \"work_spec_count\": 1,\n"
+    "        \"container_ingress\": False,\n"
+    "        \"additional_inputs\": (\n"
+    "            \"all preassigned safe semantic refs\",\n"
+    "            \"caller-supplied source_intent_ref\",\n"
+    "            \"caller-supplied source_intent_digest\",\n"
+    "            \"expected coding_global_stop_ref\",\n"
+    "            \"expected coding_global_stop_version\",\n"
+    "        ),\n"
+    "        \"caller\": \"future Coordinator-internal semantic/progression caller already holding the exact value\",\n"
+    "        \"possession_meaning\": \"input provenance only; not executable authority\",\n"
+    "        \"closed_outcomes\": (\n"
+    "            \"one complete safe initialization command\",\n"
+    "            \"one closed privacy-safe failure discriminant\",\n"
+    "        ),\n"
+    "        \"retrieval_by_ref\": False,\n"
+    "        \"restart_safe_retrieval\": False,\n"
+    "        \"private_custody_store\": False,\n"
+    "    },\n"
+    "    \"safe_command\": {\n"
+    "        \"semantic_name\": \"DevelopmentProgramInitializationCommandV1\",\n"
+    "        \"schema_id\": \"governed-execution.nwp-initialize-development-program-command.v1\",\n"
+    "        \"digest_domain\": \"governed-execution.nwp-initialize-development-program-command.v1.identity\",\n"
+    "        \"ordered_fields\": (\n"
+    "            \"schema_id\",\n"
+    "            \"mutation_ref\",\n"
+    "            \"program_ref\",\n"
+    "            \"program_version_ref\",\n"
+    "            \"accepted_intent_revision_ref\",\n"
+    "            \"decision_ref\",\n"
+    "            \"preassigned_semantic_attempt_ref\",\n"
+    "            \"preassigned_candidate_ref\",\n"
+    "            \"coding_global_stop_ref\",\n"
+    "            \"coding_global_stop_version\",\n"
+    "            \"reason_code\",\n"
+    "            \"work_spec_safe_projection\",\n"
+    "            \"accepted_intent_safe_projection\",\n"
+    "            \"command_digest\",\n"
+    "        ),\n"
+    "        \"exact_field_types\": (\n"
+    "            (\"schema_id\", \"str\"),\n"
+    "            (\"mutation_ref\", \"str\"),\n"
+    "            (\"program_ref\", \"str\"),\n"
+    "            (\"program_version_ref\", \"str\"),\n"
+    "            (\"accepted_intent_revision_ref\", \"str\"),\n"
+    "            (\"decision_ref\", \"str\"),\n"
+    "            (\"preassigned_semantic_attempt_ref\", \"str\"),\n"
+    "            (\"preassigned_candidate_ref\", \"str\"),\n"
+    "            (\"coding_global_stop_ref\", \"str\"),\n"
+    "            (\"coding_global_stop_version\", \"int excluding bool\"),\n"
+    "            (\"reason_code\", \"str\"),\n"
+    "            (\"work_spec_safe_projection\", \"exact DevelopmentWorkSpecSafeProjection\"),\n"
+    "            (\"accepted_intent_safe_projection\", \"exact DevelopmentAcceptedIntentSafeProjectionV1\"),\n"
+    "            (\"command_digest\", \"str\"),\n"
+    "        ),\n"
+    "        \"reason_code\": \"program_genesis\",\n"
+    "        \"identity_excludes\": (\"command_digest\",),\n"
+    "        \"digest_owner\": \"Coordinator sensitive reducer\",\n"
+    "        \"cross_relations\": (\n"
+    "            \"work_spec_safe_projection.program_ref == command.program_ref\",\n"
+    "            \"work_spec_safe_projection.program_version_ref == command.program_version_ref\",\n"
+    "            \"work_spec_safe_projection.accepted_intent_revision_ref == command.accepted_intent_revision_ref\",\n"
+    "            \"accepted_intent_safe_projection.initial_work_spec_safe_projection == command.work_spec_safe_projection\",\n"
+    "            \"accepted_intent_safe_projection.source_intent_ref == persisted accepted-intent source_intent_ref\",\n"
+    "            \"accepted_intent_safe_projection.source_intent_digest == persisted accepted-intent source_intent_digest\",\n"
+    "            \"preassigned_attempt_candidate_binding.work_item_ref == safe command work_spec_safe_projection.work_item_ref == sole program-version membership work_item_ref == sole WorkSpec binding work_item_ref\",\n"
+    "            \"preassigned_attempt_candidate_binding.work_item_revision_ref == safe command work_spec_safe_projection.work_item_revision_ref == sole program-version membership work_item_revision_ref == sole WorkSpec binding work_item_revision_ref\",\n"
+    "            \"preassigned_attempt_candidate_binding.preassigned_semantic_attempt_ref == safe command preassigned_semantic_attempt_ref == initialize decision preassigned_semantic_attempt_ref\",\n"
+    "            \"preassigned_attempt_candidate_binding.preassigned_candidate_ref == safe command preassigned_candidate_ref == initialize decision preassigned_candidate_ref\",\n"
+    "        ),\n"
+    "        \"rejects\": (\n"
+    "            \"Boolean as integer\",\n"
+    "            \"subclasses\",\n"
+    "            \"coercion\",\n"
+    "            \"generic mappings\",\n"
+    "            \"extension fields\",\n"
+    "            \"optional metadata\",\n"
+    "            \"caller-supplied digests\",\n"
+    "            \"implicit refs\",\n"
+    "            \"zero WorkSpecs\",\n"
+    "            \"multiple WorkSpecs\",\n"
+    "            \"caller-supplied membership ordinal\",\n"
+    "            \"implicit sorting\",\n"
+    "        ),\n"
+    "        \"contains_complete_work_spec\": False,\n"
+    "    },\n"
+    "    \"genesis_cardinality\": {\n"
+    "        \"program_versions\": 1,\n"
+    "        \"accepted_intent_revisions\": 1,\n"
+    "        \"work_item_heads\": 1,\n"
+    "        \"work_item_revisions\": 1,\n"
+    "        \"program_version_memberships\": 1,\n"
+    "        \"work_spec_safe_bindings\": 1,\n"
+    "        \"preassigned_attempt_candidate_binding\": {\n"
+    "            \"ordered_fields\": (\n"
+    "                \"work_item_ref\",\n"
+    "                \"work_item_revision_ref\",\n"
+    "                \"preassigned_semantic_attempt_ref\",\n"
+    "                \"preassigned_candidate_ref\",\n"
+    "            ),\n"
+    "            \"relations\": (\n"
+    "                \"preassigned_attempt_candidate_binding.work_item_ref == safe command work_spec_safe_projection.work_item_ref == sole program-version membership work_item_ref == sole WorkSpec binding work_item_ref\",\n"
+    "                \"preassigned_attempt_candidate_binding.work_item_revision_ref == safe command work_spec_safe_projection.work_item_revision_ref == sole program-version membership work_item_revision_ref == sole WorkSpec binding work_item_revision_ref\",\n"
+    "                \"preassigned_attempt_candidate_binding.preassigned_semantic_attempt_ref == safe command preassigned_semantic_attempt_ref == initialize decision preassigned_semantic_attempt_ref\",\n"
+    "                \"preassigned_attempt_candidate_binding.preassigned_candidate_ref == safe command preassigned_candidate_ref == initialize decision preassigned_candidate_ref\",\n"
+    "            ),\n"
+    "            \"future_lineage_only\": True,\n"
+    "            \"creates_selects_authorizes_or_executes_attempt_or_candidate\": False,\n"
+    "        },\n"
+    "        \"hidden_selection_rule\": False,\n"
+    "        \"permanent_one_work_item_architecture\": False,\n"
+    "        \"later_additional_work_owner\": \"C2B6 replan mechanics\",\n"
+    "    },\n"
+    "    \"row_and_head_ledger\": {\n"
+    "        \"inserted_row_count\": 9,\n"
+    "        \"inserted_rows\": (\n"
+    "            \"program_head\",\n"
+    "            \"program_version\",\n"
+    "            \"accepted_intent_revision\",\n"
+    "            \"work_item_head\",\n"
+    "            \"work_item_revision\",\n"
+    "            \"program_version_work_item\",\n"
+    "            \"work_spec_binding\",\n"
+    "            \"initialize_decision\",\n"
+    "            \"mutation_receipt\",\n"
+    "        ),\n"
+    "        \"postimages\": {\n"
+    "            \"program_head\": (\n"
+    "                (\"current_program_version_number\", 1),\n"
+    "                (\"current_program_version_ref\", \"exact program_version_ref\"),\n"
+    "                (\"head_revision\", 0),\n"
+    "                (\"program_state\", \"active\"),\n"
+    "            ),\n"
+    "            \"program_version\": (\n"
+    "                (\"program_version_number\", 1),\n"
+    "                (\"program_version_kind\", \"initial\"),\n"
+    "                (\"creating_decision_ref\", \"exact decision_ref\"),\n"
+    "            ),\n"
+    "            \"accepted_intent_revision\": (\n"
+    "                (\"accepted_intent_revision_number\", 1),\n"
+    "                (\"prior_accepted_intent_revision_ref\", None),\n"
+    "                (\"safe_projection_digest\", \"derived accepted-intent safe_projection_digest\"),\n"
+    "            ),\n"
+    "            \"work_item_head\": (\n"
+    "                (\"current_work_item_revision_number\", 1),\n"
+    "                (\"current_work_item_revision_ref\", \"exact work_item_revision_ref\"),\n"
+    "                (\"head_revision\", 0),\n"
+    "                (\"work_state\", \"planned\"),\n"
+    "            ),\n"
+    "            \"work_item_revision\": (\n"
+    "                (\"work_item_revision_number\", 1),\n"
+    "                (\"work_item_revision_kind\", \"initial\"),\n"
+    "                (\"prior_work_item_revision_ref\", None),\n"
+    "            ),\n"
+    "            \"program_version_work_item\": (\n"
+    "                (\"membership_ordinal\", 0),\n"
+    "                (\"work_item_ref\", \"exact work_item_ref\"),\n"
+    "                (\"work_item_revision_ref\", \"exact work_item_revision_ref\"),\n"
+    "            ),\n"
+    "            \"work_spec_binding\": (\n"
+    "                (\"safe_projection\", \"exact existing DevelopmentWorkSpecSafeProjection\"),\n"
+    "                (\"recorded_at\", \"one transaction timestamp\"),\n"
+    "            ),\n"
+    "            \"initialize_decision\": (\n"
+    "                (\"decision_kind\", \"initialize\"),\n"
+    "                (\"decision_variant\", \"program_genesis\"),\n"
+    "                (\"basis_decision_ref\", None),\n"
+    "                (\"basis_program_version_ref\", None),\n"
+    "                (\"basis_semantic_attempt_ref\", None),\n"
+    "                (\"basis_effect_intent_ref\", None),\n"
+    "                (\"expected_program_head_revision\", 0),\n"
+    "                (\"resulting_program_version_number\", 1),\n"
+    "                (\"resulting_program_version_ref\", \"exact program_version_ref\"),\n"
+    "                (\"selected_semantic_attempt_ref\", None),\n"
+    "                (\"selected_candidate_ref\", None),\n"
+    "                (\"preassigned_semantic_attempt_ref\", \"exact preassigned_semantic_attempt_ref\"),\n"
+    "                (\"preassigned_candidate_ref\", \"exact preassigned_candidate_ref\"),\n"
+    "                (\"reason_code\", \"program_genesis\"),\n"
+    "            ),\n"
+    "            \"mutation_receipt\": (\n"
+    "                (\"mutation_family\", \"initialize_development_program\"),\n"
+    "                (\"outcome\", \"committed\"),\n"
+    "            ),\n"
+    "        },\n"
+    "        \"single_transaction_timestamp\": True,\n"
+    "        \"absent_rows_and_effects\": (\n"
+    "            \"revision_edge\",\n"
+    "            \"semantic_attempt\",\n"
+    "            \"effect\",\n"
+    "            \"command row\",\n"
+    "            \"delivery\",\n"
+    "            \"observation\",\n"
+    "            \"capsule\",\n"
+    "            \"Git row\",\n"
+    "            \"external request\",\n"
+    "        ),\n"
+    "    },\n"
+    "    \"write_order\": {\n"
+    "        \"foreign_keys_continuously_enabled\": True,\n"
+    "        \"ordered_rows\": (\n"
+    "            \"program_head\",\n"
+    "            \"accepted_intent_revision\",\n"
+    "            \"work_item_head\",\n"
+    "            \"work_item_revision\",\n"
+    "            \"initialize_decision\",\n"
+    "            \"program_version\",\n"
+    "            \"program_version_work_item\",\n"
+    "            \"work_spec_binding\",\n"
+    "            \"mutation_receipt\",\n"
+    "        ),\n"
+    "    },\n"
+    "    \"initialize_graph\": {\n"
+    "        \"entry_count\": 8,\n"
+    "        \"receipt_is_envelope\": True,\n"
+    "        \"receipt_is_entry\": False,\n"
+    "        \"entries\": (\n"
+    "            (0, \"program_head_postimage\", 0, \"program_ref\"),\n"
+    "            (1, \"accepted_intent_revision\", 0, \"accepted_intent_revision_ref\"),\n"
+    "            (2, \"initialize_decision\", 0, \"decision_ref\"),\n"
+    "            (3, \"program_version\", 0, \"program_version_ref\"),\n"
+    "            (4, \"work_item_head_postimage\", 0, \"work_item_ref\"),\n"
+    "            (5, \"work_item_revision\", 0, \"work_item_revision_ref\"),\n"
+    "            (6, \"program_version_work_item\", 0, \"work_item_ref\"),\n"
+    "            (7, \"work_spec_binding\", 0, \"work_spec_ref\"),\n"
+    "        ),\n"
+    "        \"ordering\": (\"rank ASC\", \"ordinal ASC\"),\n"
+    "        \"mutable_preimages\": \"exact absence; not graph entries\",\n"
+    "        \"basis_and_global_stop_rows\": \"verified dependencies; not graph entries\",\n"
+    "        \"same_ref_distinct_roles_allowed\": \"work_item_ref\",\n"
+    "        \"digest_primitive\": \"existing common supplied-entry mutation-graph digest primitive\",\n"
+    "    },\n"
+    "    \"complete_graph_locator\": {\n"
+    "        \"starts_from\": (\"exact safe command\", \"mutation receipt\"),\n"
+    "        \"lookups\": (\n"
+    "            \"receipt by mutation_ref\",\n"
+    "            \"initialize decision and resulting version by program_ref + decision_ref\",\n"
+    "            \"accepted-intent revision by program_ref + accepted_intent_revision_ref\",\n"
+    "            \"program head by program_ref\",\n"
+    "            \"sole complete membership by program_ref + program_version_ref\",\n"
+    "            \"work-item head and exact revision by program_ref + work_item_ref + work_item_revision_ref\",\n"
+    "            \"WorkSpec binding by exact program/version/work/revision identity, then exact work_spec_ref equality\",\n"
+    "        ),\n"
+    "        \"completeness\": (\n"
+    "            \"exactly one membership\",\n"
+    "            \"membership ordinal 0\",\n"
+    "            \"exactly one matching WorkSpec binding\",\n"
+    "            \"returned binding work_spec_ref equals safe-command work_spec_ref and graph-entry expected work_spec_ref\",\n"
+    "            \"all row self-digests valid\",\n"
+    "            \"all cross-row relations valid\",\n"
+    "            \"historical program-head postimage valid\",\n"
+    "            \"historical work-head postimage valid\",\n"
+    "            \"persisted result projection valid\",\n"
+    "            \"mutation graph digest valid\",\n"
+    "        ),\n"
+    "        \"physical_lookup_key\": (\n"
+    "            \"program_ref\",\n"
+    "            \"program_version_ref\",\n"
+    "            \"work_item_ref\",\n"
+    "            \"work_item_revision_ref\",\n"
+    "        ),\n"
+    "        \"returned_work_spec_ref_mismatch\": \"database_integrity_failure\",\n"
+    "        \"forbidden_selection\": (\"absence\", \"latest row\", \"timestamp\", \"rowid\", \"scan\", \"different WorkSpec\"),\n"
+    "        \"generic_graph_engine\": False,\n"
+    "        \"future_reads\": \"bounded family-specific absence/collision reads only\",\n"
+    "    },\n"
+    "    \"persisted_result_projection\": {\n"
+    "        \"schema_id\": \"governed-execution.nwp-initialize-development-program-result.v1\",\n"
+    "        \"digest_domain\": \"governed-execution.nwp-initialize-development-program-result.v1.identity\",\n"
+    "        \"ordered_fields\": (\n"
+    "            \"schema_id\",\n"
+    "            \"program_ref\",\n"
+    "            \"decision_ref\",\n"
+    "            \"result_program_version_ref\",\n"
+    "            \"result_decision_ref\",\n"
+    "        ),\n"
+    "        \"result_program_version_ref\": \"exactly program_version_ref\",\n"
+    "        \"result_decision_ref\": \"exactly decision_ref\",\n"
+    "    },\n"
+    "    \"private_apply_result\": {\n"
+    "        \"semantic_name\": \"DevelopmentProgramInitializationResultV1\",\n"
+    "        \"ordered_fields\": (\n"
+    "            \"disposition\",\n"
+    "            \"mutation_ref\",\n"
+    "            \"command_digest\",\n"
+    "            \"program_ref\",\n"
+    "            \"program_version_ref\",\n"
+    "            \"accepted_intent_revision_ref\",\n"
+    "            \"decision_ref\",\n"
+    "            \"work_item_ref\",\n"
+    "            \"work_item_revision_ref\",\n"
+    "            \"work_spec_ref\",\n"
+    "            \"preassigned_semantic_attempt_ref\",\n"
+    "            \"preassigned_candidate_ref\",\n"
+    "            \"transaction_timestamp\",\n"
+    "        ),\n"
+    "        \"dispositions\": (\"committed\", \"exact_replay\"),\n"
+    "    },\n"
+    "    \"private_outcome_ownership\": {\n"
+    "        \"future_module\": \"src/ge_nwp_coordinator/_development_program_initialization_contracts.py\",\n"
+    "        \"module_present_this_turn\": False,\n"
+    "        \"package_root_export\": False,\n"
+    "        \"conflict_reason\": {\n"
+    "            \"semantic_name\": \"DevelopmentProgramInitializationConflictReasonV1\",\n"
+    "            \"values\": (\n"
+    "                \"mutation_ref_reuse_conflict\",\n"
+    "                \"global_stop_version_conflict\",\n"
+    "                \"coding_global_stop_active\",\n"
+    "                \"semantic_identity_conflict\",\n"
+    "            ),\n"
+    "        },\n"
+    "        \"conflict_result\": {\n"
+    "            \"semantic_name\": \"DevelopmentProgramInitializationConflictV1\",\n"
+    "            \"ordered_fields\": (\"reason\", \"mutation_ref\", \"command_digest\", \"program_ref\"),\n"
+    "            \"reason_type\": \"exact DevelopmentProgramInitializationConflictReasonV1\",\n"
+    "            \"posture\": (\n"
+    "                \"not persisted\",\n"
+    "                \"not canonical durable identity\",\n"
+    "                \"not a SQLite safe error\",\n"
+    "                \"not a public apply-conflict value\",\n"
+    "                \"not package-exported\",\n"
+    "                \"not authority\",\n"
+    "            ),\n"
+    "        },\n"
+    "        \"recovery_disposition\": {\n"
+    "            \"semantic_name\": \"DevelopmentProgramInitializationRecoveryDispositionV1\",\n"
+    "            \"values\": (\"committed_exact\", \"definitely_not_committed\", \"unresolved\"),\n"
+    "        },\n"
+    "        \"existing_sqlite_store_error_reasons\": (\n"
+    "            \"database_integrity_failure\",\n"
+    "            \"mutation_failed\",\n"
+    "            \"commit_outcome_unknown\",\n"
+    "        ),\n"
+    "        \"public_surfaces_unchanged\": (\n"
+    "            \"models.APPLY_CONFLICT_REASONS\",\n"
+    "            \"sqlite_errors\",\n"
+    "            \"package root\",\n"
+    "            \"StateStore\",\n"
+    "            \"public WriterSession protocol\",\n"
+    "        ),\n"
+    "    },\n"
+    "    \"mutation_receipt\": {\n"
+    "        \"family\": \"initialize_development_program\",\n"
+    "        \"command_schema_id\": \"governed-execution.nwp-initialize-development-program-command.v1\",\n"
+    "        \"result_class\": \"development_program_initialized\",\n"
+    "        \"result_attempt_ref\": None,\n"
+    "        \"result_effect_ref\": None,\n"
+    "        \"result_fence_ref\": None,\n"
+    "        \"result_delivery_ref\": None,\n"
+    "        \"result_observation_ref\": None,\n"
+    "        \"outcome\": \"committed\",\n"
+    "        \"self_digest\": None,\n"
+    "        \"graph_entry_count\": 8,\n"
+    "        \"failed_fresh_receipt\": False,\n"
+    "    },\n"
+    "    \"exact_replay\": {\n"
+    "        \"after_writer_fencing\": True,\n"
+    "        \"ordered_steps\": (\n"
+    "            \"read receipt by mutation_ref\",\n"
+    "            \"absent receipt selects fresh path\",\n"
+    "            \"present receipt with different command digest is mutation_ref_reuse_conflict\",\n"
+    "            \"validate receipt family, schema, and scalar algebra\",\n"
+    "            \"locate all eight graph entries\",\n"
+    "            \"validate every row self-digest\",\n"
+    "            \"validate all program/version/decision/intent/work/membership/WorkSpec relations\",\n"
+    "            \"reconstruct historical program and work head postimages\",\n"
+    "            \"recompute accepted-intent projection, persisted result projection, and graph digest\",\n"
+    "            \"return original private result with disposition exact_replay\",\n"
+    "        ),\n"
+    "        \"incomplete_or_malformed_graph\": \"database_integrity_failure\",\n"
+    "        \"contradictory_same_revision_head\": \"database_integrity_failure\",\n"
+    "        \"later_valid_head_advancement\": \"allowed; historical replay remains exact\",\n"
+    "        \"later_C2B6_lineage_proven\": False,\n"
+    "    },\n"
+    "    \"commit_uncertainty_cleanup_gate\": {\n"
+    "        \"commit_attempt_exception\": \"controller records commit_outcome_unknown\",\n"
+    "        \"raw_connection_owner_before_close\": \"transaction controller retains exclusive custody\",\n"
+    "        \"close_attempt_precedes\": (\n"
+    "            \"clearing controller connection custody\",\n"
+    "            \"making the mutation slot available\",\n"
+    "            \"returning commit_outcome_unknown to the caller\",\n"
+    "        ),\n"
+    "        \"close_complete\": {\n"
+    "            \"controller_connection_custody\": \"cleared\",\n"
+    "            \"mutation_slot_available\": True,\n"
+    "            \"session_quarantined\": False,\n"
+    "            \"outward_store_error\": \"commit_outcome_unknown\",\n"
+    "            \"original_apply_error\": {\n"
+    "                \"type\": \"SQLiteMutationStoreError\",\n"
+    "                \"reason\": \"commit_outcome_unknown\",\n"
+    "                \"internal_detail\": None,\n"
+    "                \"cause\": None,\n"
+    "                \"context\": None,\n"
+    "                \"notes\": None,\n"
+    "                \"raised_from\": None,\n"
+    "            },\n"
+    "            \"slot_release_gate\": \"only after close proof\",\n"
+    "            \"fresh_resolver\": \"permitted later under a new operation lease and reacquired same shared slot\",\n"
+    "        },\n"
+    "        \"close_not_proved\": {\n"
+    "            \"ordered_steps\": (\n"
+    "                \"commit attempt raises\",\n"
+    "                \"controller retains connection custody and mutation slot\",\n"
+    "                \"close is attempted\",\n"
+    "                \"close not proved\",\n"
+    "                \"connection custody transfers to private _WriterSessionResource\",\n"
+    "                \"session quarantine is recorded\",\n"
+    "                \"writer-authority lock remains retained\",\n"
+    "                \"mutation slot remains unavailable\",\n"
+    "                \"fresh content-free commit_outcome_unknown is raised from None\",\n"
+    "            ),\n"
+    "            \"raw_connection_custody\": \"transferred to and retained by private _WriterSessionResource\",\n"
+    "            \"session_state\": \"commit-uncertain quarantined\",\n"
+    "            \"writer_authority_lock\": \"retained by that concrete session\",\n"
+    "            \"mutation_slot_available\": False,\n"
+    "            \"original_apply_error\": {\n"
+    "                \"type\": \"SQLiteMutationStoreError\",\n"
+    "                \"reason\": \"commit_outcome_unknown\",\n"
+    "                \"internal_detail\": None,\n"
+    "                \"cause\": None,\n"
+    "                \"context\": None,\n"
+    "                \"notes\": None,\n"
+    "                \"raised_from\": None,\n"
+    "            },\n"
+    "            \"close_failure_role\": \"secondary\",\n"
+    "            \"close_failure_replaces_primary_error\": False,\n"
+    "            \"close_failure_decorates_primary_error\": False,\n"
+    "            \"close_failure_leaks_outward\": False,\n"
+    "            \"close_exception_in_outward_error_graph\": False,\n"
+    "            \"same_session_mutation\": False,\n"
+    "            \"same_session_database_backed_resolver\": False,\n"
+    "            \"same_session_resolver_disposition\": \"unresolved before operation-lease acquisition, database open, BEGIN, or SQL\",\n"
+    "            \"permitted_work\": \"explicit close/finalization of the retained connection only\",\n"
+    "            \"new_session_resolver_before_proved_close\": False,\n"
+    "            \"definitely_not_committed\": False,\n"
+    "            \"automatic_semantic_retry\": False,\n"
+    "            \"process_control_close_interruption_ordered_steps\": (\n"
+    "                \"observe the exact process-control exception object from connection close\",\n"
+    "                \"retain the mutation slot\",\n"
+    "                \"retain the writer-authority lock\",\n"
+    "                \"transfer the uncertain raw connection into the private _WriterSessionResource\",\n"
+    "                \"publish the concrete session as commit-uncertain quarantined\",\n"
+    "                \"confirm same-session mutation and database-backed recovery remain forbidden\",\n"
+    "                \"confirm no operation lease, database open, BEGIN, or SQL can occur\",\n"
+    "                \"re-raise the identical process-control exception object\",\n"
+    "            ),\n"
+    "            \"process_control_exceptions\": {\n"
+    "                \"KeyboardInterrupt\": {\n"
+    "                    \"exception_identity_preserved\": True,\n"
+    "                    \"connection_custody_transferred_before_propagation\": True,\n"
+    "                    \"quarantine_published_before_propagation\": True,\n"
+    "                    \"writer_lock_retained_before_propagation\": True,\n"
+    "                    \"mutation_slot_retained_before_propagation\": True,\n"
+    "                    \"same_session_database_recovery_allowed\": False,\n"
+    "                    \"operation_lease_allowed_before_close_proof\": False,\n"
+    "                    \"database_open_allowed_before_close_proof\": False,\n"
+    "                    \"begin_allowed_before_close_proof\": False,\n"
+    "                    \"sql_allowed_before_close_proof\": False,\n"
+    "                    \"ordinary_store_error_conversion\": False,\n"
+    "                    \"automatic_semantic_retry\": False,\n"
+    "                },\n"
+    "                \"SystemExit\": {\n"
+    "                    \"exception_identity_preserved\": True,\n"
+    "                    \"connection_custody_transferred_before_propagation\": True,\n"
+    "                    \"quarantine_published_before_propagation\": True,\n"
+    "                    \"writer_lock_retained_before_propagation\": True,\n"
+    "                    \"mutation_slot_retained_before_propagation\": True,\n"
+    "                    \"same_session_database_recovery_allowed\": False,\n"
+    "                    \"operation_lease_allowed_before_close_proof\": False,\n"
+    "                    \"database_open_allowed_before_close_proof\": False,\n"
+    "                    \"begin_allowed_before_close_proof\": False,\n"
+    "                    \"sql_allowed_before_close_proof\": False,\n"
+    "                    \"ordinary_store_error_conversion\": False,\n"
+    "                    \"automatic_semantic_retry\": False,\n"
+    "                },\n"
+    "                \"GeneratorExit\": {\n"
+    "                    \"exception_identity_preserved\": True,\n"
+    "                    \"connection_custody_transferred_before_propagation\": True,\n"
+    "                    \"quarantine_published_before_propagation\": True,\n"
+    "                    \"writer_lock_retained_before_propagation\": True,\n"
+    "                    \"mutation_slot_retained_before_propagation\": True,\n"
+    "                    \"same_session_database_recovery_allowed\": False,\n"
+    "                    \"operation_lease_allowed_before_close_proof\": False,\n"
+    "                    \"database_open_allowed_before_close_proof\": False,\n"
+    "                    \"begin_allowed_before_close_proof\": False,\n"
+    "                    \"sql_allowed_before_close_proof\": False,\n"
+    "                    \"ordinary_store_error_conversion\": False,\n"
+    "                    \"automatic_semantic_retry\": False,\n"
+    "                },\n"
+    "            },\n"
+    "            \"process_control_exception_graph_ledger\": (\n"
+    "                {\n"
+    "                    \"branch_name\": \"KeyboardInterrupt\",\n"
+    "                    \"propagation_form\": \"bare_reraise\",\n"
+    "                    \"same_exception_object\": True,\n"
+    "                    \"exact_type_preserved\": True,\n"
+    "                    \"args_preserved\": True,\n"
+    "                    \"system_exit_code_preserved_or_not_applicable\": \"not_applicable\",\n"
+    "                    \"caught_traceback_tail_identity_preserved\": True,\n"
+    "                    \"repair_owned_traceback_frame_delta\": 0,\n"
+    "                    \"cause_before\": None,\n"
+    "                    \"cause_after\": None,\n"
+    "                    \"context_before\": None,\n"
+    "                    \"context_after\": None,\n"
+    "                    \"suppress_context_before\": False,\n"
+    "                    \"suppress_context_after\": False,\n"
+    "                    \"notes_before\": \"absent\",\n"
+    "                    \"notes_after\": \"absent\",\n"
+    "                    \"private_material_in_exception_graph\": False,\n"
+    "                    \"automatic_semantic_retry\": False,\n"
+    "                },\n"
+    "                {\n"
+    "                    \"branch_name\": \"SystemExit\",\n"
+    "                    \"propagation_form\": \"bare_reraise\",\n"
+    "                    \"same_exception_object\": True,\n"
+    "                    \"exact_type_preserved\": True,\n"
+    "                    \"args_preserved\": True,\n"
+    "                    \"system_exit_code_preserved_or_not_applicable\": \"preserved\",\n"
+    "                    \"caught_traceback_tail_identity_preserved\": True,\n"
+    "                    \"repair_owned_traceback_frame_delta\": 0,\n"
+    "                    \"cause_before\": None,\n"
+    "                    \"cause_after\": None,\n"
+    "                    \"context_before\": None,\n"
+    "                    \"context_after\": None,\n"
+    "                    \"suppress_context_before\": False,\n"
+    "                    \"suppress_context_after\": False,\n"
+    "                    \"notes_before\": \"absent\",\n"
+    "                    \"notes_after\": \"absent\",\n"
+    "                    \"private_material_in_exception_graph\": False,\n"
+    "                    \"automatic_semantic_retry\": False,\n"
+    "                },\n"
+    "                {\n"
+    "                    \"branch_name\": \"GeneratorExit\",\n"
+    "                    \"propagation_form\": \"bare_reraise\",\n"
+    "                    \"same_exception_object\": True,\n"
+    "                    \"exact_type_preserved\": True,\n"
+    "                    \"args_preserved\": True,\n"
+    "                    \"system_exit_code_preserved_or_not_applicable\": \"not_applicable\",\n"
+    "                    \"caught_traceback_tail_identity_preserved\": True,\n"
+    "                    \"repair_owned_traceback_frame_delta\": 0,\n"
+    "                    \"cause_before\": None,\n"
+    "                    \"cause_after\": None,\n"
+    "                    \"context_before\": None,\n"
+    "                    \"context_after\": None,\n"
+    "                    \"suppress_context_before\": False,\n"
+    "                    \"suppress_context_after\": False,\n"
+    "                    \"notes_before\": \"absent\",\n"
+    "                    \"notes_after\": \"absent\",\n"
+    "                    \"private_material_in_exception_graph\": False,\n"
+    "                    \"automatic_semantic_retry\": False,\n"
+    "                },\n"
+    "            ),\n"
+    "        },\n"
+    "        \"quarantine_clearance\": (\n"
+    "            \"proven retained-connection closure\",\n"
+    "            \"proven writer-authority-lock release\",\n"
+    "            \"newly acquired concrete writer session\",\n"
+    "            \"exact safe command\",\n"
+    "        ),\n"
+    "        \"caller_authored_clearance\": False,\n"
+    "        \"forbidden_clearance_evidence\": (\n"
+    "            \"cleanup token\",\n"
+    "            \"Boolean assertion\",\n"
+    "            \"path marker\",\n"
+    "            \"report\",\n"
+    "            \"timeout\",\n"
+    "        ),\n"
+    "        \"forbidden_outward_material\": (\n"
+    "            \"raw connection\",\n"
+    "            \"cursor\",\n"
+    "            \"transaction controller\",\n"
+    "            \"mutation-slot object\",\n"
+    "            \"writer-lock object\",\n"
+    "            \"quarantine object\",\n"
+    "            \"ordinary commit exception\",\n"
+    "            \"close implementation details\",\n"
+    "            \"SQLite path\",\n"
+    "            \"SQL or parameters\",\n"
+    "            \"WorkSpec material\",\n"
+    "        ),\n"
+    "        \"forbidden_outward_destinations\": (\n"
+    "            \"safe command\",\n"
+    "            \"receipt\",\n"
+    "            \"apply result\",\n"
+    "            \"resolver result\",\n"
+    "            \"public value\",\n"
+    "            \"exception payload\",\n"
+    "            \"log\",\n"
+    "            \"report\",\n"
+    "            \"future C2B3-owned outward traceback locals\",\n"
+    "        ),\n"
+    "        \"process_control_exception_graph_privacy\": {\n"
+    "            \"forbidden_material\": (\n"
+    "                \"ordinary commit exception\",\n"
+    "                \"ordinary close exception\",\n"
+    "                \"raw SQLite exception\",\n"
+    "                \"connection\",\n"
+    "                \"cursor\",\n"
+    "                \"controller\",\n"
+    "                \"mutation-slot object\",\n"
+    "                \"writer-lock object\",\n"
+    "                \"quarantine object\",\n"
+    "                \"database path\",\n"
+    "                \"SQL\",\n"
+    "                \"parameters\",\n"
+    "                \"WorkSpec content\",\n"
+    "                \"private test sentinel\",\n"
+    "            ),\n"
+    "            \"forbidden_surfaces\": (\n"
+    "                \"exception args\",\n"
+    "                \"str or repr\",\n"
+    "                \"__cause__ graph\",\n"
+    "                \"__context__ graph\",\n"
+    "                \"__notes__\",\n"
+    "                \"formatted traceback\",\n"
+    "                \"C2B3-owned traceback-frame locals\",\n"
+    "                \"returned or persisted values\",\n"
+    "                \"logs or reports\",\n"
+    "            ),\n"
+    "            \"sole_permitted_outward_exception\": \"the identical process-control exception object\",\n"
+    "        },\n"
+    "    },\n"
+    "    \"commit_outcome_recovery\": {\n"
+    "        \"semantic_name\": \"DevelopmentProgramInitializationRecoveryResultV1\",\n"
+    "        \"disposition_owner\": \"DevelopmentProgramInitializationRecoveryDispositionV1\",\n"
+    "        \"dispositions\": (\n"
+    "            \"committed_exact\",\n"
+    "            \"definitely_not_committed\",\n"
+    "            \"unresolved\",\n"
+    "        ),\n"
+    "        \"inputs\": (\n"
+    "            \"currently valid concrete _SQLiteWriterSession\",\n"
+    "            \"exact safe initialization command\",\n"
+    "        ),\n"
+    "        \"accepts_work_spec\": False,\n"
+    "        \"lifecycle\": (\n"
+    "            \"prior uncertain connection closure and prior writer-lock release are proven\",\n"
+    "            \"newly acquired concrete writer session\",\n"
+    "            \"new operation guard and fresh operation lease\",\n"
+    "            \"reacquire existing shared mutation slot\",\n"
+    "            \"same transaction-controller class\",\n"
+    "            \"fresh readback-only BEGIN IMMEDIATE\",\n"
+    "            \"managed schema and resource revalidation\",\n"
+    "            \"writer fencing\",\n"
+    "            \"same nominal read capability\",\n"
+    "            \"readback only\",\n"
+    "            \"rollback and close\",\n"
+    "        ),\n"
+    "        \"same_session_resolver_while_quarantined\": False,\n"
+    "        \"mutation_slot_available_before_close_completion\": False,\n"
+    "        \"close_not_proved_disposition\": \"unresolved\",\n"
+    "        \"committed_exact_requires\": (\n"
+    "            \"exact receipt\",\n"
+    "            \"exact command digest\",\n"
+    "            \"exact persisted result\",\n"
+    "            \"all eight graph entries\",\n"
+    "            \"all row self-digests\",\n"
+    "            \"all cross-row relations\",\n"
+    "            \"both historical head postimages\",\n"
+    "            \"exact result-projection digest\",\n"
+    "            \"exact mutation-graph digest\",\n"
+    "        ),\n"
+    "        \"definitely_not_committed_requires_all_absent\": (\n"
+    "            \"receipt for mutation_ref\",\n"
+    "            \"program head for program_ref\",\n"
+    "            \"program version for program_version_ref\",\n"
+    "            \"accepted-intent revision for accepted_intent_revision_ref\",\n"
+    "            \"decision for decision_ref\",\n"
+    "            \"work-item head for work_item_ref\",\n"
+    "            \"work-item revision for work_item_revision_ref\",\n"
+    "            \"membership for command identities\",\n"
+    "            \"WorkSpec binding for work_spec_ref\",\n"
+    "        ),\n"
+    "        \"unresolved_evidence\": (\n"
+    "            \"receipt-only\",\n"
+    "            \"graph-without-receipt\",\n"
+    "            \"partial graph\",\n"
+    "            \"mixed evidence\",\n"
+    "            \"malformed evidence\",\n"
+    "            \"contradictory postimage\",\n"
+    "            \"unlocatable evidence\",\n"
+    "            \"any state other than exact committed or exact all-absent\",\n"
+    "        ),\n"
+    "        \"basis_or_global_stop_presence_proves_family_commit\": False,\n"
+    "        \"automatic_semantic_retry\": False,\n"
+    "        \"fresh_retry_after_definitely_not_committed\": \"caller must supply the exact complete WorkSpecV1 again\",\n"
+    "    },\n"
+    "    \"conflict_precedence\": {\n"
+    "        \"after_writer_fencing\": (\n"
+    "            (1, \"exact receipt replay\"),\n"
+    "            (2, \"mutation_ref_reuse_conflict\"),\n"
+    "            (3, \"global_stop_version_conflict\"),\n"
+    "            (4, \"coding_global_stop_active\"),\n"
+    "            (5, \"semantic_identity_conflict\"),\n"
+    "            (6, \"database_integrity_failure\"),\n"
+    "            (7, \"mutation_failed\"),\n"
+    "            (8, \"commit_outcome_unknown\"),\n"
+    "        ),\n"
+    "        \"classification_conditions\": (\n"
+    "            (\"exact receipt replay\", \"same mutation_ref and same command digest with an exact complete persisted family\"),\n"
+    "            (\"mutation_ref_reuse_conflict\", \"same mutation_ref and different command digest\"),\n"
+    "            (\"global_stop_version_conflict\", \"coding-global-stop ref or version mismatch\"),\n"
+    "            (\"coding_global_stop_active\", \"active exact coding global stop\"),\n"
+    "            (\"semantic_identity_conflict\", \"pre-existing program or colliding genesis semantic identity\"),\n"
+    "            (\"database_integrity_failure\", \"malformed or contradictory persisted state\"),\n"
+    "            (\"mutation_failed\", \"operational SQLite or capability failure\"),\n"
+    "            (\"commit_outcome_unknown\", \"commit-attempt exception\"),\n"
+    "        ),\n"
+    "        \"semantic_identity_conflict_visibility\": \"private\",\n"
+    "        \"program_head_conflict\": \"reserved for later non-genesis CAS-bearing families\",\n"
+    "        \"failed_fresh_operation_creates_receipt\": False,\n"
+    "    },\n"
+    "    \"privacy_and_traceback\": {\n"
+    "        \"ordered_failure_boundary\": (\n"
+    "            \"sensitive WorkSpec reducer\",\n"
+    "            \"safe closed outcome\",\n"
+    "            \"raw reducer returns normally\",\n"
+    "            \"outer wrapper clears WorkSpec and caught-exception references\",\n"
+    "            \"fresh bounded outward failure from None\",\n"
+    "        ),\n"
+    "        \"complete_work_spec_forbidden_destinations\": (\n"
+    "            \"SQLite\",\n"
+    "            \"safe command\",\n"
+    "            \"receipt\",\n"
+    "            \"result\",\n"
+    "            \"resolver input\",\n"
+    "            \"exception payload\",\n"
+    "            \"log\",\n"
+    "            \"report\",\n"
+    "            \"traceback locals owned by future C2B3 source\",\n"
+    "        ),\n"
+    "        \"forbidden_custody_sources\": (\n"
+    "            \"chat\",\n"
+    "            \"model memory\",\n"
+    "            \"Bridge\",\n"
+    "            \"reports\",\n"
+    "            \"connectors\",\n"
+    "            \"logs\",\n"
+    "            \"transcripts\",\n"
+    "        ),\n"
+    "        \"transaction_controller_receives_work_spec\": False,\n"
+    "        \"contract_freeze_persists_or_executes_work_spec\": False,\n"
+    "    },\n"
+    "    \"later_author_effect_owner_decisions\": {\n"
+    "        \"complete_contract_frozen\": False,\n"
+    "        \"source_implemented\": False,\n"
+    "        \"initial_basis\": (\"initialize\", \"program_genesis\"),\n"
+    "        \"attempt_number\": 1,\n"
+    "        \"planned_adapter_kind\": \"execution_substrate\",\n"
+    "        \"route_effect\": \"absent\",\n"
+    "        \"planned_adapter_value_authority\": \"safe planned-row value only; no ES compatibility, dispatch permission, route eligibility, reliable submit, or current API binding\",\n"
+    "        \"adapter_safe_correlation_ref\": \"preassigned, safe, non-authoritative\",\n"
+    "        \"work_spec_ingress\": \"same-call transient only\",\n"
+    "        \"authority_evaluation\": {\n"
+    "            \"authorship\": \"Coordinator-authored pending evidence\",\n"
+    "            \"evaluation_scope\": \"effect\",\n"
+    "            \"evaluation_subject_ref\": \"exact effect_intent_ref\",\n"
+    "            \"semantic_attempt_ref\": None,\n"
+    "            \"effect_intent_ref\": \"exact effect_intent_ref\",\n"
+    "            \"authority_ref\": \"exact externally authored effect_authorization_ref\",\n"
+    "            \"authority_digest\": \"exact externally authored effect_authorization_digest\",\n"
+    "            \"authority_state\": \"pending\",\n"
+    "            \"reason_code\": \"external_verification_pending\",\n"
+    "            \"expires_at\": None,\n"
+    "            \"evaluated_at\": \"one transaction timestamp\",\n"
+    "            \"authority_evaluation_ref\": \"preassigned and command-bound\",\n"
+    "            \"dispatch_eligibility\": False,\n"
+    "        },\n"
+    "        \"coordinator_does_not_author\": (\n"
+    "            \"verified\",\n"
+    "            \"blocked\",\n"
+    "            \"stale\",\n"
+    "            \"revoked\",\n"
+    "            \"expired\",\n"
+    "            \"executable permission\",\n"
+    "            \"ES admission\",\n"
+    "            \"worker authorization\",\n"
+    "        ),\n"
+    "        \"requirement_provenance\": {\n"
+    "            \"refs\": \"exact validation_requirement_ref and review_requirement_ref from WorkSpec\",\n"
+    "            \"digests\": \"exact typed safe requirement evidence supplied in the same future private call\",\n"
+    "            \"raw_digest_only_input\": False,\n"
+    "            \"digest_inference_from_refs\": False,\n"
+    "            \"digest_inference_from_text_reports_or_runtime\": False,\n"
+    "        },\n"
+    "        \"recovery\": \"explicit fresh-lease readback\",\n"
+    "        \"graph_membership\": \"family-created rows only\",\n"
+    "        \"C2B3C_must_freeze_before_source\": (\n"
+    "            \"exact typed requirement evidence\",\n"
+    "            \"exact author command\",\n"
+    "            \"AttemptFence ingress\",\n"
+    "            \"all author refs\",\n"
+    "            \"effect and delivery postimages\",\n"
+    "            \"nine graph entries\",\n"
+    "            \"golden vector\",\n"
+    "            \"replay matrix\",\n"
+    "            \"recovery matrix\",\n"
+    "            \"privacy matrix\",\n"
+    "        ),\n"
+    "        \"direct_local_bootstrap_selected\": False,\n"
+    "        \"direct_local_posture\": \"separate later proof/contract; never a silently selected runtime alternative\",\n"
+    "        \"ES_invocation_or_compatibility_claim\": False,\n"
+    "    },\n"
+    "    \"future_c2b3b_maximum_path_scope\": {\n"
+    "        \"tranche\": \"C2B3B_PRIVATE_ATOMIC_INITIALIZATION\",\n"
+    "        \"maximum_paths\": 24,\n"
+    "        \"production\": (\n"
+    "            \"src/ge_nwp_coordinator/_development_program_initialization_contracts.py\",\n"
+    "            \"src/ge_nwp_coordinator/_sqlite_development_program_initialization.py\",\n"
+    "            \"src/ge_nwp_coordinator/sqlite_transition_transaction.py\",\n"
+    "            \"src/ge_nwp_coordinator/sqlite_writer_session.py\",\n"
+    "            \"src/ge_nwp_coordinator/sqlite_connection.py\",\n"
+    "        ),\n"
+    "        \"documentation_status\": (\n"
+    "            \".docs/c2b-durable-development-state.md\",\n"
+    "            \".docs/c2b3-program-initialization.md\",\n"
+    "            \".docs/c2b2-private-readers.md\",\n"
+    "            \".docs/architecture.md\",\n"
+    "            \".docs/durable-state-model.md\",\n"
+    "            \".docs/sqlite-operations-and-recovery.md\",\n"
+    "            \".docs/sqlite-threat-model.md\",\n"
+    "            \"README.md\",\n"
+    "            \"AGENTS.md\",\n"
+    "        ),\n"
+    "        \"tests\": (\n"
+    "            \"tests/test_c2b3_program_initialization_contract.py\",\n"
+    "            \"tests/test_c2b3_private_atomic_program_initialization.py\",\n"
+    "            \"tests/test_c2b3_program_initialization_recovery.py\",\n"
+    "            \"tests/test_c2b3_private_program_initialization_delegation.py\",\n"
+    "            \"tests/test_c2b2_field_level_contract.py\",\n"
+    "            \"tests/test_c2b2_private_development_readers.py\",\n"
+    "            \"tests/test_c2b2_development_reader_contracts.py\",\n"
+    "            \"tests/test_runtime_non_authority.py\",\n"
+    "            \"tests/test_architecture_contracts.py\",\n"
+    "            \"tests/test_c2b0_durable_state_contract.py\",\n"
+    "        ),\n"
+    "        \"counts\": {\n"
+    "            \"production\": 5,\n"
+    "            \"documentation_status\": 9,\n"
+    "            \"tests\": 10,\n"
+    "            \"total\": 24,\n"
+    "        },\n"
+    "        \"production_responsibilities\": {\n"
+    "            \"src/ge_nwp_coordinator/_development_program_initialization_contracts.py\": (\n"
+    "                \"private pure command, projection, result, conflict, recovery, graph, and quarantine-admission values\",\n"
+    "                \"no process-control result or enum\",\n"
+    "                \"no ordinary-value representation of KeyboardInterrupt, SystemExit, or GeneratorExit\",\n"
+    "                \"no SQLite\",\n"
+    "                \"no I/O\",\n"
+    "                \"no package export\",\n"
+    "            ),\n"
+    "            \"src/ge_nwp_coordinator/_sqlite_development_program_initialization.py\": (\n"
+    "                \"sensitive same-call reducer\",\n"
+    "                \"safe initialization command construction\",\n"
+    "                \"exact replay\",\n"
+    "                \"fresh apply\",\n"
+    "                \"family-specific graph location and verification\",\n"
+    "                \"explicit recovery resolver\",\n"
+    "                \"does not catch, translate, wrap, or retry KeyboardInterrupt, SystemExit, or GeneratorExit after transaction cleanup returns them for propagation\",\n"
+    "                \"no public API\",\n"
+    "                \"no external I/O\",\n"
+    "            ),\n"
+    "            \"src/ge_nwp_coordinator/sqlite_transition_transaction.py\": (\n"
+    "                \"preserve one-commit-attempt ownership\",\n"
+    "                \"retain uncertain connection and mutation slot after commit exception\",\n"
+    "                \"attempt close before custody clear\",\n"
+    "                \"transfer retained connection into session resource when close is unproved\",\n"
+    "                \"reduce and detach the ordinary commit failure before close-time process-control handling\",\n"
+    "                \"own the narrow close-interruption catch point\",\n"
+    "                \"recognize exactly KeyboardInterrupt, SystemExit, and GeneratorExit\",\n"
+    "                \"catch exactly KeyboardInterrupt, SystemExit, and GeneratorExit from close\",\n"
+    "                \"retain connection and mutation-slot custody for a named process-control close interruption\",\n"
+    "                \"retain connection, slot, and writer-lock custody\",\n"
+    "                \"request session-resource quarantine publication and wait for publication completion\",\n"
+    "                \"re-raise the identical process-control exception only after publication completion\",\n"
+    "                \"perform a bare re-raise in the same catch suite\",\n"
+    "                \"add no traceback frame beyond bare-reraise semantics\",\n"
+    "                \"add no cause, context, note, or exception-graph material\",\n"
+    "                \"do not execute unconditional slot release in a named process-control branch\",\n"
+    "                \"never unconditionally release the slot after commit uncertainty\",\n"
+    "                \"preserve fresh content-free commit_outcome_unknown\",\n"
+    "                \"admit no semantic retry\",\n"
+    "            ),\n"
+    "            \"src/ge_nwp_coordinator/sqlite_writer_session.py\": (\n"
+    "                \"private program-initialization delegation only\",\n"
+    "                \"_WriterSessionResource retained-connection custody\",\n"
+    "                \"commit-uncertain quarantine state\",\n"
+    "                \"writer-lock and mutation-slot retention\",\n"
+    "                \"reject new operations while quarantined\",\n"
+    "                \"acknowledge quarantine publication before the transaction layer re-raises a named process-control exception\",\n"
+    "                \"publication acknowledgement must not raise or attach an ordinary exception to the process-control exception\",\n"
+    "                \"publication helpers receive no authority to propagate or replace the caught process-control exception\",\n"
+    "                \"admit close/finalization only while quarantined\",\n"
+    "                \"release quarantine only after proved closure and session disposal\",\n"
+    "                \"no public WriterSession protocol change\",\n"
+    "            ),\n"
+    "            \"src/ge_nwp_coordinator/sqlite_connection.py\": (\n"
+    "                \"one private C2B3B-only connection posture or equivalent explicit mechanism permitting proved closure from session-resource finalization\",\n"
+    "                \"cross-thread close from session-resource finalization is permitted only for proved closure\",\n"
+    "                \"may surface the exact close-time KeyboardInterrupt, SystemExit, or GeneratorExit\",\n"
+    "                \"no cross-thread SQL\",\n"
+    "                \"no public raw connection\",\n"
+    "                \"no public signature widening\",\n"
+    "                \"no second connection authority\",\n"
+    "                \"existing ordinary connection behavior preserved\",\n"
+    "            ),\n"
+    "        },\n"
+    "        \"twenty_fifth_path\": \"future implementation stop condition\",\n"
+    "        \"forbidden\": (\n"
+    "            \"pyproject.toml\",\n"
+    "            \"package __init__.py\",\n"
+    "            \"state_store.py\",\n"
+    "            \"sqlite_errors.py\",\n"
+    "            \"models.py public values\",\n"
+    "            \"sqlite_mutation_transaction_contracts.py\",\n"
+    "            \"migration SQL or catalog\",\n"
+    "            \"schemas\",\n"
+    "            \"C2B4-C2B6 implementation\",\n"
+    "            \"another repository\",\n"
+    "        ),\n"
+    "        \"authorized_by_this_freeze\": False,\n"
+    "    },\n"
+    "    \"nonimplementation\": {\n"
+    "        \"program_initialization_source\": False,\n"
+    "        \"private_writer_session_methods\": False,\n"
+    "        \"sqlite_insert_or_update_execution\": False,\n"
+    "        \"mutation_receipt_persistence\": False,\n"
+    "        \"production_reader_integration\": False,\n"
+    "        \"exact_replay_runtime\": False,\n"
+    "        \"commit_outcome_recovery_runtime\": False,\n"
+    "        \"author_effect_source\": False,\n"
+    "        \"complete_author_effect_contract\": False,\n"
+    "        \"public_C2B_API\": False,\n"
+    "        \"StateStore_widening\": False,\n"
+    "        \"WriterSession_public_surface_widening\": False,\n"
+    "        \"package_root_export\": False,\n"
+    "        \"dependency_or_entry_surface\": False,\n"
+    "        \"WorkSpec_custody_or_retrieval\": False,\n"
+    "        \"authority_verification\": False,\n"
+    "        \"worker_or_model_execution\": False,\n"
+    "        \"direct_local_execution\": False,\n"
+    "        \"Execution_Substrate_invocation\": False,\n"
+    "        \"Bridge_integration\": False,\n"
+    "        \"schema_change\": False,\n"
+    "        \"migration_0001_change\": False,\n"
+    "        \"migration_0002_change\": False,\n"
+    "        \"migration_0003_creation\": False,\n"
+    "        \"C2B4_C2B5_C2B6_behavior\": False,\n"
+    "        \"external_IO\": False,\n"
+    "    },\n"
+)
+
+C2B3A_OWNER_STRUCTURED_TO_VECTOR_BRIDGE = (
+    "    # C2B3A_OWNER_ADDENDUM_STRUCTURED_END\n"
+    "}\n"
+    "```\n"
+    "\n"
+    "<!-- C2B3_PROGRAM_INITIALIZATION_CONTRACT_PYTHON_END -->\n"
+    "\n"
+    "The complete initialization-family vector below is one synthetic,\n"
+    "privacy-safe contract fixture. It is not runtime-generated identity, operator\n"
+    "data, implementation evidence, or authorization.\n"
+    "\n"
+    "<!-- C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON_BEGIN -->\n"
+)
+
+C2B3A_OWNER_VECTOR_TO_EXPLANATORY_BRIDGE = (
+    "<!-- C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON_END -->\n"
+    "\n"
+    "For `initialize` / `program_genesis`, the selected attempt/candidate tuple is\n"
+    "wholly absent and the caller-preassigned attempt/candidate tuple is wholly\n"
+    "present. Those preassigned refs are future lineage inputs only: initialization\n"
+    "does not create, select, authorize, or make executable a semantic attempt or\n"
+    "candidate.\n"
+    "\n"
+    "The `preassigned_attempt_candidate_binding` is ordered as `work_item_ref`,\n"
+    "`work_item_revision_ref`, `preassigned_semantic_attempt_ref`, and\n"
+    "`preassigned_candidate_ref`. The work-item pair is identical across the safe\n"
+    "command WorkSpec projection, the sole program-version membership, and the sole\n"
+    "WorkSpec binding. The preassigned attempt/candidate pair is identical across\n"
+    "the safe command and initialize decision. No semantic-attempt, candidate, or\n"
+    "AttemptFence row is created by initialization.\n"
+    "\n"
+    "The WorkSpec binding reader remains physically bounded by the exact\n"
+    "program/version/work/revision tuple. After decoding its unique result, the\n"
+    "future family locator must compare the returned `work_spec_ref` with both the\n"
+    "safe command and the rank-7 graph entry. Any mismatch is\n"
+    "`database_integrity_failure`; absence, latest-row selection, rowid/timestamp\n"
+    "selection, scanning, or choosing another WorkSpec is forbidden.\n"
+    "\n"
+    "After a commit-attempt exception, connection close is part of the admission\n"
+    "gate, not best-effort cleanup after slot release. Until close completes, the\n"
+    "controller retains exclusive custody and the slot remains unavailable. If\n"
+    "close cannot be proved, custody transfers to the private\n"
+    "`_WriterSessionResource`; that concrete session retains its writer lock and is\n"
+    "quarantined. Its only permitted work is disposing of the retained connection,\n"
+    "and its resolver result is `unresolved` before operation-lease acquisition,\n"
+    "database open, `BEGIN`, or SQL. Only proven closure and writer-lock release\n"
+    "permit a newly acquired concrete session to run readback. Caller-authored\n"
+    "cleanup evidence and automatic semantic retry never clear quarantine.\n"
+    "\n"
+    "In both the close-complete and close-not-proved branches, the original apply\n"
+    "call raises a fresh ordinary `SQLiteMutationStoreError` with reason\n"
+    "`commit_outcome_unknown`, null internal detail, cause, context, and notes, and\n"
+    "explicit `raise ... from None` behavior. An ordinary close failure is\n"
+    "secondary: its text and object cannot replace, decorate, enter the error graph,\n"
+    "or leak through that content-free primary error.\n"
+    "\n"
+    "`KeyboardInterrupt`, `SystemExit`, and `GeneratorExit` are the exact closed\n"
+    "process-control close-interruption inventory. After commit uncertainty has\n"
+    "begun, if connection close raises one of those exact branches, the transaction\n"
+    "layer observes that exact exception object, retains the mutation slot and\n"
+    "writer-authority lock, transfers the uncertain raw connection into the private\n"
+    "`_WriterSessionResource`, publishes the concrete session as commit-uncertain\n"
+    "quarantined, confirms that same-session mutation and database-backed recovery\n"
+    "are forbidden before operation-lease acquisition, database open, `BEGIN`, or\n"
+    "SQL, and only then re-raises the identical exception object. Exact type and\n"
+    "arguments, including `SystemExit.code`, are preserved. The branch does not\n"
+    "wrap, replace, translate, retry, or convert the exception into an ordinary\n"
+    "store error, `commit_outcome_unknown`, `mutation_failed`, or a private\n"
+    "`unresolved` result. Custody, quarantine, the writer lock, and the mutation\n"
+    "slot remain retained when propagation occurs.\n"
+    "\n"
+)
+
+C2B3A_OWNER_EXPLANATORY_SUFFIX = (
+    "<!-- C2B3A_OWNER_ADDENDUM_EXPLANATORY_BEGIN -->\n"
+    "\n"
+    "### C2B3A COMMIT/close outcome addendum projection\n"
+    "\n"
+    "<!-- C2B3A_OWNER_AUTHORITY_PROSE_BEGIN -->\n"
+    "The structured `commit_close_outcome_addendum` value is the sole operative\n"
+    "semantic authority for this addendum. The exact bounded explanatory blocks\n"
+    "below are non-authoritative projections: they cannot create, override, widen,\n"
+    "or narrow a structured owner value, and free-form prose cannot supply operative\n"
+    "semantics where a structured owner value exists. Planning cannot resolve or\n"
+    "change owner truth.\n"
+    "<!-- C2B3A_OWNER_AUTHORITY_PROSE_END -->\n"
+    "\n"
+    "<!-- C2B3A_OWNER_PROCESS_CONTROL_PROSE_BEGIN -->\n"
+    "Propagation is exactly a bare `raise` in the same `except` suite that caught\n"
+    "the close-time process-control exception. A named raise, `raise ... from None`,\n"
+    "`raise ... from another_exception`, reconstructed exception, explicit\n"
+    "`with_traceback(...)`, helper-owned propagation, or later named raise is\n"
+    "forbidden merely to manufacture a cosmetic traceback shape. The selected\n"
+    "outward object remains the same object with its exact type, arguments, and\n"
+    "`SystemExit.code`. C2B3 does not deliberately attach, clear, restore, scrub,\n"
+    "sanitize, or rewrite graph or traceback fields and does not deliberately\n"
+    "introduce a primary-to-secondary relation. Nested raising and catching may\n"
+    "produce interpreter-managed graph and traceback effects; those effects are not\n"
+    "C2B3-owned, and no exact resulting graph, reachability, cycle, cause, context,\n"
+    "suppression, or traceback-tail shape is guaranteed.\n"
+    "\n"
+    "The ordinary commit failure must still be reduced and detached before\n"
+    "close-time process-control handling; C2B3 creates no new cause, context, note,\n"
+    "or private-material edge from the selected raw primary. The earlier exact\n"
+    "eighteen-field `process_control_exception_graph_ledger` remains byte-for-byte\n"
+    "unchanged as historical C2B3A evidence. It is a historical runtime observation:\n"
+    "its exact traceback, cause, context, suppression, cycle, and reachability values\n"
+    "describe only the original bounded reference branch. It is non-normative,\n"
+    "non-operative for C2B3B, and not a portable contract. No implementation, test\n"
+    "oracle, planning projection, or future prompt may use those observed values as\n"
+    "target requirements. It is not a universal sanitizer for an arbitrary\n"
+    "caller/runtime-authored raw exception. The additive\n"
+    "`process_control_relational_policy` supersedes the ledger for target semantics\n"
+    "and governs distinct graph-disjoint, distinct pre-linked, and same-instance\n"
+    "relations.\n"
+    "\n"
+    "The additive `commit_close_outcome_addendum` closes the complete ordered\n"
+    "six-by-six space without changing that earlier ordinary-commit-exception\n"
+    "freeze. Its thirty-six direct rows distinguish normal active `A`, fully\n"
+    "disposed `X`, commit-uncertain quarantine `QU`, and known-committed\n"
+    "close-unproved quarantine `QK`, while the separate cleanup continuation adds\n"
+    "commit-uncertain `PU` and known-committed `PK` after connection closure is\n"
+    "proved but residual cleanup remains pending. Every row fixes commit truth,\n"
+    "outward identity, raw-connection custody, initial controller/session\n"
+    "disposition, recovery or replay, retry, and post-COMMIT rollback. The separate\n"
+    "direct relational and cleanup literals close the non-Cartesian identity/graph\n"
+    "and residual-cleanup continuations. Neither owner nor independent oracle\n"
+    "semantics is generated from the other literal or from a Cartesian product.\n"
+    "\n"
+    "When COMMIT returns normally, commit truth stays known committed. An ordinary\n"
+    "close failure publishes `QK` and retains the connection, resource-owned slot,\n"
+    "and writer lock before the identical planned committed result returns. A\n"
+    "close-time process-control exception also publishes `QK` before its identical\n"
+    "bare-reraise, but the planned result was not delivered; after proved disposal,\n"
+    "the identical safe command uses ordinary receipt-first exact replay in a new\n"
+    "session. A later normal retained-connection close moves `QK` irreversibly to\n"
+    "`PK`; replay remains blocked until residual cleanup reaches `X`. No `QK` or\n"
+    "`PK` branch has a commit-outcome resolver.\n"
+    "\n"
+    "When COMMIT itself raises `KeyboardInterrupt`, `SystemExit`, or\n"
+    "`GeneratorExit`, that original exception has absolute outward precedence. If\n"
+    "close proves closure, connection custody clears permanently and `PU` is\n"
+    "published before residual cleanup. If cleanup completes, state reaches `X`\n"
+    "before the original exception propagates. If cleanup is interrupted or\n"
+    "incomplete, actual monotonic progress remains in `PU` and the original\n"
+    "exception still propagates. If close is not proved, `QU` custody is published\n"
+    "before that same original exception propagates. A distinct graph-disjoint\n"
+    "secondary is not deliberately attached to the outward primary; a pre-existing\n"
+    "link is not deliberately scrubbed or restored, and a same-instance second\n"
+    "raise has no distinct secondary. Interpreter-managed relations remain\n"
+    "permitted, so no exact secondary reachability or absence result is promised.\n"
+    "In every relation C2B3 deliberately adds no new primary-to-secondary\n"
+    "relationship. Recovery remains blocked until explicit disposal reaches `X`\n"
+    "and releases the writer lock.\n"
+    "<!-- C2B3A_OWNER_PROCESS_CONTROL_PROSE_END -->\n"
+    "\n"
+    "<!-- C2B3A_OWNER_CLEANUP_PROSE_BEGIN -->\n"
+    "Explicit disposal of `QU` or `QK` may repeat\n"
+    "`retained_connection.close()` until normal return proves closure, then moves\n"
+    "irreversibly to `PU` or `PK`. In `PU` or `PK` it never closes the connection\n"
+    "again; it resumes only incomplete monotonic, idempotent residual cleanup and\n"
+    "reaches `X` only after every release is proved. The one-shot future finalizer\n"
+    "catches `BaseException` and never claims retry. A pre-proof failure preserves\n"
+    "`QU` or `QK`; a post-proof failure preserves `PU` or `PK` plus truthful\n"
+    "progress. Only an explicit reachable handle can resume cleanup. Garbage\n"
+    "collection proves neither closure nor cleanup completion. The transient safe\n"
+    "command is never reconstructed from an exception, and no complete\n"
+    "`WorkSpecV1` enters recovery or session-resource custody.\n"
+    "\n"
+    "C1 retained-connection close and C2 closure-proof acknowledgment remain named,\n"
+    "ordered responsibilities, but a normal C1 return is not an outwardly observable\n"
+    "stable boundary until C2 records closure proof, clears raw connection custody,\n"
+    "and publishes `QU -> PU` or `QK -> PK`. No model result or modeled exception may\n"
+    "be returned between those effects. C1-after and C2-before are therefore not\n"
+    "independent stable fault outcomes: once close returns normally, the complete C2\n"
+    "acknowledgment is published before residual cleanup or propagation. No output\n"
+    "may combine closure proof with `QU`/`QK` or retained connection custody, and no\n"
+    "`PU`/`PK` output may retain connection custody. Direct C4-C6/K1 close proof and\n"
+    "`PU` publication use the same acknowledgment-complete boundary.\n"
+    "\n"
+    "Finalizer entry makes the wrapper unreachable, freezes effective operation\n"
+    "admission, records `finalizer_attempted=true`, and records\n"
+    "`retry_reachable=false` before any later cleanup fault can be exposed. P0 is\n"
+    "the mandatory finalizer-entry admission and cleanup-ownership publication; a\n"
+    "finalizer P0-before result with effective admission open is not a legal model\n"
+    "output. A reachable explicit-close wrapper may retain retryable monotonic P0\n"
+    "progress. Neither posture creates registry lookup, hidden disposal, or another\n"
+    "in-process retry route after wrapper loss.\n"
+    "\n"
+    "The Coordinator-generated `commit_outcome_unknown` error remains content-free\n"
+    "and may contain none of the raw connection, controller, mutation slot, writer\n"
+    "lock, SQL, path, WorkSpec, safe command, or source-exception graph. Raw\n"
+    "`KeyboardInterrupt`, `SystemExit`, and `GeneratorExit` are control flow, not\n"
+    "privacy-safe report or serialization values. C2B3 never serializes, persists,\n"
+    "logs, formats, renders, reports, or copies their payloads or graphs, and never\n"
+    "adds C2B3-owned private material or a new edge to a distinct secondary. An\n"
+    "arbitrary pre-existing caller/runtime-owned value in args, `SystemExit.code`,\n"
+    "notes, cause, context, or traceback is not sanitized while exact raw-object\n"
+    "identity is retained.\n"
+    "<!-- C2B3A_OWNER_CLEANUP_PROSE_END -->\n"
+    "\n"
+    "<!-- C2B3A_OWNER_FUTURE_SCOPE_PROSE_BEGIN -->\n"
+    "The preserved `future_c2b3b_maximum_path_scope` literal remains byte-for-byte\n"
+    "only as historical evidence of the accepted earlier C2B3A freeze. Its five\n"
+    "production, nine documentation/status, ten test, twenty-three-expected,\n"
+    "twenty-four-maximum, and twenty-fifth-path-stop values are non-operative for\n"
+    "C2B3B after this addendum. No consumer, implementation prompt, test, or\n"
+    "planning projection may use those historical values as active authority. The\n"
+    "only operative future `C2B3B_PRIVATE_ATOMIC_INITIALIZATION` scope is owned by\n"
+    "`commit_close_outcome_addendum.future_c2b3b_path_scope_status`: six production\n"
+    "paths, ten documentation/status paths, eleven required changed tests, twenty-\n"
+    "seven expected actual paths, one contingency path, twenty-eight maximum paths,\n"
+    "and a twenty-ninth-path hard stop and scope reassessment. This freeze records\n"
+    "future responsibilities but authorizes no C2B3B source or implementation in\n"
+    "C2B3A.\n"
+    "<!-- C2B3A_OWNER_FUTURE_SCOPE_PROSE_END -->\n"
+    "\n"
+    "<!-- C2B3A_OWNER_RETAINED_TAIL_BEGIN -->\n"
+    "The future private module named by `private_outcome_ownership` is the sole\n"
+    "representation owner for the four initialization conflict reasons, their\n"
+    "four-field conflict result, and the three recovery dispositions. It remains\n"
+    "absent here. None is public, package-exported, durable identity, SQLite error,\n"
+    "or authority; the existing three SQLite mutation-store reasons remain\n"
+    "unchanged.\n"
+    "\n"
+    "The literal is closed-world. Exact built-in values, field order, one-item\n"
+    "cardinality, row postimages, write order, graph order, family locator,\n"
+    "persisted result, receipt, replay, recovery, precedence, privacy, and\n"
+    "nonimplementation are all part of the identity of this freeze. Missing,\n"
+    "additional, reordered, coerced, or contradictory material is not compatible.\n"
+    "The same `work_item_ref` in the two distinct graph roles is intentional.\n"
+    "\n"
+    "The future C2B3B initializer may enter only through the current concrete SQLite\n"
+    "writer session, operation guard, shared mutation slot, existing transaction\n"
+    "controller, writer fence, and nominal capability. It must perform no external\n"
+    "I/O. Its complete transient `WorkSpecV1` must be reduced before the transaction\n"
+    "controller is entered and must not survive into outward traceback frames.\n"
+    "Receipt lookup remains before fresh stop or collision disclosure. One immutable\n"
+    "family plan, one transaction timestamp, and at most one commit attempt remain\n"
+    "mandatory.\n"
+    "\n"
+    "The author-effect family is deliberately not complete here. In particular,\n"
+    "the pending authority-evaluation decision is evidence that external\n"
+    "verification has not happened; it is neither authorization nor route\n"
+    "eligibility. C2B3C must freeze the exact typed requirement evidence, author\n"
+    "command, fence ingress, row postimages, nine-entry graph, golden vector,\n"
+    "replay/recovery, and privacy matrix before any C2B3D source may begin.\n"
+    "<!-- C2B3A_OWNER_RETAINED_TAIL_END -->\n"
+    "\n"
+    "<!-- C2B3A_OWNER_ADDENDUM_END -->\n"
 )
 C2B3A_ORACLE_ALLOWED_IMPORTS = ("ast", "copy", "pathlib", "pytest")
 C2B3A_ORACLE_ALLOWED_RELATIVE_READS = (
@@ -38,6 +1653,7 @@ C2B3A_ORACLE_ALLOWED_DIRECT_CALLS = (
     "GeneratorExit",
     "KeyboardInterrupt",
     "Path",
+    "RuntimeError",
     "SystemExit",
     "_ContractViolation",
     "_assert_future_c2b3b_scope",
@@ -47,10 +1663,13 @@ C2B3A_ORACLE_ALLOWED_DIRECT_CALLS = (
     "_assigned_names",
     "_bare_reraise_reference",
     "_candidate",
+    "_cleanup_reference",
+    "_cleanup_reference_result",
     "_direct_allowed_import_inventory",
     "_direct_literal_assignment",
     "_enclosing_function_name",
     "_exception_graph_snapshot",
+    "_exception_graph_identity_walk",
     "_expect_golden_violation",
     "_expect_violation",
     "_golden_candidate",
@@ -63,6 +1682,7 @@ C2B3A_ORACLE_ALLOWED_DIRECT_CALLS = (
     "_planning_nonfenced_normalized_lines",
     "_planning_normalized_line",
     "_process_control_exception_graph_contains_private_material",
+    "_relational_process_control_reference",
     "_read_allowed_text",
     "_require",
     "_traceback_signature",
@@ -101,8 +1721,8 @@ C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS = (
     "cardinality.pop",
     "complete.get",
     "digit.isdigit",
-    "expected.is_symlink",
-    "expected.resolve",
+    "expected_path.is_symlink",
+    "expected_path.resolve",
     "expected_repr.encode",
     "event_ledger.append",
     "item.startswith",
@@ -121,6 +1741,9 @@ C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS = (
     "parents.get",
     "path.relative_to",
     "payload.strip",
+    "planning_document_candidate.count",
+    "planning_document_candidate.endswith",
+    "planning_document_candidate.replace",
     "prose.append",
     "pytest.mark.parametrize",
     "pytest.raises",
@@ -135,6 +1758,7 @@ C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS = (
     "source.split",
     "stripped.lower",
     "stripped_payload.splitlines",
+    "swapped.replace",
     "text.index",
     "text.replace",
     "text.rstrip",
@@ -326,9 +1950,50 @@ C2B3A_PROCESS_CONTROL_POSITIVE_MODELS = (
         "repair4-generator",
     ),
 )
+C2B3A_PROCESS_CONTROL_EXPECTED_CASE_IDS = (
+    "cross-k-s",
+    "cross-k-g",
+    "cross-s-k",
+    "cross-s-g",
+    "cross-g-k",
+    "cross-g-s",
+    "distinct-k",
+    "distinct-s",
+    "distinct-g",
+    "same-k",
+    "same-s",
+    "same-g",
+    "prelinked-cause",
+    "prelinked-context",
+    "linked-cycle",
+    "private-payload",
+)
+C2B3A_CLEANUP_EXPECTED_CASE_IDS = (
+    "normal-a", "normal-qu", "normal-qk", "normal-pu", "normal-pk",
+    "p0-before", "p0-after", "c1-before", "c1-after", "c2-before",
+    "c2-after", "r1-before", "r1-after", "r2-before", "r2-after",
+    "r3-before", "r3-after", "l1-before", "l1-after", "h1-before",
+    "h1-after", "h2-before", "h2-between", "h2-after", "t1-before",
+    "t1-after", "h3-before", "h3-after", "primary-pu-k",
+    "primary-pu-s", "primary-pu-g", "primary-pk-k", "primary-pk-s",
+    "primary-pk-g", "precedence-pu-k-s", "precedence-pu-s-g",
+    "precedence-pu-g-k", "precedence-pk-k-g", "precedence-pk-s-k",
+    "precedence-pk-g-s", "finalizer-cleanup-k", "finalizer-cleanup-s",
+    "finalizer-cleanup-g", "finalizer-primary-k", "finalizer-primary-s",
+    "finalizer-primary-g", "close-qu-ordinary", "close-qu-k",
+    "close-qk-s", "close-qk-g", "close-qu-g-primary-k",
+    "close-qk-k-primary-s", "unlock-unproved", "unlock-retry-normal",
+    "descriptor-unknown",
+)
 C2B3A_ORACLE_PROTECTED_EXPECTED_VALUE_NAMES = (
+    "EXPECTED_PLANNING_PROJECTION",
     "EXPECTED_INITIALIZATION_CONTRACT",
     "EXPECTED_INITIALIZATION_GOLDEN_VECTOR",
+    "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM",
+    "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES",
+    "CLEANUP_SAFE_PROJECTION_FIELDS",
+    "CLEANUP_REFERENCE_INPUT_CASES",
+    "EXPECTED_CLEANUP_REFERENCE_CASES",
 )
 C2B3A_ORACLE_PROTECTED_CANDIDATE_VALUE_NAMES = (
     "owner_contract_candidate",
@@ -338,11 +2003,6 @@ C2B3A_ORACLE_PROTECTED_CANDIDATE_VALUE_NAMES = (
 C2B3A_ORACLE_PROTECTED_READER_PARSER_NAMES = (
     "_owner_contract",
     "_owner_golden_vector",
-    "_planning_fence_candidate",
-    "_planning_markdown_prefix_stripped",
-    "_planning_mutant_at_position",
-    "_planning_nonfenced_normalized_lines",
-    "_planning_normalized_line",
     "_read_allowed_text",
 )
 C2B3A_ORACLE_PROTECTED_VALIDATION_HELPER_NAMES = (
@@ -353,26 +2013,568 @@ C2B3A_ORACLE_PROTECTED_VALIDATION_HELPER_NAMES = (
     "_validate_contract",
     "_validate_golden_vector",
     "_validate_planning_status",
+    "_expect_violation",
+    "_expect_golden_violation",
 )
 C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES = (
     "_assert_future_c2b3b_scope",
     "_assert_oracle_architecture",
     "_assert_original_apply_outcome",
     "_assert_preassigned_binding",
+    "_bare_reraise_reference",
     "_candidate",
+    "_cleanup_reference",
+    "_cleanup_reference_result",
+    "_exception_graph_identity_walk",
+    "_expect_golden_violation",
+    "_expect_violation",
     "_golden_candidate",
+    "_named_reraise_reference",
     "_owner_contract",
     "_owner_golden_vector",
-    "_planning_fence_candidate",
-    "_planning_markdown_prefix_stripped",
-    "_planning_mutant_at_position",
-    "_planning_nonfenced_normalized_lines",
-    "_planning_normalized_line",
     "_read_allowed_text",
+    "_relational_process_control_reference",
     "_validate_contract",
     "_validate_golden_vector",
     "_validate_planning_status",
 )
+C2B3A_LINEAR_MUTANT_FUNCTIONS = (
+    ("M16", "test_commit_close_mutant_m16_missing_matrix_row_is_rejected"),
+    ("M17", "test_commit_close_mutant_m17_duplicate_matrix_row_is_rejected"),
+    ("M18", "test_commit_close_mutant_m18_reordered_matrix_rows_is_rejected"),
+    ("M19", "test_commit_close_mutant_m19_c1k2_state_is_rejected"),
+    ("M20", "test_commit_close_mutant_m20_c4k1_state_is_rejected"),
+    ("M21", "test_commit_close_mutant_m21_cleanup_primary_precedence_is_rejected"),
+    ("M22", "test_commit_close_mutant_m22_named_raise_is_rejected"),
+    ("M23", "test_commit_close_mutant_m23_reconstructed_system_exit_is_rejected"),
+    ("M24", "test_commit_close_mutant_m24_post_commit_rollback_is_rejected"),
+    ("M25", "test_commit_close_mutant_m25_slot_release_before_quarantine_is_rejected"),
+    ("M26", "test_commit_close_mutant_m26_pending_cleanup_sql_is_rejected"),
+    ("M27", "test_commit_close_mutant_m27_finalizer_retry_is_rejected"),
+    ("M28", "test_commit_close_mutant_m28_work_spec_recovery_custody_is_rejected"),
+    ("M29", "test_commit_close_mutant_m29_production_behavior_is_rejected"),
+    ("M30", "test_commit_close_mutant_m30_scope_maximum_is_rejected"),
+    ("M31", "test_commit_close_mutant_m31_same_class_implies_same_object_is_rejected"),
+    ("M32", "test_commit_close_mutant_m32_distinct_same_class_routing_is_rejected"),
+    ("M33", "test_commit_close_mutant_m33_same_instance_routing_is_rejected"),
+    ("M34", "test_commit_close_mutant_m34_prelinked_cause_promise_is_rejected"),
+    ("M35", "test_commit_close_mutant_m35_prelinked_context_promise_is_rejected"),
+    ("M36", "test_commit_close_mutant_m36_fixed_graph_shape_is_rejected"),
+    ("M37", "test_commit_close_mutant_m37_graph_scrub_is_rejected"),
+    ("M38", "test_commit_close_mutant_m38_universal_sanitization_is_rejected"),
+    ("M39", "test_commit_close_mutant_m39_raw_payload_copy_is_rejected"),
+    ("M40", "test_commit_close_mutant_m40_raw_payload_report_is_rejected"),
+    ("M41", "test_commit_close_mutant_m41_descriptor_close_release_proof_is_rejected"),
+    ("M42", "test_commit_close_mutant_m42_x_before_release_proof_is_rejected"),
+    ("M43", "test_commit_close_mutant_m43_authority_registry_before_release_is_rejected"),
+    ("M44", "test_commit_close_mutant_m44_acquisition_on_unproved_release_is_rejected"),
+    ("M45", "test_commit_close_mutant_m45_recovery_on_unproved_release_is_rejected"),
+    ("M46", "test_commit_close_mutant_m46_replay_on_unproved_release_is_rejected"),
+    ("M47", "test_commit_close_mutant_m47_descriptor_close_retry_is_rejected"),
+    ("M48", "test_commit_close_mutant_m48_session_registry_before_x_is_rejected"),
+    ("M49", "test_commit_close_mutant_m49_descriptor_reclamation_x_gate_is_rejected"),
+    ("M50", "test_commit_close_mutant_m50_retry_after_wrapper_loss_is_rejected"),
+    ("M51", "test_commit_close_mutant_m51_hidden_registry_cleanup_is_rejected"),
+    ("M52", "test_commit_close_mutant_m52_c2k1_pending_state_is_rejected"),
+    ("M53", "test_commit_close_mutant_m53_c3k1_pending_state_is_rejected"),
+    ("M54", "test_commit_close_mutant_m54_a_to_x_lock_bypass_is_rejected"),
+    ("M55", "test_commit_close_mutant_m55_finalizer_automatic_retry_is_rejected"),
+    ("M56", "test_commit_close_mutant_m56_finalizer_clears_progress_is_rejected"),
+    ("M57", "test_commit_close_mutant_m57_missing_lock_source_path_is_rejected"),
+    ("M58", "test_commit_close_mutant_m58_missing_writer_authority_doc_is_rejected"),
+    ("M59", "test_commit_close_mutant_m59_missing_lock_test_is_rejected"),
+    ("M60", "test_commit_close_mutant_m60_missing_writer_session_test_is_rejected"),
+    ("M61", "test_commit_close_mutant_m61_historical_scope_reactivation_is_rejected"),
+    ("M62", "test_commit_close_mutant_m62_dynamic_oracle_derivation_is_rejected"),
+    ("M63", "test_commit_close_mutant_m63_implementation_claim_is_rejected"),
+    ("M64", "test_commit_close_mutant_m64_h2_order_is_rejected"),
+    ("M65", "test_commit_close_mutant_m65_new_operation_in_pending_state_is_rejected"),
+)
+C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY = {
+    "classification": "bounded exact-byte self-test assurance",
+    "in_scope_guarantees": (
+        "the exact checked-in efficacy function header and body match the independently authored bounded AST/dataflow grammar",
+        "the exact checked-in function has no local or lexical binding of exec",
+        "the exact checked-in module has no ordinary lexical module binding of exec that changes the efficacy function resolution",
+        "the exact checked-in source contains no directly recognized source-local module-dictionary replacement of exec",
+        "the exact checked-in source contains no wildcard import capable of supplying exec",
+        "the efficacy function in-function namespace, immediate validator capture, baseline validation, terminal validation, one-mutant invocation, restoration, and aggregate behavior retain their existing exact protections",
+        "runtime instrumentation on the exact audited bytes observes builtins.exec as the callable used by the checked execution path",
+        "runtime instrumentation observes 100 calls to the exec-produced validator and zero calls to an alternate validator",
+    ),
+    "explicit_non_claims": (
+        "resistance to malicious coordinated editing of both the efficacy checker and its higher-order guard",
+        "resistance to mutation of builtins.exec or the builtins object",
+        "resistance to mutation through __builtins__",
+        "resistance to a pre-poisoned or malicious sys.modules environment",
+        "resistance to mutation of imported module objects",
+        "resistance to custom import hooks or loaders",
+        "resistance to tracing, profiling, debugger, coverage, or interpreter instrumentation that changes execution",
+        "resistance to hostile monkeypatching performed outside the bounded source-local forms",
+        "resistance to arbitrary Python metaprogramming",
+        "resistance to process or interpreter compromise",
+    ),
+    "external_assurance_chain": (
+        "exact patch provenance",
+        "fresh independent read-only audit",
+        "staged-blob equality",
+        "committed-blob equality",
+        "Git object and ref truth",
+    ),
+    "external_assurance_role": (
+        "provenance and audit are external assurance mechanisms, not semantics "
+        "owned by this test"
+    ),
+}
+C2B3A_MUTANT_EFFICACY_CHECKER_CONTRACT = {
+    "function_name": "_assert_c2b3a_mutant_dataflow_semantics",
+    "assurance_boundary_name": "C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY",
+    "outer_function_header": (
+        ("node_type", "FunctionDef"),
+        ("name", "_assert_c2b3a_mutant_dataflow_semantics"),
+        ("decorators", ()),
+        ("return_annotation", ("Constant", None, None)),
+        ("type_comment", None),
+        ("type_params", ()),
+        ("posonlyargs", ()),
+        (
+            "args",
+            (
+                (
+                    "tree",
+                    (
+                        "Attribute",
+                        ("Name", "ast", "Load"),
+                        "Module",
+                        "Load",
+                    ),
+                    None,
+                ),
+            ),
+        ),
+        ("defaults", ()),
+        ("vararg", None),
+        ("kwonlyargs", ()),
+        ("kw_defaults", ()),
+        ("kwarg", None),
+    ),
+    "module_lexical_exec_binding_inventory": (),
+    "module_lexical_ast_binding_inventory": (("import_alias", 1),),
+    "module_wildcard_import_inventory": (),
+    "direct_source_local_module_dictionary_operation_inventory": (),
+    "mapping_source_name": "C2B3A_LINEAR_MUTANT_FUNCTIONS",
+    "ordered_mutant_ids": (
+        "M16", "M17", "M18", "M19", "M20", "M21", "M22", "M23", "M24",
+        "M25", "M26", "M27", "M28", "M29", "M30", "M31", "M32", "M33",
+        "M34", "M35", "M36", "M37", "M38", "M39", "M40", "M41", "M42",
+        "M43", "M44", "M45", "M46", "M47", "M48", "M49", "M50", "M51",
+        "M52", "M53", "M54", "M55", "M56", "M57", "M58", "M59", "M60",
+        "M61", "M62", "M63", "M64", "M65",
+    ),
+    "candidate_factory_name": "_candidate",
+    "validator_name": "_validate_contract",
+    "contract_exception_name": "_ContractViolation",
+    "terminal_helper_name": "_expect_violation",
+    "execution_namespace_name": "namespace",
+    "captured_validator_name": "original_validate",
+    "validator_namespace_key": "_validate_contract",
+    "namespace_construction_source": (
+        "namespace: dict[str, object] = {'__file__': str(C2B3A_ORACLE_PATH), "
+        "'__name__': 'c2b3a_mutant_efficacy_probe'}"
+    ),
+    "exec_capture_try_source": (
+        "try:\n"
+        "    exec(compile(tree, filename=str(C2B3A_ORACLE_PATH), mode='exec'), "
+        "namespace)\n"
+        "    original_validate = namespace['_validate_contract']\n"
+        "except BaseException:\n"
+        "    raise AssertionError(diagnostic) from None"
+    ),
+    "pre_mapping_loop_statement_sources": (
+        "diagnostic = 'C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID'",
+        "expected_m16_m65_ids = ('M16', 'M17', 'M18', 'M19', 'M20', 'M21', "
+        "'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', "
+        "'M31', 'M32', 'M33', 'M34', 'M35', 'M36', 'M37', 'M38', 'M39', "
+        "'M40', 'M41', 'M42', 'M43', 'M44', 'M45', 'M46', 'M47', 'M48', "
+        "'M49', 'M50', 'M51', 'M52', 'M53', 'M54', 'M55', 'M56', 'M57', "
+        "'M58', 'M59', 'M60', 'M61', 'M62', 'M63', 'M64', 'M65')",
+        "if tuple((mutant_id for mutant_id, _name in "
+        "C2B3A_LINEAR_MUTANT_FUNCTIONS)) != expected_m16_m65_ids or "
+        "tuple(C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE) != "
+        "expected_m16_m65_ids:\n    raise AssertionError(diagnostic)",
+        "expected_names = tuple((name for _mutant_id, name in "
+        "C2B3A_LINEAR_MUTANT_FUNCTIONS))",
+        "observed_named_functions = tuple((node.name for node in tree.body if "
+        "isinstance(node, ast.FunctionDef) and "
+        "node.name.startswith('test_commit_close_mutant_m')))",
+        "if observed_named_functions != expected_names:\n"
+        "    raise AssertionError(diagnostic)",
+        "expected_name_set = set(expected_names)",
+        "for node in tree.body:\n"
+        "    if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):\n"
+        "        continue\n"
+        "    parameter_names = {argument.arg for argument in "
+        "tuple(node.args.posonlyargs) + tuple(node.args.args) + "
+        "tuple(node.args.kwonlyargs)}\n"
+        "    if 'mutant_id' in parameter_names:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    if node.name.startswith('test_commit_close_') and 'mutant' in "
+        "node.name and (node.name not in expected_name_set):\n"
+        "        raise AssertionError(diagnostic)",
+        "def is_exact_candidate_factory(statement: ast.stmt) -> bool:\n"
+        "    return isinstance(statement, ast.Assign) and "
+        "len(statement.targets) == 1 and isinstance(statement.targets[0], "
+        "ast.Name) and (statement.targets[0].id == 'candidate') and "
+        "isinstance(statement.targets[0].ctx, ast.Store) and "
+        "isinstance(statement.value, ast.Call) and "
+        "isinstance(statement.value.func, ast.Name) and "
+        "(statement.value.func.id == '_candidate') and "
+        "(not statement.value.args) and (not statement.value.keywords)",
+        "def is_exact_terminal_validation(statement: ast.stmt) -> bool:\n"
+        "    if not isinstance(statement, ast.Expr):\n"
+        "        return False\n"
+        "    call = statement.value\n"
+        "    return isinstance(call, ast.Call) and "
+        "isinstance(call.func, ast.Name) and "
+        "(call.func.id == '_expect_violation') and (len(call.args) == 2) and "
+        "isinstance(call.args[0], ast.Name) and "
+        "(call.args[0].id == 'candidate') and "
+        "isinstance(call.args[0].ctx, ast.Load) and "
+        "isinstance(call.args[1], ast.Constant) and "
+        "(call.args[1].value == 'C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID') and "
+        "(not call.keywords)",
+        "signatures: dict[str, tuple[str, ...]] = {}",
+        "namespace: dict[str, object] = {'__file__': "
+        "str(C2B3A_ORACLE_PATH), '__name__': "
+        "'c2b3a_mutant_efficacy_probe'}",
+        "try:\n"
+        "    exec(compile(tree, filename=str(C2B3A_ORACLE_PATH), mode='exec'), "
+        "namespace)\n"
+        "    original_validate = namespace['_validate_contract']\n"
+        "except BaseException:\n"
+        "    raise AssertionError(diagnostic) from None",
+        "original_candidate = namespace.get('_candidate')",
+        "original_expect_violation = namespace.get('_expect_violation')",
+        "direct_deepcopy = namespace.get('deepcopy')",
+        "contract_violation = namespace.get('_ContractViolation')",
+        "if not (callable(original_candidate) and callable(original_validate) "
+        "and callable(original_expect_violation) and callable(direct_deepcopy) "
+        "and isinstance(contract_violation, type) and "
+        "issubclass(contract_violation, Exception)):\n"
+        "    raise AssertionError(diagnostic)",
+        "execution_totals: dict[str, int] = {'mapping_entries': 0, "
+        "'valid_baselines': 0, 'mutant_invocations': 0, "
+        "'changed_candidates': 0, 'identical_candidate_terminals': 0, "
+        "'single_terminal_reaches': 0, 'exact_supplied_diagnostics': 0, "
+        "'exact_validator_diagnostics': 0}",
+    ),
+    "protected_binding_names": (
+        "namespace",
+        "original_validate",
+        "original_candidate",
+        "original_expect_violation",
+        "controlled_candidate",
+        "instrumented_candidate",
+        "instrumented_expect_violation",
+        "candidate",
+        "supplied_diagnostic",
+        "exec",
+    ),
+    "protected_binding_inventory": (
+        ("candidate", "argument"),
+        ("controlled_candidate", "name_store"),
+        ("instrumented_candidate", "function_definition"),
+        ("instrumented_expect_violation", "function_definition"),
+        ("namespace", "name_store"),
+        ("original_candidate", "name_store"),
+        ("original_expect_violation", "name_store"),
+        ("original_validate", "name_store"),
+        ("supplied_diagnostic", "argument"),
+    ),
+    "namespace_subscript_inventory": (
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "if namespace['_validate_contract'] is not original_validate:\n"
+            "    raise AssertionError(diagnostic)",
+            "namespace['_validate_contract']",
+            "Load",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "namespace['_candidate'] = instrumented_candidate",
+            "namespace['_candidate']",
+            "Store",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "namespace['_candidate'] = original_candidate",
+            "namespace['_candidate']",
+            "Store",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "namespace['_expect_violation'] = instrumented_expect_violation",
+            "namespace['_expect_violation']",
+            "Store",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "namespace['_expect_violation'] = original_expect_violation",
+            "namespace['_expect_violation']",
+            "Store",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "original_validate = namespace['_validate_contract']",
+            "namespace['_validate_contract']",
+            "Load",
+        ),
+        (
+            "instrumented_expect_violation",
+            "if namespace['_validate_contract'] is not original_validate:\n"
+            "    raise AssertionError(diagnostic)",
+            "namespace['_validate_contract']",
+            "Load",
+        ),
+    ),
+    "namespace_get_inventory": (
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "contract_violation = namespace.get('_ContractViolation')",
+            "namespace.get('_ContractViolation')",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "direct_deepcopy = namespace.get('deepcopy')",
+            "namespace.get('deepcopy')",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "if namespace.get('_candidate') is not original_candidate or "
+            "namespace.get('_expect_violation') is not "
+            "original_expect_violation:\n    raise AssertionError(diagnostic)",
+            "namespace.get('_candidate')",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "if namespace.get('_candidate') is not original_candidate or "
+            "namespace.get('_expect_violation') is not "
+            "original_expect_violation:\n    raise AssertionError(diagnostic)",
+            "namespace.get('_expect_violation')",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "mutant_function = namespace.get(function_name)",
+            "namespace.get(function_name)",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "original_candidate = namespace.get('_candidate')",
+            "namespace.get('_candidate')",
+        ),
+        (
+            "_assert_c2b3a_mutant_dataflow_semantics",
+            "original_expect_violation = namespace.get('_expect_violation')",
+            "namespace.get('_expect_violation')",
+        ),
+    ),
+    "loop_target_names": ("mutant_id", "function_name"),
+    "execution_record_fields": (
+        "candidate_factory_calls",
+        "mutant_calls",
+        "terminal_calls",
+        "identical_candidate",
+        "supplied_diagnostic",
+        "validator_diagnostic",
+    ),
+    "aggregate_record_fields": (
+        "mapping_entries",
+        "valid_baselines",
+        "mutant_invocations",
+        "changed_candidates",
+        "identical_candidate_terminals",
+        "single_terminal_reaches",
+        "exact_supplied_diagnostics",
+        "exact_validator_diagnostics",
+    ),
+    "function_top_level_statement_kinds": (
+        "Assign", "Assign", "If", "Assign", "Assign", "If", "Assign", "For",
+        "FunctionDef", "FunctionDef", "AnnAssign", "AnnAssign", "Try", "Assign",
+        "Assign", "Assign", "Assign", "If", "AnnAssign", "For", "If", "If",
+        "If", "If",
+    ),
+    "mapping_loop_statement_kinds": (
+        "Assign", "If", "Assign", "Assign", "Assign", "If", "Try",
+        "AugAssign", "AugAssign", "AnnAssign", "FunctionDef", "FunctionDef",
+        "Assign", "Assign", "Try", "If", "If", "If", "AugAssign", "AugAssign",
+        "AugAssign", "AugAssign", "AugAssign", "AugAssign", "Assign", "Assign",
+        "If", "Assign", "Assign", "If", "For", "Assign", "Assign", "If",
+        "Assign",
+    ),
+    "mapping_loop_statement_sources": (
+        "mutant_function = namespace.get(function_name)",
+        "if not callable(mutant_function):\n    raise AssertionError(diagnostic)",
+        "expected_diagnostic = 'C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID'",
+        "controlled_candidate = original_candidate()",
+        "valid_baseline = direct_deepcopy(controlled_candidate)",
+        "if namespace['_validate_contract'] is not original_validate:\n"
+        "    raise AssertionError(diagnostic)",
+        "try:\n    original_validate(controlled_candidate)\nexcept BaseException:\n"
+        "    raise AssertionError(diagnostic) from None",
+        "execution_totals['mapping_entries'] += 1",
+        "execution_totals['valid_baselines'] += 1",
+        "execution: dict[str, object] = {'candidate_factory_calls': 0, "
+        "'mutant_calls': 0, 'terminal_calls': 0, 'identical_candidate': False, "
+        "'supplied_diagnostic': None, 'validator_diagnostic': None}",
+        "def instrumented_candidate() -> object:\n"
+        "    execution['candidate_factory_calls'] = "
+        "int(execution['candidate_factory_calls']) + 1\n"
+        "    if execution['candidate_factory_calls'] != 1:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    return controlled_candidate",
+        "def instrumented_expect_violation(candidate: object, "
+        "supplied_diagnostic: object) -> None:\n"
+        "    execution['terminal_calls'] = int(execution['terminal_calls']) + 1\n"
+        "    if execution['terminal_calls'] != 1:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    execution['identical_candidate'] = candidate is controlled_candidate\n"
+        "    execution['supplied_diagnostic'] = supplied_diagnostic\n"
+        "    if candidate is not controlled_candidate:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    if supplied_diagnostic != expected_diagnostic:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    if namespace['_validate_contract'] is not original_validate:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    with pytest.raises(contract_violation) as exc_info:\n"
+        "        original_validate(candidate)\n"
+        "    execution['validator_diagnostic'] = str(exc_info.value)\n"
+        "    if execution['validator_diagnostic'] != expected_diagnostic:\n"
+        "        raise AssertionError(diagnostic)",
+        "namespace['_candidate'] = instrumented_candidate",
+        "namespace['_expect_violation'] = instrumented_expect_violation",
+        "try:\n"
+        "    execution['mutant_calls'] = int(execution['mutant_calls']) + 1\n"
+        "    mutant_function()\n"
+        "except BaseException:\n"
+        "    raise AssertionError(diagnostic) from None\n"
+        "finally:\n"
+        "    namespace['_candidate'] = original_candidate\n"
+        "    namespace['_expect_violation'] = original_expect_violation",
+        "if namespace.get('_candidate') is not original_candidate or "
+        "namespace.get('_expect_violation') is not original_expect_violation:\n"
+        "    raise AssertionError(diagnostic)",
+        "if controlled_candidate == valid_baseline:\n"
+        "    raise AssertionError(diagnostic)",
+        "if execution['candidate_factory_calls'] != 1 or "
+        "execution['mutant_calls'] != 1 or execution['terminal_calls'] != 1 or "
+        "(execution['identical_candidate'] is not True) or "
+        "(execution['supplied_diagnostic'] != expected_diagnostic) or "
+        "(execution['validator_diagnostic'] != expected_diagnostic):\n"
+        "    raise AssertionError(diagnostic)",
+        "execution_totals['mutant_invocations'] += 1",
+        "execution_totals['changed_candidates'] += 1",
+        "execution_totals['identical_candidate_terminals'] += 1",
+        "execution_totals['single_terminal_reaches'] += 1",
+        "execution_totals['exact_supplied_diagnostics'] += 1",
+        "execution_totals['exact_validator_diagnostics'] += 1",
+        "function = _c2b3a_oracle_top_level_function(tree, function_name)",
+        "expected_mutations = C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE[mutant_id]",
+        "if _c2b3a_oracle_function_parameters(function) or function.decorator_list "
+        "or len(function.body) != len(expected_mutations) + 2 or "
+        "(not is_exact_candidate_factory(function.body[0])) or "
+        "(not is_exact_terminal_validation(function.body[-1])):\n"
+        "    raise AssertionError(diagnostic)",
+        "mutations = function.body[1:-1]",
+        "mutation_source = tuple((ast.unparse(statement) for statement in mutations))",
+        "if mutation_source != expected_mutations:\n"
+        "    raise AssertionError(diagnostic)",
+        "for statement in mutations:\n"
+        "    if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:\n"
+        "        raise AssertionError(diagnostic)\n"
+        "    names = tuple((node for node in ast.walk(statement) if "
+        "isinstance(node, ast.Name)))\n"
+        "    if not names or any((node.id != 'candidate' for node in names)):\n"
+        "        raise AssertionError(diagnostic)",
+        "calls = tuple((node for node in ast.walk(function) if "
+        "isinstance(node, ast.Call)))",
+        "candidate_stores = tuple((node for node in ast.walk(function) if "
+        "isinstance(node, ast.Name) and node.id == 'candidate' and "
+        "isinstance(node.ctx, ast.Store)))",
+        "if len(calls) != 2 or len(candidate_stores) != 1 or "
+        "calls[0] is not function.body[0].value or "
+        "(calls[1] is not function.body[-1].value):\n"
+        "    raise AssertionError(diagnostic)",
+        "signatures[mutant_id] = mutation_source",
+    ),
+    "post_loop_statement_sources": (
+        "if tuple(signatures) != expected_m16_m65_ids:\n"
+        "    raise AssertionError(diagnostic)",
+        "if signatures != C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE:\n"
+        "    raise AssertionError(diagnostic)",
+        "if len(set(signatures.values())) != len(expected_m16_m65_ids):\n"
+        "    raise AssertionError(diagnostic)",
+        "if execution_totals != {'mapping_entries': 50, 'valid_baselines': 50, "
+        "'mutant_invocations': 50, 'changed_candidates': 50, "
+        "'identical_candidate_terminals': 50, 'single_terminal_reaches': 50, "
+        "'exact_supplied_diagnostics': 50, 'exact_validator_diagnostics': 50}:\n"
+        "    raise AssertionError(diagnostic)",
+    ),
+}
+C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE = {
+    "M16": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:-1]",),
+    "M17": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:-1] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][0],)",),
+    "M18": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = (candidate['commit_close_outcome_addendum']['outcome_matrix'][1], candidate['commit_close_outcome_addendum']['outcome_matrix'][0]) + candidate['commit_close_outcome_addendum']['outcome_matrix'][2:]",),
+    "M19": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:1] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][1][:12] + ('QU',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][1][13:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][2:]",),
+    "M20": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:18] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][18][:12] + ('A',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][18][13:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][19:]",),
+    "M21": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:21] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][21][:4] + ('propagate close-time KeyboardInterrupt',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][21][5:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][22:]",),
+    "M22": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:3] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][3][:6] + ('raise caught_exception',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][3][7:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][4:]",),
+    "M23": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:4] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][4][:5] + ('reconstructed SystemExit with normalized code',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][4][6:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][5:]",),
+    "M24": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:6] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][6][:20] + (True,) + candidate['commit_close_outcome_addendum']['outcome_matrix'][6][21:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][7:]",),
+    "M25": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:7] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][7][:13] + ('released before quarantine publication',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][7][14:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][8:]",),
+    "M26": ("candidate['commit_close_outcome_addendum']['explicit_disposal']['while_PU_or_PK'] = 'recreate connection and run SQL'",),
+    "M27": ("candidate['commit_close_outcome_addendum']['finalizer']['weakref_finalize_invocation'] = 'repeatable'",),
+    "M28": ("candidate['commit_close_outcome_addendum']['recovery_and_safe_command_custody']['complete_work_spec_reaches_recovery'] = True",),
+    "M29": ("candidate['commit_close_outcome_addendum']['nonimplementation']['worker_scheduler_queue_service_model_or_reconciler'] = True",),
+    "M30": ("candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['maximum_paths'] = 29",),
+    "M31": ("candidate['commit_close_outcome_addendum']['matrix_identity_overlay']['same_exact_class_implies_same_object'] = True",),
+    "M32": ("candidate['commit_close_outcome_addendum']['matrix_identity_overlay']['diagonal_discriminator'] = 'same exact class always selects same_instance'",),
+    "M33": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['same_instance']['selection'] = 'always distinct_instance'",),
+    "M34": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['distinct_prelinked']['exact_link_preservation_promised'] = True",),
+    "M35": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['exact_interpreter_preservation_guaranteed'] = True",),
+    "M36": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['exact_before_after_graph_reachability_cycle_or_traceback_promise'] = True",),
+    "M37": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['preexisting_relation_deliberately_removed'] = True",),
+    "M38": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['preexisting_private_payload']['universal_sanitization_claim'] = True",),
+    "M39": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['preexisting_private_payload']['copied_or_added_by_C2B3'] = True",),
+    "M40": ("candidate['commit_close_outcome_addendum']['process_control_relational_policy']['raw_process_control']['serialize_persist_log_format_render_or_report'] = True",),
+    "M41": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['L1']['proof'] = 'normal descriptor close return'",),
+    "M42": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['T1']['preconditions'] = ('applicable C2', 'R1', 'R2', 'R3')",),
+    "M43": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['H2']['preconditions'] = ('one H1 attempt',)",),
+    "M44": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['H2']['same_process_acquisition'] = 'permitted while release_unproved'",),
+    "M45": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['recovery_replay_gate']['blocked_lock_facet'] = None",),
+    "M46": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['L1']['release_unproved_forbids'] = ('descriptor close', 'X publication', 'new same-process writer')",),
+    "M47": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['H1']['retry_numeric_fd'] = True",),
+    "M48": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['H3']['precondition'] = 'PU or PK'",),
+    "M49": ("candidate['commit_close_outcome_addendum']['orthogonal_cleanup_facets']['X_requires_descriptor_reclaimed'] = True",),
+    "M50": ("candidate['commit_close_outcome_addendum']['finalizer']['failure_before_X_after_wrapper_loss']['retry_reachable'] = True",),
+    "M51": ("candidate['commit_close_outcome_addendum']['finalizer']['hidden_cleanup_service_or_registry_scan'] = True",),
+    "M52": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:6] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][6][:12] + ('PU',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][6][13:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][7:]",),
+    "M53": ("candidate['commit_close_outcome_addendum']['outcome_matrix'] = candidate['commit_close_outcome_addendum']['outcome_matrix'][:12] + (candidate['commit_close_outcome_addendum']['outcome_matrix'][12][:12] + ('PK',) + candidate['commit_close_outcome_addendum']['outcome_matrix'][12][13:],) + candidate['commit_close_outcome_addendum']['outcome_matrix'][13:]",),
+    "M54": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['ordinary_A_to_X']['shared_lock_release_primitive'] = False",),
+    "M55": ("candidate['commit_close_outcome_addendum']['finalizer']['automatic_retry'] = True",),
+    "M56": ("candidate['commit_close_outcome_addendum']['finalizer']['failure_after_close_proof'] = 'clear every incomplete responsibility'",),
+    "M57": ("candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_production_paths'] = candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_production_paths'][:5]",),
+    "M58": ("candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_documentation_status_paths'] = candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_documentation_status_paths'][:7] + candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_documentation_status_paths'][8:]",),
+    "M59": ("candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_changed_test_paths'] = candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_changed_test_paths'][:7] + candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_changed_test_paths'][8:]",),
+    "M60": ("candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_changed_test_paths'] = candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_changed_test_paths'][:6] + candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['required_changed_test_paths'][7:]",),
+    "M61": (
+        "candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['expected_actual_write_paths'] = 23",
+        "candidate['commit_close_outcome_addendum']['future_c2b3b_path_scope_status']['maximum_paths'] = 24",
+    ),
+    "M62": ("candidate['commit_close_outcome_addendum']['matrix_identity_overlay']['dynamic_generation'] = True",),
+    "M63": ("candidate['commit_close_outcome_addendum']['nonimplementation']['production_behavior'] = True",),
+    "M64": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['H2']['under_lifecycle_fork_gate_order'] = ('identity-check and remove exact _ACTIVE_LOCK_RESOURCES entry', 'publish release-proved terminal facts and descriptor outcome')",),
+    "M65": ("candidate['commit_close_outcome_addendum']['post_close_cleanup_contract']['step_contracts']['P0']['new_operation_admission_in_PU_or_PK'] = True",),
+}
 C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS = (
     "protected_name",
     "enclosing_top_level_function",
@@ -381,385 +2583,633 @@ C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS = (
     "ancestor_kind_chain",
     "ordinal",
 )
-C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES: tuple[tuple[object, ...], ...] = (
-    ('_read_allowed_text', '_owner_contract', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_read_allowed_text', '_owner_golden_vector', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_validate_golden_vector', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_planning_markdown_prefix_stripped', '_planning_fence_candidate', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_planning_markdown_prefix_stripped', '_planning_normalized_line', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_planning_fence_candidate', '_planning_nonfenced_normalized_lines', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
-    ('_planning_normalized_line', '_planning_nonfenced_normalized_lines', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
-    ('_planning_nonfenced_normalized_lines', '_validate_planning_status', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 8),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 9),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 10),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 11),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 12),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 13),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 14),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 15),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 16),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 17),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 18),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 19),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 20),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 21),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 22),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 23),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 24),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 25),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 26),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 27),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_golden_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_validate_contract', '_expect_violation', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_validate_golden_vector', '_expect_golden_violation', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_owner_contract', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
-    ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
-    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
-    ('_validate_contract', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
-    ('_owner_golden_vector', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
-    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR',
- 'test_owner_golden_vector_equals_independent_direct_literal',
- None,
- 'direct_candidate_argument',
- ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'),
- 1),
-    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_read_allowed_text', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_read_allowed_text', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_validate_golden_vector', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_golden_vector_is_complete_privacy_safe_single_work_ledger', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_read_allowed_text', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_read_allowed_text', 'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_assert_oracle_architecture', 'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_read_allowed_text', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 1),
-    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_read_allowed_text', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_read_allowed_text', 'test_planning_status_baseline_scans_complete_nonfenced_document', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_validate_planning_status', 'test_planning_status_baseline_scans_complete_nonfenced_document', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('planning_document_candidate', 'test_planning_status_baseline_scans_complete_nonfenced_document', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_read_allowed_text', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_validate_planning_status', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('planning_document_candidate', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_planning_mutant_at_position', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('planning_document_candidate', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_validate_planning_status', 'test_planning_additive_contradictions_are_rejected_at_every_position', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_read_allowed_text', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_planning_mutant_at_position', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('planning_document_candidate', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_validate_planning_status', 'test_planning_correctly_closed_fenced_claim_is_ignored', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_read_allowed_text', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_planning_mutant_at_position', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('planning_document_candidate', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_validate_planning_status', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_planning_mutant_at_position', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('planning_document_candidate', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_validate_planning_status', 'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
-    ('_read_allowed_text', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_planning_mutant_at_position', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('planning_document_candidate', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_validate_planning_status', 'test_planning_markdown_prefixes_do_not_hide_forbidden_claims', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_candidate',
- 'test_genesis_decision_selected_and_preassigned_algebra_is_closed',
- None,
- 'direct_call_func',
- ('Name', 'Call', 'Subscript', 'Subscript', 'Subscript', 'Assign', 'FunctionDef', 'Module'),
- 0),
-    ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 8),
-    ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 9),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 8),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 9),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 10),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 11),
-    ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 12),
-    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_assert_preassigned_binding', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR',
- 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related',
- None,
- 'direct_candidate_argument',
- ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'),
- 0),
-    ('_owner_contract', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_assert_preassigned_binding', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
-    ('owner_contract_candidate', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR',
- 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related',
- None,
- 'direct_candidate_argument',
- ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'),
- 1),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 7),
-    ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 7),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
-    ('_owner_contract', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_process_control_close_interruption_contract_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_process_control_exception_graph_ledger_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('EXPECTED_INITIALIZATION_CONTRACT', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
-    ('_owner_contract', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
-    ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
-    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
-    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
-    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
-    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
-    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
-    ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
-    ('_candidate', 'test_nonimplementation_surface_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
-)
+C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES: tuple[tuple[object, ...], ...] = (('_read_allowed_text', '_owner_contract', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_read_allowed_text', '_owner_golden_vector', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_validate_golden_vector', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PLANNING_PROJECTION', '_validate_planning_status', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'BinOp', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 8),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 9),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 10),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 11),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 12),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 13),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 14),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 15),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 16),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 17),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 18),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 19),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 20),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 21),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 22),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 23),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 24),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 25),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 26),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Subscript', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 27),
+ ('EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM', '_validate_contract', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM', '_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_golden_candidate', None, 'direct_candidate_argument', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_exception_graph_identity_walk', '_relational_process_control_reference', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_exception_graph_identity_walk', '_relational_process_control_reference', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_exception_graph_identity_walk', '_relational_process_control_reference', None, 'direct_call_func',
+  ('Name', 'Call', 'Dict', 'Return', 'ExceptHandler', 'Try', 'FunctionDef', 'Module'), 2),
+ ('_cleanup_reference_result', '_cleanup_reference', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Return', 'FunctionDef', 'Module'), 0),
+ ('_validate_contract', '_expect_violation', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('_validate_golden_vector', '_expect_golden_violation', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PLANNING_PROJECTION', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PROCESS_CONTROL_REFERENCE_CASES', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('CLEANUP_SAFE_PROJECTION_FIELDS', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('CLEANUP_REFERENCE_INPUT_CASES', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_CLEANUP_REFERENCE_CASES', '_assert_oracle_architecture', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_owner_contract', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand', ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'),
+  0),
+ ('_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand',
+  ('Name', 'Subscript', 'Compare', 'Assert', 'FunctionDef', 'Module'), 2),
+ ('EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('_validate_contract', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('owner_contract_candidate', 'test_owner_literal_equals_independent_expected_contract', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_owner_golden_vector', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_read_allowed_text', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_read_allowed_text', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_validate_golden_vector', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('owner_golden_vector_candidate', 'test_owner_golden_vector_equals_independent_direct_literal', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_golden_vector_is_complete_privacy_safe_single_work_ledger', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  0),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  1),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  2),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  3),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  4),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  5),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  6),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_golden_candidate', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  7),
+ ('_expect_golden_violation', 'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_read_allowed_text', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+ ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+ ('_owner_golden_vector', 'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+ ('_read_allowed_text', 'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  0),
+ ('_assert_oracle_architecture', 'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_read_allowed_text', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 1),
+ ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+ ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+ ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+ ('_assert_oracle_architecture', 'test_oracle_architecture_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+ ('_read_allowed_text', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+ ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+ ('_owner_contract', 'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+ ('_read_allowed_text', 'test_planning_status_baseline_is_exact_closed_projection', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('planning_document_candidate', 'test_planning_status_baseline_is_exact_closed_projection', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PLANNING_PROJECTION', 'test_planning_status_baseline_is_exact_closed_projection', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('planning_document_candidate', 'test_planning_status_baseline_is_exact_closed_projection', None, None,
+  ('Name', 'Attribute', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('planning_document_candidate', 'test_planning_status_baseline_is_exact_closed_projection', None, None,
+  ('Name', 'Attribute', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 2),
+ ('planning_document_candidate', 'test_planning_status_baseline_is_exact_closed_projection', None, None, ('Name', 'Attribute', 'Call', 'Assert', 'FunctionDef', 'Module'), 3),
+ ('_validate_planning_status', 'test_planning_status_baseline_is_exact_closed_projection', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('planning_document_candidate', 'test_planning_status_baseline_is_exact_closed_projection', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'),
+  4),
+ ('_read_allowed_text', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None, ('Name', 'BinOp', 'Tuple', 'For', 'FunctionDef', 'Module'), 1),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None, ('Name', 'BinOp', 'Tuple', 'For', 'FunctionDef', 'Module'), 2),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Tuple', 'For', 'FunctionDef', 'Module'), 3),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Tuple', 'For', 'FunctionDef', 'Module'), 4),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Tuple', 'For', 'FunctionDef', 'Module'), 5),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Tuple', 'For', 'FunctionDef', 'Module'), 6),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Tuple', 'For', 'FunctionDef', 'Module'), 7),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Tuple', 'For', 'FunctionDef', 'Module'), 8),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None, ('Name', 'BinOp', 'Tuple', 'For', 'FunctionDef', 'Module'), 9),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None, ('Name', 'BinOp', 'Tuple', 'For', 'FunctionDef', 'Module'),
+  10),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None, ('Name', 'BinOp', 'Tuple', 'For', 'FunctionDef', 'Module'),
+  11),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None, ('Name', 'BinOp', 'Tuple', 'For', 'FunctionDef', 'Module'),
+  12),
+ ('_validate_planning_status', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 0),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, None,
+  ('Name', 'Attribute', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 13),
+ ('planning_document_candidate', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'For', 'FunctionDef', 'Module'), 14),
+ ('_validate_planning_status', 'test_planning_projection_closed_grammar_counterfactuals_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_owner_and_five_path_scope_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_expect_violation', 'test_genesis_cardinality_and_selection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func',
+  ('Name', 'Call', 'Subscript', 'Subscript', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'For', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_genesis_decision_selected_and_preassigned_algebra_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_accepted_intent_projection_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 8),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 8),
+ ('_candidate', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 9),
+ ('_expect_violation', 'test_safe_command_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 9),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 8),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 8),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 9),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 9),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 10),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 10),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 11),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 11),
+ ('_candidate', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 12),
+ ('_expect_violation', 'test_row_write_and_graph_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 12),
+ ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_locator_result_receipt_and_existing_projection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_work_spec_locator_exact_ref_relation_and_selection_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_replay_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_expect_violation', 'test_commit_recovery_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_assert_preassigned_binding', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_owner_contract', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_assert_preassigned_binding', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('owner_contract_candidate', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', 'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  0),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  1),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  2),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_assert_preassigned_binding', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 7),
+ ('_golden_candidate', 'test_preassigned_binding_mutants_b01_through_b08_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  7),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_owner_contract', 'test_original_apply_outcome_and_quarantine_branch_are_exact', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_assert_original_apply_outcome', 'test_original_apply_outcome_mutants_u09_through_u14_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_process_control_close_interruption_contract_is_exact', None, 'direct_call_func',
+  ('Name', 'Call', 'Subscript', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_process_control_exception_graph_ledger_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_bare_reraise_reference', 'test_bare_reraise_reference_model_distinguishes_named_reraise', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_named_reraise_reference', 'test_bare_reraise_reference_model_distinguishes_named_reraise', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_bare_reraise_reference', 'test_keyboard_interrupt_close_fault_publishes_before_identical_propagation', None, 'direct_call_func',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_bare_reraise_reference', 'test_system_exit_close_fault_publishes_before_identical_propagation', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'),
+  0),
+ ('_bare_reraise_reference', 'test_generator_exit_close_fault_publishes_before_identical_propagation', None, 'direct_call_func',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_INITIALIZATION_CONTRACT', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_candidate_argument', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_owner_contract', 'test_future_c2b3b_twenty_four_path_scope_is_exact', None, 'direct_call_func', ('Name', 'Call', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func',
+  ('Name', 'Call', 'Expr', 'With', 'For', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  1),
+ ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  2),
+ ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  3),
+ ('_candidate', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_assert_future_c2b3b_scope', 'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'With', 'FunctionDef', 'Module'),
+  4),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_expect_violation', 'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_stop_conflict_and_receipt_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 6),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 6),
+ ('_candidate', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 7),
+ ('_expect_violation', 'test_private_conflict_and_recovery_outcome_owners_are_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 7),
+ ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'For', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'For', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_privacy_and_custody_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
+ ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 1),
+ ('_expect_violation', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 1),
+ ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 2),
+ ('_expect_violation', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 2),
+ ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 3),
+ ('_expect_violation', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 3),
+ ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 4),
+ ('_expect_violation', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 4),
+ ('_candidate', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 5),
+ ('_expect_violation', 'test_later_author_effect_counterfactuals_are_rejected', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'FunctionDef', 'Module'), 5),
+ ('_candidate', 'test_nonimplementation_surface_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+ ('_expect_violation', 'test_nonimplementation_surface_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Expr', 'For', 'FunctionDef', 'Module'), 0),
+ ('_owner_contract', 'test_commit_close_addendum_direct_oracle_matrix_is_closed', None, 'direct_call_func', ('Name', 'Call', 'Subscript', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM', 'test_commit_close_addendum_direct_oracle_matrix_is_closed', None, 'direct_comparison_operand',
+  ('Name', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM', 'test_commit_close_addendum_custody_recovery_and_scope_are_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PROCESS_CONTROL_REFERENCE_CASES', 'test_process_control_reference_case_fixture_is_closed_and_privacy_safe', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('_exception_graph_identity_walk', 'test_process_control_reference_case_fixture_is_closed_and_privacy_safe', None, 'direct_call_func',
+  ('Name', 'Call', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PROCESS_CONTROL_REFERENCE_CASES', 'test_commit_close_relational_process_control_reference_cases_are_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('_relational_process_control_reference', 'test_commit_close_relational_process_control_reference_cases_are_exact', None, 'direct_call_func',
+  ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_PROCESS_CONTROL_REFERENCE_CASES', 'test_commit_close_relational_process_control_reference_cases_are_exact', None, None,
+  ('Name', 'Subscript', 'Assign', 'For', 'FunctionDef', 'Module'), 1),
+ ('CLEANUP_REFERENCE_INPUT_CASES', 'test_cleanup_reference_vector_shape_is_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_CLEANUP_REFERENCE_CASES', 'test_cleanup_reference_vector_shape_is_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('CLEANUP_REFERENCE_INPUT_CASES', 'test_cleanup_reference_vector_shape_is_exact', None, None,
+  ('Name', 'comprehension', 'GeneratorExp', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('EXPECTED_CLEANUP_REFERENCE_CASES', 'test_cleanup_reference_vector_shape_is_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 1),
+ ('EXPECTED_CLEANUP_REFERENCE_CASES', 'test_cleanup_reference_vector_shape_is_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 2),
+ ('CLEANUP_SAFE_PROJECTION_FIELDS', 'test_cleanup_reference_vector_shape_is_exact', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('CLEANUP_REFERENCE_INPUT_CASES', 'test_post_close_cleanup_reference_model_covers_every_release_point', None, None, ('Name', 'Assign', 'FunctionDef', 'Module'), 0),
+ ('EXPECTED_CLEANUP_REFERENCE_CASES', 'test_post_close_cleanup_reference_model_covers_every_release_point', None, 'direct_candidate_argument',
+  ('Name', 'Call', 'Compare', 'Assert', 'FunctionDef', 'Module'), 0),
+ ('_cleanup_reference', 'test_post_close_cleanup_reference_model_covers_every_release_point', None, 'direct_call_func', ('Name', 'Call', 'Assign', 'For', 'FunctionDef', 'Module'),
+  0),
+ ('EXPECTED_CLEANUP_REFERENCE_CASES', 'test_post_close_cleanup_reference_model_covers_every_release_point', None, None,
+  ('Name', 'Subscript', 'Assign', 'For', 'FunctionDef', 'Module'), 1))
 C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES: tuple[str, ...] = (
-    'test_owner_literal_equals_independent_expected_contract',
-    'test_owner_golden_vector_equals_independent_direct_literal',
-    'test_golden_vector_is_complete_privacy_safe_single_work_ledger',
-    'test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected',
-    'test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses',
-    'test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs',
-    'test_oracle_architecture_counterfactuals_are_rejected',
-    'test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses',
-    'test_planning_status_baseline_scans_complete_nonfenced_document',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document is semantic authority.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[The planning document co-owns semantic truth.-C2B3A_PLANNING_AUTHORITY_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Program initialization is implemented.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Private delegation is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Receipt persistence is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Replay runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Recovery runtime is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-prelude]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-middle]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-after-source-layout]',
-    'test_planning_additive_contradictions_are_rejected_at_every_position[Author-effect source is current.-C2B3A_CURRENT_SOURCE_CONTRADICTION-tail]',
-    'test_planning_correctly_closed_fenced_claim_is_ignored[```]',
-    'test_planning_correctly_closed_fenced_claim_is_ignored[~~~]',
-    'test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded',
-    'test_planning_markdown_prefixes_do_not_hide_forbidden_claims',
-    'test_owner_and_five_path_scope_counterfactuals_are_rejected',
-    'test_genesis_cardinality_and_selection_counterfactuals_are_rejected',
-    'test_genesis_decision_selected_and_preassigned_algebra_is_closed',
-    'test_accepted_intent_projection_counterfactuals_are_rejected',
-    'test_safe_command_counterfactuals_are_rejected',
-    'test_row_write_and_graph_counterfactuals_are_rejected',
-    'test_locator_result_receipt_and_existing_projection_are_closed',
-    'test_work_spec_locator_exact_ref_relation_and_selection_are_closed',
-    'test_replay_counterfactuals_are_rejected',
-    'test_commit_recovery_counterfactuals_are_rejected',
-    'test_preassigned_attempt_candidate_binding_is_exact_and_cross_related',
-    'test_preassigned_binding_mutants_b01_through_b08_are_rejected',
-    'test_original_apply_outcome_and_quarantine_branch_are_exact',
-    'test_original_apply_outcome_mutants_u09_through_u14_are_rejected',
-    'test_process_control_close_interruption_contract_is_exact',
-    'test_process_control_exception_graph_ledger_is_exact',
-    'test_bare_reraise_reference_model_distinguishes_named_reraise',
-    'test_keyboard_interrupt_close_fault_publishes_before_identical_propagation',
-    'test_system_exit_close_fault_publishes_before_identical_propagation',
-    'test_generator_exit_close_fault_publishes_before_identical_propagation',
-    'test_future_c2b3b_twenty_four_path_scope_is_exact',
-    'test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected',
-    'test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected',
-    'test_stop_conflict_and_receipt_counterfactuals_are_rejected',
-    'test_private_conflict_and_recovery_outcome_owners_are_closed',
-    'test_privacy_and_custody_counterfactuals_are_rejected',
-    'test_later_author_effect_counterfactuals_are_rejected',
-    'test_nonimplementation_surface_is_closed',
+    "test_owner_literal_equals_independent_expected_contract",
+    "test_owner_golden_vector_equals_independent_direct_literal",
+    "test_golden_vector_is_complete_privacy_safe_single_work_ledger",
+    "test_golden_vector_digest_byte_row_graph_and_envelope_mutants_are_rejected",
+    "test_golden_vector_parser_rejects_marker_fence_and_literal_bypasses",
+    "test_expected_contract_is_one_direct_literal_with_bounded_oracle_inputs",
+    "test_oracle_architecture_counterfactuals_are_rejected",
+    "test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses",
+    "test_planning_status_baseline_is_exact_closed_projection",
+    "test_planning_projection_closed_grammar_counterfactuals_are_rejected",
+    "test_owner_and_five_path_scope_counterfactuals_are_rejected",
+    "test_genesis_cardinality_and_selection_counterfactuals_are_rejected",
+    "test_genesis_decision_selected_and_preassigned_algebra_is_closed",
+    "test_accepted_intent_projection_counterfactuals_are_rejected",
+    "test_safe_command_counterfactuals_are_rejected",
+    "test_row_write_and_graph_counterfactuals_are_rejected",
+    "test_locator_result_receipt_and_existing_projection_are_closed",
+    "test_work_spec_locator_exact_ref_relation_and_selection_are_closed",
+    "test_replay_counterfactuals_are_rejected",
+    "test_commit_recovery_counterfactuals_are_rejected",
+    "test_preassigned_attempt_candidate_binding_is_exact_and_cross_related",
+    "test_preassigned_binding_mutants_b01_through_b08_are_rejected",
+    "test_original_apply_outcome_and_quarantine_branch_are_exact",
+    "test_original_apply_outcome_mutants_u09_through_u14_are_rejected",
+    "test_process_control_close_interruption_contract_is_exact",
+    "test_process_control_exception_graph_ledger_is_exact",
+    "test_bare_reraise_reference_model_distinguishes_named_reraise",
+    "test_keyboard_interrupt_close_fault_publishes_before_identical_propagation",
+    "test_system_exit_close_fault_publishes_before_identical_propagation",
+    "test_generator_exit_close_fault_publishes_before_identical_propagation",
+    "test_future_c2b3b_twenty_four_path_scope_is_exact",
+    "test_future_c2b3b_scope_mutants_s01_through_s07_are_rejected",
+    "test_commit_uncertainty_cleanup_gate_counterfactuals_are_rejected",
+    "test_stop_conflict_and_receipt_counterfactuals_are_rejected",
+    "test_private_conflict_and_recovery_outcome_owners_are_closed",
+    "test_privacy_and_custody_counterfactuals_are_rejected",
+    "test_later_author_effect_counterfactuals_are_rejected",
+    "test_nonimplementation_surface_is_closed",
+    "test_commit_close_addendum_direct_oracle_matrix_is_closed",
+    "test_commit_close_addendum_custody_recovery_and_scope_are_exact",
+    "test_process_control_reference_case_fixture_is_closed_and_privacy_safe",
+    "test_commit_close_relational_process_control_reference_cases_are_exact",
+    "test_cleanup_reference_vector_shape_is_exact",
+    "test_post_close_cleanup_reference_model_covers_every_release_point",
+    "test_commit_close_mutant_m16_missing_matrix_row_is_rejected",
+    "test_commit_close_mutant_m17_duplicate_matrix_row_is_rejected",
+    "test_commit_close_mutant_m18_reordered_matrix_rows_is_rejected",
+    "test_commit_close_mutant_m19_c1k2_state_is_rejected",
+    "test_commit_close_mutant_m20_c4k1_state_is_rejected",
+    "test_commit_close_mutant_m21_cleanup_primary_precedence_is_rejected",
+    "test_commit_close_mutant_m22_named_raise_is_rejected",
+    "test_commit_close_mutant_m23_reconstructed_system_exit_is_rejected",
+    "test_commit_close_mutant_m24_post_commit_rollback_is_rejected",
+    "test_commit_close_mutant_m25_slot_release_before_quarantine_is_rejected",
+    "test_commit_close_mutant_m26_pending_cleanup_sql_is_rejected",
+    "test_commit_close_mutant_m27_finalizer_retry_is_rejected",
+    "test_commit_close_mutant_m28_work_spec_recovery_custody_is_rejected",
+    "test_commit_close_mutant_m29_production_behavior_is_rejected",
+    "test_commit_close_mutant_m30_scope_maximum_is_rejected",
+    "test_commit_close_mutant_m31_same_class_implies_same_object_is_rejected",
+    "test_commit_close_mutant_m32_distinct_same_class_routing_is_rejected",
+    "test_commit_close_mutant_m33_same_instance_routing_is_rejected",
+    "test_commit_close_mutant_m34_prelinked_cause_promise_is_rejected",
+    "test_commit_close_mutant_m35_prelinked_context_promise_is_rejected",
+    "test_commit_close_mutant_m36_fixed_graph_shape_is_rejected",
+    "test_commit_close_mutant_m37_graph_scrub_is_rejected",
+    "test_commit_close_mutant_m38_universal_sanitization_is_rejected",
+    "test_commit_close_mutant_m39_raw_payload_copy_is_rejected",
+    "test_commit_close_mutant_m40_raw_payload_report_is_rejected",
+    "test_commit_close_mutant_m41_descriptor_close_release_proof_is_rejected",
+    "test_commit_close_mutant_m42_x_before_release_proof_is_rejected",
+    "test_commit_close_mutant_m43_authority_registry_before_release_is_rejected",
+    "test_commit_close_mutant_m44_acquisition_on_unproved_release_is_rejected",
+    "test_commit_close_mutant_m45_recovery_on_unproved_release_is_rejected",
+    "test_commit_close_mutant_m46_replay_on_unproved_release_is_rejected",
+    "test_commit_close_mutant_m47_descriptor_close_retry_is_rejected",
+    "test_commit_close_mutant_m48_session_registry_before_x_is_rejected",
+    "test_commit_close_mutant_m49_descriptor_reclamation_x_gate_is_rejected",
+    "test_commit_close_mutant_m50_retry_after_wrapper_loss_is_rejected",
+    "test_commit_close_mutant_m51_hidden_registry_cleanup_is_rejected",
+    "test_commit_close_mutant_m52_c2k1_pending_state_is_rejected",
+    "test_commit_close_mutant_m53_c3k1_pending_state_is_rejected",
+    "test_commit_close_mutant_m54_a_to_x_lock_bypass_is_rejected",
+    "test_commit_close_mutant_m55_finalizer_automatic_retry_is_rejected",
+    "test_commit_close_mutant_m56_finalizer_clears_progress_is_rejected",
+    "test_commit_close_mutant_m57_missing_lock_source_path_is_rejected",
+    "test_commit_close_mutant_m58_missing_writer_authority_doc_is_rejected",
+    "test_commit_close_mutant_m59_missing_lock_test_is_rejected",
+    "test_commit_close_mutant_m60_missing_writer_session_test_is_rejected",
+    "test_commit_close_mutant_m61_historical_scope_reactivation_is_rejected",
+    "test_commit_close_mutant_m62_dynamic_oracle_derivation_is_rejected",
+    "test_commit_close_mutant_m63_implementation_claim_is_rejected",
+    "test_commit_close_mutant_m64_h2_order_is_rejected",
+    "test_commit_close_mutant_m65_new_operation_in_pending_state_is_rejected",
 )
-
 SECTION_HEADINGS = (
     "1. Status, Classification, And Layering",
     "2. One Database, One Writer, And Fact Ownership",
@@ -1505,97 +3955,86 @@ def _unfenced_markdown(text: str, *, role: str) -> str:
     return _markdown_scan(text, role=role)[1]
 
 
-def _c2b3a_planning_markdown_prefix_stripped(line: str) -> str:
-    remaining = line
-    while True:
-        candidate = remaining.lstrip(" \t")
-        if candidate.startswith(">"):
-            remaining = candidate[1:]
-            continue
-        if (
-            len(candidate) >= 2
-            and candidate[0] in "-+*"
-            and candidate[1] in " \t"
-        ):
-            remaining = candidate[2:]
-            continue
-        digit_end = 0
-        while digit_end < len(candidate) and candidate[digit_end].isdigit():
-            digit_end += 1
-        if (
-            digit_end > 0
-            and digit_end + 1 < len(candidate)
-            and candidate[digit_end] in ".)"
-            and candidate[digit_end + 1] in " \t"
-        ):
-            remaining = candidate[digit_end + 2 :]
-            continue
-        return candidate
-
-
-def _c2b3a_planning_fence_candidate(
-    line: str,
-) -> tuple[str, int, str] | None:
-    candidate = _c2b3a_planning_markdown_prefix_stripped(line)
-    if not candidate or candidate[0] not in "`~":
-        return None
-    marker = candidate[0]
-    run_length = 0
-    while run_length < len(candidate) and candidate[run_length] == marker:
-        run_length += 1
-    if run_length < 3:
-        return None
-    remainder = candidate[run_length:]
-    if marker == "`" and "`" in remainder:
-        return None
-    return marker, run_length, remainder
-
-
-def _c2b3a_planning_normalized_line(line: str) -> str:
-    stripped = _c2b3a_planning_markdown_prefix_stripped(line)
-    lowered = stripped.lower()
-    ascii_spaced = lowered.replace("\t", " ")
-    pieces = ascii_spaced.split(" ")
-    normalized = " ".join(piece for piece in pieces if piece)
-    if normalized.endswith("."):
-        normalized = normalized[:-1]
-    return normalized
-
-
-def _c2b3a_planning_nonfenced_normalized_lines(text: str) -> tuple[str, ...]:
-    lines = text.splitlines()
-    if not lines or lines[0] != "# C2B3 Program Initialization":
-        raise AssertionError("C2B3A_CURRENT_SOURCE_CONTRADICTION")
-    prose: list[str] = []
-    fence: tuple[str, int] | None = None
-    for line in lines:
-        candidate = _c2b3a_planning_fence_candidate(line)
-        if fence is not None:
-            if (
-                candidate is not None
-                and candidate[0] == fence[0]
-                and candidate[1] >= fence[1]
-                and all(character in " \t" for character in candidate[2])
-            ):
-                fence = None
-            continue
-        if candidate is not None:
-            fence = (candidate[0], candidate[1])
-            continue
-        normalized = _c2b3a_planning_normalized_line(line)
-        if normalized:
-            prose.append(normalized)
-    if fence is not None:
-        raise AssertionError("C2B3A_CURRENT_SOURCE_CONTRADICTION")
-    return tuple(prose)
+def _c2b3a_planning_evidence_ledger(
+    text: str,
+    *,
+    begin: str,
+    end: str,
+    diagnostic: str,
+) -> tuple[str, ...]:
+    if text.count(begin) != 1 or text.count(end) != 1:
+        raise AssertionError(diagnostic)
+    payload = text.split(begin, 1)[1].split(end, 1)[0]
+    entries: list[str] = []
+    for line in payload.splitlines():
+        if line.startswith("- "):
+            entries.append(line[2:])
+        elif line.startswith("  ") and entries:
+            entries[-1] += " " + line.strip()
+        else:
+            raise AssertionError(diagnostic)
+    return tuple(entries)
 
 
 def _assert_c2b3a_planning_status(text: str) -> None:
-    prose = _c2b3a_planning_nonfenced_normalized_lines(text)
-    if any(claim in prose for claim in C2B3A_PLANNING_AUTHORITY_CLAIMS):
-        raise AssertionError("C2B3A_PLANNING_AUTHORITY_CONTRADICTION")
-    if any(claim in prose for claim in C2B3A_PLANNING_CURRENT_SOURCE_CLAIMS):
-        raise AssertionError("C2B3A_CURRENT_SOURCE_CONTRADICTION")
+    diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
+    markers = (
+        "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->",
+        "<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->",
+        "<!-- C2B3A_PLANNING_NON_AUTHORITY_END -->",
+        "<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->",
+        "<!-- C2B3A_PLANNING_CURRENT_STATUS_END -->",
+        "<!-- C2B3A_PLANNING_LEGACY_LEDGER_BEGIN -->",
+        "<!-- C2B3A_PLANNING_LEGACY_LEDGER_END -->",
+        "<!-- C2B3A_PLANNING_ACTIVE_SCOPE_BEGIN -->",
+        "<!-- C2B3A_PLANNING_ACTIVE_SCOPE_END -->",
+        "<!-- C2B3A_PLANNING_VALIDATION_ACCEPTANCE_BEGIN -->",
+        "<!-- C2B3A_PLANNING_VALIDATION_ACCEPTANCE_END -->",
+        "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_BEGIN -->",
+        "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_END -->",
+        "<!-- C2B3A_PLANNING_PROJECTION_END -->",
+    )
+    if type(text) is not str:
+        raise AssertionError(diagnostic)
+    if any(text.count(marker) != 1 for marker in markers):
+        raise AssertionError(diagnostic)
+    positions = tuple(text.index(marker) for marker in markers)
+    if positions != tuple(sorted(positions)):
+        raise AssertionError(diagnostic)
+    if not text.startswith(
+        "# C2B3 Program Initialization\n\n" + markers[0] + "\n"
+    ):
+        raise AssertionError(diagnostic)
+    if not text.endswith(markers[-1] + "\n"):
+        raise AssertionError(diagnostic)
+    source_acceptance_evidence = _c2b3a_planning_evidence_ledger(
+        text,
+        begin=(
+            "Before C2B3B source is accepted, all of the following separate "
+            "evidence is\nrequired:\n\n"
+        ),
+        end=(
+            "\n\nThe committed Coordinator repository baseline and the refreshed "
+            "exact\n"
+        ),
+        diagnostic=diagnostic,
+    )
+    source_start_evidence = _c2b3a_planning_evidence_ledger(
+        text,
+        begin=(
+            "Before source mutation begins, C2B3B source implementation requires "
+            "all of the\nfollowing separate evidence:\n\n"
+        ),
+        end="\n\nA dirty four-file working tree is not a source baseline.",
+        diagnostic=diagnostic,
+    )
+    if (
+        source_acceptance_evidence != C2B3A_SOURCE_ACCEPTANCE_EVIDENCE_LEDGER
+        or source_start_evidence != C2B3A_SOURCE_START_EVIDENCE_LEDGER
+    ):
+        raise AssertionError(diagnostic)
+    if text != C2B3A_PLANNING_PROJECTION_APPROVED_TEXT:
+        raise AssertionError(diagnostic)
 
 
 def _c2b3a_oracle_attribute_chain(node: ast.AST) -> str | None:
@@ -1686,19 +4125,361 @@ def _c2b3a_oracle_enclosing_function(
 def _c2b3a_oracle_function_parameters(
     node: ast.FunctionDef | ast.AsyncFunctionDef,
 ) -> tuple[str, ...]:
+    header = _c2b3a_oracle_function_header(node)
     parameters = tuple(
         argument.arg
         for argument in (
-            *node.args.posonlyargs,
-            *node.args.args,
-            *node.args.kwonlyargs,
+            *header["posonlyargs"],
+            *header["args"],
+            *header["kwonlyargs"],
         )
     )
-    if node.args.vararg is not None:
-        parameters += (node.args.vararg.arg,)
-    if node.args.kwarg is not None:
-        parameters += (node.args.kwarg.arg,)
+    vararg = header["vararg"]
+    kwarg = header["kwarg"]
+    if vararg is not None:
+        parameters += (vararg.arg,)
+    if kwarg is not None:
+        parameters += (kwarg.arg,)
     return parameters
+
+
+def _c2b3a_oracle_function_header(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict[str, object]:
+    return {
+        "node_type": type(node),
+        "name": node.name,
+        "decorators": tuple(node.decorator_list),
+        "return_annotation": node.returns,
+        "type_comment": node.type_comment,
+        "type_params": tuple(getattr(node, "type_params", ())),
+        "posonlyargs": tuple(node.args.posonlyargs),
+        "args": tuple(node.args.args),
+        "defaults": tuple(node.args.defaults),
+        "vararg": node.args.vararg,
+        "kwonlyargs": tuple(node.args.kwonlyargs),
+        "kw_defaults": tuple(node.args.kw_defaults),
+        "kwarg": node.args.kwarg,
+    }
+
+
+def _c2b3a_oracle_module_name_bindings(
+    tree: ast.Module,
+    name: str,
+) -> tuple[tuple[str, int], ...]:
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+
+    def enclosing_binding_scope(node: ast.AST) -> ast.AST | None:
+        current = node
+        while current in parents:
+            parent = parents[current]
+            if isinstance(parent, ast.Lambda):
+                return parent
+            if isinstance(
+                parent,
+                (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+            ) and any(current is statement for statement in parent.body):
+                return parent
+            current = parent
+        return None
+
+    def is_comprehension_target(node: ast.AST) -> bool:
+        current = node
+        while current in parents:
+            parent = parents[current]
+            if isinstance(parent, ast.comprehension):
+                return current is parent.target
+            if isinstance(
+                parent,
+                (
+                    ast.FunctionDef,
+                    ast.AsyncFunctionDef,
+                    ast.ClassDef,
+                    ast.Lambda,
+                ),
+            ):
+                return False
+            current = parent
+        return False
+
+    bindings: list[tuple[str, int]] = []
+    for node in ast.walk(tree):
+        bound_name: str | None = None
+        binding_kind: str | None = None
+        if (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+            and not is_comprehension_target(node)
+        ):
+            bound_name = node.id
+            binding_kind = (
+                "name_store" if isinstance(node.ctx, ast.Store) else "name_delete"
+            )
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            bound_name = node.name
+            binding_kind = "function_definition"
+        elif isinstance(node, ast.ClassDef):
+            bound_name = node.name
+            binding_kind = "class_definition"
+        elif isinstance(node, ast.alias):
+            bound_name = node.asname or node.name.split(".", 1)[0]
+            binding_kind = "import_alias"
+        elif isinstance(node, ast.ExceptHandler) and node.name is not None:
+            bound_name = node.name
+            binding_kind = "exception_handler"
+        elif isinstance(node, (ast.Global, ast.Nonlocal)) and name in node.names:
+            bound_name = name
+            binding_kind = type(node).__name__.lower()
+        elif isinstance(node, ast.MatchAs) and node.name is not None:
+            bound_name = node.name
+            binding_kind = "match_as"
+        elif isinstance(node, ast.MatchStar) and node.name is not None:
+            bound_name = node.name
+            binding_kind = "match_star"
+        elif isinstance(node, ast.MatchMapping) and node.rest is not None:
+            bound_name = node.rest
+            binding_kind = "match_mapping_rest"
+        if (
+            bound_name == name
+            and binding_kind is not None
+            and (
+                binding_kind in {"global", "nonlocal"}
+                or enclosing_binding_scope(node) is None
+            )
+        ):
+            bindings.append((binding_kind, node.lineno))
+    return tuple(sorted(bindings))
+
+
+def _c2b3a_oracle_module_wildcard_imports(
+    tree: ast.Module,
+) -> tuple[tuple[str | None, int, int], ...]:
+    return tuple(
+        sorted(
+            (
+                node.module,
+                node.level,
+                node.lineno,
+            )
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom)
+            and any(alias.name == "*" for alias in node.names)
+        )
+    )
+
+
+def _c2b3a_oracle_direct_module_dictionary_operations(
+    tree: ast.Module,
+) -> tuple[tuple[str, str, int], ...]:
+    protected_names = {"ast", "exec"}
+
+    def is_loaded_name(node: ast.AST, name: str) -> bool:
+        return (
+            isinstance(node, ast.Name)
+            and node.id == name
+            and isinstance(node.ctx, ast.Load)
+        )
+
+    def is_module_object(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.ctx, ast.Load)
+            and isinstance(node.value, ast.Attribute)
+            and node.value.attr == "modules"
+            and isinstance(node.value.ctx, ast.Load)
+            and is_loaded_name(node.value.value, "sys")
+            and isinstance(node.slice, ast.Name)
+            and node.slice.id == "__name__"
+            and isinstance(node.slice.ctx, ast.Load)
+        )
+
+    def is_globals_dictionary(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Call)
+            and is_loaded_name(node.func, "globals")
+            and node.args == []
+            and node.keywords == []
+        )
+
+    def is_vars_module_dictionary(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Call)
+            and is_loaded_name(node.func, "vars")
+            and len(node.args) == 1
+            and is_module_object(node.args[0])
+            and node.keywords == []
+        )
+
+    operations: list[tuple[str, str, int]] = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+            and isinstance(node.slice, ast.Constant)
+            and type(node.slice.value) is str
+            and node.slice.value in protected_names
+        ):
+            operation = (
+                "write" if isinstance(node.ctx, ast.Store) else "delete"
+            )
+            if is_globals_dictionary(node.value):
+                operations.append(
+                    (node.slice.value, f"globals_subscript_{operation}", node.lineno)
+                )
+            elif is_vars_module_dictionary(node.value):
+                operations.append(
+                    (
+                        node.slice.value,
+                        f"vars_sys_modules_subscript_{operation}",
+                        node.lineno,
+                    )
+                )
+        elif (
+            isinstance(node, ast.Call)
+            and is_loaded_name(node.func, "setattr")
+            and len(node.args) == 3
+            and is_module_object(node.args[0])
+            and isinstance(node.args[1], ast.Constant)
+            and type(node.args[1].value) is str
+            and node.args[1].value in protected_names
+            and node.keywords == []
+        ):
+            operations.append(
+                (node.args[1].value, "setattr_sys_modules_write", node.lineno)
+            )
+        elif (
+            isinstance(node, ast.Call)
+            and is_loaded_name(node.func, "delattr")
+            and len(node.args) == 2
+            and is_module_object(node.args[0])
+            and isinstance(node.args[1], ast.Constant)
+            and type(node.args[1].value) is str
+            and node.args[1].value in protected_names
+            and node.keywords == []
+        ):
+            operations.append(
+                (node.args[1].value, "delattr_sys_modules_delete", node.lineno)
+            )
+    return tuple(sorted(operations))
+
+
+def _c2b3a_oracle_direct_hostile_environment_operations(
+    tree: ast.Module,
+) -> tuple[tuple[str, int], ...]:
+    imported_module_names = {
+        alias.asname or alias.name.split(".", 1)[0]
+        for statement in tree.body
+        if isinstance(statement, ast.Import)
+        for alias in statement.names
+    }
+
+    def loaded_name(node: ast.AST) -> str | None:
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            return node.id
+        return None
+
+    def attribute_root(node: ast.Attribute) -> str | None:
+        value = node.value
+        while isinstance(value, ast.Attribute):
+            value = value.value
+        return loaded_name(value)
+
+    def is_vars_of_imported_module(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Call)
+            and loaded_name(node.func) == "vars"
+            and len(node.args) == 1
+            and loaded_name(node.args[0]) in imported_module_names
+            and node.keywords == []
+        )
+
+    def is_sys_modules(node: ast.AST) -> bool:
+        return (
+            isinstance(node, ast.Attribute)
+            and node.attr == "modules"
+            and isinstance(node.ctx, ast.Load)
+            and loaded_name(node.value) == "sys"
+        )
+
+    def direct_environment_object(node: ast.AST) -> bool:
+        return (
+            loaded_name(node) in imported_module_names | {"__builtins__"}
+            or (
+                isinstance(node, ast.Subscript)
+                and isinstance(node.ctx, ast.Load)
+                and is_sys_modules(node.value)
+            )
+        )
+
+    operations: list[tuple[str, int]] = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Name)
+            and node.id == "__builtins__"
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+        ):
+            operations.append(("direct___builtins___binding_mutation", node.lineno))
+        elif (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+            and attribute_root(node) in imported_module_names | {"__builtins__"}
+        ):
+            operations.append(("direct_imported_object_attribute_mutation", node.lineno))
+        elif isinstance(node, ast.Subscript) and isinstance(
+            node.ctx,
+            (ast.Store, ast.Del),
+        ):
+            if is_sys_modules(node.value):
+                operations.append(("direct_sys_modules_mutation", node.lineno))
+            elif is_vars_of_imported_module(node.value):
+                operations.append(("direct_imported_object_vars_mutation", node.lineno))
+            elif loaded_name(node.value) == "__builtins__":
+                operations.append(("direct___builtins___mapping_mutation", node.lineno))
+        elif (
+            isinstance(node, ast.Call)
+            and loaded_name(node.func) in {"setattr", "delattr"}
+            and len(node.args) >= 2
+            and direct_environment_object(node.args[0])
+        ):
+            operations.append(("direct_environment_setattr_or_delattr", node.lineno))
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"setattr", "delattr"}
+            and len(node.args) >= 2
+            and direct_environment_object(node.args[0])
+        ):
+            operations.append(
+                ("direct_monkeypatch_environment_setattr_or_delattr", node.lineno)
+            )
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"setitem", "delitem"}
+            and len(node.args) >= 2
+            and (
+                is_sys_modules(node.args[0])
+                or is_vars_of_imported_module(node.args[0])
+                or loaded_name(node.args[0]) == "__builtins__"
+            )
+        ):
+            operations.append(
+                ("direct_monkeypatch_environment_setitem_or_delitem", node.lineno)
+            )
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"append", "clear", "extend", "insert", "pop"}
+            and isinstance(node.func.value, ast.Attribute)
+            and node.func.value.attr in {"meta_path", "path_hooks"}
+            and loaded_name(node.func.value.value) == "sys"
+        ):
+            operations.append(("direct_import_hook_collection_mutation", node.lineno))
+    return tuple(sorted(operations))
 
 
 def _c2b3a_oracle_literal_assignment(
@@ -1716,7 +4497,17 @@ def _c2b3a_oracle_literal_assignment(
     if len(assignments) != 1:
         raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
     assignment = assignments[0]
-    if not isinstance(assignment.value, ast.Dict):
+    expected_node_type: type[ast.AST] = {
+        "EXPECTED_PLANNING_PROJECTION": ast.Constant,
+        "EXPECTED_INITIALIZATION_CONTRACT": ast.Dict,
+        "EXPECTED_INITIALIZATION_GOLDEN_VECTOR": ast.Dict,
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM": ast.Dict,
+        "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES": ast.Dict,
+        "CLEANUP_SAFE_PROJECTION_FIELDS": ast.Tuple,
+        "CLEANUP_REFERENCE_INPUT_CASES": ast.Tuple,
+        "EXPECTED_CLEANUP_REFERENCE_CASES": ast.Dict,
+    }.get(name, ast.Dict)
+    if not isinstance(assignment.value, expected_node_type):
         raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
     if not _c2b3a_oracle_closed_literal(assignment.value):
         raise AssertionError("C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID")
@@ -1806,6 +4597,32 @@ def _c2b3a_oracle_protected_load_sites(
     return tuple(records)
 
 
+def _c2b3a_oracle_expected_protected_load_sites() -> tuple[tuple[object, ...], ...]:
+    mutant_records: list[tuple[object, ...]] = []
+    for _mutant_id, function_name in C2B3A_LINEAR_MUTANT_FUNCTIONS:
+        mutant_records.extend(
+            (
+                (
+                    "_candidate",
+                    function_name,
+                    None,
+                    "direct_call_func",
+                    ("Name", "Call", "Assign", "FunctionDef", "Module"),
+                    0,
+                ),
+                (
+                    "_expect_violation",
+                    function_name,
+                    None,
+                    "direct_call_func",
+                    ("Name", "Call", "Expr", "FunctionDef", "Module"),
+                    0,
+                ),
+            )
+        )
+    return C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES + tuple(mutant_records)
+
+
 def _assert_c2b3a_oracle_collection_architecture(
     tree: ast.Module,
     parents: dict[ast.AST, ast.AST],
@@ -1851,6 +4668,2343 @@ def _assert_c2b3a_oracle_collection_architecture(
                 raise AssertionError(diagnostic)
 
 
+def _c2b3a_oracle_top_level_function(
+    tree: ast.Module,
+    name: str,
+) -> ast.FunctionDef:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    matches = tuple(
+        statement
+        for statement in tree.body
+        if isinstance(statement, ast.FunctionDef) and statement.name == name
+    )
+    if len(matches) != 1:
+        raise AssertionError(diagnostic)
+    return matches[0]
+
+
+def _c2b3a_oracle_store_root(node: ast.AST) -> str | None:
+    current = node
+    while isinstance(current, (ast.Attribute, ast.Subscript)):
+        current = current.value
+    return current.id if isinstance(current, ast.Name) else None
+
+
+def _c2b3a_oracle_literal_value(tree: ast.Module, name: str) -> dict[str, object]:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    try:
+        assignment = _c2b3a_oracle_literal_assignment(tree, name)
+        value = ast.literal_eval(assignment.value)
+    except (AssertionError, SyntaxError, ValueError):
+        raise AssertionError(diagnostic) from None
+    if type(value) is not dict:
+        raise AssertionError(diagnostic)
+    return value
+
+
+def _assert_c2b3a_addendum_literal_semantics(tree: ast.Module) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    addendum = _c2b3a_oracle_literal_value(
+        tree,
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM",
+    )
+    if addendum.get("normative_surface_and_precedence") != {
+        "structured_owner": "commit_close_outcome_addendum",
+        "sole_operative_semantic_authority_for": (
+            "COMMIT and close outcomes",
+            "process-control relationships",
+            "cleanup states and order",
+            "finalizer and liveness rules",
+            "recovery and replay gates",
+            "future C2B3B path scope",
+        ),
+        "pre_addendum_section_35_treatment": "historical evidence and original C2B3A contract truth",
+        "explicit_supersession_rule": "where an additive structured owner value explicitly supersedes a historical target value, the additive structured value is operative for C2B3B",
+        "explanatory_prose_has_independent_authority": False,
+        "explanatory_prose_may_create_override_widen_or_narrow": False,
+        "planning_is_semantic_authority": False,
+        "planning_may_resolve_or_change_owner_truth": False,
+        "free_form_prose_may_supply_operational_semantics_when_structured_value_exists": False,
+    }:
+        raise AssertionError(diagnostic)
+    cleanup = addendum.get("post_close_cleanup_contract")
+    if type(cleanup) is not dict or cleanup.get("ordered_steps") != (
+        "P0",
+        "C1",
+        "C2",
+        "R1",
+        "R2",
+        "R3",
+        "L1",
+        "H1",
+        "H2",
+        "T1",
+        "H3",
+    ):
+        raise AssertionError(diagnostic)
+    acknowledgement = cleanup.get("acknowledgement_complete_boundary")
+    if acknowledgement != {
+        "C1_and_C2_remain_ordered_responsibilities": True,
+        "successful_C1_is_stable_or_outwardly_observable_before_C2": False,
+        "C1_after_fault_is_independently_observable": False,
+        "C2_before_fault_is_independently_observable": False,
+        "normal_close_requires_before_result_or_propagation": (
+            "record connection_closed_proved",
+            "clear raw connection custody",
+            "publish QU -> PU or QK -> PK",
+        ),
+        "closure_proved_QU_or_QK_with_connection_custody": False,
+        "PU_or_PK_with_connection_custody": False,
+        "extra_stable_session_state": False,
+    }:
+        raise AssertionError(diagnostic)
+    if addendum.get("legacy_exception_probe_ledger_classification") != {
+        "ledger_path": "commit_uncertainty_cleanup_gate.close_not_proved.process_control_exception_graph_ledger",
+        "classification": "historical_runtime_observation",
+        "normative": False,
+        "operative_for_c2b3b": False,
+        "portable_contract": False,
+        "preserved_for_original_c2b3a_evidence": True,
+        "superseded_for_target_semantics_by": "process_control_relational_policy",
+        "observed_values_scope": "exact traceback, cause, context, suppression, cycle, and reachability values are observations of the original bounded reference branch only",
+        "consumer_rule": "no implementation, test oracle, planning projection, or future prompt may use those observed values as target requirements",
+    }:
+        raise AssertionError(diagnostic)
+    scope = addendum.get("future_c2b3b_path_scope_status")
+    if type(scope) is not dict:
+        raise AssertionError(diagnostic)
+    if scope.get("required_production_paths") != (
+        "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
+        "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+        "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+        "src/ge_nwp_coordinator/sqlite_writer_session.py",
+        "src/ge_nwp_coordinator/sqlite_connection.py",
+        "src/ge_nwp_coordinator/state_authority_lock.py",
+    ):
+        raise AssertionError(diagnostic)
+    if scope.get("required_documentation_status_paths") != (
+        ".docs/c2b-durable-development-state.md",
+        ".docs/c2b3-program-initialization.md",
+        ".docs/c2b2-private-readers.md",
+        ".docs/architecture.md",
+        ".docs/durable-state-model.md",
+        ".docs/sqlite-operations-and-recovery.md",
+        ".docs/sqlite-threat-model.md",
+        ".docs/writer-session-authority.md",
+        "README.md",
+        "AGENTS.md",
+    ):
+        raise AssertionError(diagnostic)
+    if scope.get("required_changed_test_paths") != (
+        "tests/test_c2b3_program_initialization_contract.py",
+        "tests/test_c2b3_private_atomic_program_initialization.py",
+        "tests/test_c2b3_program_initialization_recovery.py",
+        "tests/test_c2b3_private_program_initialization_delegation.py",
+        "tests/test_c2b2_field_level_contract.py",
+        "tests/test_c2b2_development_reader_contracts.py",
+        "tests/test_sqlite_b2c_writer_session.py",
+        "tests/test_state_authority_lock.py",
+        "tests/test_runtime_non_authority.py",
+        "tests/test_architecture_contracts.py",
+        "tests/test_c2b0_durable_state_contract.py",
+    ):
+        raise AssertionError(diagnostic)
+    if (
+        scope.get("required_path_counts") != (6, 10, 11)
+        or scope.get("expected_actual_write_paths") != 27
+        or scope.get("contingency_path")
+        != "tests/test_c2b2_private_development_readers.py"
+        or scope.get("maximum_paths") != 28
+        or scope.get("twenty_ninth_path")
+        != "hard stop and scope reassessment condition"
+    ):
+        raise AssertionError(diagnostic)
+    if scope.get("future_implementation_scope_supersession") != {
+        "historical_scope_id": "future_c2b3b_maximum_path_scope",
+        "operative": False,
+        "consumers_may_use": False,
+        "active_replacement_scope_id": "C2B3B_PRIVATE_ATOMIC_INITIALIZATION",
+        "active_replacement_owner": "commit_close_outcome_addendum.future_c2b3b_path_scope_status",
+        "active_expected_actual_write_paths": 27,
+        "active_maximum_paths": 28,
+        "active_stop_path_ordinal": 29,
+        "newly_required_paths": (
+            "src/ge_nwp_coordinator/state_authority_lock.py",
+            ".docs/writer-session-authority.md",
+            "tests/test_state_authority_lock.py",
+            "tests/test_sqlite_b2c_writer_session.py",
+        ),
+        "preserved_literal": "future_c2b3b_maximum_path_scope",
+        "preserved_values": {
+            "production_paths": 5,
+            "documentation_status_paths": 9,
+            "test_paths": 10,
+            "expected_actual_write_paths": 23,
+            "maximum_paths": 24,
+            "stop_path_ordinal": 25,
+        },
+        "classification": "historical and non-operative for C2B3B after this addendum",
+        "preservation_reason": "preserve the accepted earlier C2B3A freeze byte-for-byte",
+        "operative_scope_owner": "commit_close_outcome_addendum.future_c2b3b_path_scope_status",
+        "old_values_may_be_used_as_active_authority": False,
+        "operative_values": {
+            "production_paths": 6,
+            "documentation_status_paths": 10,
+            "required_changed_tests": 11,
+            "expected_actual_write_paths": 27,
+            "contingency_paths": 1,
+            "maximum_paths": 28,
+            "stop_path_ordinal": 29,
+        },
+    }:
+        raise AssertionError(diagnostic)
+    semantic = addendum.get("direct_oracle_requirements")
+    if type(semantic) is not dict:
+        raise AssertionError(diagnostic)
+    protection = semantic.get("semantic_execution_protection")
+    if type(protection) is not dict or protection != {
+        "diagnostic": "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID",
+        "expect_violation_exact_validator_and_diagnostic": True,
+        "mutant_dataflow": "each protected mutant has exactly one candidate = _candidate(), one or more direct candidate-rooted assignments, and the identical candidate reaches one final _expect_violation with the exact diagnostic",
+        "mutant_control_flow": "each protected mutant is one branch-free linear function with no unrelated local assignment, call, or possible pre-validation termination",
+        "positive_body_and_reference_helper_execution_protected": True,
+        "positive_result_dataflow": "each helper result is a single immutable reaching definition consumed directly by discriminating field assertions; overwrite, deletion, mutation, alias, shadow target, and unused results are rejected",
+        "bounded_isolated_physical_counterfactuals": True,
+        "whole_file_source_hash_authority": False,
+        "generic_semantic_dispatcher": False,
+    }:
+        raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_expect_violation_semantics(tree: ast.Module) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    function = _c2b3a_oracle_top_level_function(tree, "_expect_violation")
+    if _c2b3a_oracle_function_parameters(function) != ("candidate", "code"):
+        raise AssertionError(diagnostic)
+    if function.decorator_list or len(function.body) != 2:
+        raise AssertionError(diagnostic)
+    context_statement, diagnostic_statement = function.body
+    if (
+        not isinstance(context_statement, ast.With)
+        or len(context_statement.items) != 1
+        or len(context_statement.body) != 1
+    ):
+        raise AssertionError(diagnostic)
+    item = context_statement.items[0]
+    context_call = item.context_expr
+    if (
+        not isinstance(context_call, ast.Call)
+        or _c2b3a_oracle_attribute_chain(context_call.func) != "pytest.raises"
+        or len(context_call.args) != 1
+        or not isinstance(context_call.args[0], ast.Name)
+        or context_call.args[0].id != "_ContractViolation"
+        or context_call.keywords
+        or not isinstance(item.optional_vars, ast.Name)
+        or item.optional_vars.id != "exc_info"
+    ):
+        raise AssertionError(diagnostic)
+    validation_statement = context_statement.body[0]
+    if (
+        not isinstance(validation_statement, ast.Expr)
+        or not isinstance(validation_statement.value, ast.Call)
+        or not isinstance(validation_statement.value.func, ast.Name)
+        or validation_statement.value.func.id != "_validate_contract"
+        or len(validation_statement.value.args) != 1
+        or not isinstance(validation_statement.value.args[0], ast.Name)
+        or validation_statement.value.args[0].id != "candidate"
+        or validation_statement.value.keywords
+    ):
+        raise AssertionError(diagnostic)
+    if not isinstance(diagnostic_statement, ast.Assert):
+        raise AssertionError(diagnostic)
+    comparison = diagnostic_statement.test
+    if (
+        not isinstance(comparison, ast.Compare)
+        or len(comparison.ops) != 1
+        or not isinstance(comparison.ops[0], ast.Eq)
+        or len(comparison.comparators) != 1
+        or not isinstance(comparison.comparators[0], ast.Name)
+        or comparison.comparators[0].id != "code"
+        or not isinstance(comparison.left, ast.Call)
+        or not isinstance(comparison.left.func, ast.Name)
+        or comparison.left.func.id != "str"
+        or len(comparison.left.args) != 1
+        or not isinstance(comparison.left.args[0], ast.Attribute)
+        or comparison.left.args[0].attr != "value"
+        or not isinstance(comparison.left.args[0].value, ast.Name)
+        or comparison.left.args[0].value.id != "exc_info"
+        or comparison.left.keywords
+    ):
+        raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_reference_helper_semantics(tree: ast.Module) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    bare = _c2b3a_oracle_top_level_function(tree, "_bare_reraise_reference")
+    if _c2b3a_oracle_function_parameters(bare) != ("injected_exception",):
+        raise AssertionError(diagnostic)
+    bare_raises = tuple(node for node in ast.walk(bare) if isinstance(node, ast.Raise))
+    if (
+        len(tuple(node for node in ast.walk(bare) if isinstance(node, ast.Try))) < 2
+        or len(tuple(node for node in bare_raises if node.exc is None)) != 1
+        or any(node.cause is not None for node in bare_raises)
+    ):
+        raise AssertionError(diagnostic)
+
+    relational = _c2b3a_oracle_top_level_function(
+        tree,
+        "_relational_process_control_reference",
+    )
+    if _c2b3a_oracle_function_parameters(relational) != ("primary", "secondary"):
+        raise AssertionError(diagnostic)
+    relational_raises = tuple(
+        node for node in ast.walk(relational) if isinstance(node, ast.Raise)
+    )
+    named_raise_inputs = tuple(
+        node.exc.id
+        for node in relational_raises
+        if isinstance(node.exc, ast.Name)
+    )
+    if (
+        len(tuple(node for node in ast.walk(relational) if isinstance(node, ast.Try))) < 2
+        or named_raise_inputs != ("primary", "secondary")
+        or len(tuple(node for node in relational_raises if node.exc is None)) != 1
+        or any(node.cause is not None for node in relational_raises)
+    ):
+        raise AssertionError(diagnostic)
+    forbidden_graph_stores = {
+        "__cause__",
+        "__context__",
+        "__suppress_context__",
+        "__traceback__",
+        "__notes__",
+    }
+    for node in ast.walk(relational):
+        if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Store):
+            if node.attr in forbidden_graph_stores:
+                raise AssertionError(diagnostic)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr in {"with_traceback", "add_note"}:
+                raise AssertionError(diagnostic)
+    returns = tuple(node for node in ast.walk(relational) if isinstance(node, ast.Return))
+    if len(returns) != 1 or not isinstance(returns[0].value, ast.Dict):
+        raise AssertionError(diagnostic)
+    returned_source = ast.unparse(returns[0].value)
+    for required in (
+        "'provided_primary': primary",
+        "'provided_secondary': secondary",
+        "'outward_primary': outward_primary",
+        "'entered': entered",
+        "'completed': completed",
+        "'exact_interpreter_graph_promise': False",
+    ):
+        if required not in returned_source:
+            raise AssertionError(diagnostic)
+
+    graph_walk = _c2b3a_oracle_top_level_function(
+        tree,
+        "_exception_graph_identity_walk",
+    )
+    if (
+        _c2b3a_oracle_function_parameters(graph_walk) != ("exception",)
+        or not any(isinstance(node, ast.While) for node in ast.walk(graph_walk))
+        or not any(isinstance(node, ast.Continue) for node in ast.walk(graph_walk))
+    ):
+        raise AssertionError(diagnostic)
+    graph_returns = tuple(
+        node for node in ast.walk(graph_walk) if isinstance(node, ast.Return)
+    )
+    if (
+        len(graph_returns) != 1
+        or not isinstance(graph_returns[0].value, ast.Name)
+        or graph_returns[0].value.id != "seen"
+    ):
+        raise AssertionError(diagnostic)
+
+    cleanup = _c2b3a_oracle_top_level_function(tree, "_cleanup_reference")
+    if _c2b3a_oracle_function_parameters(cleanup) != (
+        "initial_state",
+        "fault_step",
+        "fault_position",
+        "connection_outcome",
+        "unlock_outcome",
+        "descriptor_close_outcome",
+        "finalizer",
+        "cleanup_outcome",
+        "earlier_primary",
+    ):
+        raise AssertionError(diagnostic)
+    cleanup_source = ast.unparse(cleanup)
+    ordered_steps = (
+        "P0",
+        "C1",
+        "C2",
+        "R1",
+        "R2",
+        "R3",
+        "L1",
+        "H1",
+        "H2",
+        "T1",
+        "H3",
+    )
+    entered_positions: list[int] = []
+    completed_positions: list[int] = []
+    for step in ordered_steps:
+        if (
+            f"entered += ('{step}',)" not in cleanup_source
+            or f"completed += ('{step}',)" not in cleanup_source
+        ):
+            raise AssertionError(diagnostic)
+        entered_positions.append(cleanup_source.index(f"entered += ('{step}',)"))
+        completed_positions.append(cleanup_source.index(f"completed += ('{step}',)"))
+    if entered_positions != sorted(entered_positions):
+        raise AssertionError(diagnostic)
+    if completed_positions != sorted(completed_positions):
+        raise AssertionError(diagnostic)
+    if any(
+        entered_position >= completed_position
+        for entered_position, completed_position in zip(
+            entered_positions,
+            completed_positions,
+            strict=True,
+        )
+    ):
+        raise AssertionError(diagnostic)
+
+    def exact_assignments(name: str, value: object) -> tuple[ast.Assign, ...]:
+        return tuple(
+            node
+            for node in ast.walk(cleanup)
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == name
+            and isinstance(node.value, ast.Constant)
+            and node.value.value == value
+        )
+
+    admission_closed = exact_assignments("admission_open", False)
+    connection_proved = exact_assignments("connection_closed_proved", True)
+    connection_custody_cleared = exact_assignments("connection_owned", False)
+    credential_revoked = exact_assignments("credential_authority", False)
+    mutation_slot_cleared = exact_assignments("mutation_slot_owned", False)
+    database_binding_cleared = exact_assignments("database_binding_owned", False)
+    release_proved = exact_assignments("writer_lock_release", "release_proved")
+    descriptor_custody_cleared = exact_assignments("descriptor_owned", False)
+    authority_terminal = exact_assignments("authority_lock_terminal", True)
+    authority_registry_removed = exact_assignments(
+        "authority_lock_registry_present",
+        False,
+    )
+    X_published = exact_assignments("state", "X")
+    session_registry_removed = exact_assignments(
+        "writer_session_registry_present",
+        False,
+    )
+    if not (
+        len(admission_closed) == 1
+        and len(connection_proved) == 1
+        and len(connection_custody_cleared) == 1
+        and len(credential_revoked) == 1
+        and len(mutation_slot_cleared) == 1
+        and len(database_binding_cleared) == 1
+        and len(release_proved) == 1
+        and len(descriptor_custody_cleared) == 1
+        and len(authority_terminal) == 1
+        and len(authority_registry_removed) == 1
+        and len(X_published) == 1
+        and len(session_registry_removed) == 1
+        and admission_closed[0].lineno < connection_proved[0].lineno
+        and connection_proved[0].lineno < credential_revoked[0].lineno
+        and credential_revoked[0].lineno < mutation_slot_cleared[0].lineno
+        and mutation_slot_cleared[0].lineno < database_binding_cleared[0].lineno
+        and database_binding_cleared[0].lineno < release_proved[0].lineno
+        and release_proved[0].lineno < descriptor_custody_cleared[0].lineno
+        and descriptor_custody_cleared[0].lineno < authority_terminal[0].lineno
+        and authority_terminal[0].lineno < authority_registry_removed[0].lineno
+        and authority_registry_removed[0].lineno < X_published[0].lineno
+        and X_published[0].lineno < session_registry_removed[0].lineno
+    ):
+        raise AssertionError(diagnostic)
+    for required in (
+        "admission_open = initial_state == 'A'",
+        "wrapper_reachable = not finalizer",
+        "retry_reachable = not finalizer",
+        "if fault_step == 'P0' and fault_position == 'before' and (not finalizer):",
+        "else:\n        admission_open = False\n        if state == 'A':\n            state = 'A-closing'",
+        "if not halted and initial_state in ('QU', 'QK'):\n        entered += ('C1',)",
+        "if connection_outcome == 'normal':\n                completed += ('C1',)\n                entered += ('C2',)\n                connection_closed_proved = True\n                connection_owned = False\n                state = 'PU' if initial_state == 'QU' else 'PK'\n                completed += ('C2',)",
+        "assert connection_outcome in ('normal', 'ordinary', 'KeyboardInterrupt', 'SystemExit', 'GeneratorExit')",
+        "assert cleanup_outcome in ('normal', 'ordinary', 'KeyboardInterrupt', 'SystemExit', 'GeneratorExit')",
+        "assert earlier_primary in ('none', 'KeyboardInterrupt', 'SystemExit', 'GeneratorExit')",
+        "if earlier_primary != 'none':\n            selected_outward = 'commit_' + earlier_primary",
+        "selected_outward = 'cleanup_' + effective_cleanup_outcome",
+        "cleanup_failure_suppressed = halted and (finalizer or earlier_primary != 'none' or effective_cleanup_outcome == 'ordinary')",
+        "assert not (connection_closed_proved and (state in ('QU', 'QK') or connection_owned))",
+        "assert not (state in ('PU', 'PK') and connection_owned)",
+        "assert not (finalizer and (not wrapper_reachable) and admission_open)",
+    ):
+        if required not in cleanup_source:
+            raise AssertionError(diagnostic)
+
+    selection_indexes = tuple(
+        index
+        for index, statement in enumerate(cleanup.body)
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id == "selected_outward"
+        and isinstance(statement.value, ast.Constant)
+        and statement.value.value == "none"
+    )
+    if len(selection_indexes) != 1:
+        raise AssertionError(diagnostic)
+    selection_index = selection_indexes[0]
+    if selection_index + 1 >= len(cleanup.body):
+        raise AssertionError(diagnostic)
+    finalizer_gate = cleanup.body[selection_index + 1]
+    if (
+        not isinstance(finalizer_gate, ast.If)
+        or not isinstance(finalizer_gate.test, ast.UnaryOp)
+        or not isinstance(finalizer_gate.test.op, ast.Not)
+        or not isinstance(finalizer_gate.test.operand, ast.Name)
+        or finalizer_gate.test.operand.id != "finalizer"
+        or finalizer_gate.orelse
+        or len(finalizer_gate.body) != 1
+        or not isinstance(finalizer_gate.body[0], ast.If)
+    ):
+        raise AssertionError(diagnostic)
+    primary_gate = finalizer_gate.body[0]
+    if (
+        not isinstance(primary_gate.test, ast.Compare)
+        or not isinstance(primary_gate.test.left, ast.Name)
+        or primary_gate.test.left.id != "earlier_primary"
+        or len(primary_gate.test.ops) != 1
+        or not isinstance(primary_gate.test.ops[0], ast.NotEq)
+        or len(primary_gate.test.comparators) != 1
+        or not isinstance(primary_gate.test.comparators[0], ast.Constant)
+        or primary_gate.test.comparators[0].value != "none"
+        or len(primary_gate.body) != 1
+        or len(primary_gate.orelse) != 1
+        or not isinstance(primary_gate.orelse[0], ast.If)
+    ):
+        raise AssertionError(diagnostic)
+    cleanup_gate = primary_gate.orelse[0]
+    expected_primary_assignment = "selected_outward = 'commit_' + earlier_primary"
+    expected_cleanup_test = "halted and effective_cleanup_outcome in ('KeyboardInterrupt', 'SystemExit', 'GeneratorExit')"
+    expected_cleanup_assignment = "selected_outward = 'cleanup_' + effective_cleanup_outcome"
+    if (
+        ast.unparse(primary_gate.body[0]) != expected_primary_assignment
+        or ast.unparse(cleanup_gate.test) != expected_cleanup_test
+        or len(cleanup_gate.body) != 1
+        or cleanup_gate.orelse
+        or ast.unparse(cleanup_gate.body[0]) != expected_cleanup_assignment
+    ):
+        raise AssertionError(diagnostic)
+    cleanup_result = _c2b3a_oracle_top_level_function(
+        tree,
+        "_cleanup_reference_result",
+    )
+    cleanup_result_source = ast.unparse(cleanup_result)
+    for required in (
+        "'X': state == 'X'",
+        "'recovery_admitted': state == 'X'",
+        "'replay_admitted': state == 'X'",
+        "'new_operation_admitted': state == 'X'",
+        "'admission_open': admission_open",
+        "'wrapper_reachable': wrapper_reachable",
+        "'ordinary_closing': ordinary_closing",
+        "'connection_owned': connection_owned",
+        "'connection_closed_proved': connection_closed_proved",
+        "'credential_authority': credential_authority",
+        "'mutation_slot_owned': mutation_slot_owned",
+        "'database_binding_owned': database_binding_owned",
+        "'finalizer_attempted': finalizer_attempted",
+        "'retry_reachable': retry_reachable",
+        "'effective_cleanup_outcome': effective_cleanup_outcome",
+        "'selected_outward': selected_outward",
+        "'cleanup_failure_suppressed': cleanup_failure_suppressed",
+    ):
+        if required not in cleanup_result_source:
+            raise AssertionError(diagnostic)
+        cleanup_returns = tuple(
+            node for node in ast.walk(cleanup) if isinstance(node, ast.Return)
+        )
+        cleanup_return_value = (
+            cleanup_returns[0].value if len(cleanup_returns) == 1 else None
+        )
+        if (
+            len(cleanup_returns) != 1
+            or not isinstance(cleanup_return_value, ast.Subscript)
+            or not isinstance(cleanup_return_value.ctx, ast.Load)
+            or not isinstance(cleanup_return_value.slice, ast.Constant)
+            or cleanup_return_value.slice.value != "safe_projection"
+            or not isinstance(cleanup_return_value.value, ast.Call)
+            or not isinstance(cleanup_return_value.value.func, ast.Name)
+            or cleanup_return_value.value.func.id != "_cleanup_reference_result"
+        ):
+            raise AssertionError(diagnostic)
+    returned_keywords = {
+        keyword.arg for keyword in cleanup_return_value.value.keywords
+    }
+    if not {
+        "state",
+        "entered",
+        "completed",
+        "admission_open",
+        "wrapper_reachable",
+        "ordinary_closing",
+        "connection_owned",
+        "connection_closed_proved",
+        "credential_authority",
+        "mutation_slot_owned",
+        "database_binding_owned",
+        "writer_lock_release",
+        "descriptor_outcome",
+        "descriptor_owned",
+        "retry_reachable",
+        "effective_cleanup_outcome",
+        "selected_outward",
+        "cleanup_failure_suppressed",
+        "authority_lock_registry_present",
+        "writer_session_registry_present",
+    }.issubset(returned_keywords):
+        raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_mutant_dataflow_semantics(tree: ast.Module) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    expected_m16_m65_ids = (
+        "M16", "M17", "M18", "M19", "M20", "M21", "M22", "M23", "M24",
+        "M25", "M26", "M27", "M28", "M29", "M30",
+        "M31", "M32", "M33", "M34", "M35", "M36", "M37", "M38", "M39",
+        "M40", "M41", "M42", "M43", "M44", "M45", "M46", "M47", "M48",
+        "M49", "M50", "M51", "M52", "M53", "M54", "M55", "M56", "M57",
+        "M58", "M59", "M60", "M61", "M62", "M63", "M64", "M65",
+    )
+    if (
+        tuple(mutant_id for mutant_id, _name in C2B3A_LINEAR_MUTANT_FUNCTIONS)
+        != expected_m16_m65_ids
+        or tuple(C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE)
+        != expected_m16_m65_ids
+    ):
+        raise AssertionError(diagnostic)
+
+    expected_names = tuple(name for _mutant_id, name in C2B3A_LINEAR_MUTANT_FUNCTIONS)
+    observed_named_functions = tuple(
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name.startswith("test_commit_close_mutant_m")
+    )
+    if observed_named_functions != expected_names:
+        raise AssertionError(diagnostic)
+    expected_name_set = set(expected_names)
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        parameter_names = {
+            argument.arg
+            for argument in (
+                tuple(node.args.posonlyargs)
+                + tuple(node.args.args)
+                + tuple(node.args.kwonlyargs)
+            )
+        }
+        if "mutant_id" in parameter_names:
+            raise AssertionError(diagnostic)
+        if (
+            node.name.startswith("test_commit_close_")
+            and "mutant" in node.name
+            and node.name not in expected_name_set
+        ):
+            raise AssertionError(diagnostic)
+
+    def is_exact_candidate_factory(statement: ast.stmt) -> bool:
+        return (
+            isinstance(statement, ast.Assign)
+            and len(statement.targets) == 1
+            and isinstance(statement.targets[0], ast.Name)
+            and statement.targets[0].id == "candidate"
+            and isinstance(statement.targets[0].ctx, ast.Store)
+            and isinstance(statement.value, ast.Call)
+            and isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == "_candidate"
+            and not statement.value.args
+            and not statement.value.keywords
+        )
+
+    def is_exact_terminal_validation(statement: ast.stmt) -> bool:
+        if not isinstance(statement, ast.Expr):
+            return False
+        call = statement.value
+        return (
+            isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Name)
+            and call.func.id == "_expect_violation"
+            and len(call.args) == 2
+            and isinstance(call.args[0], ast.Name)
+            and call.args[0].id == "candidate"
+            and isinstance(call.args[0].ctx, ast.Load)
+            and isinstance(call.args[1], ast.Constant)
+            and call.args[1].value == "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID"
+            and not call.keywords
+        )
+
+    signatures: dict[str, tuple[str, ...]] = {}
+    namespace: dict[str, object] = {
+        "__file__": str(C2B3A_ORACLE_PATH),
+        "__name__": "c2b3a_mutant_efficacy_probe",
+    }
+    try:
+        exec(
+            compile(tree, filename=str(C2B3A_ORACLE_PATH), mode="exec"),
+            namespace,
+        )
+        original_validate = namespace["_validate_contract"]
+    except BaseException:
+        raise AssertionError(diagnostic) from None
+    original_candidate = namespace.get("_candidate")
+    original_expect_violation = namespace.get("_expect_violation")
+    direct_deepcopy = namespace.get("deepcopy")
+    contract_violation = namespace.get("_ContractViolation")
+    if not (
+        callable(original_candidate)
+        and callable(original_validate)
+        and callable(original_expect_violation)
+        and callable(direct_deepcopy)
+        and isinstance(contract_violation, type)
+        and issubclass(contract_violation, Exception)
+    ):
+        raise AssertionError(diagnostic)
+
+    execution_totals: dict[str, int] = {
+        "mapping_entries": 0,
+        "valid_baselines": 0,
+        "mutant_invocations": 0,
+        "changed_candidates": 0,
+        "identical_candidate_terminals": 0,
+        "single_terminal_reaches": 0,
+        "exact_supplied_diagnostics": 0,
+        "exact_validator_diagnostics": 0,
+    }
+
+    for mutant_id, function_name in C2B3A_LINEAR_MUTANT_FUNCTIONS:
+        mutant_function = namespace.get(function_name)
+        if not callable(mutant_function):
+            raise AssertionError(diagnostic)
+        expected_diagnostic = "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID"
+        controlled_candidate = original_candidate()
+        valid_baseline = direct_deepcopy(controlled_candidate)
+        if namespace["_validate_contract"] is not original_validate:
+            raise AssertionError(diagnostic)
+        try:
+            original_validate(controlled_candidate)
+        except BaseException:
+            raise AssertionError(diagnostic) from None
+        execution_totals["mapping_entries"] += 1
+        execution_totals["valid_baselines"] += 1
+        execution: dict[str, object] = {
+            "candidate_factory_calls": 0,
+            "mutant_calls": 0,
+            "terminal_calls": 0,
+            "identical_candidate": False,
+            "supplied_diagnostic": None,
+            "validator_diagnostic": None,
+        }
+
+        def instrumented_candidate() -> object:
+            execution["candidate_factory_calls"] = (
+                int(execution["candidate_factory_calls"]) + 1
+            )
+            if execution["candidate_factory_calls"] != 1:
+                raise AssertionError(diagnostic)
+            return controlled_candidate
+
+        def instrumented_expect_violation(
+            candidate: object,
+            supplied_diagnostic: object,
+        ) -> None:
+            execution["terminal_calls"] = int(execution["terminal_calls"]) + 1
+            if execution["terminal_calls"] != 1:
+                raise AssertionError(diagnostic)
+            execution["identical_candidate"] = candidate is controlled_candidate
+            execution["supplied_diagnostic"] = supplied_diagnostic
+            if candidate is not controlled_candidate:
+                raise AssertionError(diagnostic)
+            if supplied_diagnostic != expected_diagnostic:
+                raise AssertionError(diagnostic)
+            if namespace["_validate_contract"] is not original_validate:
+                raise AssertionError(diagnostic)
+            with pytest.raises(contract_violation) as exc_info:
+                original_validate(candidate)
+            execution["validator_diagnostic"] = str(exc_info.value)
+            if execution["validator_diagnostic"] != expected_diagnostic:
+                raise AssertionError(diagnostic)
+
+        namespace["_candidate"] = instrumented_candidate
+        namespace["_expect_violation"] = instrumented_expect_violation
+        try:
+            execution["mutant_calls"] = int(execution["mutant_calls"]) + 1
+            mutant_function()
+        except BaseException:
+            raise AssertionError(diagnostic) from None
+        finally:
+            namespace["_candidate"] = original_candidate
+            namespace["_expect_violation"] = original_expect_violation
+
+        if (
+            namespace.get("_candidate") is not original_candidate
+            or namespace.get("_expect_violation") is not original_expect_violation
+        ):
+            raise AssertionError(diagnostic)
+        if controlled_candidate == valid_baseline:
+            raise AssertionError(diagnostic)
+        if (
+            execution["candidate_factory_calls"] != 1
+            or execution["mutant_calls"] != 1
+            or execution["terminal_calls"] != 1
+            or execution["identical_candidate"] is not True
+            or execution["supplied_diagnostic"] != expected_diagnostic
+            or execution["validator_diagnostic"] != expected_diagnostic
+        ):
+            raise AssertionError(diagnostic)
+
+        execution_totals["mutant_invocations"] += 1
+        execution_totals["changed_candidates"] += 1
+        execution_totals["identical_candidate_terminals"] += 1
+        execution_totals["single_terminal_reaches"] += 1
+        execution_totals["exact_supplied_diagnostics"] += 1
+        execution_totals["exact_validator_diagnostics"] += 1
+
+        function = _c2b3a_oracle_top_level_function(tree, function_name)
+        expected_mutations = C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE[mutant_id]
+        if (
+            _c2b3a_oracle_function_parameters(function)
+            or function.decorator_list
+            or len(function.body) != len(expected_mutations) + 2
+            or not is_exact_candidate_factory(function.body[0])
+            or not is_exact_terminal_validation(function.body[-1])
+        ):
+            raise AssertionError(diagnostic)
+        mutations = function.body[1:-1]
+        mutation_source = tuple(ast.unparse(statement) for statement in mutations)
+        if mutation_source != expected_mutations:
+            raise AssertionError(diagnostic)
+        for statement in mutations:
+            if not isinstance(statement, ast.Assign) or len(statement.targets) != 1:
+                raise AssertionError(diagnostic)
+            names = tuple(node for node in ast.walk(statement) if isinstance(node, ast.Name))
+            if not names or any(node.id != "candidate" for node in names):
+                raise AssertionError(diagnostic)
+        calls = tuple(node for node in ast.walk(function) if isinstance(node, ast.Call))
+        candidate_stores = tuple(
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.Name)
+            and node.id == "candidate"
+            and isinstance(node.ctx, ast.Store)
+        )
+        if (
+            len(calls) != 2
+            or len(candidate_stores) != 1
+            or calls[0] is not function.body[0].value
+            or calls[1] is not function.body[-1].value
+        ):
+            raise AssertionError(diagnostic)
+        signatures[mutant_id] = mutation_source
+
+    if tuple(signatures) != expected_m16_m65_ids:
+        raise AssertionError(diagnostic)
+    if signatures != C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE:
+        raise AssertionError(diagnostic)
+    if len(set(signatures.values())) != len(expected_m16_m65_ids):
+        raise AssertionError(diagnostic)
+    if execution_totals != {
+        "mapping_entries": 50,
+        "valid_baselines": 50,
+        "mutant_invocations": 50,
+        "changed_candidates": 50,
+        "identical_candidate_terminals": 50,
+        "single_terminal_reaches": 50,
+        "exact_supplied_diagnostics": 50,
+        "exact_validator_diagnostics": 50,
+    }:
+        raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_mutant_efficacy_checker_structure(source: str) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    try:
+        tree = ast.parse(
+            source,
+            filename=Path(__file__).name,
+            type_comments=True,
+        )
+    except SyntaxError:
+        raise AssertionError(diagnostic) from None
+    contract = C2B3A_MUTANT_EFFICACY_CHECKER_CONTRACT
+    expected_outer_header = (
+        ("node_type", "FunctionDef"),
+        ("name", "_assert_c2b3a_mutant_dataflow_semantics"),
+        ("decorators", ()),
+        ("return_annotation", ("Constant", None, None)),
+        ("type_comment", None),
+        ("type_params", ()),
+        ("posonlyargs", ()),
+        (
+            "args",
+            (
+                (
+                    "tree",
+                    (
+                        "Attribute",
+                        ("Name", "ast", "Load"),
+                        "Module",
+                        "Load",
+                    ),
+                    None,
+                ),
+            ),
+        ),
+        ("defaults", ()),
+        ("vararg", None),
+        ("kwonlyargs", ()),
+        ("kw_defaults", ()),
+        ("kwarg", None),
+    )
+    expected_assurance_boundary = {
+        "classification": "bounded exact-byte self-test assurance",
+        "in_scope_guarantees": (
+            "the exact checked-in efficacy function header and body match the independently authored bounded AST/dataflow grammar",
+            "the exact checked-in function has no local or lexical binding of exec",
+            "the exact checked-in module has no ordinary lexical module binding of exec that changes the efficacy function resolution",
+            "the exact checked-in source contains no directly recognized source-local module-dictionary replacement of exec",
+            "the exact checked-in source contains no wildcard import capable of supplying exec",
+            "the efficacy function in-function namespace, immediate validator capture, baseline validation, terminal validation, one-mutant invocation, restoration, and aggregate behavior retain their existing exact protections",
+            "runtime instrumentation on the exact audited bytes observes builtins.exec as the callable used by the checked execution path",
+            "runtime instrumentation observes 100 calls to the exec-produced validator and zero calls to an alternate validator",
+        ),
+        "explicit_non_claims": (
+            "resistance to malicious coordinated editing of both the efficacy checker and its higher-order guard",
+            "resistance to mutation of builtins.exec or the builtins object",
+            "resistance to mutation through __builtins__",
+            "resistance to a pre-poisoned or malicious sys.modules environment",
+            "resistance to mutation of imported module objects",
+            "resistance to custom import hooks or loaders",
+            "resistance to tracing, profiling, debugger, coverage, or interpreter instrumentation that changes execution",
+            "resistance to hostile monkeypatching performed outside the bounded source-local forms",
+            "resistance to arbitrary Python metaprogramming",
+            "resistance to process or interpreter compromise",
+        ),
+        "external_assurance_chain": (
+            "exact patch provenance",
+            "fresh independent read-only audit",
+            "staged-blob equality",
+            "committed-blob equality",
+            "Git object and ref truth",
+        ),
+        "external_assurance_role": (
+            "provenance and audit are external assurance mechanisms, not semantics "
+            "owned by this test"
+        ),
+    }
+    if (
+        type(contract) is not dict
+        or tuple(contract) != (
+            "function_name",
+            "assurance_boundary_name",
+            "outer_function_header",
+            "module_lexical_exec_binding_inventory",
+            "module_lexical_ast_binding_inventory",
+            "module_wildcard_import_inventory",
+            "direct_source_local_module_dictionary_operation_inventory",
+            "mapping_source_name",
+            "ordered_mutant_ids",
+            "candidate_factory_name",
+            "validator_name",
+            "contract_exception_name",
+            "terminal_helper_name",
+            "execution_namespace_name",
+            "captured_validator_name",
+            "validator_namespace_key",
+            "namespace_construction_source",
+            "exec_capture_try_source",
+            "pre_mapping_loop_statement_sources",
+            "protected_binding_names",
+            "protected_binding_inventory",
+            "namespace_subscript_inventory",
+            "namespace_get_inventory",
+            "loop_target_names",
+            "execution_record_fields",
+            "aggregate_record_fields",
+            "function_top_level_statement_kinds",
+            "mapping_loop_statement_kinds",
+            "mapping_loop_statement_sources",
+            "post_loop_statement_sources",
+        )
+        or contract["function_name"]
+        != "_assert_c2b3a_mutant_dataflow_semantics"
+        or contract["assurance_boundary_name"]
+        != "C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY"
+        or contract["outer_function_header"] != expected_outer_header
+        or contract["module_lexical_exec_binding_inventory"] != ()
+        or contract["module_lexical_ast_binding_inventory"]
+        != (("import_alias", 1),)
+        or contract["module_wildcard_import_inventory"] != ()
+        or contract[
+            "direct_source_local_module_dictionary_operation_inventory"
+        ]
+        != ()
+        or contract["mapping_source_name"] != "C2B3A_LINEAR_MUTANT_FUNCTIONS"
+        or contract["candidate_factory_name"] != "_candidate"
+        or contract["validator_name"] != "_validate_contract"
+        or contract["contract_exception_name"] != "_ContractViolation"
+        or contract["terminal_helper_name"] != "_expect_violation"
+        or contract["execution_namespace_name"] != "namespace"
+        or contract["captured_validator_name"] != "original_validate"
+        or contract["validator_namespace_key"] != "_validate_contract"
+        or len(contract["ordered_mutant_ids"]) != 50
+        or tuple(mutant_id for mutant_id, _name in C2B3A_LINEAR_MUTANT_FUNCTIONS)
+        != contract["ordered_mutant_ids"]
+    ):
+        raise AssertionError(diagnostic)
+    boundary_assignments = tuple(
+        statement
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id == contract["assurance_boundary_name"]
+    )
+    if len(boundary_assignments) != 1:
+        raise AssertionError(diagnostic)
+    boundary_assignment = boundary_assignments[0]
+    if (
+        not isinstance(boundary_assignment.value, ast.Dict)
+        or not _c2b3a_oracle_closed_literal(boundary_assignment.value)
+    ):
+        raise AssertionError(diagnostic)
+    try:
+        observed_assurance_boundary = ast.literal_eval(boundary_assignment.value)
+    except (TypeError, ValueError):
+        raise AssertionError(diagnostic) from None
+    if (
+        type(C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY) is not dict
+        or tuple(C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY)
+        != tuple(expected_assurance_boundary)
+        or C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY
+        != expected_assurance_boundary
+        or type(observed_assurance_boundary) is not dict
+        or tuple(observed_assurance_boundary) != tuple(expected_assurance_boundary)
+        or observed_assurance_boundary != expected_assurance_boundary
+    ):
+        raise AssertionError(diagnostic)
+    matches = tuple(
+        statement
+        for statement in tree.body
+        if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and statement.name == contract["function_name"]
+    )
+    if len(matches) != 1:
+        raise AssertionError(diagnostic)
+    function = matches[0]
+    header = _c2b3a_oracle_function_header(function)
+    ordinary_arguments = header["args"]
+    if (
+        tuple(header)
+        != (
+            "node_type",
+            "name",
+            "decorators",
+            "return_annotation",
+            "type_comment",
+            "type_params",
+            "posonlyargs",
+            "args",
+            "defaults",
+            "vararg",
+            "kwonlyargs",
+            "kw_defaults",
+            "kwarg",
+        )
+        or header["node_type"] is not ast.FunctionDef
+        or header["name"] != "_assert_c2b3a_mutant_dataflow_semantics"
+        or header["decorators"] != ()
+        or header["type_comment"] is not None
+        or header["type_params"] != ()
+        or header["posonlyargs"] != ()
+        or type(ordinary_arguments) is not tuple
+        or len(ordinary_arguments) != 1
+        or header["defaults"] != ()
+        or header["vararg"] is not None
+        or header["kwonlyargs"] != ()
+        or header["kw_defaults"] != ()
+        or header["kwarg"] is not None
+        or type(function.args) is not ast.arguments
+    ):
+        raise AssertionError(diagnostic)
+    tree_argument = ordinary_arguments[0]
+    tree_annotation = tree_argument.annotation
+    return_annotation = header["return_annotation"]
+    if (
+        type(tree_argument) is not ast.arg
+        or tree_argument.arg != "tree"
+        or tree_argument.type_comment is not None
+        or type(tree_annotation) is not ast.Attribute
+        or tree_annotation.attr != "Module"
+        or type(tree_annotation.ctx) is not ast.Load
+        or type(tree_annotation.value) is not ast.Name
+        or tree_annotation.value.id != "ast"
+        or type(tree_annotation.value.ctx) is not ast.Load
+        or type(return_annotation) is not ast.Constant
+        or return_annotation.value is not None
+        or return_annotation.kind is not None
+    ):
+        raise AssertionError(diagnostic)
+    first_statement = tree.body[0] if tree.body else None
+    if (
+        not isinstance(first_statement, ast.Import)
+        or len(first_statement.names) != 1
+        or first_statement.names[0].name != "ast"
+        or first_statement.names[0].asname is not None
+        or _c2b3a_oracle_module_name_bindings(tree, "exec")
+        != contract["module_lexical_exec_binding_inventory"]
+        or _c2b3a_oracle_module_name_bindings(tree, "ast")
+        != contract["module_lexical_ast_binding_inventory"]
+        or _c2b3a_oracle_module_wildcard_imports(tree)
+        != contract["module_wildcard_import_inventory"]
+        or _c2b3a_oracle_direct_module_dictionary_operations(tree)
+        != contract[
+            "direct_source_local_module_dictionary_operation_inventory"
+        ]
+    ):
+        raise AssertionError(diagnostic)
+
+    if (
+        tuple(contract["protected_binding_names"])
+        != (
+            "namespace",
+            "original_validate",
+            "original_candidate",
+            "original_expect_violation",
+            "controlled_candidate",
+            "instrumented_candidate",
+            "instrumented_expect_violation",
+            "candidate",
+            "supplied_diagnostic",
+            "exec",
+        )
+        or len(function.body) != len(contract["function_top_level_statement_kinds"])
+        or tuple(ast.unparse(statement) for statement in function.body[:19])
+        != contract["pre_mapping_loop_statement_sources"]
+    ):
+        raise AssertionError(diagnostic)
+
+    callability_if = function.body[17]
+    if (
+        not isinstance(callability_if, ast.If)
+        or ast.unparse(callability_if)
+        != contract["pre_mapping_loop_statement_sources"][17]
+        or len(callability_if.body) != 1
+        or not isinstance(callability_if.body[0], ast.Raise)
+        or ast.unparse(callability_if.body[0])
+        != "raise AssertionError(diagnostic)"
+        or callability_if.orelse
+    ):
+        raise AssertionError(diagnostic)
+
+    forbidden_pattern_nodes = (
+        ast.Match,
+        ast.MatchAs,
+        ast.MatchClass,
+        ast.MatchMapping,
+        ast.MatchOr,
+        ast.MatchSequence,
+        ast.MatchSingleton,
+        ast.MatchStar,
+        ast.MatchValue,
+    )
+    if any(
+        isinstance(node, forbidden_pattern_nodes)
+        for node in ast.walk(function)
+    ):
+        raise AssertionError(diagnostic)
+
+    protected_binding_names = set(contract["protected_binding_names"])
+    protected_bindings: list[tuple[str, str]] = []
+    for node in ast.walk(function):
+        if (
+            isinstance(node, ast.Name)
+            and node.id in protected_binding_names
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+        ):
+            protected_bindings.append(
+                (
+                    node.id,
+                    "name_store" if isinstance(node.ctx, ast.Store) else "name_delete",
+                )
+            )
+        elif (
+            isinstance(node, ast.arg)
+            and node.arg in protected_binding_names
+        ):
+            protected_bindings.append((node.arg, "argument"))
+        elif (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node is not function
+            and node.name in protected_binding_names
+        ):
+            protected_bindings.append((node.name, "function_definition"))
+        elif (
+            isinstance(node, ast.ClassDef)
+            and node.name in protected_binding_names
+        ):
+            protected_bindings.append((node.name, "class_definition"))
+        elif isinstance(node, ast.alias):
+            bound_name = node.asname or node.name.split(".", 1)[0]
+            if bound_name in protected_binding_names:
+                protected_bindings.append((bound_name, "import_alias"))
+        elif (
+            isinstance(node, ast.ExceptHandler)
+            and node.name in protected_binding_names
+        ):
+            protected_bindings.append((node.name, "exception_handler"))
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            protected_bindings.extend(
+                (name, type(node).__name__.lower())
+                for name in node.names
+                if name in protected_binding_names
+            )
+        elif isinstance(node, ast.MatchAs) and node.name in protected_binding_names:
+            protected_bindings.append((node.name, "match_as"))
+        elif isinstance(node, ast.MatchStar) and node.name in protected_binding_names:
+            protected_bindings.append((node.name, "match_star"))
+        elif (
+            isinstance(node, ast.MatchMapping)
+            and node.rest in protected_binding_names
+        ):
+            protected_bindings.append((node.rest, "match_mapping_rest"))
+    if tuple(sorted(protected_bindings)) != contract["protected_binding_inventory"]:
+        raise AssertionError(diagnostic)
+
+    parents = {
+        child: parent
+        for parent in ast.walk(function)
+        for child in ast.iter_child_nodes(parent)
+    }
+
+    def enclosing_function_name(node: ast.AST) -> str:
+        current = parents.get(node)
+        while current is not None:
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return current.name
+            current = parents.get(current)
+        raise AssertionError(diagnostic)
+
+    def enclosing_statement_source(node: ast.AST) -> str:
+        current = parents.get(node)
+        while current is not None:
+            if isinstance(current, ast.stmt):
+                return ast.unparse(current)
+            current = parents.get(current)
+        raise AssertionError(diagnostic)
+
+    namespace_name = contract["execution_namespace_name"]
+    captured_validator_name = contract["captured_validator_name"]
+    validator_namespace_key = contract["validator_namespace_key"]
+    namespace_constructions = tuple(
+        statement
+        for statement in function.body
+        if isinstance(statement, ast.AnnAssign)
+        and isinstance(statement.target, ast.Name)
+        and statement.target.id == namespace_name
+        and isinstance(statement.target.ctx, ast.Store)
+    )
+    exec_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "exec"
+    )
+    compile_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "compile"
+    )
+    if (
+        len(namespace_constructions) != 1
+        or len(exec_calls) != 1
+        or len(compile_calls) != 1
+    ):
+        raise AssertionError(diagnostic)
+    namespace_construction = namespace_constructions[0]
+    try:
+        namespace_index = function.body.index(namespace_construction)
+        exec_capture_try = function.body[namespace_index + 1]
+    except (IndexError, ValueError):
+        raise AssertionError(diagnostic) from None
+    if (
+        ast.unparse(namespace_construction)
+        != contract["namespace_construction_source"]
+        or not isinstance(exec_capture_try, ast.Try)
+        or ast.unparse(exec_capture_try) != contract["exec_capture_try_source"]
+        or len(exec_capture_try.body) != 2
+        or len(exec_capture_try.handlers) != 1
+        or exec_capture_try.orelse
+        or exec_capture_try.finalbody
+    ):
+        raise AssertionError(diagnostic)
+    exec_statement, validator_capture = exec_capture_try.body
+    handler = exec_capture_try.handlers[0]
+    if (
+        not isinstance(exec_statement, ast.Expr)
+        or exec_statement.value is not exec_calls[0]
+        or not isinstance(handler.type, ast.Name)
+        or handler.type.id != "BaseException"
+        or handler.name is not None
+        or len(handler.body) != 1
+        or ast.unparse(handler.body[0])
+        != "raise AssertionError(diagnostic) from None"
+    ):
+        raise AssertionError(diagnostic)
+    exec_call = exec_calls[0]
+    compile_call = compile_calls[0]
+    if (
+        len(exec_call.args) != 2
+        or type(exec_call.func) is not ast.Name
+        or exec_call.func.id != "exec"
+        or type(exec_call.func.ctx) is not ast.Load
+        or exec_call.args[0] is not compile_call
+        or not isinstance(exec_call.args[1], ast.Name)
+        or exec_call.args[1].id != namespace_name
+        or not isinstance(exec_call.args[1].ctx, ast.Load)
+        or exec_call.keywords
+        or ast.unparse(exec_call)
+        != "exec(compile(tree, filename=str(C2B3A_ORACLE_PATH), mode='exec'), "
+        "namespace)"
+        or not isinstance(validator_capture, ast.Assign)
+        or len(validator_capture.targets) != 1
+        or not isinstance(validator_capture.targets[0], ast.Name)
+        or validator_capture.targets[0].id != captured_validator_name
+        or not isinstance(validator_capture.targets[0].ctx, ast.Store)
+        or not isinstance(validator_capture.value, ast.Subscript)
+        or not isinstance(validator_capture.value.value, ast.Name)
+        or validator_capture.value.value.id != namespace_name
+        or not isinstance(validator_capture.value.value.ctx, ast.Load)
+        or not isinstance(validator_capture.value.slice, ast.Constant)
+        or validator_capture.value.slice.value != validator_namespace_key
+        or not isinstance(validator_capture.value.ctx, ast.Load)
+    ):
+        raise AssertionError(diagnostic)
+
+    namespace_subscripts = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == namespace_name
+        and isinstance(node.value.ctx, ast.Load)
+    )
+    observed_namespace_subscripts = tuple(
+        sorted(
+            (
+                enclosing_function_name(node),
+                enclosing_statement_source(node),
+                ast.unparse(node),
+                type(node.ctx).__name__,
+            )
+            for node in namespace_subscripts
+        )
+    )
+    if (
+        observed_namespace_subscripts
+        != contract["namespace_subscript_inventory"]
+        or any(
+            isinstance(node.ctx, (ast.Store, ast.Del))
+            and (
+                not isinstance(node.slice, ast.Constant)
+                or type(node.slice.value) is not str
+            )
+            for node in namespace_subscripts
+        )
+        or any(
+            isinstance(node.ctx, (ast.Store, ast.Del))
+            and isinstance(node.slice, ast.Constant)
+            and node.slice.value == validator_namespace_key
+            for node in namespace_subscripts
+        )
+    ):
+        raise AssertionError(diagnostic)
+
+    namespace_method_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == namespace_name
+        and isinstance(node.func.value.ctx, ast.Load)
+    )
+    namespace_get_calls = tuple(
+        node for node in namespace_method_calls if node.func.attr == "get"
+    )
+    observed_namespace_gets = tuple(
+        sorted(
+            (
+                enclosing_function_name(node),
+                enclosing_statement_source(node),
+                ast.unparse(node),
+            )
+            for node in namespace_get_calls
+        )
+    )
+    dynamic_namespace_gets = tuple(
+        node
+        for node in namespace_get_calls
+        if len(node.args) != 1
+        or node.keywords
+        or not isinstance(node.args[0], ast.Constant)
+    )
+    if (
+        namespace_method_calls != namespace_get_calls
+        or observed_namespace_gets != contract["namespace_get_inventory"]
+        or len(dynamic_namespace_gets) != 1
+        or ast.unparse(dynamic_namespace_gets[0])
+        != "namespace.get(function_name)"
+    ):
+        raise AssertionError(diagnostic)
+
+    namespace_loads = {
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Name)
+        and node.id == namespace_name
+        and isinstance(node.ctx, ast.Load)
+    }
+    allowed_namespace_loads = {
+        *(node.value for node in namespace_subscripts),
+        *(node.func.value for node in namespace_get_calls),
+        exec_call.args[1],
+    }
+    if namespace_loads != allowed_namespace_loads:
+        raise AssertionError(diagnostic)
+
+    namespace_bindings = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Name)
+        and node.id == namespace_name
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+    )
+    captured_validator_bindings = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Name)
+        and node.id == captured_validator_name
+        and isinstance(node.ctx, (ast.Store, ast.Del))
+    )
+    hidden_binding_names = tuple(
+        node
+        for node in ast.walk(function)
+        if (
+            isinstance(node, ast.arg)
+            and node.arg in {namespace_name, captured_validator_name}
+        )
+        or (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and node is not function
+            and node.name in {namespace_name, captured_validator_name}
+        )
+        or (
+            isinstance(node, ast.ExceptHandler)
+            and node.name in {namespace_name, captured_validator_name}
+        )
+        or (
+            isinstance(node, (ast.Global, ast.Nonlocal))
+            and any(
+                name in {namespace_name, captured_validator_name}
+                for name in node.names
+            )
+        )
+        or (
+            isinstance(node, ast.alias)
+            and (node.asname or node.name.split(".", 1)[0])
+            in {namespace_name, captured_validator_name}
+        )
+    )
+    if (
+        namespace_bindings != (namespace_construction.target,)
+        or captured_validator_bindings != (validator_capture.targets[0],)
+        or hidden_binding_names
+    ):
+        raise AssertionError(diagnostic)
+
+    namespace_aliases = tuple(
+        node
+        for node in ast.walk(function)
+        if (
+            isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == namespace_name
+        )
+        or (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == namespace_name
+        )
+        or (
+            isinstance(node, ast.NamedExpr)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == namespace_name
+        )
+    )
+    validator_key_subscripts = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Subscript)
+        and isinstance(node.slice, ast.Constant)
+        and node.slice.value == validator_namespace_key
+    )
+    namespace_mutator_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr
+        in {
+            "update",
+            "__setitem__",
+            "__delitem__",
+            "setdefault",
+            "pop",
+            "popitem",
+            "clear",
+        }
+        and any(
+            isinstance(descendant, ast.Name)
+            and descendant.id == namespace_name
+            for descendant in ast.walk(node.func.value)
+        )
+    )
+    calls_receiving_namespace = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and any(
+            isinstance(descendant, ast.Name)
+            and descendant.id == namespace_name
+            for argument in (
+                tuple(node.args)
+                + tuple(
+                    keyword.value
+                    for keyword in node.keywords
+                    if keyword.arg is not None
+                )
+            )
+            for descendant in ast.walk(argument)
+        )
+    )
+    if (
+        namespace_aliases
+        or len(validator_key_subscripts) != 3
+        or validator_capture.value not in validator_key_subscripts
+        or any(
+            not isinstance(node.ctx, ast.Load)
+            for node in validator_key_subscripts
+        )
+        or namespace_mutator_calls
+        or calls_receiving_namespace != (exec_call,)
+    ):
+        raise AssertionError(diagnostic)
+
+    if (
+        tuple(type(statement).__name__ for statement in function.body)
+        != contract["function_top_level_statement_kinds"]
+    ):
+        raise AssertionError(diagnostic)
+    mapping_loops = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.For)
+        and isinstance(node.iter, ast.Name)
+        and node.iter.id == contract["mapping_source_name"]
+    )
+    if len(mapping_loops) != 1:
+        raise AssertionError(diagnostic)
+    loop = mapping_loops[0]
+    if (
+        function.body[-5] is not loop
+        or not isinstance(loop.target, ast.Tuple)
+        or tuple(
+            element.id if isinstance(element, ast.Name) else None
+            for element in loop.target.elts
+        )
+        != contract["loop_target_names"]
+        or any(
+            not isinstance(element.ctx, ast.Store)
+            for element in loop.target.elts
+            if isinstance(element, ast.Name)
+        )
+        or not isinstance(loop.iter, ast.Name)
+        or not isinstance(loop.iter.ctx, ast.Load)
+        or loop.iter.id != contract["mapping_source_name"]
+        or loop.orelse
+        or loop.type_comment is not None
+        or tuple(type(statement).__name__ for statement in loop.body)
+        != contract["mapping_loop_statement_kinds"]
+        or tuple(ast.unparse(statement) for statement in loop.body)
+        != contract["mapping_loop_statement_sources"]
+        or tuple(ast.unparse(statement) for statement in function.body[-4:])
+        != contract["post_loop_statement_sources"]
+    ):
+        raise AssertionError(diagnostic)
+
+    def walk_without_nested_functions(node: ast.AST) -> tuple[ast.AST, ...]:
+        result: list[ast.AST] = [node]
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            result.extend(walk_without_nested_functions(child))
+        return tuple(result)
+
+    if any(
+        isinstance(node, (ast.Break, ast.Continue, ast.Return, ast.Yield, ast.YieldFrom))
+        for node in walk_without_nested_functions(loop)
+    ):
+        raise AssertionError(diagnostic)
+    nested_names = tuple(
+        statement.name
+        for statement in loop.body
+        if isinstance(statement, ast.FunctionDef)
+    )
+    if nested_names != (
+        "instrumented_candidate",
+        "instrumented_expect_violation",
+    ):
+        raise AssertionError(diagnostic)
+    instrumented_candidate = next(
+        statement
+        for statement in loop.body
+        if isinstance(statement, ast.FunctionDef)
+        and statement.name == "instrumented_candidate"
+    )
+    instrumented_terminal = next(
+        statement
+        for statement in loop.body
+        if isinstance(statement, ast.FunctionDef)
+        and statement.name == "instrumented_expect_violation"
+    )
+    if (
+        _c2b3a_oracle_function_parameters(instrumented_candidate)
+        or instrumented_candidate.decorator_list
+        or tuple(argument.arg for argument in instrumented_terminal.args.args)
+        != ("candidate", "supplied_diagnostic")
+        or instrumented_terminal.args.posonlyargs
+        or instrumented_terminal.args.kwonlyargs
+        or instrumented_terminal.args.vararg is not None
+        or instrumented_terminal.args.kwarg is not None
+        or instrumented_terminal.args.defaults
+        or instrumented_terminal.args.kw_defaults
+        or instrumented_terminal.decorator_list
+    ):
+        raise AssertionError(diagnostic)
+
+    execution_assignments = tuple(
+        statement
+        for statement in loop.body
+        if isinstance(statement, ast.AnnAssign)
+        and isinstance(statement.target, ast.Name)
+        and statement.target.id == "execution"
+    )
+    total_assignments = tuple(
+        statement
+        for statement in function.body
+        if isinstance(statement, ast.AnnAssign)
+        and isinstance(statement.target, ast.Name)
+        and statement.target.id == "execution_totals"
+    )
+    try:
+        execution_initial = ast.literal_eval(execution_assignments[0].value)
+        totals_initial = ast.literal_eval(total_assignments[0].value)
+    except (IndexError, TypeError, ValueError):
+        raise AssertionError(diagnostic) from None
+    if (
+        len(execution_assignments) != 1
+        or len(total_assignments) != 1
+        or tuple(execution_initial) != contract["execution_record_fields"]
+        or execution_initial
+        != {
+            "candidate_factory_calls": 0,
+            "mutant_calls": 0,
+            "terminal_calls": 0,
+            "identical_candidate": False,
+            "supplied_diagnostic": None,
+            "validator_diagnostic": None,
+        }
+        or tuple(totals_initial) != contract["aggregate_record_fields"]
+        or any(value != 0 for value in totals_initial.values())
+    ):
+        raise AssertionError(diagnostic)
+
+    top_level_binding_sources = {
+        ast.unparse(statement.targets[0]): ast.unparse(statement)
+        for statement in function.body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id
+        in {
+            "original_candidate",
+            "original_expect_violation",
+            "contract_violation",
+        }
+    }
+    if top_level_binding_sources != {
+        "original_candidate": "original_candidate = namespace.get('_candidate')",
+        "original_expect_violation": (
+            "original_expect_violation = namespace.get('_expect_violation')"
+        ),
+        "contract_violation": (
+            "contract_violation = namespace.get('_ContractViolation')"
+        ),
+    }:
+        raise AssertionError(diagnostic)
+
+    mapped_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "mutant_function"
+    )
+    mapped_stores = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Name)
+        and node.id == "mutant_function"
+        and isinstance(node.ctx, ast.Store)
+    )
+    real_validator_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "original_validate"
+    )
+    candidate_factory_calls = tuple(
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "original_candidate"
+    )
+    restoration_tries = tuple(
+        statement
+        for statement in loop.body
+        if isinstance(statement, ast.Try)
+        and mapped_calls
+        and mapped_calls[0] in tuple(ast.walk(statement))
+    )
+    if (
+        len(mapped_calls) != 1
+        or len(mapped_stores) != 1
+        or len(real_validator_calls) != 2
+        or len(candidate_factory_calls) != 1
+        or len(restoration_tries) != 1
+        or len(restoration_tries[0].body) != 2
+        or not isinstance(restoration_tries[0].body[1], ast.Expr)
+        or restoration_tries[0].body[1].value is not mapped_calls[0]
+        or tuple(ast.unparse(statement) for statement in restoration_tries[0].finalbody)
+        != (
+            "namespace['_candidate'] = original_candidate",
+            "namespace['_expect_violation'] = original_expect_violation",
+        )
+        or ast.unparse(real_validator_calls[0])
+        != "original_validate(controlled_candidate)"
+        or ast.unparse(real_validator_calls[1]) != "original_validate(candidate)"
+        or ast.unparse(candidate_factory_calls[0]) != "original_candidate()"
+    ):
+        raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_positive_body_semantics(tree: ast.Module) -> None:
+    diagnostic = "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+
+    def literal_value(name: str) -> object:
+        try:
+            assignment = _c2b3a_oracle_literal_assignment(tree, name)
+            if not _c2b3a_oracle_closed_literal(assignment.value):
+                raise AssertionError
+            return ast.literal_eval(assignment.value)
+        except (AssertionError, SyntaxError, ValueError):
+            raise AssertionError(diagnostic) from None
+
+    process_expected = literal_value(
+        "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES"
+    )
+    cleanup_fields = literal_value("CLEANUP_SAFE_PROJECTION_FIELDS")
+    cleanup_inputs = literal_value("CLEANUP_REFERENCE_INPUT_CASES")
+    cleanup_expected = literal_value("EXPECTED_CLEANUP_REFERENCE_CASES")
+    required_cleanup_fields = (
+        "state", "entered", "completed", "admission_open", "wrapper_reachable",
+        "ordinary_closing", "connection_owned", "connection_closed_proved",
+        "credential_authority", "mutation_slot_owned", "database_binding_owned",
+        "writer_lock_release", "descriptor_outcome", "descriptor_retryable",
+        "descriptor_owned", "authority_lock_terminal",
+        "authority_lock_registry_present", "writer_session_registry_present",
+        "close_attempts", "unlock_attempts", "descriptor_close_attempts",
+        "finalizer_attempted", "retry_reachable", "effective_cleanup_outcome",
+        "selected_outward", "cleanup_failure_suppressed", "X",
+        "recovery_admitted", "replay_admitted", "new_operation_admitted",
+    )
+    if (
+        type(process_expected) is not dict
+        or tuple(process_expected) != C2B3A_PROCESS_CONTROL_EXPECTED_CASE_IDS
+        or len(process_expected) != 16
+        or any(
+            type(value) is not tuple or len(value) != 17
+            for value in process_expected.values()
+        )
+        or type(cleanup_fields) is not tuple
+        or cleanup_fields != required_cleanup_fields
+        or type(cleanup_inputs) is not tuple
+        or len(cleanup_inputs) != 55
+        or tuple(case_id for case_id, _inputs in cleanup_inputs)
+        != C2B3A_CLEANUP_EXPECTED_CASE_IDS
+        or any(
+            type(case_id) is not str
+            or type(inputs) is not tuple
+            or len(inputs) != 9
+            for case_id, inputs in cleanup_inputs
+        )
+        or type(cleanup_expected) is not dict
+        or tuple(cleanup_expected) != C2B3A_CLEANUP_EXPECTED_CASE_IDS
+        or len(cleanup_expected) != 55
+        or any(
+            type(value) is not tuple or len(value) != len(required_cleanup_fields)
+            for value in cleanup_expected.values()
+        )
+    ):
+        raise AssertionError(diagnostic)
+
+    if (
+        tuple(process_expected[case_id][0] for case_id in C2B3A_PROCESS_CONTROL_EXPECTED_CASE_IDS[:9])
+        != ("distinct_instance",) * 9
+        or tuple(process_expected[case_id][0] for case_id in C2B3A_PROCESS_CONTROL_EXPECTED_CASE_IDS[9:12])
+        != ("same_instance",) * 3
+        or process_expected["prelinked-cause"][6:15]
+        != (2, 1, True, True, None, "GeneratorExit", None, None, None)
+        or process_expected["prelinked-context"][6:15]
+        != (2, 1, True, True, None, None, "KeyboardInterrupt", None, None)
+        or process_expected["linked-cycle"][6:15]
+        != (2, 3, True, True, None, "KeyboardInterrupt", None, None, "KeyboardInterrupt")
+        or process_expected["private-payload"][2:4]
+        != (
+            (("opaque-synthetic-payload", 40),),
+            ("opaque-synthetic-payload", 40),
+        )
+        or process_expected["private-payload"][10:15]
+        != (
+            (("opaque-synthetic-payload", 40),),
+            "GeneratorExit",
+            None,
+            None,
+            "KeyboardInterrupt",
+        )
+        or any(value[-2:] != (False, False) for value in process_expected.values())
+    ):
+        raise AssertionError(diagnostic)
+
+    initial_states = {inputs[0] for _case_id, inputs in cleanup_inputs}
+    fault_steps = {inputs[1] for _case_id, inputs in cleanup_inputs}
+    fault_positions = {inputs[2] for _case_id, inputs in cleanup_inputs}
+    connection_outcomes = {inputs[3] for _case_id, inputs in cleanup_inputs}
+    finalizer_postures = {inputs[6] for _case_id, inputs in cleanup_inputs}
+    cleanup_outcomes = {inputs[7] for _case_id, inputs in cleanup_inputs}
+    earlier_primaries = {inputs[8] for _case_id, inputs in cleanup_inputs}
+    if (
+        initial_states != {"A", "QU", "QK", "PU", "PK"}
+        or fault_steps
+        != {None, "P0", "C1", "C2", "R1", "R2", "R3", "L1", "H1", "H2", "T1", "H3"}
+        or fault_positions != {None, "before", "between", "after"}
+        or connection_outcomes
+        != {"normal", "ordinary", "KeyboardInterrupt", "SystemExit", "GeneratorExit"}
+        or finalizer_postures != {False, True}
+        or cleanup_outcomes
+        != {"normal", "ordinary", "KeyboardInterrupt", "SystemExit", "GeneratorExit"}
+        or earlier_primaries
+        != {"none", "KeyboardInterrupt", "SystemExit", "GeneratorExit"}
+    ):
+        raise AssertionError(diagnostic)
+
+    def named_assignment(
+        statements: list[ast.stmt],
+        index: int,
+        name: str,
+    ) -> ast.Assign:
+        statement = statements[index]
+        if (
+            not isinstance(statement, ast.Assign)
+            or len(statement.targets) != 1
+            or not isinstance(statement.targets[0], ast.Name)
+            or statement.targets[0].id != name
+        ):
+            raise AssertionError(diagnostic)
+        return statement
+
+    def exact_subscript(node: ast.AST, root: str, field: str) -> bool:
+        return (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.ctx, ast.Load)
+            and isinstance(node.value, ast.Name)
+            and isinstance(node.value.ctx, ast.Load)
+            and node.value.id == root
+            and isinstance(node.slice, ast.Constant)
+            and node.slice.value == field
+        )
+
+    def exact_assert_compare(
+        statement: ast.stmt,
+        *,
+        left: ast.AST,
+        operator: type[ast.cmpop],
+        right: ast.AST,
+    ) -> None:
+        if (
+            not isinstance(statement, ast.Assert)
+            or not isinstance(statement.test, ast.Compare)
+            or len(statement.test.ops) != 1
+            or type(statement.test.ops[0]) is not operator
+            or len(statement.test.comparators) != 1
+            or ast.dump(statement.test.left, include_attributes=False)
+            != ast.dump(left, include_attributes=False)
+            or ast.dump(statement.test.comparators[0], include_attributes=False)
+            != ast.dump(right, include_attributes=False)
+        ):
+            raise AssertionError(diagnostic)
+
+    def load_name(name: str) -> ast.Name:
+        return ast.Name(id=name, ctx=ast.Load())
+
+    def load_field(root: str, field: str) -> ast.Subscript:
+        return ast.Subscript(
+            value=load_name(root),
+            slice=ast.Constant(value=field),
+            ctx=ast.Load(),
+        )
+
+    def parsed_expression(source: str) -> ast.expr:
+        return ast.parse(source, mode="eval").body
+
+    def exact_positive_outer_loop(
+        function: ast.FunctionDef,
+        *,
+        cases_value: ast.expr,
+        inventory_left: ast.expr,
+        inventory_name: str,
+    ) -> ast.For:
+        if len(function.body) != 3:
+            raise AssertionError(diagnostic)
+        cases_assignment = named_assignment(function.body, 0, "cases")
+        if ast.dump(cases_assignment.value, include_attributes=False) != ast.dump(
+            cases_value,
+            include_attributes=False,
+        ):
+            raise AssertionError(diagnostic)
+        exact_assert_compare(
+            function.body[1],
+            left=inventory_left,
+            operator=ast.Eq,
+            right=parsed_expression(f"tuple({inventory_name})"),
+        )
+        loop = function.body[2]
+        if (
+            not isinstance(loop, ast.For)
+            or not isinstance(loop.iter, ast.Name)
+            or not isinstance(loop.iter.ctx, ast.Load)
+            or loop.iter.id != "cases"
+            or loop.orelse
+        ):
+            raise AssertionError(diagnostic)
+        return loop
+
+    def reject_alias_rebind_or_mutation(
+        function: ast.FunctionDef,
+        names: tuple[str, ...],
+    ) -> None:
+        for name in names:
+            stores = tuple(
+                node for node in ast.walk(function)
+                if isinstance(node, ast.Name)
+                and node.id == name
+                and isinstance(node.ctx, ast.Store)
+            )
+            if len(stores) != 1:
+                raise AssertionError(diagnostic)
+        for node in ast.walk(function):
+            if (
+                isinstance(node, (ast.Attribute, ast.Subscript))
+                and isinstance(node.ctx, (ast.Store, ast.Del))
+                and _c2b3a_oracle_store_root(node) in names
+            ):
+                raise AssertionError(diagnostic)
+            if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)):
+                value = node.value
+                targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+                target_names = {
+                    assigned
+                    for target in targets
+                    for assigned in _c2b3a_oracle_assigned_names(target)
+                }
+                loaded = {
+                    descendant.id
+                    for descendant in ast.walk(value)
+                    if isinstance(descendant, ast.Name)
+                    and isinstance(descendant.ctx, ast.Load)
+                    and descendant.id in names
+                }
+                if loaded and not target_names.intersection(names):
+                    raise AssertionError(diagnostic)
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr in {
+                    "update", "clear", "pop", "popitem", "setdefault",
+                    "__setitem__", "append", "extend", "insert", "remove",
+                }
+                and _c2b3a_oracle_store_root(node.func) in names
+            ):
+                raise AssertionError(diagnostic)
+        for comparison in (
+            node for node in ast.walk(function)
+            if isinstance(node, ast.Compare)
+        ):
+            operands = (comparison.left, *comparison.comparators)
+            for left_index, left in enumerate(operands):
+                for right in operands[left_index + 1:]:
+                    if ast.dump(left, include_attributes=False) == ast.dump(
+                        right,
+                        include_attributes=False,
+                    ):
+                        raise AssertionError(diagnostic)
+                    left_roots = {
+                        descendant.id
+                        for descendant in ast.walk(left)
+                        if isinstance(descendant, ast.Name)
+                        and isinstance(descendant.ctx, ast.Load)
+                        and descendant.id in names
+                    }
+                    right_roots = {
+                        descendant.id
+                        for descendant in ast.walk(right)
+                        if isinstance(descendant, ast.Name)
+                        and isinstance(descendant.ctx, ast.Load)
+                        and descendant.id in names
+                    }
+                    if left_roots.intersection(right_roots):
+                        raise AssertionError(diagnostic)
+
+    matrix = _c2b3a_oracle_top_level_function(
+        tree,
+        "test_commit_close_addendum_direct_oracle_matrix_is_closed",
+    )
+    matrix_assignment = named_assignment(matrix.body, 0, "addendum")
+    if (
+        not exact_subscript(
+            matrix_assignment.value,
+            "_owner_contract",
+            "commit_close_outcome_addendum",
+        )
+    ):
+        value = matrix_assignment.value
+        if not (
+            isinstance(value, ast.Subscript)
+            and isinstance(value.value, ast.Call)
+            and isinstance(value.value.func, ast.Name)
+            and value.value.func.id == "_owner_contract"
+            and not value.value.args
+            and not value.value.keywords
+            and isinstance(value.slice, ast.Constant)
+            and value.slice.value == "commit_close_outcome_addendum"
+        ):
+            raise AssertionError(diagnostic)
+    exact_assert_compare(
+        matrix.body[1],
+        left=load_name("addendum"),
+        operator=ast.Eq,
+        right=load_name("EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM"),
+    )
+
+    custody = _c2b3a_oracle_top_level_function(
+        tree,
+        "test_commit_close_addendum_custody_recovery_and_scope_are_exact",
+    )
+    custody_assignment = named_assignment(custody.body, 0, "addendum")
+    if not (
+        isinstance(custody_assignment.value, ast.Call)
+        and isinstance(custody_assignment.value.func, ast.Name)
+        and custody_assignment.value.func.id == "deepcopy"
+        and len(custody_assignment.value.args) == 1
+        and isinstance(custody_assignment.value.args[0], ast.Name)
+        and custody_assignment.value.args[0].id
+        == "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM"
+        and not custody_assignment.value.keywords
+    ):
+        raise AssertionError(diagnostic)
+
+    relational = _c2b3a_oracle_top_level_function(
+        tree,
+        "test_commit_close_relational_process_control_reference_cases_are_exact",
+    )
+    relational_loop = exact_positive_outer_loop(
+        relational,
+        cases_value=parsed_expression("_process_control_reference_cases()"),
+        inventory_left=parsed_expression(
+            "tuple(case_id for case_id, _, _ in cases)"
+        ),
+        inventory_name="EXPECTED_PROCESS_CONTROL_REFERENCE_CASES",
+    )
+    if (
+        not isinstance(relational_loop.target, ast.Tuple)
+        or tuple(
+            element.id if isinstance(element, ast.Name) else None
+            for element in relational_loop.target.elts
+        ) != ("case_id", "primary", "secondary")
+        or not isinstance(relational_loop.iter, ast.Name)
+        or relational_loop.iter.id != "cases"
+        or len(relational_loop.body) != 8
+    ):
+        raise AssertionError(diagnostic)
+    observed_assignment = named_assignment(relational_loop.body, 0, "observed")
+    expected_assignment = named_assignment(relational_loop.body, 1, "expected")
+    if not (
+        isinstance(observed_assignment.value, ast.Call)
+        and isinstance(observed_assignment.value.func, ast.Name)
+        and observed_assignment.value.func.id
+        == "_relational_process_control_reference"
+        and tuple(
+            argument.id if isinstance(argument, ast.Name) else None
+            for argument in observed_assignment.value.args
+        ) == ("primary", "secondary")
+        and not observed_assignment.value.keywords
+        and isinstance(expected_assignment.value, ast.Subscript)
+        and isinstance(expected_assignment.value.value, ast.Name)
+        and expected_assignment.value.value.id
+        == "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES"
+        and isinstance(expected_assignment.value.slice, ast.Name)
+        and expected_assignment.value.slice.id == "case_id"
+    ):
+        raise AssertionError(diagnostic)
+    exact_assert_compare(
+        relational_loop.body[2],
+        left=load_field("observed", "safe_projection"),
+        operator=ast.Eq,
+        right=load_name("expected"),
+    )
+    identity_fields = (
+        ("provided_primary", "primary"),
+        ("provided_secondary", "secondary"),
+        ("caught_primary", "primary"),
+        ("caught_secondary", "secondary"),
+        ("outward_primary", "primary"),
+    )
+    for statement, (field, input_name) in zip(
+        relational_loop.body[3:],
+        identity_fields,
+        strict=True,
+    ):
+        exact_assert_compare(
+            statement,
+            left=load_field("observed", field),
+            operator=ast.Is,
+            right=load_name(input_name),
+        )
+    reject_alias_rebind_or_mutation(
+        relational,
+        ("cases", "observed", "expected"),
+    )
+
+    cleanup = _c2b3a_oracle_top_level_function(
+        tree,
+        "test_post_close_cleanup_reference_model_covers_every_release_point",
+    )
+    cleanup_loop = exact_positive_outer_loop(
+        cleanup,
+        cases_value=load_name("CLEANUP_REFERENCE_INPUT_CASES"),
+        inventory_left=parsed_expression(
+            "tuple(case_id for case_id, _ in cases)"
+        ),
+        inventory_name="EXPECTED_CLEANUP_REFERENCE_CASES",
+    )
+    if (
+        not isinstance(cleanup_loop.target, ast.Tuple)
+        or tuple(
+            element.id if isinstance(element, ast.Name) else None
+            for element in cleanup_loop.target.elts
+        ) != ("case_id", "inputs")
+        or not isinstance(cleanup_loop.iter, ast.Name)
+        or cleanup_loop.iter.id != "cases"
+        or len(cleanup_loop.body) != 3
+    ):
+        raise AssertionError(diagnostic)
+    observed_assignment = named_assignment(cleanup_loop.body, 0, "observed")
+    expected_assignment = named_assignment(cleanup_loop.body, 1, "expected")
+    if not (
+        isinstance(observed_assignment.value, ast.Call)
+        and isinstance(observed_assignment.value.func, ast.Name)
+        and observed_assignment.value.func.id == "_cleanup_reference"
+        and len(observed_assignment.value.args) == 1
+        and isinstance(observed_assignment.value.args[0], ast.Starred)
+        and isinstance(observed_assignment.value.args[0].value, ast.Name)
+        and observed_assignment.value.args[0].value.id == "inputs"
+        and not observed_assignment.value.keywords
+        and isinstance(expected_assignment.value, ast.Subscript)
+        and isinstance(expected_assignment.value.value, ast.Name)
+        and expected_assignment.value.value.id == "EXPECTED_CLEANUP_REFERENCE_CASES"
+        and isinstance(expected_assignment.value.slice, ast.Name)
+        and expected_assignment.value.slice.id == "case_id"
+    ):
+        raise AssertionError(diagnostic)
+    exact_assert_compare(
+        cleanup_loop.body[2],
+        left=load_name("observed"),
+        operator=ast.Eq,
+        right=load_name("expected"),
+    )
+    reject_alias_rebind_or_mutation(
+        cleanup,
+        ("cases", "observed", "expected"),
+    )
+
+    namespace: dict[str, object] = {
+        "__file__": str(C2B3A_ORACLE_PATH),
+        "__name__": "c2b3a_positive_execution_probe",
+    }
+    try:
+        exec(
+            compile(tree, filename=str(C2B3A_ORACLE_PATH), mode="exec"),
+            namespace,
+        )
+    except BaseException:
+        raise AssertionError(diagnostic) from None
+    relational_positive = namespace.get(
+        "test_commit_close_relational_process_control_reference_cases_are_exact"
+    )
+    cleanup_positive = namespace.get(
+        "test_post_close_cleanup_reference_model_covers_every_release_point"
+    )
+    original_relational_helper = namespace.get(
+        "_relational_process_control_reference"
+    )
+    original_cleanup_helper = namespace.get("_cleanup_reference")
+    if not all(
+        callable(value)
+        for value in (
+            relational_positive,
+            cleanup_positive,
+            original_relational_helper,
+            original_cleanup_helper,
+        )
+    ):
+        raise AssertionError(diagnostic)
+
+    class TrackingExpected(dict[object, object]):
+        def __init__(
+            self,
+            value: dict[object, object],
+            observed_ids: list[object],
+        ) -> None:
+            super().__init__(value)
+            self.observed_ids = observed_ids
+
+        def __getitem__(self, key: object) -> object:
+            self.observed_ids.append(key)
+            return super().__getitem__(key)
+
+    process_helper_calls = 0
+    process_observed_ids: list[object] = []
+
+    def instrumented_relational_helper(
+        primary: object,
+        secondary: object,
+    ) -> object:
+        nonlocal process_helper_calls
+        process_helper_calls += 1
+        return original_relational_helper(primary, secondary)
+
+    original_process_expected = namespace.get(
+        "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES"
+    )
+    namespace["EXPECTED_PROCESS_CONTROL_REFERENCE_CASES"] = TrackingExpected(
+        process_expected,
+        process_observed_ids,
+    )
+    namespace["_relational_process_control_reference"] = (
+        instrumented_relational_helper
+    )
+    try:
+        process_result = relational_positive()
+    except BaseException:
+        raise AssertionError(diagnostic) from None
+    finally:
+        namespace["EXPECTED_PROCESS_CONTROL_REFERENCE_CASES"] = (
+            original_process_expected
+        )
+        namespace["_relational_process_control_reference"] = (
+            original_relational_helper
+        )
+    if (
+        process_result is not None
+        or process_helper_calls != len(C2B3A_PROCESS_CONTROL_EXPECTED_CASE_IDS)
+        or tuple(process_observed_ids)
+        != C2B3A_PROCESS_CONTROL_EXPECTED_CASE_IDS
+        or len(set(process_observed_ids)) != len(process_observed_ids)
+    ):
+        raise AssertionError(diagnostic)
+
+    cleanup_helper_calls = 0
+    cleanup_observed_ids: list[object] = []
+
+    def instrumented_cleanup_helper(*inputs: object) -> object:
+        nonlocal cleanup_helper_calls
+        cleanup_helper_calls += 1
+        return original_cleanup_helper(*inputs)
+
+    original_cleanup_expected = namespace.get("EXPECTED_CLEANUP_REFERENCE_CASES")
+    namespace["EXPECTED_CLEANUP_REFERENCE_CASES"] = TrackingExpected(
+        cleanup_expected,
+        cleanup_observed_ids,
+    )
+    namespace["_cleanup_reference"] = instrumented_cleanup_helper
+    try:
+        cleanup_result = cleanup_positive()
+    except BaseException:
+        raise AssertionError(diagnostic) from None
+    finally:
+        namespace["EXPECTED_CLEANUP_REFERENCE_CASES"] = original_cleanup_expected
+        namespace["_cleanup_reference"] = original_cleanup_helper
+    if (
+        cleanup_result is not None
+        or cleanup_helper_calls != len(C2B3A_CLEANUP_EXPECTED_CASE_IDS)
+        or tuple(cleanup_observed_ids) != C2B3A_CLEANUP_EXPECTED_CASE_IDS
+        or len(set(cleanup_observed_ids)) != len(cleanup_observed_ids)
+    ):
+        raise AssertionError(diagnostic)
+
+
+def _assert_c2b3a_oracle_semantic_execution(tree: ast.Module) -> None:
+    _assert_c2b3a_addendum_literal_semantics(tree)
+    _assert_c2b3a_expect_violation_semantics(tree)
+    _assert_c2b3a_reference_helper_semantics(tree)
+    _assert_c2b3a_mutant_dataflow_semantics(tree)
+    _assert_c2b3a_positive_body_semantics(tree)
+
+
 def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
     diagnostic = "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
     try:
@@ -1862,6 +7016,7 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
         for parent in ast.walk(tree)
         for child in ast.iter_child_nodes(parent)
     }
+    _assert_c2b3a_oracle_semantic_execution(tree)
     _assert_c2b3a_oracle_collection_architecture(tree, parents)
     top_level_ids = {id(statement) for statement in tree.body}
 
@@ -1895,10 +7050,7 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
     ):
         raise AssertionError(diagnostic)
 
-    expected_names = (
-        "EXPECTED_INITIALIZATION_CONTRACT",
-        "EXPECTED_INITIALIZATION_GOLDEN_VECTOR",
-    )
+    expected_names = C2B3A_ORACLE_PROTECTED_EXPECTED_VALUE_NAMES
     expected_assignments = {
         name: _c2b3a_oracle_literal_assignment(tree, name)
         for name in expected_names
@@ -2063,7 +7215,24 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
                     raise AssertionError(diagnostic)
         elif isinstance(node.func, ast.Attribute):
             chain = _c2b3a_oracle_attribute_chain(node.func)
-            if chain not in C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS:
+            literal_scope_join = (
+                chain is None
+                and node.func.attr == "join"
+                and isinstance(node.func.value, ast.Constant)
+                and node.func.value.value == " "
+                and len(node.args) == 1
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "prose"
+                and not node.keywords
+                and _c2b3a_oracle_enclosing_function(node, parents)
+                is not None
+                and _c2b3a_oracle_enclosing_function(node, parents).name
+                == "_validate_planning_status"
+            )
+            if (
+                chain not in C2B3A_ORACLE_ALLOWED_ATTRIBUTE_CALLS
+                and not literal_scope_join
+            ):
                 raise AssertionError(diagnostic)
             if chain == "resolved.read_text":
                 read_text_calls.append(node)
@@ -2128,8 +7297,8 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
     if not {
         "path.relative_to",
         "relative.as_posix",
-        "expected.is_symlink",
-        "expected.resolve",
+            "expected_path.is_symlink",
+            "expected_path.resolve",
         "resolved.read_text",
     }.issubset(helper_calls):
         raise AssertionError(diagnostic)
@@ -2139,8 +7308,8 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
     helper_compare_source = " ".join(ast.unparse(node) for node in helper_comparisons)
     if (
         "requested in ALLOWED_ORACLE_RELATIVE_PATHS" not in helper_compare_source
-        or "resolved == expected" not in helper_compare_source
-        or "path == expected" not in helper_compare_source
+        or "resolved == expected_path" not in helper_compare_source
+        or "path == expected_path" not in helper_compare_source
     ):
         raise AssertionError(diagnostic)
 
@@ -2208,7 +7377,14 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
                 for name in _c2b3a_oracle_assigned_names(target)
             )
             if any(
-                token in name.lower()
+                (
+                    token in name.lower()
+                    and name
+                    not in {
+                        "authority_lock_registry_present",
+                        "writer_session_registry_present",
+                    }
+                )
                 for name in target_names
                 for token in ("registry", "dispatcher", "runners", "callables")
             ):
@@ -2316,7 +7492,7 @@ def _assert_c2b3a_independent_oracle_architecture(source: str) -> None:
     ):
         raise AssertionError(diagnostic)
     observed_load_sites = _c2b3a_oracle_protected_load_sites(tree, parents)
-    if observed_load_sites != C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES:
+    if observed_load_sites != _c2b3a_oracle_expected_protected_load_sites():
         raise AssertionError(diagnostic)
 
 
@@ -2589,7 +7765,7 @@ def _assert_c2b3a_protected_factory_policy(source: str) -> None:
     )
     expected = tuple(
         record
-        for record in C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES
+        for record in _c2b3a_oracle_expected_protected_load_sites()
         if record[0] in {"_candidate", "_golden_candidate"}
     )
     if observed != expected or any(record[3] != "direct_call_func" for record in observed):
@@ -2600,6 +7776,7 @@ def _c2b3a_physically_import_and_collect_mutant(
     tmp_path: Path,
     mutant_id: str,
     source: str,
+    expected_nodes: tuple[str, ...] | None = C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES,
 ) -> None:
     mirror_root = tmp_path / mutant_id.lower()
     tests_root = mirror_root / "tests"
@@ -2607,6 +7784,7 @@ def _c2b3a_physically_import_and_collect_mutant(
     mutant_path = tests_root / C2B3A_ORACLE_PATH.name
     written = mutant_path.write_text(source, encoding="utf-8")
     assert written == len(source)
+    compile(source, str(mutant_path), "exec")
 
     import_tmp = mirror_root / "import-tmp"
     import_pycache = mirror_root / "import-pycache"
@@ -2663,8 +7841,6 @@ def _c2b3a_physically_import_and_collect_mutant(
             "pytest",
             "-p",
             "no:cacheprovider",
-            "-W",
-            "error",
             f"--basetemp={collect_basetemp}",
             "--collect-only",
             "-q",
@@ -2688,13 +7864,530 @@ def _c2b3a_physically_import_and_collect_mutant(
         for line in collected.stdout.splitlines()
         if C2B3A_ORACLE_PATH.name + "::" in line
     )
-    assert collected_nodes == C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES
-    assert (
-        f"{len(C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES)} tests collected"
-        in collected.stdout
-    )
+    if expected_nodes is not None:
+        assert collected_nodes == expected_nodes
+        assert f"{len(expected_nodes)} tests collected" in collected.stdout
+    else:
+        assert collected_nodes
+        assert " tests collected" in collected.stdout
     assert " warning" not in collected.stdout.lower()
     assert collected.stderr == ""
+
+
+def _c2b3a_physically_import_and_collect_checker(
+    tmp_path: Path,
+    mutant_id: str,
+    source: str,
+) -> str:
+    mirror_root = tmp_path / mutant_id.lower()
+    tests_root = mirror_root / "tests"
+    tests_root.mkdir(mode=0o700, parents=True)
+    mutant_path = tests_root / Path(__file__).name
+    assert mutant_path.write_text(source, encoding="utf-8") == len(source)
+    physical_source = mutant_path.read_text(encoding="utf-8")
+    compile(physical_source, str(mutant_path), "exec")
+
+    import_tmp = mirror_root / "import-tmp"
+    import_pycache = mirror_root / "import-pycache"
+    collect_tmp = mirror_root / "collect-tmp"
+    collect_pycache = mirror_root / "collect-pycache"
+    collect_basetemp = mirror_root / "collect-basetemp"
+    for directory in (import_tmp, import_pycache, collect_tmp, collect_pycache):
+        directory.mkdir(mode=0o700)
+
+    import_program = (
+        "import importlib.util,pathlib,sys; "
+        "path=pathlib.Path(sys.argv[1]).resolve(strict=True); "
+        "spec=importlib.util.spec_from_file_location(sys.argv[2],path); "
+        "module=importlib.util.module_from_spec(spec); "
+        "sys.modules[spec.name]=module; "
+        "spec.loader.exec_module(module); "
+        "assert pathlib.Path(module.__file__).resolve() == path"
+    )
+    imported = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-c",
+            import_program,
+            str(mutant_path),
+            "c2b3a_checker_" + mutant_id.lower().replace("-", "_"),
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(import_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(import_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert imported.returncode == 0, imported.stderr
+    assert imported.stdout == ""
+    assert imported.stderr == ""
+
+    collected = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            f"--basetemp={collect_basetemp}",
+            "--collect-only",
+            "-q",
+            str(mutant_path),
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(collect_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(collect_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert collected.returncode == 0, collected.stderr
+    assert (
+        Path(__file__).name
+        + "::test_c2b3a_m16_m65_executable_efficacy_is_exact"
+        in collected.stdout
+    )
+    assert " tests collected" in collected.stdout
+    assert " warning" not in collected.stdout.lower()
+    assert collected.stderr == ""
+    return physical_source
+
+
+def _c2b3a_physically_run_checker_guard_rejection(
+    tmp_path: Path,
+    mutant_id: str,
+) -> None:
+    mirror_root = tmp_path / mutant_id.lower()
+    mutant_path = mirror_root / "tests" / Path(__file__).name
+    execute_tmp = mirror_root / "guard-execute-tmp"
+    execute_pycache = mirror_root / "guard-execute-pycache"
+    for directory in (execute_tmp, execute_pycache):
+        directory.mkdir(mode=0o700)
+    execute_program = (
+        "import importlib.util\n"
+        "import pathlib\n"
+        "import sys\n"
+        "path = pathlib.Path(sys.argv[1]).resolve(strict=True)\n"
+        "spec = importlib.util.spec_from_file_location(sys.argv[2], path)\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "sys.modules[spec.name] = module\n"
+        "spec.loader.exec_module(module)\n"
+        "try:\n"
+        "    module.test_c2b3a_m16_m65_executable_efficacy_is_exact()\n"
+        "except AssertionError as exc:\n"
+        "    assert exc.args == "
+        "('C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID',)\n"
+        "else:\n"
+        "    raise AssertionError('C2B3A_EFFICACY_CHECKER_GUARD_BYPASS')\n"
+    )
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-c",
+            execute_program,
+            str(mutant_path),
+            "c2b3a_guard_" + mutant_id.lower().replace("-", "_"),
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(execute_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(execute_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode == 0, executed.stderr
+    assert executed.stdout == ""
+    assert executed.stderr == ""
+
+
+def _c2b3a_physically_reject_planning_counterfactual(
+    tmp_path: Path,
+    mutant_id: str,
+    direct_source: str,
+    planning_counterfactual: str,
+) -> None:
+    test_name = "test_stage_specific_planning_counterfactual_is_rejected"
+    physical_source = (
+        direct_source
+        + "\n\ndef "
+        + test_name
+        + "() -> None:\n"
+        + "    planning_counterfactual = "
+        + repr(planning_counterfactual)
+        + "\n"
+        + "    with pytest.raises(_ContractViolation) as exc_info:\n"
+        + "        _validate_planning_status(planning_counterfactual)\n"
+        + "    assert str(exc_info.value) == "
+        + repr("C2B3A_PLANNING_PROJECTION_INVALID")
+        + "\n"
+    )
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        mutant_id,
+        physical_source,
+        expected_nodes=None,
+    )
+
+    mirror_root = tmp_path / mutant_id.lower()
+    mutant_path = mirror_root / "tests" / C2B3A_ORACLE_PATH.name
+    execute_tmp = mirror_root / "execute-tmp"
+    execute_pycache = mirror_root / "execute-pycache"
+    execute_basetemp = mirror_root / "execute-basetemp"
+    for directory in (execute_tmp, execute_pycache):
+        directory.mkdir(mode=0o700)
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            f"--basetemp={execute_basetemp}",
+            "-q",
+            str(mutant_path) + "::" + test_name,
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(execute_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(execute_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode == 0, executed.stderr
+    assert "1 passed" in executed.stdout
+    assert " warning" not in executed.stdout.lower()
+    assert executed.stderr == ""
+
+
+def _c2b3a_semantic_function_body_mutant(
+    source: str,
+    function_name: str,
+    replacement_body: str,
+) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    function = _c2b3a_oracle_top_level_function(tree, function_name)
+    if not function.body or function.end_lineno is None:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    source_lines = source.splitlines(keepends=True)
+    indentation = " " * function.body[0].col_offset
+    replacement_lines = replacement_body.splitlines()
+    replacement = "".join(
+        indentation + line + "\n" if line else "\n"
+        for line in replacement_lines
+    )
+    return "".join(
+        source_lines[: function.body[0].lineno - 1]
+        + [replacement]
+        + source_lines[function.end_lineno :]
+    )
+
+
+def _c2b3a_semantic_assertions_true_mutant(
+    source: str,
+    function_name: str,
+) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    function = _c2b3a_oracle_top_level_function(tree, function_name)
+    assertions = tuple(
+        node for node in ast.walk(function) if isinstance(node, ast.Assert)
+    )
+    if not assertions:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    for assertion in assertions:
+        assertion.test = ast.copy_location(ast.Constant(value=True), assertion.test)
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree) + "\n"
+
+
+def _c2b3a_semantic_assertions_self_comparison_mutant(
+    source: str,
+    function_name: str,
+) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    function = _c2b3a_oracle_top_level_function(tree, function_name)
+    assertions = tuple(
+        node for node in ast.walk(function) if isinstance(node, ast.Assert)
+    )
+    if not assertions:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    for assertion in assertions:
+        rendered = ast.unparse(assertion.test)
+        replacement = ast.parse(
+            f"({rendered}) == ({rendered})",
+            mode="eval",
+        ).body
+        assertion.test = ast.copy_location(replacement, assertion.test)
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree) + "\n"
+
+
+def _c2b3a_semantic_expected_literal_inventory_mutant(
+    source: str,
+    literal_name: str,
+    function_name: str,
+    *,
+    remove: bool,
+) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    assignment = _c2b3a_oracle_literal_assignment(tree, literal_name)
+    function = _c2b3a_oracle_top_level_function(tree, function_name)
+    if remove:
+        tree.body.remove(assignment)
+    elif isinstance(assignment.value, ast.Dict):
+        assignment.value = ast.copy_location(ast.Dict(keys=[], values=[]), assignment.value)
+    elif isinstance(assignment.value, ast.Tuple):
+        assignment.value = ast.copy_location(ast.Tuple(elts=[], ctx=ast.Load()), assignment.value)
+    else:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    function.body = [
+        ast.copy_location(ast.Assert(test=ast.Constant(value=True)), function.body[0])
+    ]
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree) + "\n"
+
+
+def _c2b3a_semantic_replace_in_function(
+    source: str,
+    function_name: str,
+    old: str,
+    new: str,
+) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    function = _c2b3a_oracle_top_level_function(tree, function_name)
+    if function.end_lineno is None:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    source_lines = source.splitlines(keepends=True)
+    start = function.lineno - 1
+    end = function.end_lineno
+    function_source = "".join(source_lines[start:end])
+    if function_source.count(old) != 1:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    replacement = function_source.replace(old, new, 1)
+    return "".join(source_lines[:start] + [replacement] + source_lines[end:])
+
+
+def _c2b3a_semantic_top_level_loop_pass_mutant(
+    source: str,
+    function_name: str,
+) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    function = _c2b3a_oracle_top_level_function(tree, function_name)
+    loops = tuple(
+        statement for statement in function.body if isinstance(statement, ast.For)
+    )
+    if len(loops) != 1 or loops[0].end_lineno is None:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    loop = loops[0]
+    source_lines = source.splitlines(keepends=True)
+    replacement = " " * loop.col_offset + "pass\n"
+    return "".join(
+        source_lines[: loop.lineno - 1]
+        + [replacement]
+        + source_lines[loop.end_lineno :]
+    )
+
+
+def _c2b3a_efficacy_loop_pass_mutant(source: str) -> str:
+    tree = ast.parse(source, filename=Path(__file__).name)
+    function = _c2b3a_oracle_top_level_function(
+        tree,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+    )
+    loops = tuple(
+        statement
+        for statement in function.body
+        if isinstance(statement, ast.For)
+        and isinstance(statement.iter, ast.Name)
+        and statement.iter.id == "C2B3A_LINEAR_MUTANT_FUNCTIONS"
+    )
+    if len(loops) != 1 or not loops[0].body or loops[0].end_lineno is None:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    loop = loops[0]
+    first = loop.body[0]
+    source_lines = source.splitlines(keepends=True)
+    replacement = " " * first.col_offset + "pass\n"
+    return "".join(
+        source_lines[: first.lineno - 1]
+        + [replacement]
+        + source_lines[loop.end_lineno :]
+    )
+
+
+def _c2b3a_efficacy_loop_iter_mutant(source: str, expression: str) -> str:
+    tree = ast.parse(source, filename=Path(__file__).name)
+    function = _c2b3a_oracle_top_level_function(
+        tree,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+    )
+    loops = tuple(
+        statement
+        for statement in function.body
+        if isinstance(statement, ast.For)
+        and isinstance(statement.iter, ast.Name)
+        and statement.iter.id == "C2B3A_LINEAR_MUTANT_FUNCTIONS"
+    )
+    if len(loops) != 1:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    loops[0].iter = ast.copy_location(
+        ast.parse(expression, mode="eval").body,
+        loops[0].iter,
+    )
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree) + "\n"
+
+
+def _c2b3a_cleanup_step_removed_mutant(source: str, step: str) -> str:
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    function = _c2b3a_oracle_top_level_function(tree, "_cleanup_reference")
+
+    def records_entry(statement: ast.stmt) -> bool:
+        return any(
+            isinstance(node, ast.AugAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "entered"
+            and isinstance(node.op, ast.Add)
+            and isinstance(node.value, ast.Tuple)
+            and len(node.value.elts) == 1
+            and isinstance(node.value.elts[0], ast.Constant)
+            and node.value.elts[0].value == step
+            for node in ast.walk(statement)
+        )
+
+    matching_indexes = tuple(
+        index
+        for index, statement in enumerate(function.body)
+        if records_entry(statement)
+    )
+    if len(matching_indexes) != 1:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    index = matching_indexes[0]
+    first = function.body[index]
+    last = first
+    if step == "P0":
+        if index + 1 >= len(function.body):
+            raise AssertionError(
+                "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+            )
+        last = function.body[index + 1]
+        if not any(
+            isinstance(node, ast.AugAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "completed"
+            and isinstance(node.value, ast.Tuple)
+            and len(node.value.elts) == 1
+            and isinstance(node.value.elts[0], ast.Constant)
+            and node.value.elts[0].value == "P0"
+            for node in ast.walk(last)
+        ):
+            raise AssertionError(
+                "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+            )
+    if first.end_lineno is None or last.end_lineno is None:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    source_lines = source.splitlines(keepends=True)
+    return "".join(
+        source_lines[: first.lineno - 1] + source_lines[last.end_lineno :]
+    )
+
+
+def _c2b3a_physically_execute_semantic_mutant(
+    tmp_path: Path,
+    mutant_id: str,
+    source: str,
+    selected_node: str,
+    require_selected_pass: bool = False,
+) -> None:
+    _c2b3a_physically_import_and_collect_mutant(tmp_path, mutant_id, source)
+    mirror_root = tmp_path / mutant_id.lower()
+    mutant_path = mirror_root / "tests" / C2B3A_ORACLE_PATH.name
+    execute_tmp = mirror_root / "execute-tmp"
+    execute_pycache = mirror_root / "execute-pycache"
+    execute_basetemp = mirror_root / "execute-basetemp"
+    execute_tmp.mkdir(mode=0o700)
+    execute_pycache.mkdir(mode=0o700)
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            f"--basetemp={execute_basetemp}",
+            "-q",
+            "--tb=no",
+            f"{mutant_path}::{selected_node}",
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(execute_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(execute_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode in (0, 1), executed.stderr
+    if require_selected_pass:
+        assert executed.returncode == 0
+        assert "1 passed" in executed.stdout
+    else:
+        assert "1 passed" in executed.stdout or "1 failed" in executed.stdout
+    assert " skipped" not in executed.stdout
+    assert " xfailed" not in executed.stdout
+    assert " deselected" not in executed.stdout
+    assert " warning" not in executed.stdout.lower()
+    assert executed.stderr == ""
+
+
+def _assert_c2b3a_semantic_mutant_is_physical(
+    tmp_path: Path,
+    mutant_id: str,
+    source: str,
+    selected_node: str,
+    require_selected_pass: bool = False,
+) -> None:
+    _c2b3a_physically_execute_semantic_mutant(
+        tmp_path,
+        mutant_id,
+        source,
+        selected_node,
+        require_selected_pass,
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_independent_oracle_architecture(source)
+    assert (
+        str(exc_info.value)
+        == "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    )
 
 
 def _section(text: str, heading: str) -> str:
@@ -2729,6 +8422,93 @@ def _section_prose(text: str, heading: str) -> str:
             role=f"c2b0.owner.section.{heading}",
         )
     )
+
+
+def _assert_c2b3a_owner_addendum_prose(text: str) -> None:
+    diagnostic = "C2B3A_COMMIT_CLOSE_OWNER_PROSE_INVALID"
+    section_heading = "## 35. C2B3A Program-Initialization Contract Freeze\n"
+    markers = (
+        "    # C2B3A_OWNER_ADDENDUM_BEGIN",
+        "    # C2B3A_OWNER_ADDENDUM_STRUCTURED_END",
+        "<!-- C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON_BEGIN -->",
+        "<!-- C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON_END -->",
+        "<!-- C2B3A_OWNER_ADDENDUM_EXPLANATORY_BEGIN -->",
+        "<!-- C2B3A_OWNER_AUTHORITY_PROSE_BEGIN -->",
+        "<!-- C2B3A_OWNER_AUTHORITY_PROSE_END -->",
+        "<!-- C2B3A_OWNER_PROCESS_CONTROL_PROSE_BEGIN -->",
+        "<!-- C2B3A_OWNER_PROCESS_CONTROL_PROSE_END -->",
+        "<!-- C2B3A_OWNER_CLEANUP_PROSE_BEGIN -->",
+        "<!-- C2B3A_OWNER_CLEANUP_PROSE_END -->",
+        "<!-- C2B3A_OWNER_FUTURE_SCOPE_PROSE_BEGIN -->",
+        "<!-- C2B3A_OWNER_FUTURE_SCOPE_PROSE_END -->",
+        "<!-- C2B3A_OWNER_RETAINED_TAIL_BEGIN -->",
+        "<!-- C2B3A_OWNER_RETAINED_TAIL_END -->",
+        "<!-- C2B3A_OWNER_ADDENDUM_END -->",
+    )
+    if type(text) is not str or text.count(section_heading) != 1:
+        raise AssertionError(diagnostic)
+    if any(text.count(marker) != 1 for marker in markers):
+        raise AssertionError(diagnostic)
+    positions = tuple(text.index(marker) for marker in markers)
+    if positions != tuple(sorted(positions)):
+        raise AssertionError(diagnostic)
+
+    section_start = text.index(section_heading)
+    addendum_begin = positions[0]
+    structured_end = positions[1]
+    vector_begin = positions[2]
+    vector_end = positions[3]
+    explanatory_begin = positions[4]
+    if (
+        text[section_start:addendum_begin]
+        != C2B3A_OWNER_PRE_ADDENDUM_SECTION_35_PREFIX
+    ):
+        raise AssertionError(diagnostic)
+
+    structured_open = (
+        "    # C2B3A_OWNER_ADDENDUM_BEGIN\n"
+        "    # C2B3A COMMIT/close outcome addendum\n"
+        "    \"commit_close_outcome_addendum\": {\n"
+    )
+    if not text.startswith(structured_open, addendum_begin):
+        raise AssertionError(diagnostic)
+    structured_region = text[
+        addendum_begin : structured_end + len(markers[1])
+    ]
+    comment_lines = tuple(
+        line for line in structured_region.splitlines()
+        if line.lstrip().startswith("#")
+    )
+    if comment_lines != (
+        "    # C2B3A_OWNER_ADDENDUM_BEGIN",
+        "    # C2B3A COMMIT/close outcome addendum",
+        "    # C2B3A_OWNER_ADDENDUM_STRUCTURED_END",
+    ):
+        raise AssertionError(diagnostic)
+    for required_source in (
+        '    "commit_close_outcome_addendum": {',
+        '        "normative_surface_and_precedence": {',
+        '        "legacy_exception_probe_ledger_classification": {',
+        '            "future_implementation_scope_supersession": {',
+    ):
+        if structured_region.count(required_source) != 1:
+            raise AssertionError(diagnostic)
+
+    structured_to_vector_end = vector_begin + len(markers[2]) + 1
+    if (
+        text[structured_end:structured_to_vector_end]
+        != C2B3A_OWNER_STRUCTURED_TO_VECTOR_BRIDGE
+    ):
+        raise AssertionError(diagnostic)
+    if (
+        text[vector_end:explanatory_begin]
+        != C2B3A_OWNER_VECTOR_TO_EXPLANATORY_BRIDGE
+    ):
+        raise AssertionError(diagnostic)
+    if text[explanatory_begin:] != C2B3A_OWNER_EXPLANATORY_SUFFIX:
+        raise AssertionError(diagnostic)
+    if not text.endswith(markers[-1] + "\n"):
+        raise AssertionError(diagnostic)
 
 
 def _summary_section(text: str, heading: str, *, role: str) -> str:
@@ -6267,89 +12047,423 @@ def test_c2b2_field_level_freeze_has_physical_and_pure_value_slices() -> None:
     assert not (ROOT / "tests/test_c2b2_field_level_contract.py").is_symlink()
 
 
-def test_c2b3a_status_is_frozen_without_initialization_or_author_source() -> None:
+def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
+    tmp_path: Path,
+) -> None:
     owner = _owner()
-    freeze = _compact(_section(owner, SECTION_HEADINGS[34]))
-    planning_text = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
-    _assert_c2b3a_planning_status(planning_text)
-    planning = _compact(planning_text)
-    production = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (ROOT / "src/ge_nwp_coordinator").rglob("*.py")
+    planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
+    _assert_c2b3a_owner_addendum_prose(owner)
+    _assert_c2b3a_planning_status(planning)
+    assert (
+        owner[owner.index("## 35. C2B3A Program-Initialization Contract Freeze\n")
+              : owner.index("    # C2B3A_OWNER_ADDENDUM_BEGIN")]
+        == C2B3A_OWNER_PRE_ADDENDUM_SECTION_35_PREFIX
     )
-
-    for phrase in (
-        "ACCEPTED TARGET CONTRACT` for the program-initialization family only",
-        "single-work-item genesis shape is a bounded first vertical slice",
-        "Program-initialization source, private delegation, product mutation, receipt persistence, replay/recovery runtime, public API, author-effect source, and migration 0003 are absent",
-        "This section is the sole semantic owner for C2B3A",
-        "planning only; not semantic authority",
-        "\"selected_semantic_attempt_ref\", None",
-        "\"selected_candidate_ref\", None",
-        "C2B3_PROGRAM_INITIALIZATION_GOLDEN_VECTOR_PYTHON_BEGIN",
-        "commit_uncertainty_cleanup_gate",
-        "private_outcome_ownership",
-        "returned binding work_spec_ref equals safe-command work_spec_ref and graph-entry expected work_spec_ref",
-        "complete_contract_frozen\": False",
-        "source_implemented\": False",
-        "`KeyboardInterrupt`, `SystemExit`, and `GeneratorExit` are the exact closed process-control close-interruption inventory",
+    assert planning == C2B3A_PLANNING_PROJECTION_APPROVED_TEXT
+    for required in (
+        '"structured_owner": "commit_close_outcome_addendum"',
+        '"planning_is_semantic_authority": False',
+        '"planning_may_resolve_or_change_owner_truth": False',
+        '"expected_actual_write_paths": 27',
+        '"maximum_paths": 28',
+        '"active_stop_path_ordinal": 29',
+        '"consumers_may_use": False',
     ):
-        assert phrase in freeze
-
-    for phrase in (
-        "planning and implementation-status record",
-        "This document is not semantic authority",
-        "Program-initialization source, private delegation, product mutation, receipt persistence, production reader integration, exact replay runtime, commit-outcome recovery runtime, and the complete author-effect contract/source are absent",
-        "independent read-only audit",
-        "committed C2B3A owner literal",
-        "C2B3B_PRIVATE_ATOMIC_INITIALIZATION",
-        "maximum of twenty-four paths",
-        "sqlite_transition_transaction.py",
-        "sqlite_writer_session.py",
-        "sqlite_connection.py",
-        "row_and_head_ledger.postimages.initialize_decision",
-        "commit_uncertainty_cleanup_gate",
-        "private_outcome_ownership",
-        "complete_graph_locator",
-        "owns no process-control result or enum",
-        "owns the narrow close-interruption catch point",
-        "acknowledges quarantine publication before the transaction",
-        "may surface the exact close-time `KeyboardInterrupt`, `SystemExit`, or `GeneratorExit`",
-        "The exact process-control close-interruption branches are",
+        assert required in owner
+    for required in (
+        "planning and implementation-status projection only",
+        "The current repair changes only the owner",
+        "application generation 2 at terminal",
+        "historical and non-operative",
+        "Production is exactly six paths",
+        "Documentation/status is exactly ten paths",
+        "Required changed tests are exactly eleven paths",
+        "Future C2B3B tests use private temporary databases only",
+        "They never open\noperator state, migrate operator state, or inspect operator-state contents",
+        "an accepted fresh independent read-only source-acceptance audit",
+        "a distinct committed Coordinator repository baseline",
+        "a refreshed exact Coordinator snapshot, or an explicitly equivalent exact",
+        "an accepted independent audit of the committed C2B3A contract baseline",
+        "a committed clean Coordinator baseline",
+        "a refreshed exact Coordinator snapshot or explicitly equivalent exact",
+        "an exact C2B3B source implementation prompt",
+        "fresh opening repository and patch provenance",
+        "C2B3D cannot begin before the\nC2B3C owner questions are closed",
+        "0003 remains reserved and unimplemented",
+        "authorizes no production mutation",
     ):
-        assert phrase in planning
+        assert required in planning
 
-    for source_name in (
-        "DevelopmentProgramInitializationCommandV1",
-        "DevelopmentProgramInitializationResultV1",
-        "DevelopmentProgramInitializationRecoveryResultV1",
+    def physical_copy(name: str, value: str) -> str:
+        path = tmp_path / (name + ".md")
+        assert path.write_text(value, encoding="utf-8") == len(value)
+        return path.read_text(encoding="utf-8")
+
+    owner_begin = "    # C2B3A_OWNER_ADDENDUM_BEGIN"
+    owner_end = "<!-- C2B3A_OWNER_ADDENDUM_END -->"
+    explanatory_begin = "<!-- C2B3A_OWNER_ADDENDUM_EXPLANATORY_BEGIN -->"
+    process_begin = "<!-- C2B3A_OWNER_PROCESS_CONTROL_PROSE_BEGIN -->"
+    authority_begin = "<!-- C2B3A_OWNER_AUTHORITY_PROSE_BEGIN -->"
+    owner_swapped = (
+        owner.replace(owner_begin, "__C2B3A_OWNER_BEGIN__", 1)
+        .replace(owner_end, owner_begin, 1)
+        .replace("__C2B3A_OWNER_BEGIN__", owner_end, 1)
+    )
+    owner_mutants = (
+        (
+            "process-after-end",
+            owner + "C2B3 preserves the caught traceback tail.\n",
+        ),
+        (
+            "process-before-begin",
+            owner.replace(
+                owner_begin,
+                "The interpreter graph is unchanged.\n" + owner_begin,
+                1,
+            ),
+        ),
+        (
+            "unmarked-explanatory",
+            owner.replace(
+                explanatory_begin,
+                explanatory_begin
+                + "\nThis second explanatory paragraph is unmarked.",
+                1,
+            ),
+        ),
+        (
+            "old-scope-after-end",
+            owner + "The earlier manifest governs C2B3B.\n",
+        ),
+        (
+            "old-scope-unmarked",
+            owner.replace(
+                explanatory_begin,
+                "The implementation is limited to the earlier manifest.\n"
+                + explanatory_begin,
+                1,
+            ),
+        ),
+        (
+            "duplicate-begin",
+            owner.replace(owner_begin, owner_begin + "\n" + owner_begin, 1),
+        ),
+        ("remove-begin", owner.replace(owner_begin, "", 1)),
+        (
+            "duplicate-end",
+            owner.replace(owner_end, owner_end + "\n" + owner_end, 1),
+        ),
+        ("remove-end", owner.replace(owner_end, "", 1)),
+        ("reordered", owner_swapped),
+        (
+            "nested",
+            owner.replace(process_begin, owner_begin + "\n" + process_begin, 1),
+        ),
+        (
+            "unrecognized-block",
+            owner.replace(
+                authority_begin,
+                "<!-- C2B3A_OWNER_UNRECOGNIZED_BEGIN -->\n"
+                "One extra path is allowed.\n"
+                "<!-- C2B3A_OWNER_UNRECOGNIZED_END -->\n"
+                + authority_begin,
+                1,
+            ),
+        ),
+    )
+    assert len(owner_mutants) == 12
+    for mutant_id, owner_mutant in owner_mutants:
+        owner_mutant = physical_copy("owner-" + mutant_id, owner_mutant)
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_c2b3a_owner_addendum_prose(owner_mutant)
+        assert str(exc_info.value) == "C2B3A_COMMIT_CLOSE_OWNER_PROSE_INVALID"
+
+    planning_begin = "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->"
+    planning_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->"
+    planning_swapped = (
+        planning.replace(planning_begin, "__C2B3A_PLANNING_BEGIN__", 1)
+        .replace(planning_end, planning_begin, 1)
+        .replace("__C2B3A_PLANNING_BEGIN__", planning_end, 1)
+    )
+    planning_mutants = (
+        ("before", "The earlier manifest governs C2B3B.\n" + planning),
+        ("after", planning + "One extra path is allowed.\n"),
+        ("nonnumeric", planning + "The next path requires reassessment.\n"),
+        (
+            "old-manifest",
+            planning + "The implementation is limited to the earlier manifest.\n",
+        ),
+        ("numeric-23", planning + "23 expected paths are operative.\n"),
+        ("numeric-24", planning + "24 paths are the active maximum.\n"),
+        ("numeric-25", planning + "Path 25 may proceed.\n"),
+        (
+            "duplicate-begin",
+            planning.replace(
+                planning_begin,
+                planning_begin + "\n" + planning_begin,
+                1,
+            ),
+        ),
+        ("remove-begin", planning.replace(planning_begin, "", 1)),
+        (
+            "duplicate-end",
+            planning.replace(planning_end, planning_end + "\n" + planning_end, 1),
+        ),
+        ("remove-end", planning.replace(planning_end, "", 1)),
+        ("reordered", planning_swapped),
+        (
+            "nested",
+            planning.replace(
+                "<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->",
+                planning_begin
+                + "\n<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->",
+                1,
+            ),
+        ),
+        (
+            "unrecognized-block",
+            planning.replace(
+                "<!-- C2B3A_PLANNING_ACTIVE_SCOPE_BEGIN -->",
+                "<!-- C2B3A_PLANNING_UNRECOGNIZED_BEGIN -->\n"
+                "One extra path is allowed.\n"
+                "<!-- C2B3A_PLANNING_UNRECOGNIZED_END -->\n"
+                "<!-- C2B3A_PLANNING_ACTIVE_SCOPE_BEGIN -->",
+                1,
+            ),
+        ),
+        (
+            "private-temp-database-removed",
+            planning.replace(
+                "Future C2B3B tests use private temporary databases only. ",
+                "Future C2B3B tests may use any database. ",
+                1,
+            ),
+        ),
+        (
+            "operator-state-open-permitted",
+            planning.replace("They never open\noperator state", "They may open\noperator state", 1),
+        ),
+        (
+            "operator-state-migration-permitted",
+            planning.replace(
+                "migrate operator state",
+                "may migrate operator state",
+                1,
+            ),
+        ),
+        (
+            "operator-state-inspection-permitted",
+            planning.replace(
+                "or inspect operator-state contents",
+                "or may inspect operator-state contents",
+                1,
+            ),
+        ),
+        (
+            "source-acceptance-audit-removed",
+            planning.replace(
+                "- an accepted fresh independent read-only source-acceptance audit;\n",
+                "",
+                1,
+            ),
+        ),
+        (
+            "source-acceptance-committed-coordinator-baseline-removed",
+            planning.replace(
+                "- a distinct committed Coordinator repository baseline;\n",
+                "",
+                1,
+            ),
+        ),
+        (
+            "source-acceptance-refreshed-snapshot-removed",
+            planning.replace(
+                "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+                "  strategic baseline, produced after and bound to that committed baseline;\n",
+                "",
+                1,
+            ),
+        ),
+        (
+            "source-acceptance-refreshed-snapshot-not-exact",
+            planning.replace(
+                "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n",
+                "- a refreshed Coordinator snapshot, or an explicitly equivalent strategic\n",
+                1,
+            ),
+        ),
+        (
+            "source-acceptance-baseline-snapshot-collapsed",
+            planning.replace(
+                "- a distinct committed Coordinator repository baseline;\n"
+                "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+                "  strategic baseline, produced after and bound to that committed baseline;\n",
+                "- one committed Coordinator snapshot or equivalent strategic baseline;\n",
+                1,
+            ),
+        ),
+        (
+            "source-acceptance-one-item-serves-both",
+            planning.replace(
+                "- a distinct committed Coordinator repository baseline;\n"
+                "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+                "  strategic baseline, produced after and bound to that committed baseline;\n",
+                "- one committed Coordinator repository baseline used as both the baseline "
+                "and refreshed snapshot;\n",
+                1,
+            ),
+        ),
+        (
+            "source-start-contract-baseline-not-committed",
+            planning.replace(
+                "- an accepted independent audit of the committed C2B3A contract baseline;\n",
+                "- an accepted independent audit of the C2B3A contract baseline;\n",
+                1,
+            ),
+        ),
+        (
+            "source-start-coordinator-baseline-unqualified",
+            planning.replace(
+                "- a committed clean Coordinator baseline;\n",
+                "- a Coordinator baseline;\n",
+                1,
+            ),
+        ),
+        (
+            "source-start-coordinator-baseline-not-clean",
+            planning.replace(
+                "- a committed clean Coordinator baseline;\n",
+                "- a committed Coordinator baseline;\n",
+                1,
+            ),
+        ),
+        (
+            "source-start-snapshot-not-exact",
+            planning.replace(
+                "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n",
+                "- a refreshed Coordinator snapshot or explicitly equivalent strategic\n",
+                1,
+            ),
+        ),
+        (
+            "source-start-snapshot-not-refreshed",
+            planning.replace(
+                "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n",
+                "- an exact Coordinator snapshot or explicitly equivalent exact\n",
+                1,
+            ),
+        ),
+        (
+            "source-start-snapshot-replaced-by-baseline",
+            planning.replace(
+                "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n"
+                "  strategic baseline bound to that clean committed baseline;\n",
+                "- the committed clean Coordinator baseline;\n",
+                1,
+            ),
+        ),
+        (
+            "exact-source-prompt-removed",
+            planning.replace(
+                "- an exact C2B3B source implementation prompt;\n",
+                "",
+                1,
+            ),
+        ),
+        (
+            "fresh-provenance-removed",
+            planning.replace(
+                "- fresh opening repository and patch provenance;\n",
+                "",
+                1,
+            ),
+        ),
+        (
+            "c2b3c-skipped",
+            planning.replace(
+                "C2B3D cannot begin before the\nC2B3C owner questions are closed.",
+                "C2B3D may begin directly from C2B3B without C2B3C.",
+                1,
+            ),
+        ),
+        (
+            "migration-0003-activated",
+            planning.replace(
+                "Migration\n0003 remains reserved and unimplemented.",
+                "Migration\n0003 is active and implemented.",
+                1,
+            ),
+        ),
+        (
+            "planning-alone-accepts-source",
+            planning.replace(
+                "Acceptance of this planning projection is not acceptance of future source.",
+                "Acceptance of this planning projection accepts future source.",
+                1,
+            ),
+        ),
+    )
+    assert len(planning_mutants) == 35
+    stage_specific_physical_ids = {
+        "source-acceptance-committed-coordinator-baseline-removed",
+        "source-acceptance-refreshed-snapshot-removed",
+        "source-acceptance-refreshed-snapshot-not-exact",
+        "source-acceptance-baseline-snapshot-collapsed",
+        "source-acceptance-one-item-serves-both",
+        "source-start-contract-baseline-not-committed",
+        "source-start-coordinator-baseline-unqualified",
+        "source-start-coordinator-baseline-not-clean",
+        "source-start-snapshot-not-exact",
+        "source-start-snapshot-not-refreshed",
+        "source-start-snapshot-replaced-by-baseline",
+        "exact-source-prompt-removed",
+        "fresh-provenance-removed",
+    }
+    assert len(stage_specific_physical_ids) == 13
+    direct_source = _c2b3a_bounded_oracle_source()
+    for mutant_id, planning_mutant in planning_mutants:
+        assert planning_mutant != planning
+        planning_mutant = physical_copy("planning-" + mutant_id, planning_mutant)
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_c2b3a_planning_status(planning_mutant)
+        assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
+        if mutant_id in stage_specific_physical_ids:
+            _c2b3a_physically_reject_planning_counterfactual(
+                tmp_path,
+                "planning-physical-" + mutant_id,
+                direct_source,
+                planning_mutant,
+            )
+
+    for forbidden_path in (
+        ROOT / "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+        ROOT / "tests/test_c2b3_private_atomic_program_initialization.py",
+        ROOT / "tests/test_c2b3_program_initialization_recovery.py",
+        ROOT / "tests/test_c2b3_private_program_initialization_delegation.py",
     ):
-        assert source_name not in production
-
-    assert not (ROOT / "src/ge_nwp_coordinator/c2b3_program_initialization.py").exists()
+        assert not forbidden_path.exists()
 
 
-def test_c2b3a_dedicated_oracle_has_independent_architecture_guard() -> None:
-    source = _c2b3a_bounded_oracle_source()
-    _assert_c2b3a_independent_oracle_architecture(source)
-
-
-def test_c2b3a_protected_callable_inventory_has_exact_seventeen_names() -> None:
+def test_c2b3a_protected_callable_inventory_has_exact_twenty_names() -> None:
     assert C2B3A_ORACLE_PROTECTED_CALLABLE_NAMES == (
         "_assert_future_c2b3b_scope",
         "_assert_oracle_architecture",
         "_assert_original_apply_outcome",
         "_assert_preassigned_binding",
+        "_bare_reraise_reference",
         "_candidate",
+        "_cleanup_reference",
+        "_cleanup_reference_result",
+        "_exception_graph_identity_walk",
+        "_expect_golden_violation",
+        "_expect_violation",
         "_golden_candidate",
+        "_named_reraise_reference",
         "_owner_contract",
         "_owner_golden_vector",
-        "_planning_fence_candidate",
-        "_planning_markdown_prefix_stripped",
-        "_planning_mutant_at_position",
-        "_planning_nonfenced_normalized_lines",
-        "_planning_normalized_line",
         "_read_allowed_text",
+        "_relational_process_control_reference",
         "_validate_contract",
         "_validate_golden_vector",
         "_validate_planning_status",
@@ -6367,7 +12481,7 @@ def test_c2b3a_protected_callable_inventory_has_exact_seventeen_names() -> None:
         for record in _c2b3a_oracle_protected_load_sites(tree, parents)
         if record[0] in {"_candidate", "_golden_candidate"}
     )
-    assert sum(record[0] == "_candidate" for record in factory_records) == 125
+    assert sum(record[0] == "_candidate" for record in factory_records) == 177
     assert sum(record[0] == "_golden_candidate" for record in factory_records) == 16
 
 
@@ -6935,7 +13049,2823 @@ def test_c2b3a_independent_oracle_architecture_rejects_a01_through_a30(
     ast.parse(mutant, filename=mutant_id)
     with pytest.raises(AssertionError) as exc_info:
         _assert_c2b3a_independent_oracle_architecture(mutant)
-    assert str(exc_info.value) == "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+    expected_diagnostic = (
+        "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+        if mutant_id in {"A11", "A16", "A17", "A18", "A22", "A23", "A24"}
+        else "C2B3A_INDEPENDENT_ORACLE_ARCHITECTURE_INVALID"
+    )
+    assert str(exc_info.value) == expected_diagnostic
+
+
+def test_c2b3a_positive_execution_counts_and_order_are_exact() -> None:
+    source = _c2b3a_bounded_oracle_source()
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    _assert_c2b3a_positive_body_semantics(tree)
+
+
+def test_c2b3a_efficacy_guard_assurance_boundary_is_direct_independent_and_exact(
+) -> None:
+    source = Path(__file__).resolve().read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=Path(__file__).name, type_comments=True)
+    assignments = tuple(
+        statement
+        for statement in tree.body
+        if isinstance(statement, ast.Assign)
+        and len(statement.targets) == 1
+        and isinstance(statement.targets[0], ast.Name)
+        and statement.targets[0].id
+        == "C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY"
+    )
+    assert len(assignments) == 1
+    assignment = assignments[0]
+    assert isinstance(assignment.value, ast.Dict)
+    assert _c2b3a_oracle_closed_literal(assignment.value)
+    observed = ast.literal_eval(assignment.value)
+    assert type(observed) is dict
+    assert observed == C2B3A_EFFICACY_GUARD_ASSURANCE_BOUNDARY
+    assert tuple(observed) == (
+        "classification",
+        "in_scope_guarantees",
+        "explicit_non_claims",
+        "external_assurance_chain",
+        "external_assurance_role",
+    )
+    assert observed["classification"] == "bounded exact-byte self-test assurance"
+    assert observed["in_scope_guarantees"] == (
+        "the exact checked-in efficacy function header and body match the independently authored bounded AST/dataflow grammar",
+        "the exact checked-in function has no local or lexical binding of exec",
+        "the exact checked-in module has no ordinary lexical module binding of exec that changes the efficacy function resolution",
+        "the exact checked-in source contains no directly recognized source-local module-dictionary replacement of exec",
+        "the exact checked-in source contains no wildcard import capable of supplying exec",
+        "the efficacy function in-function namespace, immediate validator capture, baseline validation, terminal validation, one-mutant invocation, restoration, and aggregate behavior retain their existing exact protections",
+        "runtime instrumentation on the exact audited bytes observes builtins.exec as the callable used by the checked execution path",
+        "runtime instrumentation observes 100 calls to the exec-produced validator and zero calls to an alternate validator",
+    )
+    assert observed["explicit_non_claims"] == (
+        "resistance to malicious coordinated editing of both the efficacy checker and its higher-order guard",
+        "resistance to mutation of builtins.exec or the builtins object",
+        "resistance to mutation through __builtins__",
+        "resistance to a pre-poisoned or malicious sys.modules environment",
+        "resistance to mutation of imported module objects",
+        "resistance to custom import hooks or loaders",
+        "resistance to tracing, profiling, debugger, coverage, or interpreter instrumentation that changes execution",
+        "resistance to hostile monkeypatching performed outside the bounded source-local forms",
+        "resistance to arbitrary Python metaprogramming",
+        "resistance to process or interpreter compromise",
+    )
+    assert observed["external_assurance_chain"] == (
+        "exact patch provenance",
+        "fresh independent read-only audit",
+        "staged-blob equality",
+        "committed-blob equality",
+        "Git object and ref truth",
+    )
+    assert observed["external_assurance_role"] == (
+        "provenance and audit are external assurance mechanisms, not semantics "
+        "owned by this test"
+    )
+    assert _c2b3a_oracle_direct_hostile_environment_operations(tree) == ()
+    assert _c2b3a_oracle_module_name_bindings(tree, "exec") == ()
+    assert _c2b3a_oracle_module_wildcard_imports(tree) == ()
+    assert _c2b3a_oracle_direct_module_dictionary_operations(tree) == ()
+
+    exact = '"classification": "bounded exact-byte self-test assurance"'
+    assert source.count(exact) == 3
+    mutant = source.replace(
+        exact,
+        '"classification": "hostile-source and interpreter verifier"',
+        1,
+    )
+    compile(mutant, Path(__file__).name, "exec")
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_mutant_efficacy_checker_structure(mutant)
+    assert exc_info.value.args == (
+        "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID",
+    )
+
+
+def test_c2b3a_m16_m65_executable_efficacy_is_exact() -> None:
+    higher_order_source = Path(__file__).resolve().read_text(encoding="utf-8")
+    _assert_c2b3a_mutant_efficacy_checker_structure(higher_order_source)
+    source = _c2b3a_bounded_oracle_source()
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    _assert_c2b3a_mutant_dataflow_semantics(tree)
+
+
+def test_c2b3a_exact_bytes_runtime_observes_builtins_exec() -> None:
+    higher_order_source = Path(__file__).resolve().read_text(encoding="utf-8")
+    _assert_c2b3a_mutant_efficacy_checker_structure(higher_order_source)
+    source = _c2b3a_bounded_oracle_source()
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    observed: list[object] = []
+
+    def observe_builtin_calls(
+        frame: object,
+        event: str,
+        argument: object,
+    ) -> None:
+        if (
+            event == "c_call"
+            and argument is builtins.exec
+            and frame.f_code
+            is _assert_c2b3a_mutant_dataflow_semantics.__code__
+        ):
+            observed.append(argument)
+
+    assert "exec" not in globals()
+    assert exec is builtins.exec
+    prior_profile = sys.getprofile()
+    sys.setprofile(observe_builtin_calls)
+    try:
+        _assert_c2b3a_mutant_dataflow_semantics(tree)
+    finally:
+        sys.setprofile(prior_profile)
+    assert observed == [builtins.exec]
+
+
+def test_c2b3a_mutant_efficacy_checker_physical_counterfactuals_are_rejected(
+    tmp_path: Path,
+) -> None:
+    source = Path(__file__).resolve().read_text(encoding="utf-8")
+    loop_header = (
+        "    for mutant_id, function_name in C2B3A_LINEAR_MUTANT_FUNCTIONS:\n"
+    )
+    produced_diagnostic_dead_branch = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            if execution[\"validator_diagnostic\"] != expected_diagnostic:\n"
+        "                raise AssertionError(diagnostic)\n",
+        "            if False:\n"
+        "                if execution[\"validator_diagnostic\"] != expected_diagnostic:\n"
+        "                    raise AssertionError(diagnostic)\n",
+    )
+    produced_diagnostic_dead_branch = _c2b3a_semantic_replace_in_function(
+        produced_diagnostic_dead_branch,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            or execution[\"validator_diagnostic\"] != expected_diagnostic\n",
+        "            or False\n",
+    )
+    terminal_one_or_two = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            if execution[\"terminal_calls\"] != 1:\n",
+        "            if execution[\"terminal_calls\"] not in {1, 2}:\n",
+    )
+    terminal_one_or_two = _c2b3a_semantic_replace_in_function(
+        terminal_one_or_two,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            or execution[\"terminal_calls\"] != 1\n",
+        "            or execution[\"terminal_calls\"] not in {1, 2}\n",
+    )
+    terminal_at_most_two = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            if execution[\"terminal_calls\"] != 1:\n",
+        "            if execution[\"terminal_calls\"] > 2:\n",
+    )
+    terminal_at_most_two = _c2b3a_semantic_replace_in_function(
+        terminal_at_most_two,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            or execution[\"terminal_calls\"] != 1\n",
+        "            or execution[\"terminal_calls\"] > 2\n",
+    )
+    m16_after_restoration = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            namespace[\"_expect_violation\"] = original_expect_violation\n\n"
+        "        if (\n",
+        "            namespace[\"_expect_violation\"] = original_expect_violation\n\n"
+        "        if mutant_id == \"M16\":\n"
+        "            mutant_function()\n\n"
+        "        if (\n",
+    )
+    mapped_twice = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            mutant_function()\n",
+        "            mutant_function()\n"
+        "            mutant_function()\n",
+    )
+    mapped_before_instrumentation = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "        namespace[\"_candidate\"] = instrumented_candidate\n",
+        "        mutant_function()\n"
+        "        namespace[\"_candidate\"] = instrumented_candidate\n",
+    )
+    supplied_diagnostic_self_comparison = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            if execution[\"validator_diagnostic\"] != expected_diagnostic:\n",
+        "            if execution[\"supplied_diagnostic\"] != "
+        "execution[\"supplied_diagnostic\"]:\n",
+    )
+    supplied_diagnostic_self_comparison = _c2b3a_semantic_replace_in_function(
+        supplied_diagnostic_self_comparison,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "            or execution[\"validator_diagnostic\"] != expected_diagnostic\n",
+        "            or False\n",
+    )
+    restoration_outside_finally = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "        finally:\n"
+        "            namespace[\"_candidate\"] = original_candidate\n"
+        "            namespace[\"_expect_violation\"] = original_expect_violation\n",
+        "        finally:\n"
+        "            pass\n"
+        "        namespace[\"_candidate\"] = original_candidate\n"
+        "        namespace[\"_expect_violation\"] = original_expect_violation\n",
+    )
+    invocation_after_loop = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "    if tuple(signatures) != expected_m16_m65_ids:\n",
+        "    mutant_function()\n\n"
+        "    if tuple(signatures) != expected_m16_m65_ids:\n",
+    )
+    forged_fifty_after_forty_nine = _c2b3a_semantic_replace_in_function(
+        source,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        loop_header,
+        "    for mutant_id, function_name in "
+        "C2B3A_LINEAR_MUTANT_FUNCTIONS[:49]:\n",
+    )
+    forged_fifty_after_forty_nine = _c2b3a_semantic_replace_in_function(
+        forged_fifty_after_forty_nine,
+        "_assert_c2b3a_mutant_dataflow_semantics",
+        "    if tuple(signatures) != expected_m16_m65_ids:\n",
+        "    execution_totals[\"mutant_invocations\"] = 50\n\n"
+        "    if tuple(signatures) != expected_m16_m65_ids:\n",
+    )
+    counterfactuals = (
+        ("checker-loop-pass", _c2b3a_efficacy_loop_pass_mutant(source)),
+        (
+            "checker-mutant-invocation-removed",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            mutant_function()\n",
+                "            pass\n",
+            ),
+        ),
+        (
+            "checker-candidate-factory-not-installed",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                '        namespace["_candidate"] = instrumented_candidate\n',
+                "        pass\n",
+            ),
+        ),
+        (
+            "checker-terminal-interceptor-not-installed",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                '        namespace["_expect_violation"] = instrumented_expect_violation\n',
+                "        pass\n",
+            ),
+        ),
+        (
+            "checker-reached-forged",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            mutant_function()\n",
+                '            execution["reached"] = True\n',
+            ),
+        ),
+        (
+            "checker-baseline-validation-omitted",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            original_validate(controlled_candidate)\n",
+                "            pass\n",
+            ),
+        ),
+        (
+            "checker-candidate-change-omitted",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "        if controlled_candidate == valid_baseline:\n"
+                "            raise AssertionError(diagnostic)\n",
+                "        if False:\n"
+                "            raise AssertionError(diagnostic)\n",
+            ),
+        ),
+        (
+            "checker-identical-object-omitted",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            if candidate is not controlled_candidate:\n"
+                "                raise AssertionError(diagnostic)\n",
+                "            if False:\n"
+                "                raise AssertionError(diagnostic)\n",
+            ),
+        ),
+        (
+            "checker-exact-diagnostic-omitted",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            if supplied_diagnostic != expected_diagnostic:\n"
+                "                raise AssertionError(diagnostic)\n",
+                "            if False:\n"
+                "                raise AssertionError(diagnostic)\n",
+            ),
+        ),
+        (
+            "checker-fresh-candidate-validated",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "                original_validate(candidate)\n",
+                "                original_validate(original_candidate())\n",
+            ),
+        ),
+        (
+            "checker-produced-diagnostic-dead-branch",
+            produced_diagnostic_dead_branch,
+        ),
+        ("checker-terminal-one-or-two", terminal_one_or_two),
+        ("checker-terminal-at-most-two", terminal_at_most_two),
+        ("checker-m16-after-restoration", m16_after_restoration),
+        ("checker-mapped-mutant-twice", mapped_twice),
+        ("checker-mapped-before-instrumentation", mapped_before_instrumentation),
+        (
+            "checker-real-validator-call-removed",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "                original_validate(candidate)\n",
+                "                pass\n",
+            ),
+        ),
+        (
+            "checker-supplied-diagnostic-self-comparison",
+            supplied_diagnostic_self_comparison,
+        ),
+        (
+            "checker-candidate-factory-not-restored",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            namespace[\"_candidate\"] = original_candidate\n",
+                "            pass\n",
+            ),
+        ),
+        (
+            "checker-terminal-helper-not-restored",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            namespace[\"_expect_violation\"] = original_expect_violation\n",
+                "            pass\n",
+            ),
+        ),
+        ("checker-restoration-outside-finally", restoration_outside_finally),
+        (
+            "checker-only-forty-nine",
+            _c2b3a_efficacy_loop_iter_mutant(
+                source,
+                "C2B3A_LINEAR_MUTANT_FUNCTIONS[:49]",
+            ),
+        ),
+        (
+            "checker-skip-m16",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                loop_header,
+                loop_header
+                + '        if mutant_id == "M16":\n'
+                + "            continue\n",
+            ),
+        ),
+        (
+            "checker-skip-m65",
+            _c2b3a_efficacy_loop_iter_mutant(
+                source,
+                "C2B3A_LINEAR_MUTANT_FUNCTIONS[:-1]",
+            ),
+        ),
+        ("checker-invocation-after-loop", invocation_after_loop),
+        ("checker-forged-fifty-after-forty-nine", forged_fifty_after_forty_nine),
+        (
+            "checker-terminal-count-without-interceptor",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                "_assert_c2b3a_mutant_dataflow_semantics",
+                "            mutant_function()\n",
+                "            execution[\"terminal_calls\"] += 1\n",
+            ),
+        ),
+    )
+    assert len(counterfactuals) == 27
+    for mutant_id, mutant in counterfactuals:
+        physical_source = _c2b3a_physically_import_and_collect_checker(
+            tmp_path,
+            mutant_id,
+            mutant,
+        )
+        try:
+            _assert_c2b3a_mutant_efficacy_checker_structure(physical_source)
+        except AssertionError as exc:
+            assert str(exc) == (
+                "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+            )
+        else:
+            raise AssertionError(
+                "C2B3A_EFFICACY_CHECKER_COUNTERFACTUAL_ACCEPTED:" + mutant_id
+            )
+
+
+def test_c2b3a_exec_produced_validator_provenance_counterfactuals_are_rejected(
+    tmp_path: Path,
+) -> None:
+    source = Path(__file__).resolve().read_text(encoding="utf-8")
+    function_name = "_assert_c2b3a_mutant_dataflow_semantics"
+    exec_capture_tail = (
+        "        )\n"
+        "        original_validate = namespace[\"_validate_contract\"]\n"
+    )
+    handler_tail = (
+        "    except BaseException:\n"
+        "        raise AssertionError(diagnostic) from None\n"
+        "    original_candidate = namespace.get(\"_candidate\")\n"
+    )
+    alternating_definition = (
+        "        forged_validator_calls = 0\n\n"
+        "        def synthetic_validate(candidate: object) -> None:\n"
+        "            nonlocal forged_validator_calls\n"
+        "            forged_validator_calls += 1\n"
+        "            if forged_validator_calls % 2:\n"
+        "                return\n"
+        "            raise namespace[\"_ContractViolation\"](\n"
+        "                \"C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID\"\n"
+        "            )\n\n"
+    )
+    alternating_validator = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        exec_capture_tail,
+        "        )\n"
+        + alternating_definition
+        + "        namespace[\"_validate_contract\"] = synthetic_validate\n"
+        + "        original_validate = namespace[\"_validate_contract\"]\n",
+    )
+    namespace_update = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        exec_capture_tail,
+        "        )\n"
+        "        namespace.update(\n"
+        "            {\"_validate_contract\": lambda candidate: None}\n"
+        "        )\n"
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+    )
+    namespace_setitem = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        exec_capture_tail,
+        "        )\n"
+        "        namespace.__setitem__(\n"
+        "            \"_validate_contract\", lambda candidate: None\n"
+        "        )\n"
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+    )
+    namespace_alias_mutation = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        exec_capture_tail,
+        "        )\n"
+        "        namespace_alias = namespace\n"
+        "        namespace_alias[\"_validate_contract\"] = lambda candidate: None\n"
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+    )
+    second_exec = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        exec_capture_tail,
+        "        )\n"
+        "        exec(\n"
+        "            \"_validate_contract = lambda candidate: None\", namespace\n"
+        "        )\n"
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+    )
+    get_capture = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+        "        original_validate = namespace.get(\"_validate_contract\")\n",
+    )
+    alias_capture = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+        "        namespace_alias = namespace\n"
+        "        original_validate = namespace_alias[\"_validate_contract\"]\n",
+    )
+    validator_rebind = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        handler_tail,
+        "    except BaseException:\n"
+        "        raise AssertionError(diagnostic) from None\n"
+        "    original_validate = lambda candidate: None\n"
+        "    original_candidate = namespace.get(\"_candidate\")\n",
+    )
+    validator_recapture = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+        "        original_validate = namespace[\"_validate_contract\"]\n"
+        "        namespace[\"_validate_contract\"] = lambda candidate: None\n"
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+    )
+    conditional_capture = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        "        original_validate = namespace[\"_validate_contract\"]\n",
+        "        original_validate = (\n"
+        "            namespace[\"_validate_contract\"]\n"
+        "            if False\n"
+        "            else (lambda candidate: None)\n"
+        "        )\n",
+    )
+
+    dead_branch_synthetic = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        handler_tail,
+        "    except BaseException:\n"
+        "        raise AssertionError(diagnostic) from None\n"
+        "    synthetic_validator_calls = 0\n\n"
+        "    def synthetic_validate(candidate: object) -> None:\n"
+        "        nonlocal synthetic_validator_calls\n"
+        "        synthetic_validator_calls += 1\n"
+        "        if synthetic_validator_calls % 2:\n"
+        "            return\n"
+        "        raise namespace[\"_ContractViolation\"](\n"
+        "            \"C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID\"\n"
+        "        )\n\n"
+        "    original_candidate = namespace.get(\"_candidate\")\n",
+    )
+    dead_branch_synthetic = _c2b3a_semantic_replace_in_function(
+        dead_branch_synthetic,
+        function_name,
+        "            original_validate(controlled_candidate)\n",
+        "            if False:\n"
+        "                original_validate(controlled_candidate)\n"
+        "            synthetic_validate(controlled_candidate)\n",
+    )
+    dead_branch_synthetic = _c2b3a_semantic_replace_in_function(
+        dead_branch_synthetic,
+        function_name,
+        "            with pytest.raises(contract_violation) as exc_info:\n"
+        "                original_validate(candidate)\n"
+        "            execution[\"validator_diagnostic\"] = str(exc_info.value)\n"
+        "            if execution[\"validator_diagnostic\"] != expected_diagnostic:\n"
+        "                raise AssertionError(diagnostic)\n",
+        "            if False:\n"
+        "                with pytest.raises(contract_violation) as dead_exc_info:\n"
+        "                    original_validate(candidate)\n"
+        "                execution[\"validator_diagnostic\"] = str(\n"
+        "                    dead_exc_info.value\n"
+        "                )\n"
+        "                if (\n"
+        "                    execution[\"validator_diagnostic\"]\n"
+        "                    != expected_diagnostic\n"
+        "                ):\n"
+        "                    raise AssertionError(diagnostic)\n"
+        "            with pytest.raises(contract_violation) as exc_info:\n"
+        "                synthetic_validate(candidate)\n"
+        "            execution[\"validator_diagnostic\"] = str(exc_info.value)\n"
+        "            if execution[\"validator_diagnostic\"] != expected_diagnostic:\n"
+        "                raise AssertionError(diagnostic)\n",
+    )
+
+    counterfactuals = (
+        ("checker-rd1-alternating-validator", alternating_validator),
+        ("checker-rd1-namespace-update", namespace_update),
+        ("checker-rd1-namespace-setitem", namespace_setitem),
+        ("checker-rd1-namespace-alias-mutation", namespace_alias_mutation),
+        ("checker-rd1-second-exec", second_exec),
+        ("checker-rd1-get-capture", get_capture),
+        ("checker-rd1-alias-capture", alias_capture),
+        ("checker-rd1-validator-rebind", validator_rebind),
+        ("checker-rd1-validator-recapture", validator_recapture),
+        ("checker-rd1-conditional-capture", conditional_capture),
+        ("checker-rd1-dead-branch-synthetic", dead_branch_synthetic),
+    )
+    assert len(counterfactuals) == 11
+    for mutant_id, mutant in counterfactuals:
+        physical_source = _c2b3a_physically_import_and_collect_checker(
+            tmp_path,
+            mutant_id,
+            mutant,
+        )
+        try:
+            _assert_c2b3a_mutant_efficacy_checker_structure(physical_source)
+        except AssertionError as exc:
+            assert str(exc) == (
+                "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+            )
+        else:
+            raise AssertionError(
+                "C2B3A_RD1_VALIDATOR_PROVENANCE_COUNTERFACTUAL_ACCEPTED:"
+                + mutant_id
+            )
+
+    selected_test_name = "test_c2b3a_m16_m65_executable_efficacy_is_exact"
+    alternating_runtime = _c2b3a_semantic_replace_in_function(
+        alternating_validator,
+        selected_test_name,
+        "    _assert_c2b3a_mutant_efficacy_checker_structure(higher_order_source)\n",
+        "    assert higher_order_source\n",
+    )
+    runtime_id = "checker-rd1-alternating-validator-runtime-proof"
+    _c2b3a_physically_import_and_collect_checker(
+        tmp_path,
+        runtime_id,
+        alternating_runtime,
+    )
+    runtime_root = tmp_path / runtime_id
+    for relative_path in (
+        Path(".docs/c2b-durable-development-state.md"),
+        Path(".docs/c2b3-program-initialization.md"),
+        Path("tests/test_c2b3_program_initialization_contract.py"),
+    ):
+        source_path = ROOT / relative_path
+        destination = runtime_root / relative_path
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        source_bytes = source_path.read_bytes()
+        assert destination.write_bytes(source_bytes) == len(source_bytes)
+
+    runtime_test_path = runtime_root / "tests" / Path(__file__).name
+    execute_tmp = runtime_root / "execute-tmp"
+    execute_pycache = runtime_root / "execute-pycache"
+    execute_basetemp = runtime_root / "execute-basetemp"
+    for directory in (execute_tmp, execute_pycache):
+        directory.mkdir(mode=0o700)
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            f"--basetemp={execute_basetemp}",
+            "-q",
+            str(runtime_test_path) + "::" + selected_test_name,
+        ),
+        cwd=ROOT,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(execute_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(execute_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode == 0, executed.stderr
+    assert "1 passed" in executed.stdout
+    assert " warning" not in executed.stdout.lower()
+    assert executed.stderr == ""
+
+
+def test_c2b3a_closed_efficacy_checker_grammar_counterfactuals_are_rejected(
+    tmp_path: Path,
+) -> None:
+    source = Path(__file__).resolve().read_text(encoding="utf-8")
+    function_name = "_assert_c2b3a_mutant_dataflow_semantics"
+    callability_tail = (
+        "    ):\n"
+        "        raise AssertionError(diagnostic)\n\n"
+        "    execution_totals: dict[str, int] = {\n"
+    )
+
+    def insert_after_callability(insertion: str) -> str:
+        return _c2b3a_semantic_replace_in_function(
+            source,
+            function_name,
+            callability_tail,
+            "    ):\n"
+            "        raise AssertionError(diagnostic)\n\n"
+            + insertion
+            + "\n    execution_totals: dict[str, int] = {\n",
+        )
+
+    def add_callability_else(body: str) -> str:
+        return _c2b3a_semantic_replace_in_function(
+            source,
+            function_name,
+            callability_tail,
+            "    ):\n"
+            "        raise AssertionError(diagnostic)\n"
+            "    else:\n"
+            + body
+            + "\n\n    execution_totals: dict[str, int] = {\n",
+        )
+
+    combined_audit_bypass = add_callability_else(
+        "        synthetic_validator_calls = 0\n\n"
+        "        def synthetic_validate(candidate: object) -> None:\n"
+        "            nonlocal synthetic_validator_calls\n"
+        "            synthetic_validator_calls += 1\n"
+        "            if synthetic_validator_calls % 2:\n"
+        "                return\n"
+        "            raise contract_violation(\n"
+        "                \"C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID\"\n"
+        "            )\n\n"
+        "        match synthetic_validate:\n"
+        "            case original_validate:\n"
+        "                pass\n"
+        "        namespace[\"_validate_\" + \"contract\"] = original_validate"
+    )
+    match_as_rebind = insert_after_callability(
+        "    match original_validate:\n"
+        "        case original_validate:\n"
+        "            pass\n"
+    )
+    nested_sequence_star = insert_after_callability(
+        "    match [None, [original_validate]]:\n"
+        "        case [_, [*original_validate]]:\n"
+        "            pass\n"
+    )
+    mapping_rest_alias = insert_after_callability(
+        "    match namespace:\n"
+        "        case {\"_validate_contract\": _, **namespace}:\n"
+        "            pass\n"
+    )
+    concatenated_validator_store = insert_after_callability(
+        "    namespace[\"_validate_\" + \"contract\"] = original_validate\n"
+    )
+    formatted_validator_store = insert_after_callability(
+        "    namespace[f\"{'_validate_'}contract\"] = original_validate\n"
+    )
+    called_validator_store = insert_after_callability(
+        "    namespace[\"\".join((\"_validate_\", \"contract\"))] = "
+        "original_validate\n"
+    )
+    empty_else = add_callability_else("        pass")
+    synthetic_else = add_callability_else(
+        "        def synthetic_validate(candidate: object) -> None:\n"
+        "            return None"
+    )
+    nonliteral_allowed_key_store = insert_after_callability(
+        "    namespace[\"_\" + \"candidate\"] = original_candidate\n"
+    )
+    extra_dynamic_load = insert_after_callability(
+        "    assert namespace[\"_\" + \"candidate\"] is original_candidate\n"
+    )
+    nested_function_pattern = _c2b3a_semantic_replace_in_function(
+        source,
+        function_name,
+        "        def instrumented_candidate() -> object:\n"
+        "            execution[\"candidate_factory_calls\"] = (\n",
+        "        def instrumented_candidate() -> object:\n"
+        "            match None:\n"
+        "                case original_validate:\n"
+        "                    pass\n"
+        "            execution[\"candidate_factory_calls\"] = (\n",
+    )
+    alternate_combined = insert_after_callability(
+        "    match (original_validate,):\n"
+        "        case [original_validate]:\n"
+        "            pass\n"
+        "    namespace[f\"{'_validate'}{'_contract'}\"] = original_validate\n"
+    )
+
+    counterfactuals = (
+        ("checker-rd1-closed-combined-audit-bypass", combined_audit_bypass),
+        ("checker-rd1-closed-match-as", match_as_rebind),
+        ("checker-rd1-closed-nested-sequence-star", nested_sequence_star),
+        ("checker-rd1-closed-mapping-rest-alias", mapping_rest_alias),
+        (
+            "checker-rd1-closed-concatenated-validator-store",
+            concatenated_validator_store,
+        ),
+        ("checker-rd1-closed-formatted-validator-store", formatted_validator_store),
+        ("checker-rd1-closed-called-validator-store", called_validator_store),
+        ("checker-rd1-closed-empty-else", empty_else),
+        ("checker-rd1-closed-synthetic-else", synthetic_else),
+        (
+            "checker-rd1-closed-nonliteral-allowed-key-store",
+            nonliteral_allowed_key_store,
+        ),
+        ("checker-rd1-closed-extra-dynamic-load", extra_dynamic_load),
+        ("checker-rd1-closed-nested-function-pattern", nested_function_pattern),
+        ("checker-rd1-closed-alternate-combined", alternate_combined),
+    )
+    assert len(counterfactuals) == 13
+    for mutant_id, mutant in counterfactuals:
+        physical_source = _c2b3a_physically_import_and_collect_checker(
+            tmp_path,
+            mutant_id,
+            mutant,
+        )
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_c2b3a_mutant_efficacy_checker_structure(physical_source)
+        assert exc_info.value.args == (
+            "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID",
+        )
+        _c2b3a_physically_run_checker_guard_rejection(tmp_path, mutant_id)
+
+    selected_test_name = "test_c2b3a_m16_m65_executable_efficacy_is_exact"
+    combined_guard_disabled = _c2b3a_semantic_replace_in_function(
+        combined_audit_bypass,
+        selected_test_name,
+        "    _assert_c2b3a_mutant_efficacy_checker_structure(higher_order_source)\n",
+        "    assert higher_order_source\n",
+    )
+    runtime_id = "checker-rd1-closed-combined-runtime-proof"
+    _c2b3a_physically_import_and_collect_checker(
+        tmp_path,
+        runtime_id,
+        combined_guard_disabled,
+    )
+    runtime_root = tmp_path / runtime_id
+    for relative_path in (
+        Path(".docs/c2b-durable-development-state.md"),
+        Path(".docs/c2b3-program-initialization.md"),
+        Path("tests/test_c2b3_program_initialization_contract.py"),
+    ):
+        source_path = ROOT / relative_path
+        destination = runtime_root / relative_path
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        source_bytes = source_path.read_bytes()
+        assert destination.write_bytes(source_bytes) == len(source_bytes)
+
+    runtime_test_path = runtime_root / "tests" / Path(__file__).name
+    execute_tmp = runtime_root / "execute-tmp"
+    execute_pycache = runtime_root / "execute-pycache"
+    for directory in (execute_tmp, execute_pycache):
+        directory.mkdir(mode=0o700)
+    execute_program = (
+        "import builtins\n"
+        "import importlib.util\n"
+        "import pathlib\n"
+        "import sys\n"
+        "path = pathlib.Path(sys.argv[1]).resolve(strict=True)\n"
+        "spec = importlib.util.spec_from_file_location(sys.argv[2], path)\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "sys.modules[spec.name] = module\n"
+        "spec.loader.exec_module(module)\n"
+        "genuine_code = None\n"
+        "counts = {'genuine': 0, 'synthetic': 0}\n"
+        "def recording_exec(code, namespace):\n"
+        "    global genuine_code\n"
+        "    result = builtins.exec(code, namespace)\n"
+        "    genuine_code = namespace['_validate_contract'].__code__\n"
+        "    return result\n"
+        "def trace_calls(frame, event, arg):\n"
+        "    if event == 'call':\n"
+        "        if frame.f_code is genuine_code:\n"
+        "            counts['genuine'] += 1\n"
+        "        elif frame.f_code.co_name == 'synthetic_validate':\n"
+        "            counts['synthetic'] += 1\n"
+        "    return trace_calls\n"
+        "module.exec = recording_exec\n"
+        "sys.settrace(trace_calls)\n"
+        "try:\n"
+        "    module.test_c2b3a_m16_m65_executable_efficacy_is_exact()\n"
+        "finally:\n"
+        "    sys.settrace(None)\n"
+        "assert genuine_code is not None\n"
+        "assert counts == {'genuine': 0, 'synthetic': 100}\n"
+    )
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-c",
+            execute_program,
+            str(runtime_test_path),
+            "c2b3a_closed_combined_runtime",
+        ),
+        cwd=runtime_root,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(execute_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(execute_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode == 0, executed.stderr
+    assert executed.stdout == ""
+    assert executed.stderr == ""
+
+
+def test_c2b3a_outer_header_and_bounded_source_local_counterfactuals_are_rejected(
+    tmp_path: Path,
+) -> None:
+    source = Path(__file__).resolve().read_text(encoding="utf-8")
+    function_name = "_assert_c2b3a_mutant_dataflow_semantics"
+    exact_header = (
+        "def _assert_c2b3a_mutant_dataflow_semantics("
+        "tree: ast.Module) -> None:\n"
+    )
+
+    def replace_outer_header(
+        candidate_source: str,
+        replacement: str,
+    ) -> str:
+        return _c2b3a_semantic_replace_in_function(
+            candidate_source,
+            function_name,
+            exact_header,
+            replacement,
+        )
+
+    def insert_after_ast_import(
+        candidate_source: str,
+        insertion: str,
+    ) -> str:
+        anchor = "import ast\n"
+        assert candidate_source.count(anchor) == 1
+        return candidate_source.replace(anchor, anchor + insertion, 1)
+
+    exploit_support = (
+        "_C2B3A_RD2_COUNTS = {\n"
+        "    \"synthetic\": 0,\n"
+        "    \"baseline\": 0,\n"
+        "    \"terminal\": 0,\n"
+        "    \"identity\": 0,\n"
+        "}\n"
+        "_C2B3A_RD2_GENUINE_CODE = None\n"
+        "_C2B3A_RD2_SYNTHETIC_CODE = None\n\n\n"
+        "def _c2b3a_rd2_exec_wrapper(\n"
+        "    code: object,\n"
+        "    execution_namespace: dict[str, object],\n"
+        ") -> None:\n"
+        "    global _C2B3A_RD2_GENUINE_CODE\n"
+        "    global _C2B3A_RD2_SYNTHETIC_CODE\n"
+        "    builtins.exec(code, execution_namespace)\n"
+        "    _C2B3A_RD2_GENUINE_CODE = (\n"
+        "        execution_namespace[\"_validate_contract\"].__code__\n"
+        "    )\n\n"
+        "    def synthetic_validate(candidate: object) -> None:\n"
+        "        del candidate\n"
+        "        _C2B3A_RD2_COUNTS[\"synthetic\"] += 1\n"
+        "        caller = sys._getframe(1)\n"
+        "        if caller.f_code.co_name == (\n"
+        "            \"_assert_c2b3a_mutant_dataflow_semantics\"\n"
+        "        ):\n"
+        "            _C2B3A_RD2_COUNTS[\"baseline\"] += 1\n"
+        "        elif caller.f_code.co_name == \"instrumented_expect_violation\":\n"
+        "            _C2B3A_RD2_COUNTS[\"terminal\"] += 1\n"
+        "        if (\n"
+        "            execution_namespace[\"_validate_contract\"]\n"
+        "            is synthetic_validate\n"
+        "            and caller.f_locals.get(\"original_validate\")\n"
+        "            is synthetic_validate\n"
+        "        ):\n"
+        "            _C2B3A_RD2_COUNTS[\"identity\"] += 1\n"
+        "        if _C2B3A_RD2_COUNTS[\"synthetic\"] % 2 == 0:\n"
+        "            raise execution_namespace[\"_ContractViolation\"](\n"
+        "                \"C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID\"\n"
+        "            )\n\n"
+        "    _C2B3A_RD2_SYNTHETIC_CODE = synthetic_validate.__code__\n"
+        "    namespace_alias = execution_namespace\n"
+        "    namespace_alias[\"_validate_contract\"] = synthetic_validate\n\n\n"
+        "def _c2b3a_rd2_install_exec_wrapper() -> None:\n"
+        "    globals()[\"exec\"] = _c2b3a_rd2_exec_wrapper\n\n\n"
+    )
+    exploit = insert_after_ast_import(source, "import builtins\n")
+    exploit = replace_outer_header(
+        exploit,
+        exploit_support
+        + "def _assert_c2b3a_mutant_dataflow_semantics(\n"
+        + "    tree: ast.Module = _c2b3a_rd2_install_exec_wrapper(),\n"
+        + ") -> None:\n",
+    )
+
+    decorator_support = (
+        "def _c2b3a_rd2_mutating_decorator(function: object) -> object:\n"
+        "    globals()[\"exec\"] = lambda code, namespace: None\n"
+        "    return function\n\n\n"
+    )
+    header_counterfactuals = (
+        (
+            "checker-rd2-benign-positional-default",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module = None) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-global-mutating-default",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics(\n"
+                "    tree: ast.Module = globals().__setitem__(\n"
+                "        \"_c2b3a_rd2_default_marker\", True\n"
+                "    ),\n"
+                ") -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-missing-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics(tree) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-simple-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: object) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-string-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: \"ast.Module\") -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-union-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module | None) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-subscripted-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: tuple[ast.Module]) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-call-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: globals().get(\"ast\").Module) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-named-expression-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: (rd2_annotation := ast.Module)) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-conditional-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: (ast.Module if True else object)) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-lambda-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: (lambda: ast.Module)) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-comprehension-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics(\n"
+                "    tree: [item for item in (ast.Module,)],\n"
+                ") -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-formatted-string-tree-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: f\"{ast.Module}\") -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-tree-argument-type-comment",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics(\n"
+                "    tree: ast.Module,  # type: ast.Module\n"
+                ") -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-second-ordinary-argument",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module, extra: object) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-positional-only-tree",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module, /) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-vararg",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module, *extra: object) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-keyword-only-argument",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module, *, extra: object) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-keyword-only-default",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module, *, extra: object = None) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-kwargs",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module, **extra: object) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-benign-decorator",
+            replace_outer_header(
+                source,
+                "@(lambda function: function)\n" + exact_header,
+            ),
+        ),
+        (
+            "checker-rd2-altered-return-annotation",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module) -> object:\n",
+            ),
+        ),
+        (
+            "checker-rd2-function-type-comment",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics("
+                "tree: ast.Module) -> None:  "
+                "# type: (ast.Module) -> None\n",
+            ),
+        ),
+        (
+            "checker-rd2-type-parameter",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics[T]("
+                "tree: ast.Module) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-type-parameter-bound",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics[T: object]("
+                "tree: ast.Module) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-type-parameter-constraints",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics["
+                "T: (str, bytes)](tree: ast.Module) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-type-parameter-default",
+            replace_outer_header(
+                source,
+                "def _assert_c2b3a_mutant_dataflow_semantics[T = object]("
+                "tree: ast.Module) -> None:\n",
+            ),
+        ),
+        (
+            "checker-rd2-indirect-exec-mutating-decorator",
+            replace_outer_header(
+                source,
+                decorator_support
+                + "@_c2b3a_rd2_mutating_decorator\n"
+                + exact_header,
+            ),
+        ),
+    )
+    module_binding_counterfactuals = (
+        (
+            "checker-rd2-module-exec-assignment",
+            insert_after_ast_import(
+                source,
+                "exec = lambda code, namespace: None\n",
+            ),
+        ),
+        (
+            "checker-rd2-module-exec-named-expression",
+            insert_after_ast_import(
+                source,
+                "(exec := (lambda code, namespace: None))\n",
+            ),
+        ),
+        (
+            "checker-rd2-module-exec-import-alias",
+            insert_after_ast_import(source, "import builtins as exec\n"),
+        ),
+        (
+            "checker-rd2-module-exec-function-definition",
+            insert_after_ast_import(
+                source,
+                "def exec(code, namespace):\n"
+                "    del code, namespace\n\n\n",
+            ),
+        ),
+        (
+            "checker-rd2-module-exec-class-definition",
+            insert_after_ast_import(
+                source,
+                "class exec:\n"
+                "    pass\n\n\n",
+            ),
+        ),
+        (
+            "checker-rd2-module-exec-exception-target",
+            insert_after_ast_import(
+                source,
+                "try:\n"
+                "    raise RuntimeError\n"
+                "except RuntimeError as exec:\n"
+                "    pass\n",
+            ),
+        ),
+        (
+            "checker-rd2-module-exec-pattern-binding",
+            insert_after_ast_import(
+                source,
+                "match (lambda code, namespace: None):\n"
+                "    case exec:\n"
+                "        pass\n",
+            ),
+        ),
+        (
+            "checker-rd2-module-exec-global-declaration",
+            insert_after_ast_import(source, "global exec\n"),
+        ),
+        (
+            "checker-rd2-module-exec-loop-target",
+            insert_after_ast_import(
+                source,
+                "for exec in (lambda code, namespace: None,):\n"
+                "    pass\n",
+            ),
+        ),
+    )
+    ast_proxy_support = (
+        "_C2B3A_BOUNDARY_REAL_AST = ast\n"
+        "class _C2B3A_BOUNDARY_AST_PROXY:\n"
+        "    def __getattr__(self, name):\n"
+        "        return getattr(_C2B3A_BOUNDARY_REAL_AST, name)\n\n\n"
+    )
+    bounded_source_local_counterfactuals = (
+        (
+            "checker-boundary-wildcard-exec-import",
+            insert_after_ast_import(source, "from builtins import *\n"),
+        ),
+        (
+            "checker-boundary-globals-exec-write",
+            insert_after_ast_import(
+                source,
+                'globals()["exec"] = lambda code, namespace: None\n',
+            ),
+        ),
+        (
+            "checker-boundary-vars-module-exec-write",
+            insert_after_ast_import(
+                source,
+                "import sys\n"
+                'vars(sys.modules[__name__])["exec"] = '
+                "lambda code, namespace: None\n",
+            ),
+        ),
+        (
+            "checker-boundary-setattr-module-exec-write",
+            insert_after_ast_import(
+                source,
+                "import sys\n"
+                'setattr(sys.modules[__name__], "exec", '
+                "lambda code, namespace: None)\n",
+            ),
+        ),
+        (
+            "checker-boundary-globals-exec-delete",
+            insert_after_ast_import(
+                source,
+                'globals().setdefault("exec", exec)\n'
+                'del globals()["exec"]\n',
+            ),
+        ),
+        (
+            "checker-boundary-vars-module-exec-delete",
+            insert_after_ast_import(
+                source,
+                "import sys\n"
+                'vars(sys.modules[__name__]).setdefault("exec", exec)\n'
+                'del vars(sys.modules[__name__])["exec"]\n',
+            ),
+        ),
+        (
+            "checker-boundary-delattr-module-exec-delete",
+            insert_after_ast_import(
+                source,
+                "import sys\n"
+                'vars(sys.modules[__name__]).setdefault("exec", exec)\n'
+                'delattr(sys.modules[__name__], "exec")\n',
+            ),
+        ),
+        (
+            "checker-boundary-lexical-ast-write",
+            insert_after_ast_import(
+                source,
+                ast_proxy_support + "ast = _C2B3A_BOUNDARY_AST_PROXY()\n",
+            ),
+        ),
+        (
+            "checker-boundary-globals-ast-write",
+            insert_after_ast_import(
+                source,
+                ast_proxy_support
+                + 'globals()["ast"] = _C2B3A_BOUNDARY_AST_PROXY()\n',
+            ),
+        ),
+        (
+            "checker-boundary-vars-module-ast-write",
+            insert_after_ast_import(
+                source,
+                "import sys\n"
+                + ast_proxy_support
+                + 'vars(sys.modules[__name__])["ast"] = '
+                "_C2B3A_BOUNDARY_AST_PROXY()\n",
+            ),
+        ),
+        (
+            "checker-boundary-setattr-module-ast-write",
+            insert_after_ast_import(
+                source,
+                "import sys\n"
+                + ast_proxy_support
+                + 'setattr(sys.modules[__name__], "ast", '
+                "_C2B3A_BOUNDARY_AST_PROXY())\n",
+            ),
+        ),
+    )
+    counterfactuals = (
+        ("checker-rd2-default-expression-exploit", exploit),
+        *header_counterfactuals,
+        *module_binding_counterfactuals,
+        *bounded_source_local_counterfactuals,
+    )
+    assert len(header_counterfactuals) == 28
+    assert len(module_binding_counterfactuals) == 9
+    assert len(bounded_source_local_counterfactuals) == 11
+    assert len(counterfactuals) == 49
+    for mutant_id, mutant in counterfactuals:
+        physical_source = _c2b3a_physically_import_and_collect_checker(
+            tmp_path,
+            mutant_id,
+            mutant,
+        )
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_c2b3a_mutant_efficacy_checker_structure(physical_source)
+        assert exc_info.value.args == (
+            "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID",
+        )
+        _c2b3a_physically_run_checker_guard_rejection(tmp_path, mutant_id)
+
+    selected_test_name = "test_c2b3a_m16_m65_executable_efficacy_is_exact"
+    exploit_guard_disabled = _c2b3a_semantic_replace_in_function(
+        exploit,
+        selected_test_name,
+        "    _assert_c2b3a_mutant_efficacy_checker_structure("
+        "higher_order_source)\n",
+        "    assert higher_order_source\n",
+    )
+    runtime_id = "checker-rd2-default-expression-runtime-proof"
+    _c2b3a_physically_import_and_collect_checker(
+        tmp_path,
+        runtime_id,
+        exploit_guard_disabled,
+    )
+    runtime_root = tmp_path / runtime_id
+    for relative_path in (
+        Path(".docs/c2b-durable-development-state.md"),
+        Path(".docs/c2b3-program-initialization.md"),
+        Path("tests/test_c2b3_program_initialization_contract.py"),
+    ):
+        source_path = ROOT / relative_path
+        destination = runtime_root / relative_path
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        source_bytes = source_path.read_bytes()
+        assert destination.write_bytes(source_bytes) == len(source_bytes)
+
+    runtime_test_path = runtime_root / "tests" / Path(__file__).name
+    execute_tmp = runtime_root / "execute-tmp"
+    execute_pycache = runtime_root / "execute-pycache"
+    for directory in (execute_tmp, execute_pycache):
+        directory.mkdir(mode=0o700)
+    execute_program = (
+        "import importlib.util\n"
+        "import pathlib\n"
+        "import sys\n"
+        "path = pathlib.Path(sys.argv[1]).resolve(strict=True)\n"
+        "spec = importlib.util.spec_from_file_location(sys.argv[2], path)\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "sys.modules[spec.name] = module\n"
+        "spec.loader.exec_module(module)\n"
+        "profile = {'genuine': 0}\n"
+        "def trace_calls(frame, event, argument):\n"
+        "    del argument\n"
+        "    if (\n"
+        "        event == 'call'\n"
+        "        and frame.f_code is module._C2B3A_RD2_GENUINE_CODE\n"
+        "    ):\n"
+        "        profile['genuine'] += 1\n"
+        "    return trace_calls\n"
+        "sys.settrace(trace_calls)\n"
+        "try:\n"
+        "    module.test_c2b3a_m16_m65_executable_efficacy_is_exact()\n"
+        "finally:\n"
+        "    sys.settrace(None)\n"
+        "assert module._C2B3A_RD2_GENUINE_CODE is not None\n"
+        "assert module._C2B3A_RD2_SYNTHETIC_CODE is not None\n"
+        "assert profile == {'genuine': 0}\n"
+        "assert module._C2B3A_RD2_COUNTS == {\n"
+        "    'synthetic': 100,\n"
+        "    'baseline': 50,\n"
+        "    'terminal': 50,\n"
+        "    'identity': 100,\n"
+        "}\n"
+    )
+    executed = subprocess.run(
+        (
+            sys.executable,
+            "-B",
+            "-c",
+            execute_program,
+            str(runtime_test_path),
+            "c2b3a_rd2_default_expression_runtime",
+        ),
+        cwd=runtime_root,
+        env={
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": "0",
+            "PYTHONPYCACHEPREFIX": str(execute_pycache),
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+            "TMPDIR": str(execute_tmp),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert executed.returncode == 0, executed.stderr
+    assert executed.stdout == ""
+    assert executed.stderr == ""
+
+
+def test_c2b3a_exec_produced_validator_identity_and_restoration_are_exact(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    higher_order_source = Path(__file__).resolve().read_text(encoding="utf-8")
+    _assert_c2b3a_mutant_efficacy_checker_structure(higher_order_source)
+    direct_source = _c2b3a_bounded_oracle_source()
+    direct_tree = ast.parse(direct_source, filename=C2B3A_ORACLE_PATH.name)
+    real_exec = exec
+    assert real_exec is builtins.exec
+    captured: dict[str, object] = {}
+    profile = {
+        "genuine": 0,
+        "baseline": 0,
+        "terminal": 0,
+        "alternate": 0,
+        "identity": 0,
+        "unexpected_caller": 0,
+    }
+
+    def alternate_validate(candidate: object) -> None:
+        raise AssertionError(candidate)
+
+    alternate_code = alternate_validate.__code__
+
+    def recording_exec(code: object, namespace: dict[str, object]) -> None:
+        real_exec(code, namespace)
+        validator = namespace["_validate_contract"]
+        captured["namespace"] = namespace
+        captured["validator"] = validator
+        captured["validator_code"] = validator.__code__
+        captured["candidate"] = namespace["_candidate"]
+        captured["expect_violation"] = namespace["_expect_violation"]
+
+    def trace_validator_calls(
+        frame: object,
+        event: str,
+        argument: object,
+    ) -> object:
+        del argument
+        if event != "call":
+            return trace_validator_calls
+        if frame.f_code is alternate_code:
+            profile["alternate"] += 1
+        if frame.f_code is captured.get("validator_code"):
+            profile["genuine"] += 1
+            caller = frame.f_back
+            if caller is None:
+                profile["unexpected_caller"] += 1
+            elif caller.f_code.co_name == function_name:
+                profile["baseline"] += 1
+            elif caller.f_code.co_name == "instrumented_expect_violation":
+                profile["terminal"] += 1
+            else:
+                profile["unexpected_caller"] += 1
+            namespace = captured["namespace"]
+            validator = captured["validator"]
+            if (
+                namespace["_validate_contract"] is validator
+                and caller is not None
+                and caller.f_locals.get("original_validate") is validator
+            ):
+                profile["identity"] += 1
+        return trace_validator_calls
+
+    function_name = "_assert_c2b3a_mutant_dataflow_semantics"
+    with monkeypatch.context() as context:
+        context.setitem(globals(), "exec", recording_exec)
+        sys.settrace(trace_validator_calls)
+        try:
+            _assert_c2b3a_mutant_dataflow_semantics(direct_tree)
+        finally:
+            sys.settrace(None)
+
+    assert profile == {
+        "genuine": 100,
+        "baseline": 50,
+        "terminal": 50,
+        "alternate": 0,
+        "identity": 100,
+        "unexpected_caller": 0,
+    }
+    normal_namespace = captured["namespace"]
+    assert normal_namespace["_validate_contract"] is captured["validator"]
+    assert normal_namespace["_candidate"] is captured["candidate"]
+    assert (
+        normal_namespace["_expect_violation"]
+        is captured["expect_violation"]
+    )
+
+    def assert_forced_failure_restores(mutant_source: str) -> None:
+        forced_capture: dict[str, object] = {}
+
+        def forced_recording_exec(
+            code: object,
+            namespace: dict[str, object],
+        ) -> None:
+            real_exec(code, namespace)
+            forced_capture["namespace"] = namespace
+            forced_capture["validator"] = namespace["_validate_contract"]
+            forced_capture["candidate"] = namespace["_candidate"]
+            forced_capture["expect_violation"] = namespace["_expect_violation"]
+
+        mutant_tree = ast.parse(mutant_source, filename=C2B3A_ORACLE_PATH.name)
+        with monkeypatch.context() as context:
+            context.setitem(globals(), "exec", forced_recording_exec)
+            with pytest.raises(AssertionError) as exc_info:
+                _assert_c2b3a_mutant_dataflow_semantics(mutant_tree)
+        assert exc_info.value.args == (
+            "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID",
+        )
+        namespace = forced_capture["namespace"]
+        assert namespace["_validate_contract"] is forced_capture["validator"]
+        assert namespace["_candidate"] is forced_capture["candidate"]
+        assert (
+            namespace["_expect_violation"]
+            is forced_capture["expect_violation"]
+        )
+
+    m16_name = "test_commit_close_mutant_m16_missing_matrix_row_is_rejected"
+    exact_terminal = (
+        '_expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")'
+    )
+    forced_preterminal = _c2b3a_semantic_function_body_mutant(
+        direct_source,
+        m16_name,
+        "candidate = _candidate()\n"
+        "candidate['unused'] = 1 / 0\n"
+        + exact_terminal,
+    )
+    forced_terminal = _c2b3a_semantic_function_body_mutant(
+        direct_source,
+        m16_name,
+        "candidate = _candidate()\n"
+        "candidate['commit_close_outcome_addendum']['outcome_matrix'] = "
+        "candidate['commit_close_outcome_addendum']['outcome_matrix'][:-1]\n"
+        + exact_terminal
+        + "\n"
+        + exact_terminal,
+    )
+    assert_forced_failure_restores(forced_preterminal)
+    assert_forced_failure_restores(forced_terminal)
+
+
+@pytest.mark.parametrize(
+    "function_name",
+    (
+        "test_commit_close_addendum_direct_oracle_matrix_is_closed",
+        "test_commit_close_addendum_custody_recovery_and_scope_are_exact",
+        "test_commit_close_relational_process_control_reference_cases_are_exact",
+        "test_post_close_cleanup_reference_model_covers_every_release_point",
+    ),
+)
+def test_c2b3a_semantic_guard_rejects_every_protected_positive_body_as_pass(
+    function_name: str,
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    mutant = _c2b3a_semantic_function_body_mutant(source, function_name, "pass")
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-positive-pass-" + function_name,
+        mutant,
+        function_name,
+    )
+
+
+def test_c2b3a_positive_outer_execution_physical_counterfactuals_are_rejected(
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    process = (
+        "test_commit_close_relational_process_control_reference_cases_are_exact"
+    )
+    cleanup = "test_post_close_cleanup_reference_model_covers_every_release_point"
+    process_loop = "    for case_id, primary, secondary in cases:\n"
+    cleanup_loop = "    for case_id, inputs in cases:\n"
+    process_last = '        assert observed["outward_primary"] is primary\n'
+    cleanup_last = "        assert observed == expected\n"
+    process_assert_end = (
+        "        EXPECTED_PROCESS_CONTROL_REFERENCE_CASES\n"
+        "    )\n"
+    )
+    cleanup_assert_end = (
+        "        EXPECTED_CLEANUP_REFERENCE_CASES\n"
+        "    )\n"
+    )
+
+    process_mutants = (
+        (
+            "process-return-before-loop",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_loop,
+                "    return\n\n" + process_loop,
+            ),
+        ),
+        (
+            "process-return-after-first",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_last,
+                process_last + "        return\n",
+            ),
+        ),
+        (
+            "process-post-assert-tail-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_assert_end,
+                process_assert_end + "    cases = cases[:-1]\n",
+            ),
+        ),
+        (
+            "process-post-assert-head-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_assert_end,
+                process_assert_end + "    cases = cases[1:]\n",
+            ),
+        ),
+        (
+            "process-loop-tail-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                "in cases:\n",
+                "in cases[:-1]:\n",
+            ),
+        ),
+        (
+            "process-loop-tuple-tail-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                "in cases:\n",
+                "in tuple(cases)[:-1]:\n",
+            ),
+        ),
+        (
+            "process-break-after-one",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_last,
+                process_last + "        break\n",
+            ),
+        ),
+        (
+            "process-continue-first",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_loop,
+                process_loop
+                + '        if case_id == "cross-k-s":\n'
+                + "            continue\n",
+            ),
+        ),
+        (
+            "process-if-filter",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                "in cases:\n",
+                'in (case for case in cases if case[0] != "cross-k-s"):\n',
+            ),
+        ),
+        (
+            "process-empty-cases",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                "    cases = _process_control_reference_cases()\n",
+                "    cases = ()\n",
+            ),
+        ),
+        (
+            "process-remove-one-after-assert",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_assert_end,
+                process_assert_end
+                + '    cases = tuple(case for case in cases if case[0] != "private-payload")\n',
+            ),
+        ),
+        (
+            "process-loop-pass",
+            _c2b3a_semantic_top_level_loop_pass_mutant(source, process),
+        ),
+        (
+            "process-helper-skipped-for-one",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                process,
+                process_loop,
+                process_loop
+                + '        if case_id == "cross-k-s":\n'
+                + "            continue\n",
+            ),
+        ),
+    )
+
+    cleanup_mutants = (
+        (
+            "cleanup-return-before-loop",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_loop,
+                "    return\n\n" + cleanup_loop,
+            ),
+        ),
+        (
+            "cleanup-return-after-first",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_last,
+                cleanup_last + "        return\n",
+            ),
+        ),
+        (
+            "cleanup-post-assert-tail-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_assert_end,
+                cleanup_assert_end + "    cases = cases[:-1]\n",
+            ),
+        ),
+        (
+            "cleanup-post-assert-head-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_assert_end,
+                cleanup_assert_end + "    cases = cases[1:]\n",
+            ),
+        ),
+        (
+            "cleanup-loop-tail-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                "in cases:\n",
+                "in cases[:-1]:\n",
+            ),
+        ),
+        (
+            "cleanup-loop-tuple-tail-slice",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                "in cases:\n",
+                "in tuple(cases)[:-1]:\n",
+            ),
+        ),
+        (
+            "cleanup-break-after-one",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_last,
+                cleanup_last + "        break\n",
+            ),
+        ),
+        (
+            "cleanup-continue-first",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_loop,
+                cleanup_loop
+                + '        if case_id == "normal-a":\n'
+                + "            continue\n",
+            ),
+        ),
+        (
+            "cleanup-if-filter",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                "in cases:\n",
+                'in (case for case in cases if case[0] != "normal-a"):\n',
+            ),
+        ),
+        (
+            "cleanup-empty-cases",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                "    cases = CLEANUP_REFERENCE_INPUT_CASES\n",
+                "    cases = ()\n",
+            ),
+        ),
+        (
+            "cleanup-remove-one-after-assert",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                cleanup_assert_end,
+                cleanup_assert_end
+                + '    cases = tuple(case for case in cases if case[0] != "descriptor-unknown")\n',
+            ),
+        ),
+        (
+            "cleanup-loop-pass",
+            _c2b3a_semantic_top_level_loop_pass_mutant(source, cleanup),
+        ),
+        (
+            "cleanup-helper-skipped-for-one",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                cleanup,
+                "        observed = _cleanup_reference(*inputs)\n"
+                "        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]\n",
+                "        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]\n"
+                '        if case_id == "normal-a":\n'
+                "            observed = expected\n"
+                "        else:\n"
+                "            observed = _cleanup_reference(*inputs)\n",
+            ),
+        ),
+    )
+
+    assert len(process_mutants) == 13
+    assert len(cleanup_mutants) == 13
+    for mutant_id, mutant in process_mutants:
+        _assert_c2b3a_semantic_mutant_is_physical(
+            tmp_path,
+            mutant_id,
+            mutant,
+            process,
+        )
+    for mutant_id, mutant in cleanup_mutants:
+        _assert_c2b3a_semantic_mutant_is_physical(
+            tmp_path,
+            mutant_id,
+            mutant,
+            cleanup,
+        )
+
+
+def test_c2b3a_semantic_guard_rejects_constant_reference_helper(
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    positive = (
+        "test_commit_close_relational_process_control_reference_cases_are_exact"
+    )
+
+    constant_helper = _c2b3a_semantic_function_body_mutant(
+        source,
+        "_relational_process_control_reference",
+        "return {'constant': True}",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "relational-constant-helper",
+        constant_helper,
+        positive,
+    )
+
+    mutants = (
+        (
+            "relational-all-assertions-self",
+            _c2b3a_semantic_assertions_self_comparison_mutant(
+                source,
+                positive,
+            ),
+        ),
+        (
+            "relational-full-observed-self",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                '        assert observed["safe_projection"] == expected\n',
+                "        assert observed == observed\n",
+            ),
+        ),
+        (
+            "relational-expected-rebound",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        expected = EXPECTED_PROCESS_CONTROL_REFERENCE_CASES[case_id]\n"
+                '        assert observed["safe_projection"] == expected\n',
+                "        expected = observed\n"
+                "        assert observed == expected\n",
+            ),
+        ),
+        (
+            "relational-expected-reconstructed",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        expected = EXPECTED_PROCESS_CONTROL_REFERENCE_CASES[case_id]\n",
+                '        expected = observed["safe_projection"]\n',
+            ),
+        ),
+        (
+            "relational-same-field",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                '        assert observed["safe_projection"] == expected\n',
+                '        assert observed["safe_projection"] == observed["safe_projection"]\n',
+            ),
+        ),
+        (
+            "relational-field-aliases",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                '        assert observed["safe_projection"] == expected\n',
+                '        left_alias = observed["safe_projection"]\n'
+                '        right_alias = observed["safe_projection"]\n'
+                "        assert left_alias == right_alias\n",
+            ),
+        ),
+        (
+            "relational-identity-self",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                '        assert observed["provided_primary"] is primary\n',
+                "        assert primary is primary\n",
+            ),
+        ),
+        (
+            "relational-expected-removed",
+            _c2b3a_semantic_expected_literal_inventory_mutant(
+                source,
+                "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES",
+                positive,
+                remove=True,
+            ),
+        ),
+    )
+    for mutant_id, mutant in mutants:
+        _assert_c2b3a_semantic_mutant_is_physical(
+            tmp_path,
+            mutant_id,
+            mutant,
+            positive,
+            require_selected_pass=True,
+        )
+
+
+def test_c2b3a_semantic_guard_rejects_helper_result_overwrites_and_mutation(
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    positive = "test_post_close_cleanup_reference_model_covers_every_release_point"
+
+    constant_helper = _c2b3a_semantic_function_body_mutant(
+        source,
+        "_cleanup_reference",
+        "return ()",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "cleanup-constant-helper",
+        constant_helper,
+        positive,
+    )
+
+    mutants = (
+        (
+            "cleanup-all-assertions-self",
+            _c2b3a_semantic_assertions_self_comparison_mutant(
+                source,
+                positive,
+            ),
+        ),
+        (
+            "cleanup-full-observed-self",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        assert observed == expected\n",
+                "        assert observed == observed\n",
+            ),
+        ),
+        (
+            "cleanup-expected-rebound",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]\n"
+                "        assert observed == expected\n",
+                "        expected = observed\n"
+                "        assert observed == expected\n",
+            ),
+        ),
+        (
+            "cleanup-expected-reconstructed",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]\n",
+                "        expected = tuple(observed)\n",
+            ),
+        ),
+        (
+            "cleanup-same-field",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        assert observed == expected\n",
+                "        assert observed[0] == observed[0]\n",
+            ),
+        ),
+        (
+            "cleanup-field-aliases",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        assert observed == expected\n",
+                "        left_alias = observed[0]\n"
+                "        right_alias = observed[0]\n"
+                "        assert left_alias == right_alias\n",
+            ),
+        ),
+        (
+            "cleanup-observed-overwrite",
+            _c2b3a_semantic_replace_in_function(
+                source,
+                positive,
+                "        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]\n",
+                "        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]\n"
+                "        observed = expected\n",
+            ),
+        ),
+        (
+            "cleanup-expected-emptied",
+            _c2b3a_semantic_expected_literal_inventory_mutant(
+                source,
+                "EXPECTED_CLEANUP_REFERENCE_CASES",
+                positive,
+                remove=False,
+            ),
+        ),
+    )
+    for mutant_id, mutant in mutants:
+        _assert_c2b3a_semantic_mutant_is_physical(
+            tmp_path,
+            mutant_id,
+            mutant,
+            positive,
+            require_selected_pass=True,
+        )
+
+
+def test_c2b3a_semantic_guard_rejects_removed_legacy_ledger_classification(
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    classification_start = '    "legacy_exception_probe_ledger_classification": {'
+    cleanup_start = '    "post_close_cleanup_contract": {'
+    assert source.count(classification_start) == 1
+    assert source.count(cleanup_start) == 1
+    before, classification_and_later = source.split(classification_start, 1)
+    _classification, after = classification_and_later.split(cleanup_start, 1)
+    mutant = before + cleanup_start + after
+    ast.parse(mutant, filename="legacy-ledger-classification-removed")
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        "legacy-ledger-classification-removed",
+        mutant,
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_independent_oracle_architecture(mutant)
+    assert str(exc_info.value) == (
+        "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    )
+
+
+def test_c2b3a_executable_efficacy_rejects_runtime_mutant_counterfactuals(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    m16_name = "test_commit_close_mutant_m16_missing_matrix_row_is_rejected"
+    terminal = (
+        '_expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")'
+    )
+    runtime_counterfactuals = (
+        (
+            "m16-mapped-current-value-noop",
+            "candidate = _candidate()\n"
+            "candidate['commit_close_outcome_addendum']['outcome_matrix'] = "
+            "candidate['commit_close_outcome_addendum']['outcome_matrix']\n"
+            + terminal,
+            "candidate['commit_close_outcome_addendum']['outcome_matrix'] = "
+            "candidate['commit_close_outcome_addendum']['outcome_matrix']",
+        ),
+        (
+            "m16-mapped-preterminal-failure",
+            "candidate = _candidate()\n"
+            "candidate['unused'] = 1 / 0\n"
+            + terminal,
+            "candidate['unused'] = 1 / 0",
+        ),
+    )
+    for mutant_id, body, mapped_mutation in runtime_counterfactuals:
+        mutant = _c2b3a_semantic_function_body_mutant(
+            source,
+            m16_name,
+            body,
+        )
+        _c2b3a_physically_import_and_collect_mutant(
+            tmp_path,
+            mutant_id,
+            mutant,
+        )
+        tree = ast.parse(mutant, filename=mutant_id)
+        function = _c2b3a_oracle_top_level_function(tree, m16_name)
+        assert tuple(ast.unparse(statement) for statement in function.body[1:-1]) == (
+            mapped_mutation,
+        )
+        with monkeypatch.context() as context:
+            context.setitem(
+                C2B3A_M16_M65_EXPECTED_MUTATION_SOURCE,
+                "M16",
+                (mapped_mutation,),
+            )
+            with pytest.raises(AssertionError) as exc_info:
+                _assert_c2b3a_independent_oracle_architecture(mutant)
+        assert str(exc_info.value) == (
+            "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+        )
+
+    double_terminal = _c2b3a_semantic_function_body_mutant(
+        source,
+        m16_name,
+        "candidate = _candidate()\n"
+        "candidate['commit_close_outcome_addendum']['outcome_matrix'] = "
+        "candidate['commit_close_outcome_addendum']['outcome_matrix'][:-1]\n"
+        + terminal
+        + "\n"
+        + terminal,
+    )
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        "m16-terminal-twice",
+        double_terminal,
+    )
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_independent_oracle_architecture(double_terminal)
+    assert str(exc_info.value) == (
+        "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+    )
+
+
+def test_c2b3a_semantic_guard_rejects_linear_mutant_counterfactuals(
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    m16_name = "test_commit_close_mutant_m16_missing_matrix_row_is_rejected"
+    m31_name = "test_commit_close_mutant_m31_same_class_implies_same_object_is_rejected"
+    m32_name = "test_commit_close_mutant_m32_distinct_same_class_routing_is_rejected"
+    m33_name = "test_commit_close_mutant_m33_same_instance_routing_is_rejected"
+    m34_name = "test_commit_close_mutant_m34_prelinked_cause_promise_is_rejected"
+    m35_name = "test_commit_close_mutant_m35_prelinked_context_promise_is_rejected"
+    m32_mutation = (
+        '    candidate["commit_close_outcome_addendum"]["matrix_identity_overlay"]'
+        '["diagonal_discriminator"] = "same exact class always selects same_instance"\n'
+    )
+    exact_terminal = (
+        '    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")\n'
+    )
+
+    def physical_rejection(
+        label: str,
+        mutant: str,
+        *,
+        exact_collection: bool = True,
+    ) -> None:
+        ast.parse(mutant, filename=label)
+        _c2b3a_physically_import_and_collect_mutant(
+            tmp_path,
+            label,
+            mutant,
+            C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES if exact_collection else None,
+        )
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_c2b3a_independent_oracle_architecture(mutant)
+        assert str(exc_info.value) == (
+            "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID"
+        )
+
+    m16_exact_mutation = (
+        "candidate['commit_close_outcome_addendum']['outcome_matrix'] = "
+        "candidate['commit_close_outcome_addendum']['outcome_matrix'][:-1]"
+    )
+    m16_exact_terminal = (
+        "_expect_violation(candidate, "
+        "'C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID')"
+    )
+    m16_counterfactual_bodies = (
+        (
+            "m16-current-value-no-op",
+            "candidate = _candidate()\n"
+            "candidate['commit_close_outcome_addendum']['outcome_matrix'] = "
+            "candidate['commit_close_outcome_addendum']['outcome_matrix']\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-zero-step-open-slice",
+            "candidate = _candidate()\n"
+            "candidate[::0] = 0\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-zero-step-bounded-slice",
+            "candidate = _candidate()\n"
+            "candidate[1:4:0] = ()\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-dict-copy-rebind",
+            "candidate = _candidate()\n"
+            "candidate = dict(candidate)\n"
+            + m16_exact_mutation
+            + "\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-union-copy-rebind",
+            "candidate = _candidate()\n"
+            "candidate = candidate | {}\n"
+            + m16_exact_mutation
+            + "\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-temporary-copy-mutation",
+            "candidate = _candidate()\n"
+            "temporary = dict(candidate)\n"
+            "temporary['commit_close_outcome_addendum']['outcome_matrix'] = "
+            "temporary['commit_close_outcome_addendum']['outcome_matrix'][:-1]\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-exact-mutation-fresh-validation-candidate",
+            "candidate = _candidate()\n"
+            + m16_exact_mutation
+            + "\n"
+            "_expect_violation(_candidate(), "
+            "'C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID')",
+        ),
+        (
+            "m16-mutation-removed",
+            "candidate = _candidate()\n" + m16_exact_terminal,
+        ),
+        (
+            "m16-diagnostic-changed",
+            "candidate = _candidate()\n"
+            + m16_exact_mutation
+            + "\n"
+            "_expect_violation(candidate, 'C2B3A_WRONG_DIAGNOSTIC')",
+        ),
+        (
+            "m16-terminal-removed",
+            "candidate = _candidate()\n" + m16_exact_mutation,
+        ),
+        (
+            "m16-terminating-target-expression",
+            "candidate = _candidate()\n"
+            "(candidate if 1 / 0 else candidate)['unused'] = 0\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-terminating-key-expression",
+            "candidate = _candidate()\n"
+            "candidate[1 / 0] = 0\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-terminating-slice-expression",
+            "candidate = _candidate()\n"
+            "candidate[1 / 0:2] = ()\n"
+            + m16_exact_terminal,
+        ),
+        (
+            "m16-terminating-rhs-expression",
+            "candidate = _candidate()\n"
+            "candidate['unused'] = 1 / 0\n"
+            + m16_exact_terminal,
+        ),
+    )
+    for label, body in m16_counterfactual_bodies:
+        mutant = _c2b3a_semantic_function_body_mutant(source, m16_name, body)
+        physical_rejection(label, mutant)
+
+    for label, inserted in (
+        ("linear-candidate-union-rebind", "    candidate = candidate | {}\n"),
+        ("linear-candidate-dict-rebind", "    candidate = dict(candidate)\n"),
+        ("linear-implicit-division", "    early_termination = 1 / 0\n"),
+        ("linear-terminating-target-slice", "    candidate[1 / 0] = 0\n"),
+        ("linear-unrelated-call", "    len(candidate)\n"),
+        ("linear-second-factory", "    candidate = _candidate()\n"),
+    ):
+        mutant = _c2b3a_semantic_replace_in_function(
+            source,
+            m32_name,
+            m32_mutation,
+            m32_mutation + inserted,
+        )
+        physical_rejection(label, mutant)
+
+    different_object = _c2b3a_semantic_replace_in_function(
+        source,
+        m32_name,
+        exact_terminal,
+        '    _expect_violation({}, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")\n',
+    )
+    physical_rejection("linear-different-validation-object", different_object)
+
+    tree = ast.parse(source, filename=C2B3A_ORACLE_PATH.name)
+    m32_function = _c2b3a_oracle_top_level_function(tree, m32_name)
+    if m32_function.end_lineno is None:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    lines = source.splitlines(keepends=True)
+    missing_m32 = "".join(
+        lines[: m32_function.lineno - 1] + lines[m32_function.end_lineno :]
+    )
+    physical_rejection("inventory-m32-deleted", missing_m32, exact_collection=False)
+
+    m31_body = (
+        "candidate = _candidate()\n"
+        'candidate["commit_close_outcome_addendum"]["matrix_identity_overlay"]'
+        '["same_exact_class_implies_same_object"] = True\n'
+        '_expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")'
+    )
+    m32_body = (
+        "candidate = _candidate()\n"
+        'candidate["commit_close_outcome_addendum"]["matrix_identity_overlay"]'
+        '["diagonal_discriminator"] = "same exact class always selects same_instance"\n'
+        '_expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")'
+    )
+    m33_body = (
+        "candidate = _candidate()\n"
+        'candidate["commit_close_outcome_addendum"]'
+        '["process_control_relational_policy"]["same_instance"]'
+        '["selection"] = "always distinct_instance"\n'
+        '_expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")'
+    )
+    duplicate_m31_as_m32 = _c2b3a_semantic_function_body_mutant(
+        source,
+        m32_name,
+        m31_body,
+    )
+    physical_rejection("inventory-m31-duplicated-as-m32", duplicate_m31_as_m32)
+
+    swapped = _c2b3a_semantic_function_body_mutant(source, m32_name, m33_body)
+    swapped = _c2b3a_semantic_function_body_mutant(swapped, m33_name, m32_body)
+    physical_rejection("inventory-m32-m33-swapped", swapped)
+
+    duplicate_diagnostic_and_mutation = _c2b3a_semantic_function_body_mutant(
+        source,
+        m35_name,
+        "candidate = _candidate()\n"
+        'candidate["commit_close_outcome_addendum"]'
+        '["process_control_relational_policy"]["distinct_prelinked"]'
+        '["exact_link_preservation_promised"] = True\n'
+        '_expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")',
+    )
+    physical_rejection(
+        "inventory-duplicate-diagnostic-and-mutation",
+        duplicate_diagnostic_and_mutation,
+    )
+
+    fallback_dispatcher = source + (
+        "\n@pytest.mark.parametrize('mutant_id', ('M31-fallback', 'M32-fallback'))\n"
+        "def test_commit_close_mutant_fallback_dispatcher(mutant_id: str) -> None:\n"
+        "    candidate = _candidate()\n"
+        "    if mutant_id == 'M31-fallback':\n"
+        "        candidate['commit_close_outcome_addendum']['matrix_identity_overlay']"
+        "['same_exact_class_implies_same_object'] = True\n"
+        "    else:\n"
+        "        candidate['commit_close_outcome_addendum']['matrix_identity_overlay']"
+        "['diagonal_discriminator'] = 'same exact class always selects same_instance'\n"
+        "    _expect_violation(candidate, 'C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID')\n"
+    )
+    physical_rejection(
+        "inventory-fallback-dispatcher",
+        fallback_dispatcher,
+        exact_collection=False,
+    )
+
+
+@pytest.mark.parametrize(
+    "step",
+    ("P0", "C1", "C2", "R1", "R2", "R3", "L1", "H1", "H2", "T1", "H3"),
+)
+def test_c2b3a_semantic_guard_rejects_each_removed_cleanup_step(
+    step: str,
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    mutant = _c2b3a_cleanup_step_removed_mutant(source, step)
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-cleanup-step-" + step,
+        mutant,
+        "test_post_close_cleanup_reference_model_covers_every_release_point",
+    )
+
+
+def test_c2b3a_semantic_guard_rejects_cleanup_scope_ordering_noops(
+    tmp_path: Path,
+) -> None:
+    source = _c2b3a_bounded_oracle_source()
+    cleanup_positive = (
+        "test_post_close_cleanup_reference_model_covers_every_release_point"
+    )
+
+    P0_admission_retained = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "        admission_open = False\n",
+        "        admission_open = True\n",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-P0-admission-retained",
+        P0_admission_retained,
+        cleanup_positive,
+    )
+
+    R2_slot_retained = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "            mutation_slot_owned = False\n",
+        "            mutation_slot_owned = True\n",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-R2-slot-retained",
+        R2_slot_retained,
+        cleanup_positive,
+    )
+
+    R3_binding_retained = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "            database_binding_owned = False\n",
+        "            database_binding_owned = True\n",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-R3-binding-retained",
+        R3_binding_retained,
+        cleanup_positive,
+    )
+
+    missing_cleanup_outcome_input = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "    cleanup_outcome: str,\n",
+        "",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-cleanup-outcome-input-removed",
+        missing_cleanup_outcome_input,
+        cleanup_positive,
+    )
+
+    primary_precedence_removed = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        '        if earlier_primary != "none":\n',
+        '        if earlier_primary == "none":\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-active-primary-precedence-removed",
+        primary_precedence_removed,
+        cleanup_positive,
+    )
+
+    primary_dropped_at_X = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "    if not finalizer:\n"
+        '        if earlier_primary != "none":\n',
+        "    if halted and not finalizer:\n"
+        '        if earlier_primary != "none":\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-primary-dropped-on-successful-X",
+        primary_dropped_at_X,
+        cleanup_positive,
+    )
+
+    cleanup_selected_over_primary = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "    if not finalizer:\n"
+        '        if earlier_primary != "none":\n'
+        '            selected_outward = "commit_" + earlier_primary\n'
+        "        elif halted and effective_cleanup_outcome in (\n"
+        '            "KeyboardInterrupt",\n'
+        '            "SystemExit",\n'
+        '            "GeneratorExit",\n'
+        "        ):\n"
+        '            selected_outward = "cleanup_" + effective_cleanup_outcome\n',
+        "    if not finalizer:\n"
+        "        if halted and effective_cleanup_outcome in (\n"
+        '            "KeyboardInterrupt",\n'
+        '            "SystemExit",\n'
+        '            "GeneratorExit",\n'
+        "        ):\n"
+        '            selected_outward = "cleanup_" + effective_cleanup_outcome\n'
+        '        elif earlier_primary != "none":\n'
+        '            selected_outward = "commit_" + earlier_primary\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-cleanup-primary-selected-over-commit-primary",
+        cleanup_selected_over_primary,
+        cleanup_positive,
+    )
+
+    primary_suppressed_outside_finalizer = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        '        if earlier_primary != "none":\n',
+        '        if halted and earlier_primary != "none":\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-primary-suppressed-outside-finalizer",
+        primary_suppressed_outside_finalizer,
+        cleanup_positive,
+    )
+
+    finalizer_propagates_primary = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "    if not finalizer:\n",
+        '    if not finalizer or earlier_primary != "none":\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-finalizer-propagates-primary",
+        finalizer_propagates_primary,
+        cleanup_positive,
+    )
+
+    closure_proved_pending_with_custody = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "                connection_owned = False\n",
+        "                connection_owned = True\n",
+    )
+    closure_proved_pending_with_custody = _c2b3a_semantic_replace_in_function(
+        closure_proved_pending_with_custody,
+        "_cleanup_reference",
+        '                state = "PU" if initial_state == "QU" else "PK"\n',
+        "                state = initial_state\n",
+    )
+    closure_proved_pending_with_custody = _c2b3a_semantic_replace_in_function(
+        closure_proved_pending_with_custody,
+        "_cleanup_reference",
+        "    assert not (\n"
+        "        connection_closed_proved\n"
+        '        and (state in ("QU", "QK") or connection_owned)\n'
+        "    )\n"
+        '    assert not (state in ("PU", "PK") and connection_owned)\n',
+        "    assert True\n    assert True\n",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-closure-proved-QU-QK-with-custody",
+        closure_proved_pending_with_custody,
+        cleanup_positive,
+    )
+
+    proved_state_with_custody = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "                connection_owned = False\n",
+        "                connection_owned = True\n",
+    )
+    proved_state_with_custody = _c2b3a_semantic_replace_in_function(
+        proved_state_with_custody,
+        "_cleanup_reference",
+        "    assert not (\n"
+        "        connection_closed_proved\n"
+        '        and (state in ("QU", "QK") or connection_owned)\n'
+        "    )\n"
+        '    assert not (state in ("PU", "PK") and connection_owned)\n',
+        "    assert True\n    assert True\n",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-PU-PK-with-custody",
+        proved_state_with_custody,
+        cleanup_positive,
+    )
+
+    X_before_release = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        '                writer_lock_release = "release_proved"\n'
+        '                completed += ("L1",)\n',
+        '                state = "X"\n'
+        '                writer_lock_release = "release_proved"\n'
+        '                completed += ("L1",)\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-X-before-release-proof",
+        X_before_release,
+        cleanup_positive,
+    )
+
+    registry_before_terminal = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        "            authority_lock_terminal = True\n"
+        '            if fault_step == "H2" and fault_position == "between":\n',
+        "            authority_lock_registry_present = False\n"
+        "            authority_lock_terminal = True\n"
+        '            if fault_step == "H2" and fault_position == "between":\n',
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-authority-registry-before-terminal",
+        registry_before_terminal,
+        cleanup_positive,
+    )
+
+    A_to_X_erased = _c2b3a_semantic_replace_in_function(
+        source,
+        "_cleanup_reference",
+        '            state = "A-closing"\n',
+        "            halted = True\n",
+    )
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-A-to-X-erased",
+        A_to_X_erased,
+        cleanup_positive,
+    )
+
+    if source.count('"expected_actual_write_paths": 27') != 3:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    if source.count('"maximum_paths": 28') != 3:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    stale_scope = source.replace(
+        '"expected_actual_write_paths": 27',
+        '"expected_actual_write_paths": 23',
+        1,
+    ).replace('"maximum_paths": 28', '"maximum_paths": 24', 1)
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-scope-23-24",
+        stale_scope,
+        "test_commit_close_addendum_custody_recovery_and_scope_are_exact",
+    )
+
+    supersession_removed = source.replace(
+        '"classification": "historical and non-operative for C2B3B after this addendum"',
+        '"classification": "active authority for C2B3B"',
+        1,
+    )
+    if supersession_removed == source:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-scope-supersession-removed",
+        supersession_removed,
+        "test_commit_close_addendum_custody_recovery_and_scope_are_exact",
+    )
+
+    historical_scope_reactivated = source.replace(
+        '"old_values_may_be_used_as_active_authority": False',
+        '"old_values_may_be_used_as_active_authority": True',
+        1,
+    )
+    if historical_scope_reactivated == source:
+        raise AssertionError("C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID")
+    _assert_c2b3a_semantic_mutant_is_physical(
+        tmp_path,
+        "semantic-historical-scope-reactivated",
+        historical_scope_reactivated,
+        "test_commit_close_addendum_custody_recovery_and_scope_are_exact",
+    )
 
 
 def test_c2b3a_strict_legal_protected_load_site_allowlist_is_exact() -> None:
@@ -6947,14 +15877,15 @@ def test_c2b3a_strict_legal_protected_load_site_allowlist_is_exact() -> None:
         for child in ast.iter_child_nodes(parent)
     }
     observed = _c2b3a_oracle_protected_load_sites(tree, parents)
-    assert observed == C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES
-    assert len(observed) == 277
+    assert observed == _c2b3a_oracle_expected_protected_load_sites()
+    assert len(observed) == 525
     assert (
         sum(record[3] == "direct_call_func" for record in observed),
         sum(record[3] == "direct_candidate_argument" for record in observed),
         sum(record[3] == "direct_comparison_operand" for record in observed),
         sum(record[3] == "direct_assert_operand" for record in observed),
-    ) == (218, 27, 32, 0)
+        sum(record[3] is None for record in observed),
+    ) == (429, 36, 39, 0, 21)
     assert tuple(C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS) == (
         "protected_name",
         "enclosing_top_level_function",
@@ -6970,6 +15901,7 @@ def test_c2b3a_strict_legal_protected_load_site_allowlist_is_exact() -> None:
             "direct_comparison_operand",
             "direct_assert_operand",
             "direct_candidate_argument",
+            None,
         }
         for record in observed
     )
@@ -7353,14 +16285,15 @@ def _c2b3a_planning_mutant_at_position(
         )
     if position == "middle":
         return text.replace(
-            "## Private Delegation Shape",
-            claim + "\n\n## Private Delegation Shape",
+            "<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->",
+            claim + "\n\n<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->",
             1,
         )
     if position == "after-source-layout":
         return text.replace(
-            "## Planned C2B3B Source Layout\n",
-            "## Planned C2B3B Source Layout\n\n" + claim + "\n",
+            "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_BEGIN -->",
+            claim
+            + "\n\n<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_BEGIN -->",
             1,
         )
     assert position == "tail"
@@ -7377,66 +16310,45 @@ def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
     ("prelude", "middle", "after-source-layout", "tail"),
 )
 @pytest.mark.parametrize(
-    ("claim", "diagnostic"),
+    "claim",
     (
-        (
-            "The planning document is semantic authority.",
-            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
-        ),
-        (
-            "The planning document co-owns semantic truth.",
-            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
-        ),
-        (
-            "Program initialization source is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Program initialization is implemented.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Private delegation is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Receipt persistence is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Replay runtime is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Recovery runtime is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Author-effect source is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
+        "The planning document is semantic authority.",
+        "The planning document co-owns semantic truth.",
+        "Program initialization source is current.",
+        "Program initialization is implemented.",
+        "Private delegation is current.",
+        "Receipt persistence is current.",
+        "Replay runtime is current.",
+        "Recovery runtime is current.",
+        "Author-effect source is current.",
+        "One extra path is allowed.",
+        "The next path requires reassessment.",
+        "The earlier manifest governs C2B3B.",
+        "The implementation is limited to the earlier manifest.",
+        "The expected path count is 23 and the maximum is 24.",
     ),
 )
 def test_c2b3a_planning_additive_status_contradictions_are_rejected_everywhere(
     claim: str,
-    diagnostic: str,
     position: str,
 ) -> None:
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     mutant = _c2b3a_planning_mutant_at_position(planning, claim, position)
     with pytest.raises(AssertionError) as exc_info:
         _assert_c2b3a_planning_status(mutant)
-    assert str(exc_info.value) == diagnostic
+    assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
 
 @pytest.mark.parametrize("marker", ("```", "~~~"))
-def test_c2b3a_planning_correctly_closed_fenced_claim_is_ignored(
+def test_c2b3a_planning_fenced_outside_projection_claim_is_rejected(
     marker: str,
 ) -> None:
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     fenced = marker + "text\nAuthor-effect source is current.\n" + marker
     mutant = _c2b3a_planning_mutant_at_position(planning, fenced, "middle")
-    _assert_c2b3a_planning_status(mutant)
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_planning_status(mutant)
+    assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
 
 def test_c2b3a_planning_unclosed_and_pseudo_fences_are_bounded() -> None:
@@ -7448,7 +16360,7 @@ def test_c2b3a_planning_unclosed_and_pseudo_fences_are_bounded() -> None:
     )
     with pytest.raises(AssertionError) as exc_info:
         _assert_c2b3a_planning_status(unclosed)
-    assert str(exc_info.value) == "C2B3A_CURRENT_SOURCE_CONTRADICTION"
+    assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
     fenced = (
         "```text\n"
@@ -7461,7 +16373,9 @@ def test_c2b3a_planning_unclosed_and_pseudo_fences_are_bounded() -> None:
         fenced,
         "middle",
     )
-    _assert_c2b3a_planning_status(pseudo_closer)
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_c2b3a_planning_status(pseudo_closer)
+    assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
 
 def test_c2b3a_planning_markdown_prefixes_do_not_hide_claims() -> None:
@@ -7473,4 +16387,4 @@ def test_c2b3a_planning_markdown_prefixes_do_not_hide_claims() -> None:
     )
     with pytest.raises(AssertionError) as exc_info:
         _assert_c2b3a_planning_status(mutant)
-    assert str(exc_info.value) == "C2B3A_CURRENT_SOURCE_CONTRADICTION"
+    assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"

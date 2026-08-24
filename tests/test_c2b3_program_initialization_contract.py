@@ -25,19 +25,199 @@ ALLOWED_ORACLE_RELATIVE_PATHS = (
     ".docs/c2b3-program-initialization.md",
     "tests/test_c2b3_program_initialization_contract.py",
 )
-PLANNING_AUTHORITY_CLAIMS = (
-    "the planning document is semantic authority",
-    "the planning document co-owns semantic truth",
-)
-PLANNING_CURRENT_SOURCE_CLAIMS = (
-    "program initialization source is current",
-    "program initialization is implemented",
-    "private delegation is current",
-    "receipt persistence is current",
-    "replay runtime is current",
-    "recovery runtime is current",
-    "author-effect source is current",
-)
+PLANNING_PROJECTION_BEGIN_MARKER = "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->"
+PLANNING_PROJECTION_END_MARKER = "<!-- C2B3A_PLANNING_PROJECTION_END -->"
+EXPECTED_PLANNING_PROJECTION = """# C2B3 Program Initialization
+
+<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->
+
+<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->
+## Non-authority declaration
+
+This file is a planning and implementation-status projection only. It is not
+semantic authority. Section 35 of `.docs/c2b-durable-development-state.md` is
+the sole C2B3A semantic owner. Planning cannot create, override, widen, narrow,
+resolve, or change a structured owner value, and wording here cannot supply
+operative semantics when a structured owner value exists.
+<!-- C2B3A_PLANNING_NON_AUTHORITY_END -->
+
+<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->
+## Current status
+
+C2B3A remains a target-contract freeze with documentation and direct
+documentation-contract tests only. The current repair changes only the owner,
+this planning projection, the direct oracle, and the higher-order guard. It is
+not an independent audit and does not establish acceptance. Any changed bytes
+require a fresh read-only audit.
+
+The implemented database remains application generation 2 at terminal
+migration `0002_development_program_and_effect_state`. Program initialization,
+private delegation, product mutation, receipt persistence, replay or recovery
+runtime, retained-connection cleanup runtime, finalizer runtime, and author-
+effect source remain absent.
+
+The structured owner value
+`commit_close_outcome_addendum.normative_surface_and_precedence` makes
+`commit_close_outcome_addendum` the sole operative authority for COMMIT/close
+outcomes, process-control relationships, cleanup states and order, finalizer
+and liveness rules, recovery and replay gates, and future C2B3B path scope.
+The bounded prose in Section 35 and this projection have no independent
+semantic authority.
+<!-- C2B3A_PLANNING_CURRENT_STATUS_END -->
+
+<!-- C2B3A_PLANNING_LEGACY_LEDGER_BEGIN -->
+## Legacy-ledger projection
+
+Section 35 classifies
+`commit_uncertainty_cleanup_gate.close_not_proved.process_control_exception_graph_ledger`
+as `historical_runtime_observation`, with `normative=false`,
+`operative_for_c2b3b=false`, `portable_contract=false`, and
+`preserved_for_original_c2b3a_evidence=true`. Its target semantics are
+superseded by `process_control_relational_policy`. No implementation, test
+oracle, planning projection, or future prompt may use its observed graph or
+traceback values as target requirements.
+
+The operative process-control rule is deliberate-action-only. C2B3 does not
+deliberately assign, clear, restore, scrub, sanitize, or manufacture graph or
+traceback state; it deliberately creates no primary-to-secondary relation and
+does not serialize, persist, log, render, report, or copy raw process control.
+Interpreter-managed graph and traceback effects remain permitted, and no exact
+resulting graph or traceback shape is promised.
+<!-- C2B3A_PLANNING_LEGACY_LEDGER_END -->
+
+<!-- C2B3A_PLANNING_ACTIVE_SCOPE_BEGIN -->
+## Active future-scope projection
+
+The preserved 23-expected, 24-maximum, and twenty-fifth-path-stop material is
+historical and non-operative. `consumers_may_use` remains false. The only
+operative future scope is the structured owner value
+`commit_close_outcome_addendum.future_c2b3b_path_scope_status` for
+`C2B3B_PRIVATE_ATOMIC_INITIALIZATION`.
+
+Production is exactly six paths:
+
+- `src/ge_nwp_coordinator/_development_program_initialization_contracts.py`
+- `src/ge_nwp_coordinator/_sqlite_development_program_initialization.py`
+- `src/ge_nwp_coordinator/sqlite_transition_transaction.py`
+- `src/ge_nwp_coordinator/sqlite_writer_session.py`
+- `src/ge_nwp_coordinator/sqlite_connection.py`
+- `src/ge_nwp_coordinator/state_authority_lock.py`
+
+Documentation/status is exactly ten paths:
+
+- `.docs/c2b-durable-development-state.md`
+- `.docs/c2b3-program-initialization.md`
+- `.docs/c2b2-private-readers.md`
+- `.docs/architecture.md`
+- `.docs/durable-state-model.md`
+- `.docs/sqlite-operations-and-recovery.md`
+- `.docs/sqlite-threat-model.md`
+- `.docs/writer-session-authority.md`
+- `README.md`
+- `AGENTS.md`
+
+Required changed tests are exactly eleven paths:
+
+- `tests/test_c2b3_program_initialization_contract.py`
+- `tests/test_c2b3_private_atomic_program_initialization.py`
+- `tests/test_c2b3_program_initialization_recovery.py`
+- `tests/test_c2b3_private_program_initialization_delegation.py`
+- `tests/test_c2b2_field_level_contract.py`
+- `tests/test_c2b2_development_reader_contracts.py`
+- `tests/test_sqlite_b2c_writer_session.py`
+- `tests/test_state_authority_lock.py`
+- `tests/test_runtime_non_authority.py`
+- `tests/test_architecture_contracts.py`
+- `tests/test_c2b0_durable_state_contract.py`
+
+The one contingency path is
+`tests/test_c2b2_private_development_readers.py`. The exact expected count is
+`6 + 10 + 11 = 27`; the exact maximum is 28; a twenty-ninth path is a hard
+stop and scope-reassessment condition.
+
+The four newly required paths relative to the historical manifest are
+`src/ge_nwp_coordinator/state_authority_lock.py`,
+`.docs/writer-session-authority.md`,
+`tests/test_state_authority_lock.py`, and
+`tests/test_sqlite_b2c_writer_session.py`. This projection authorizes no C2B3B
+source or implementation.
+<!-- C2B3A_PLANNING_ACTIVE_SCOPE_END -->
+
+<!-- C2B3A_PLANNING_VALIDATION_ACCEPTANCE_BEGIN -->
+## Validation, source acceptance, and sequencing
+
+These are process and acceptance gates projected from the project lifecycle;
+they do not make this planning file semantic authority.
+
+Future C2B3B tests use private temporary databases only. They never open
+operator state, migrate operator state, or inspect operator-state contents.
+Project-protocol existence or absence checks remain allowed, but no operator
+database open or migration is permitted.
+
+Before C2B3B source is accepted, all of the following separate evidence is
+required:
+
+- an accepted fresh independent read-only source-acceptance audit;
+- the exact committed C2B3A contract baseline;
+- a distinct committed Coordinator repository baseline;
+- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact
+  strategic baseline, produced after and bound to that committed baseline;
+- the committed direct independent oracle;
+- the then-current generation-2 schema and accepted C2B2 row and reader
+  identities;
+- the exact finite 27-expected / 28-maximum / path-29-stop source proposal and
+  protected complement;
+- no WorkSpec custody, lookup, retrieval, leakage, logging, report transport,
+  or traceback retention;
+- one-database, one-writer, one-mutation-slot, and one-controller reuse;
+- exact replay and recovery proof requirements; and
+- zero public, schema, migration, package, authority, route, external-I/O, or
+  cross-repository widening.
+
+The committed Coordinator repository baseline and the refreshed exact
+Coordinator snapshot or explicitly equivalent exact strategic baseline are
+separate evidence items. Neither substitutes for the other, and the fresh
+source-acceptance audit does not itself establish that the snapshot was
+refreshed.
+
+Acceptance of this planning projection is not acceptance of future source.
+
+Before source mutation begins, C2B3B source implementation requires all of the
+following separate evidence:
+
+- an accepted independent audit of the committed C2B3A contract baseline;
+- a committed clean Coordinator baseline;
+- a refreshed exact Coordinator snapshot or explicitly equivalent exact
+  strategic baseline bound to that clean committed baseline;
+- an exact C2B3B source implementation prompt;
+- fresh opening repository and patch provenance;
+- the accepted 27-expected / 28-maximum future path scope and a hard stop if a
+  twenty-ninth path is required; and
+- the private-test database and operator-state non-access boundaries above.
+
+A dirty four-file working tree is not a source baseline.
+
+C2B3C is the author-effect contract freeze. C2B3D cannot begin before the
+C2B3C owner questions are closed. Pending authority evidence remains inert and
+is not verification, permission, route eligibility, ES admission, or worker
+authorization. C2B4, C2B5, and C2B6 remain separate later tranches. Migration
+0003 remains reserved and unimplemented.
+<!-- C2B3A_PLANNING_VALIDATION_ACCEPTANCE_END -->
+
+<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_BEGIN -->
+## Production nonimplementation
+
+C2B3A implements or authorizes no production mutation, receipt, private
+delegation, recovery resolver, author effect, worker, scheduler, queue,
+service, model client, direct-local execution, Execution Substrate invocation,
+Bridge integration, schema, migration, package export, public model,
+`StateStore` method, or `WriterSession` public-protocol change. C2B3B remains
+absent and requires a separately authorized implementation tranche and a fresh
+independent read-only audit.
+<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_END -->
+
+<!-- C2B3A_PLANNING_PROJECTION_END -->
+"""
 
 
 EXPECTED_INITIALIZATION_CONTRACT = {
@@ -1175,6 +1355,1421 @@ EXPECTED_INITIALIZATION_CONTRACT = {
 }
 
 
+EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM = {
+    "identity": {
+        "workstream": "COORDINATOR_C2B3A_COMMIT_CLOSE_OUTCOME_ADDENDUM",
+        "classification": "accepted target-contract addendum",
+        "semantic_owner": ".docs/c2b-durable-development-state.md#35-c2b3a-program-initialization-contract-freeze",
+        "owner_entry": "commit_close_outcome_addendum",
+        "production_implementation_status": "absent",
+        "four_path_scope": (
+            ".docs/c2b-durable-development-state.md",
+            ".docs/c2b3-program-initialization.md",
+            "tests/test_c2b3_program_initialization_contract.py",
+            "tests/test_c2b0_durable_state_contract.py",
+        ),
+        "tracked_modifications": 4,
+        "tracked_additions": 0,
+        "untracked_additions": 0,
+        "preserves_original_five_path_scope": True,
+    },
+    "normative_surface_and_precedence": {
+        "structured_owner": "commit_close_outcome_addendum",
+        "sole_operative_semantic_authority_for": (
+            "COMMIT and close outcomes",
+            "process-control relationships",
+            "cleanup states and order",
+            "finalizer and liveness rules",
+            "recovery and replay gates",
+            "future C2B3B path scope",
+        ),
+        "pre_addendum_section_35_treatment": "historical evidence and original C2B3A contract truth",
+        "explicit_supersession_rule": "where an additive structured owner value explicitly supersedes a historical target value, the additive structured value is operative for C2B3B",
+        "explanatory_prose_has_independent_authority": False,
+        "explanatory_prose_may_create_override_widen_or_narrow": False,
+        "planning_is_semantic_authority": False,
+        "planning_may_resolve_or_change_owner_truth": False,
+        "free_form_prose_may_supply_operational_semantics_when_structured_value_exists": False,
+    },
+    "commit_axis": (
+        ("C1", "COMMIT returns normally"),
+        ("C2", "COMMIT raises an ordinary SQLite exception"),
+        ("C3", "COMMIT raises another ordinary Exception"),
+        ("C4", "COMMIT raises KeyboardInterrupt"),
+        ("C5", "COMMIT raises SystemExit"),
+        ("C6", "COMMIT raises GeneratorExit"),
+    ),
+    "close_axis": (
+        ("K1", "close returns normally and closure is proved"),
+        ("K2", "close raises an ordinary SQLite exception"),
+        ("K3", "close raises another ordinary Exception"),
+        ("K4", "close raises KeyboardInterrupt"),
+        ("K5", "close raises SystemExit"),
+        ("K6", "close raises GeneratorExit"),
+    ),
+    "process_control_inventory": (
+        "KeyboardInterrupt",
+        "SystemExit",
+        "GeneratorExit",
+    ),
+    "matrix_identity_overlay": {
+        "matrix_axes": "exception types only; object identity is orthogonal",
+        "different_exact_classes": "necessarily distinct objects",
+        "diagonal_rows": ("C4K4", "C5K5", "C6K6"),
+        "diagonal_discriminator": "same_instance iff commit_exception is cleanup_exception; otherwise distinct_instance",
+        "same_exact_class_implies_same_object": False,
+        "additional_cartesian_axis": False,
+        "dynamic_generation": False,
+    },
+    "session_state_legend": {
+        "A": "normal active session",
+        "QU": "commit uncertain; retained transaction-connection closure unproved",
+        "QK": "commit known committed; retained transaction-connection closure unproved",
+        "PU": "commit uncertain; connection closure proved and raw connection custody cleared; residual cleanup pending",
+        "PK": "commit known committed; connection closure proved and raw connection custody cleared; residual cleanup pending",
+        "X": "authority-terminal after applicable connection-close proof, credential revocation, slot and binding release, writer-lock release proof, authority-lock terminalization, and exact authority-lock registry removal",
+    },
+    "orthogonal_cleanup_facets": {
+        "writer_lock_release": (
+            "not_attempted",
+            "release_unproved",
+            "release_proved",
+        ),
+        "descriptor_outcome": (
+            "not_attempted",
+            "reclaimed",
+            "reclamation_unknown",
+        ),
+        "finalizer_liveness": (
+            "finalizer_attempted",
+            "retry_reachable",
+        ),
+        "wrapper_loss_after_failed_one_shot_finalizer": {
+            "finalizer_attempted": True,
+            "retry_reachable": False,
+        },
+        "X_requires_descriptor_reclaimed": False,
+        "X_requires_post_X_session_registry_removal": False,
+        "CLEANING": "transient single-owner execution condition; never stable custody state",
+    },
+    "row_field_order": (
+        "row_id",
+        "commit_axis_id",
+        "close_axis_id",
+        "known_commit_state",
+        "outward_result_or_exception",
+        "outward_identity_requirements",
+        "raise_form",
+        "repair_owned_propagation_frame_delta",
+        "cause_context_suppression_notes",
+        "raw_connection_disposition",
+        "raw_connection_owner",
+        "controller_state",
+        "session_state",
+        "mutation_slot_disposition",
+        "operation_lease_completion",
+        "writer_lock_disposition",
+        "quarantine_publication",
+        "new_operation_admission",
+        "committed_result_delivered",
+        "permitted_recovery_or_replay",
+        "automatic_semantic_retry",
+        "rollback_after_commit_start",
+        "secondary_failure_posture",
+        "C2B3_private_material_added_or_copied_outward",
+    ),
+    "outcome_matrix": (
+        (
+            "C1K1", "C1", "K1", "committed",
+            "return planned committed result",
+            "identical planned committed result",
+            "return", "not_applicable",
+            "not_applicable; no outward exception",
+            "closure proved; custody cleared", "none",
+            "not quarantined; controller no longer owns connection", "A",
+            "released; shared mutation slot available",
+            "completed and removed normally",
+            "retained by active session", "not_applicable",
+            "admitted under normal active-session rules", True,
+            "none needed", False, False, "none", False,
+        ),
+        (
+            "C1K2", "C1", "K2", "committed",
+            "return planned committed result",
+            "identical planned committed result",
+            "return", "not_applicable",
+            "not_applicable; no outward exception",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED", "QK",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QK and custody published before result return",
+            "post_close_cleanup_contract disposal only", True,
+            "no commit-outcome resolver; post_close_cleanup_contract disposal only; no replay needed",
+            False, False,
+            "ordinary SQLite close failure suppressed and not deliberately copied into an outward value, log, or report",
+            False,
+        ),
+        (
+            "C1K3", "C1", "K3", "committed",
+            "return planned committed result",
+            "identical planned committed result",
+            "return", "not_applicable",
+            "not_applicable; no outward exception",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED", "QK",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QK and custody published before result return",
+            "post_close_cleanup_contract disposal only", True,
+            "no commit-outcome resolver; post_close_cleanup_contract disposal only; no replay needed",
+            False, False,
+            "other ordinary close failure suppressed and not deliberately copied into an outward value, log, or report",
+            False,
+        ),
+        (
+            "C1K4", "C1", "K4", "committed",
+            "propagate close-time KeyboardInterrupt",
+            "identical close exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 deliberately adds, clears, restores, scrubs, or copies no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED", "QK",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QK and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, normal initialization apply in a new session gives receipt-first exact replay of the identical safe command",
+            False, False,
+            "close-time process control is sole outward exception; committed result not delivered",
+            False,
+        ),
+        (
+            "C1K5", "C1", "K5", "committed",
+            "propagate close-time SystemExit",
+            "identical close exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 deliberately adds, clears, restores, scrubs, or copies no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED", "QK",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QK and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, normal initialization apply in a new session gives receipt-first exact replay of the identical safe command",
+            False, False,
+            "close-time process control is sole outward exception; committed result not delivered",
+            False,
+        ),
+        (
+            "C1K6", "C1", "K6", "committed",
+            "propagate close-time GeneratorExit",
+            "identical close exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 deliberately adds, clears, restores, scrubs, or copies no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED", "QK",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QK and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, normal initialization apply in a new session gives receipt-first exact replay of the identical safe command",
+            False, False,
+            "close-time process control is sole outward exception; committed result not delivered",
+            False,
+        ),
+        (
+            "C2K1", "C2", "K1", "unknown",
+            "raise SQLiteMutationStoreError(commit_outcome_unknown)",
+            "fresh content-free error distinct from commit and close exceptions",
+            "explicit raise from None", "not_applicable",
+            "cause=None; context=None; suppress_context=True; notes=absent",
+            "closure proved; custody cleared", "none",
+            "commit uncertainty recorded; controller no longer owns connection", "A",
+            "released; shared mutation slot available",
+            "completed and removed normally",
+            "retained by active session", "not_applicable",
+            "ordinary active-session rules; C2K1/C3K1 remain A and recovery requires later ordinary A -> X disposal first", False,
+            "after ordinary A -> X reaches T1 through the shared proof-aware lock-release primitive, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary SQLite commit exception not retained or copied into the content-free outward safe error",
+            False,
+        ),
+        (
+            "C2K2", "C2", "K2", "unknown",
+            "raise SQLiteMutationStoreError(commit_outcome_unknown)",
+            "fresh content-free error distinct from commit and close exceptions",
+            "explicit raise from None", "not_applicable",
+            "cause=None; context=None; suppress_context=True; notes=absent",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before outward error",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit and SQLite close exceptions not retained or copied into the content-free outward safe error",
+            False,
+        ),
+        (
+            "C2K3", "C2", "K3", "unknown",
+            "raise SQLiteMutationStoreError(commit_outcome_unknown)",
+            "fresh content-free error distinct from commit and close exceptions",
+            "explicit raise from None", "not_applicable",
+            "cause=None; context=None; suppress_context=True; notes=absent",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before outward error",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit and other ordinary close exceptions not retained or copied into the content-free outward safe error",
+            False,
+        ),
+        (
+            "C2K4", "C2", "K4", "unknown",
+            "propagate close-time KeyboardInterrupt",
+            "identical close exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 copies no ordinary COMMIT failure and deliberately adds, clears, restores, or scrubs no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit exception detached; close-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C2K5", "C2", "K5", "unknown",
+            "propagate close-time SystemExit",
+            "identical close exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 copies no ordinary COMMIT failure and deliberately adds, clears, restores, or scrubs no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit exception detached; close-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C2K6", "C2", "K6", "unknown",
+            "propagate close-time GeneratorExit",
+            "identical close exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 copies no ordinary COMMIT failure and deliberately adds, clears, restores, or scrubs no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit exception detached; close-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C3K1", "C3", "K1", "unknown",
+            "raise SQLiteMutationStoreError(commit_outcome_unknown)",
+            "fresh content-free error distinct from commit and close exceptions",
+            "explicit raise from None", "not_applicable",
+            "cause=None; context=None; suppress_context=True; notes=absent",
+            "closure proved; custody cleared", "none",
+            "commit uncertainty recorded; controller no longer owns connection", "A",
+            "released; shared mutation slot available",
+            "completed and removed normally",
+            "retained by active session", "not_applicable",
+            "ordinary active-session rules; C2K1/C3K1 remain A and recovery requires later ordinary A -> X disposal first", False,
+            "after ordinary A -> X reaches T1 through the shared proof-aware lock-release primitive, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary commit exception not retained or copied into the content-free outward safe error",
+            False,
+        ),
+        (
+            "C3K2", "C3", "K2", "unknown",
+            "raise SQLiteMutationStoreError(commit_outcome_unknown)",
+            "fresh content-free error distinct from commit and close exceptions",
+            "explicit raise from None", "not_applicable",
+            "cause=None; context=None; suppress_context=True; notes=absent",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before outward error",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit and SQLite close exceptions not retained or copied into the content-free outward safe error",
+            False,
+        ),
+        (
+            "C3K3", "C3", "K3", "unknown",
+            "raise SQLiteMutationStoreError(commit_outcome_unknown)",
+            "fresh content-free error distinct from commit and close exceptions",
+            "explicit raise from None", "not_applicable",
+            "cause=None; context=None; suppress_context=True; notes=absent",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before outward error",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary commit and other ordinary close exceptions not retained or copied into the content-free outward safe error",
+            False,
+        ),
+        (
+            "C3K4", "C3", "K4", "unknown",
+            "propagate close-time KeyboardInterrupt",
+            "identical close exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 copies no ordinary COMMIT failure and deliberately adds, clears, restores, or scrubs no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary commit exception detached; close-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C3K5", "C3", "K5", "unknown",
+            "propagate close-time SystemExit",
+            "identical close exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 copies no ordinary COMMIT failure and deliberately adds, clears, restores, or scrubs no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary commit exception detached; close-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C3K6", "C3", "K6", "unknown",
+            "propagate close-time GeneratorExit",
+            "identical close exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same close catch suite", 0,
+            "C2B3 copies no ordinary COMMIT failure and deliberately adds, clears, restores, or scrubs no cause, context, suppression, traceback, note, relation, or private material; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary commit exception detached; close-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C4K1", "C4", "K1", "unknown",
+            "propagate original COMMIT-time KeyboardInterrupt",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite after post_close_cleanup_contract continuation", 0,
+            "apply process_control_relational_policy; add no C2B3-owned graph edge, note, or private material",
+            "closure proved; custody cleared; connection never closed again", "none",
+            "_CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING", "PU",
+            "retained pending monotonic cleanup; released only at X",
+            "completed identity removed after PU publication without clearing the pending slot",
+            "retained until post_close_cleanup_contract reaches X",
+            "PU published before residual cleanup; X only after every required release completes",
+            "residual cleanup only while PU; recovery blocked until X", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a newly acquired session with a fresh lease and identical safe command",
+            False, False,
+            "close returned normally; residual cleanup may reach X or remain PU with progress; original COMMIT-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C4K2", "C4", "K2", "unknown",
+            "propagate original COMMIT-time KeyboardInterrupt",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary SQLite close failure suppressed; no deliberate primary-to-secondary relation, scrub, or restoration; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C4K3", "C4", "K3", "unknown",
+            "propagate original COMMIT-time KeyboardInterrupt",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary close failure suppressed; no deliberate primary-to-secondary relation, scrub, or restoration; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C4K4", "C4", "K4", "unknown",
+            "propagate original COMMIT-time KeyboardInterrupt",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "dispatch by object identity: same_instance iff commit_exception is cleanup_exception; otherwise distinct_instance; no exact graph or traceback shape is promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "object-identity discriminator selects same_instance or distinct_instance; original COMMIT-time KeyboardInterrupt remains primary and C2B3 deliberately adds no graph relation or material",
+            False,
+        ),
+        (
+            "C4K5", "C4", "K5", "unknown",
+            "propagate original COMMIT-time KeyboardInterrupt",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "close-time SystemExit secondary relation classified by process_control_relational_policy; no deliberate C2B3-owned graph relation or material; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C4K6", "C4", "K6", "unknown",
+            "propagate original COMMIT-time KeyboardInterrupt",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "close-time GeneratorExit secondary relation classified by process_control_relational_policy; no deliberate C2B3-owned graph relation or material; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C5K1", "C5", "K1", "unknown",
+            "propagate original COMMIT-time SystemExit",
+            "identical original commit exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same COMMIT catch suite after post_close_cleanup_contract continuation", 0,
+            "apply process_control_relational_policy; add no C2B3-owned graph edge, note, or private material",
+            "closure proved; custody cleared; connection never closed again", "none",
+            "_CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING", "PU",
+            "retained pending monotonic cleanup; released only at X",
+            "completed identity removed after PU publication without clearing the pending slot",
+            "retained until post_close_cleanup_contract reaches X",
+            "PU published before residual cleanup; X only after every required release completes",
+            "residual cleanup only while PU; recovery blocked until X", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a newly acquired session with a fresh lease and identical safe command",
+            False, False,
+            "close returned normally; residual cleanup may reach X or remain PU with progress; original COMMIT-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C5K2", "C5", "K2", "unknown",
+            "propagate original COMMIT-time SystemExit",
+            "identical original commit exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary SQLite close failure suppressed; no deliberate primary-to-secondary relation, scrub, or restoration; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C5K3", "C5", "K3", "unknown",
+            "propagate original COMMIT-time SystemExit",
+            "identical original commit exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary close failure suppressed; no deliberate primary-to-secondary relation, scrub, or restoration; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C5K4", "C5", "K4", "unknown",
+            "propagate original COMMIT-time SystemExit",
+            "identical original commit exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "close-time KeyboardInterrupt secondary relation classified by process_control_relational_policy; no deliberate C2B3-owned graph relation or material; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C5K5", "C5", "K5", "unknown",
+            "propagate original COMMIT-time SystemExit",
+            "identical original commit exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same COMMIT catch suite", 0,
+            "dispatch by object identity: same_instance iff commit_exception is cleanup_exception; otherwise distinct_instance; no exact graph or traceback shape is promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "object-identity discriminator selects same_instance or distinct_instance; original COMMIT-time SystemExit remains primary and C2B3 deliberately adds no graph relation or material",
+            False,
+        ),
+        (
+            "C5K6", "C5", "K6", "unknown",
+            "propagate original COMMIT-time SystemExit",
+            "identical original commit exception object, exact type and args, and exact SystemExit.code",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "close-time GeneratorExit secondary relation classified by process_control_relational_policy; no deliberate C2B3-owned graph relation or material; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C6K1", "C6", "K1", "unknown",
+            "propagate original COMMIT-time GeneratorExit",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite after post_close_cleanup_contract continuation", 0,
+            "apply process_control_relational_policy; add no C2B3-owned graph edge, note, or private material",
+            "closure proved; custody cleared; connection never closed again", "none",
+            "_CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING", "PU",
+            "retained pending monotonic cleanup; released only at X",
+            "completed identity removed after PU publication without clearing the pending slot",
+            "retained until post_close_cleanup_contract reaches X",
+            "PU published before residual cleanup; X only after every required release completes",
+            "residual cleanup only while PU; recovery blocked until X", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a newly acquired session with a fresh lease and identical safe command",
+            False, False,
+            "close returned normally; residual cleanup may reach X or remain PU with progress; original COMMIT-time process control is sole outward exception",
+            False,
+        ),
+        (
+            "C6K2", "C6", "K2", "unknown",
+            "propagate original COMMIT-time GeneratorExit",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "ordinary SQLite close failure suppressed; no deliberate primary-to-secondary relation, scrub, or restoration; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C6K3", "C6", "K3", "unknown",
+            "propagate original COMMIT-time GeneratorExit",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "other ordinary close failure suppressed; no deliberate primary-to-secondary relation, scrub, or restoration; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C6K4", "C6", "K4", "unknown",
+            "propagate original COMMIT-time GeneratorExit",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "close-time KeyboardInterrupt secondary relation classified by process_control_relational_policy; no deliberate C2B3-owned graph relation or material; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C6K5", "C6", "K5", "unknown",
+            "propagate original COMMIT-time GeneratorExit",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "apply process_control_relational_policy; C2B3 deliberately adds no primary-to-secondary relation; exact interpreter graph shape is not promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "close-time SystemExit secondary relation classified by process_control_relational_policy; no deliberate C2B3-owned graph relation or material; exact interpreter graph shape is not promised",
+            False,
+        ),
+        (
+            "C6K6", "C6", "K6", "unknown",
+            "propagate original COMMIT-time GeneratorExit",
+            "identical original commit exception object, exact type and args; SystemExit.code not applicable",
+            "bare raise in the same COMMIT catch suite", 0,
+            "dispatch by object identity: same_instance iff commit_exception is cleanup_exception; otherwise distinct_instance; no exact graph or traceback shape is promised",
+            "closure not proved; retained connection", "private _WriterSessionResource",
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "QU",
+            "retained as resource-owned and unavailable",
+            "completed identity removed without clearing resource-owned slot",
+            "retained by quarantined resource",
+            "QU and custody published before propagation",
+            "post_close_cleanup_contract disposal only", False,
+            "after T1 publishes X, explicit commit-outcome resolver in a new session with a fresh lease and identical safe command",
+            False, False,
+            "object-identity discriminator selects same_instance or distinct_instance; original COMMIT-time GeneratorExit remains primary and C2B3 deliberately adds no graph relation or material",
+            False,
+        ),
+    ),
+    "controller_and_resource_custody": {
+        "controller_states": (
+            "_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED",
+            "_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED",
+            "_CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING",
+            "_CONTROLLER_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING",
+        ),
+        "writer_session_resource_states": (
+            "_COMMIT_UNCERTAIN_QUARANTINED",
+            "_COMMIT_SUCCEEDED_QUARANTINED",
+            "_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING",
+            "_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING",
+        ),
+        "state_mapping": (
+            ("_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED", "_COMMIT_UNCERTAIN_QUARANTINED", "QU"),
+            ("_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED", "_COMMIT_SUCCEEDED_QUARANTINED", "QK"),
+            ("_CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING", "_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING", "PU"),
+            ("_CONTROLLER_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING", "_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING", "PK"),
+        ),
+        "controller_custody_through_close_attempt": True,
+        "custody_transfer_when_close_not_proved": "exactly once into _WriterSessionResource",
+        "publication_before_outward_result_or_exception": True,
+        "operation_identity_removed_on_unwind": True,
+        "quarantined_resource_slot_cleared_by_operation_lease": False,
+        "operation_lease_artificially_active_after_unwind": False,
+        "connection_closed_pending_state_has_raw_connection_custody": False,
+        "pending_cleanup_progress_owner": "private _WriterSessionResource only",
+        "new_operation_admission_while_QU_QK_PU_or_PK": False,
+        "writer_lock_release_gate": "L1 normal LOCK_UN return followed by release_proved publication; descriptor close is not proof",
+        "X_gate": "applicable connection proof, R1/R2/R3, L1 release_proved, and H2 complete; H1 outcome may be reclamation_unknown and H3 follows X",
+        "forbidden_extra_states": (
+            "COMMIT-time process control pending propagation",
+            "nested close-time process-control exception",
+            "stored generic exception object",
+        ),
+        "process_control_exception_custody": "active catch suite only; never session state",
+    },
+    "process_control_relational_policy": {
+        "inventory": (
+            "KeyboardInterrupt",
+            "SystemExit",
+            "GeneratorExit",
+        ),
+        "guarantee_scope": "C2B3 deliberate actions only",
+        "forbidden_deliberate_actions": (
+            "assign, clear, restore, scrub, or sanitize cause",
+            "assign, clear, restore, scrub, or sanitize context",
+            "assign, clear, restore, scrub, or sanitize suppression",
+            "assign, clear, restore, scrub, or sanitize traceback",
+            "manufacture a graph cycle or graph relationship",
+            "add a note or private payload",
+            "create a new primary-to-secondary relationship",
+            "reconstruct the selected object to sanitize caller material",
+        ),
+        "interpreter_managed_changes": "cause, context, suppression, cycle, and traceback effects from nested raising and catching are permitted and are not attributed to C2B3",
+        "exact_before_after_graph_reachability_cycle_or_traceback_promise": False,
+        "preexisting_relation_deliberately_removed": False,
+        "exact_interpreter_preservation_guaranteed": False,
+        "coordinator_generated_safe_error": {
+            "value": "fresh SQLiteMutationStoreError(commit_outcome_unknown)",
+            "content_free": True,
+            "raise_form": "explicit raise from None",
+            "cause": None,
+            "context": None,
+            "suppress_context": True,
+            "notes": "absent",
+            "retained_source_exception": False,
+            "forbidden_material": (
+                "raw connection or cursor",
+                "transaction controller or mutation slot",
+                "authority lock or writer lock",
+                "SQL, parameters, or path",
+                "WorkSpec or safe command",
+                "commit, close, cleanup, or raw process-control material",
+            ),
+        },
+        "raw_process_control": {
+            "classification": "raw control flow; never a privacy-safe report, persistence, or diagnostic value",
+            "selected_outward_object_preserved": True,
+            "exact_type_and_args": True,
+            "SystemExit_code_preserved": True,
+            "sanitize_or_reconstruct_preexisting_payload": False,
+            "serialize_persist_log_format_render_or_report": False,
+            "C2B3_owned_private_material_added_or_copied": False,
+            "deliberate_primary_to_secondary_relation_added": False,
+            "only_permitted_propagation": "bare raise in the governing catch suite while the selected primary is actively handled",
+            "forbidden_propagation": (
+                "named raise merely to propagate later",
+                "reconstructed exception",
+                "helper-owned delayed propagation",
+                "explicit with_traceback",
+                "raise-from transformation",
+                "add_note",
+            ),
+        },
+        "distinct_graph_disjoint": {
+            "primary_precedence": "selected process control under the matrix precedence rule",
+            "objects_are_distinct": True,
+            "deliberate_primary_to_secondary_relation_added": False,
+            "exact_full_graph_shape_promised": False,
+        },
+        "distinct_prelinked": {
+            "primary_precedence": "selected process control under the matrix precedence rule",
+            "covered_prelinks": ("cause", "context"),
+            "preexisting_link_deliberately_scrubbed_or_restored": False,
+            "additional_deliberate_relation_added": False,
+            "interpreter_replacement_reversal_or_cycle_handling_permitted": True,
+            "exact_link_preservation_promised": False,
+            "absolute_secondary_unreachability_claim": False,
+        },
+        "separately_linked_third_exception": {
+            "deliberate_scrub_restore_or_copy": False,
+            "exact_reachability_or_cycle_shape_promised": False,
+            "cycle_safe_identity_traversal_required_in_tests": True,
+        },
+        "same_instance": {
+            "selection": "commit_exception is cleanup_exception",
+            "original_object_remains_primary": True,
+            "distinct_secondary_exists": False,
+            "exact_object_type_args_and_SystemExit_code": True,
+            "notes_cause_context_or_private_material_added_by_C2B3": False,
+            "exact_pre_second_raise_traceback_or_complete_graph_restored": False,
+            "recursive_snapshot_or_interpreter_restoration_machinery": False,
+        },
+        "preexisting_private_payload": {
+            "may_exist_in": (
+                "args or SystemExit.code",
+                "notes",
+                "cause or context",
+                "traceback locals",
+            ),
+            "copied_or_added_by_C2B3": False,
+            "serialized_logged_persisted_rendered_or_reported": False,
+            "universal_sanitization_claim": False,
+            "selected_raw_control_flow_preserved": True,
+        },
+    },
+    "legacy_exception_probe_ledger_classification": {
+        "ledger_path": "commit_uncertainty_cleanup_gate.close_not_proved.process_control_exception_graph_ledger",
+        "classification": "historical_runtime_observation",
+        "normative": False,
+        "operative_for_c2b3b": False,
+        "portable_contract": False,
+        "preserved_for_original_c2b3a_evidence": True,
+        "superseded_for_target_semantics_by": "process_control_relational_policy",
+        "observed_values_scope": "exact traceback, cause, context, suppression, cycle, and reachability values are observations of the original bounded reference branch only",
+        "consumer_rule": "no implementation, test oracle, planning projection, or future prompt may use those observed values as target requirements",
+    },
+    "post_close_cleanup_contract": {
+        "state_legend": {
+            "A": "normal active session",
+            "QU": "commit uncertain; connection closure unproved",
+            "QK": "commit known committed; connection closure unproved",
+            "PU": "commit uncertain; connection closure proved and custody cleared; residual cleanup pending",
+            "PK": "commit known committed; connection closure proved and custody cleared; residual cleanup pending",
+            "X": "authority-terminal; descriptor reclamation and post-X session-registry housekeeping are not gates",
+        },
+        "ordered_steps": (
+            "P0",
+            "C1",
+            "C2",
+            "R1",
+            "R2",
+            "R3",
+            "L1",
+            "H1",
+            "H2",
+            "T1",
+            "H3",
+        ),
+        "order_is_exact_and_not_atomic": True,
+        "fault_model": {
+            "before_effect": "retain the prior truthful non-admitting state and all not-yet-completed custody",
+            "after_effect": "publish and retain the complete monotonic post-effect fact before suppression or propagation",
+            "completed_effect_repeated_unsafely": False,
+            "retry_requires_reachable_wrapper": True,
+        },
+        "acknowledgement_complete_boundary": {
+            "C1_and_C2_remain_ordered_responsibilities": True,
+            "successful_C1_is_stable_or_outwardly_observable_before_C2": False,
+            "C1_after_fault_is_independently_observable": False,
+            "C2_before_fault_is_independently_observable": False,
+            "normal_close_requires_before_result_or_propagation": (
+                "record connection_closed_proved",
+                "clear raw connection custody",
+                "publish QU -> PU or QK -> PK",
+            ),
+            "closure_proved_QU_or_QK_with_connection_custody": False,
+            "PU_or_PK_with_connection_custody": False,
+            "extra_stable_session_state": False,
+        },
+        "step_contracts": {
+            "P0": {
+                "name": "freeze admission and select one cleanup owner",
+                "applies_to": ("A", "QU", "QK", "PU", "PK"),
+                "A_transition": "stable non-admitting resource-owned closing posture",
+                "active_operations": "drain before cleanup",
+                "same_thread_active_operation": "writer_session_close_during_operation",
+                "cleanup_owners": 1,
+                "interruption_posture": "stable non-admitting resource-owned closing posture with monotonic progress",
+            },
+            "C1": {
+                "name": "retained transaction-connection close",
+                "applies_only_to": ("QU", "QK"),
+                "proof": "observed normal retained_connection.close() return",
+                "non_normal_return": "identical connection retained; preserve QU or QK",
+                "retry": "same retained connection only before proof while retry_reachable=true",
+                "forbidden": ("SQL", "BEGIN", "rollback", "readback", "reopen", "semantic retry"),
+                "close_after_proof": False,
+                "direct_C4_C6_K1_repeats_C1": False,
+            },
+            "C2": {
+                "name": "closure-proof publication and custody clear",
+                "transitions": (
+                    ("QU", "PU"),
+                    ("QK", "PK"),
+                    ("C4-C6/K1", "PU"),
+                ),
+                "normal_effects": (
+                    "record connection_closed_proved",
+                    "clear raw connection custody",
+                    "publish pending state",
+                ),
+                "acknowledgement_before_residual_cleanup_or_outward_propagation": True,
+                "reversion_or_recustody": False,
+            },
+            "R1": {
+                "name": "credential authority revocation and drop",
+                "precondition": "no active operation",
+                "authority_order": "revoke proof verification and clear every resource owner before best-effort overwrite",
+                "mutable_overwrite": "best-effort memory hygiene; no Python zeroization guarantee",
+                "idempotently_resumable": True,
+                "scrub_failure_restores_authority": False,
+                "private_proof_emitted": False,
+            },
+            "R2": {
+                "name": "mutation-slot release",
+                "precondition": "credential authority revoked",
+                "effect": "clear only the exact resource-owned slot and identity under the session condition",
+                "before_effect_fault": "slot retained",
+                "after_effect_fault": "cleared fact retained",
+                "idempotent_conditional_retry": True,
+            },
+            "R3": {
+                "name": "database-binding release",
+                "precondition": "mutation slot clear",
+                "effect": "clear resource and cleanup-owner binding references",
+                "idempotent_retry": True,
+                "SQLite_activity": False,
+            },
+            "L1": {
+                "name": "explicit writer-lock unlock and proof",
+                "preconditions": (
+                    "applicable connection closure proved",
+                    "credential authority revoked",
+                    "mutation slot clear",
+                    "database binding released",
+                    "active operations absent",
+                    "exact descriptor retained",
+                    "exact authority-lock registry entry present",
+                ),
+                "proof": "normal return from real fcntl.flock(exact_retained_fd, LOCK_UN), then release_proved publication under lifecycle/fork gate",
+                "every_non_normal_exit": "release_unproved",
+                "release_unproved_retains": (
+                    "exact descriptor",
+                    "exact authority-lock registry entry",
+                    "exact writer-session registry entry",
+                    "truthful session progress",
+                ),
+                "release_unproved_forbids": (
+                    "descriptor close",
+                    "X publication",
+                    "recovery or replay",
+                    "new same-process writer",
+                ),
+                "same_fd_retry": "only exact retained descriptor with no close attempt, while retry_reachable=true",
+                "ordinary_failure": "suppress after release_unproved publication",
+                "process_control_without_primary": "propagate exact object after release_unproved publication",
+                "COMMIT_process_control_primary": "retains absolute outward precedence",
+                "explicit_cleanup_uses_one_shot_finalizer_callback": False,
+            },
+            "H1": {
+                "name": "descriptor reclamation",
+                "precondition": "release_proved",
+                "writer_lock_release_proof": False,
+                "numeric_fd_removed_before_one_close_attempt": True,
+                "normal_return": "reclaimed",
+                "every_non_normal_exit": "reclamation_unknown",
+                "retry_numeric_fd": False,
+                "restore_fd_to_retryable_state": False,
+                "gates_X": False,
+            },
+            "H2": {
+                "name": "authority-lock terminalization and registry removal",
+                "preconditions": ("release_proved", "one H1 attempt"),
+                "under_lifecycle_fork_gate_order": (
+                    "publish release-proved terminal facts and descriptor outcome",
+                    "identity-check and remove exact _ACTIVE_LOCK_RESOURCES entry",
+                ),
+                "complete_after_both_effects": True,
+                "before_terminal_publication_fault": "retain release-proved pending truth and registry entry",
+                "between_publication_and_removal_fault": "retain terminalized-but-registered truth; exact removal retry only while retry_reachable=true",
+                "release_unproved_lookup": "busy, never stale",
+                "same_process_acquisition": "only after exact registry removal",
+                "fork_snapshot": "every descriptor-bearing active or release-unproved resource",
+                "runs_on_L1_failure": False,
+            },
+            "T1": {
+                "name": "publish X",
+                "preconditions": ("applicable C2", "R1", "R2", "R3", "L1 release_proved", "H2 complete"),
+                "effects": (
+                    "clear non-authoritative lock-wrapper reference",
+                    "publish X under writer-session condition",
+                ),
+                "writer_session_registry_retained_through_X": True,
+                "before_effect_fault": "prior pending state",
+                "after_effect_fault": "truthful X",
+                "optimistic_X": False,
+                "recovery_and_replay_after_X_only": True,
+            },
+            "H3": {
+                "name": "writer-session registry housekeeping",
+                "precondition": "X",
+                "effects": (
+                    "identity-check and remove exact _ACTIVE_SESSION_RESOURCES entry",
+                    "complete finalizer bookkeeping",
+                    "record explicit close-call completion",
+                ),
+                "interruption_reverses_X": False,
+                "stale_X_entry": "non-authoritative retention leak only",
+                "retry": "idempotent only while wrapper remains reachable",
+                "gates_recovery_or_replay": False,
+            },
+        },
+        "cleanup_exception_precedence": {
+            "ordinary": "suppress after truthful progress; retain every incomplete responsibility",
+            "process_control_without_primary": "publish progress then propagate exact cleanup-time object under deliberate-action-only policy",
+            "with_COMMIT_process_control_primary": "publish progress, suppress later ordinary failure, deliberately attach no distinct later process-control object, then bare-reraise original primary",
+            "finalizer": "catch and suppress every BaseException after truthful progress publication",
+        },
+        "matrix_continuation": {
+            "direct_entry_rows": ("C4K1", "C5K1", "C6K1"),
+            "entry_state": "PU after C2 before residual cleanup",
+            "possible_propagation_states": ("PU", "X"),
+            "C2K1_C3K1_state": "A",
+            "C2K1_C3K1_later_route": "ordinary A -> X through P0/R1/R2/R3/L1/H1/H2/T1/H3",
+            "remaining_close_failure_rows": "QU or QK until a later C1/C2 continuation",
+        },
+        "ordinary_A_to_X": {
+            "entry": "_SQLiteWriterSession.close()",
+            "order": ("P0", "R1", "R2", "R3", "L1", "H1", "H2", "T1", "H3"),
+            "shared_lock_release_primitive": True,
+            "retained_transaction_connection_in_C2K1_or_C3K1": False,
+        },
+        "external_linearization": {
+            "kernel_unlock_effect": "another process may acquire after the operating system applies LOCK_UN",
+            "recorded_release_proof": "old process knows exclusion ended only after normal LOCK_UN return and release_proved publication",
+            "same_process_acquisition": "after H2 exact authority-lock registry removal",
+            "C2B3_recovery_or_replay": "after T1 publishes X",
+            "cross_process_writer_between_kernel_effect_and_X": "permitted after old operations, credential, slot, binding, and applicable connection custody are gone",
+            "atomic_kernel_unlock_registry_X_close_return_claim": False,
+            "public_close_None_is_authority_receipt": False,
+        },
+        "recovery_replay_gate": {
+            "blocked_states": ("A-closing", "QU", "QK", "PU", "PK"),
+            "blocked_lock_facet": "release_unproved",
+            "uncertainty_recovery_path": "QU -> PU -> X",
+            "known_committed_replay_path": "QK -> PK -> X",
+            "admitted_state": "X",
+        },
+    },
+    "explicit_disposal": {
+        "applies_to": ("A", "QU", "QK", "PU", "PK"),
+        "retryable_path": "explicit close while the exact wrapper remains reachable",
+        "repeatable_until_X_while_retry_reachable": True,
+        "uses_weakref_finalize_callback_as_retry_mechanism": False,
+        "ordinary_A_route": "P0/R1/R2/R3/L1/H1/H2/T1/H3",
+        "while_QU_or_QK": "attempt retained_connection.close(); remain in the same state on unproved close",
+        "proved_close_transitions": (
+            ("QU", "PU"),
+            ("QK", "PK"),
+        ),
+        "while_PU_or_PK": "never close the connection again; resume only incomplete residual cleanup",
+        "connection_close_after_proof": False,
+        "monotonic_progress_preserved": True,
+        "X_gate": "L1 release_proved and H2 complete after applicable connection proof, credential revocation, slot release, and binding release",
+        "descriptor_reclamation_gates_X": False,
+        "writer_session_registry_removal_gates_X": False,
+        "forbidden_actions": (
+            "SQL",
+            "BEGIN",
+            "rollback",
+            "readback",
+            "reopen",
+            "semantic retry",
+            "caller-authored cleanup clearance",
+            "connection close after PU or PK publication",
+        ),
+        "ordinary_close_failure_before_proof": "suppressed; QU or QK, custody, slot, lock, binding, and registry retention unchanged",
+        "process_control_close_failure_before_proof": "propagate the identical raw KeyboardInterrupt, SystemExit, or GeneratorExit; QU or QK unchanged",
+        "ordinary_residual_cleanup_failure": "suppressed; retain PU or PK plus actual monotonic progress",
+        "process_control_residual_cleanup_failure": "publish actual progress, apply deliberate-action-only relational policy, and preserve precedence",
+        "closure_proof": "normal return from retained_connection.close() only",
+        "writer_lock_release_proof": "normal return from real fcntl.flock(exact_retained_fd, LOCK_UN) only",
+        "public_close_result": None,
+        "cleanup_token_or_authority_receipt": False,
+    },
+    "finalizer": {
+        "weakref_finalize_invocation": "one-shot",
+        "automatic_retry": False,
+        "catches": "BaseException",
+        "bounded_attempt": "monotonically attempt any reachable subset of C1/C2/R1/R2/R3/L1/H1/H2/T1/H3 once",
+        "exception_propagated_logged_serialized_or_reported": False,
+        "failure_before_close_proof": "suppress and preserve QU or QK with custody and governance resources unchanged",
+        "normal_close_return": "publish PU or PK before residual cleanup; never close the connection again",
+        "failure_after_close_proof": "suppress and preserve PU, PK, or ordinary-closing posture plus actual monotonic progress; never restore connection custody",
+        "success_posture": "authority cleanup complete if T1 reaches X; H3 remains post-X housekeeping",
+        "failure_before_X_after_wrapper_loss": {
+            "finalizer_attempted": True,
+            "retry_reachable": False,
+            "further_in_process_attempt_promised": False,
+            "posture": "truthful fail-closed state and progress until process termination",
+        },
+        "registry_roles": "custody and fork/process hygiene only; never lookup, disposal, scheduling, retry, orchestration, recovery, or authority handle",
+        "hidden_cleanup_service_or_registry_scan": False,
+        "eventual_reclamation_claim": "process termination only after failed finalization with no reachable wrapper",
+        "second_finalizer_invocation": False,
+        "later_disposal_after_wrapper_loss": False,
+        "garbage_collection_is_closure_proof": False,
+        "garbage_collection_is_cleanup_completion_proof": False,
+        "fork_child": "snapshot active and release-unproved descriptor resources; close inherited child descriptors without LOCK_UN; invalidate child session authority and clear child registries without changing parent proof",
+        "cross_thread_finalization": "bounded close-only or cleanup posture; never cross-thread SQL",
+    },
+    "recovery_and_safe_command_custody": {
+        "transient_safe_command_count": 1,
+        "identical_object_used_for_apply_and_recovery": True,
+        "reconstructed_from_exception": False,
+        "exception_contains_command": False,
+        "complete_work_spec_reaches_recovery": False,
+        "complete_work_spec_persisted_logged_reported_or_retained": False,
+        "restart_recoverable_work_spec": False,
+        "original_session_disposed_before_new_session": True,
+        "original_session_state_before_new_session": "X",
+        "writer_lock_release_proved_before_recovery": True,
+        "authority_lock_registry_removed_before_X": True,
+        "writer_session_registry_removed_before_X": False,
+        "recovery_or_replay_blocked_states": ("A-closing", "QU", "QK", "PU", "PK"),
+        "recovery_or_replay_blocked_lock_facet": "release_unproved",
+        "recovery_or_replay_admitted_only_after": "T1 publishes X",
+        "new_session_operation_lease": "fresh",
+        "mutation_slot": "existing shared mutation slot",
+        "commit_outcome_recovery_dispositions": (
+            "committed_exact",
+            "definitely_not_committed",
+            "unresolved",
+        ),
+        "commit_time_process_control_recovery": "explicit resolver only after PU reaches X in a new concrete session",
+        "known_committed_close_time_process_control": "ordinary initialization apply only after PK reaches X gives receipt-first exact replay; commit-outcome resolver forbidden",
+        "fresh_apply_convenience_wrapper": "_initialize_development_program(..., work_spec=...) remains fresh-apply only and does not return a recoverable command",
+        "automatic_semantic_retry": False,
+    },
+    "future_c2b3b_path_scope_status": {
+        "required_production_paths": (
+            "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
+            "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+            "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+            "src/ge_nwp_coordinator/sqlite_writer_session.py",
+            "src/ge_nwp_coordinator/sqlite_connection.py",
+            "src/ge_nwp_coordinator/state_authority_lock.py",
+        ),
+        "required_documentation_status_paths": (
+            ".docs/c2b-durable-development-state.md",
+            ".docs/c2b3-program-initialization.md",
+            ".docs/c2b2-private-readers.md",
+            ".docs/architecture.md",
+            ".docs/durable-state-model.md",
+            ".docs/sqlite-operations-and-recovery.md",
+            ".docs/sqlite-threat-model.md",
+            ".docs/writer-session-authority.md",
+            "README.md",
+            "AGENTS.md",
+        ),
+        "required_changed_test_paths": (
+            "tests/test_c2b3_program_initialization_contract.py",
+            "tests/test_c2b3_private_atomic_program_initialization.py",
+            "tests/test_c2b3_program_initialization_recovery.py",
+            "tests/test_c2b3_private_program_initialization_delegation.py",
+            "tests/test_c2b2_field_level_contract.py",
+            "tests/test_c2b2_development_reader_contracts.py",
+            "tests/test_sqlite_b2c_writer_session.py",
+            "tests/test_state_authority_lock.py",
+            "tests/test_runtime_non_authority.py",
+            "tests/test_architecture_contracts.py",
+            "tests/test_c2b0_durable_state_contract.py",
+        ),
+        "required_path_counts": (6, 10, 11),
+        "expected_actual_write_paths": 27,
+        "contingency_path": "tests/test_c2b2_private_development_readers.py",
+        "contingency_path_status": "protected and unchanged unless later implementation proves genuine need",
+        "maximum_paths": 28,
+        "twenty_ninth_path": "hard stop and scope reassessment condition",
+        "newly_required_relative_to_old_manifest": (
+            "src/ge_nwp_coordinator/state_authority_lock.py",
+            ".docs/writer-session-authority.md",
+            "tests/test_state_authority_lock.py",
+            "tests/test_sqlite_b2c_writer_session.py",
+        ),
+        "protected_unchanged_regressions": (
+            "tests/test_b3c1b_rollback_only_writer_fencing.py",
+            "tests/test_b3c4b_private_atomic_transition_persistence.py",
+            "tests/test_sqlite_b2b_lock_integration.py",
+        ),
+        "forbidden_or_unnecessary": (
+            "sqlite_errors.py",
+            "schema or migrations",
+            "package exports",
+            "public models",
+            "StateStore public methods",
+            "pyproject.toml",
+            "another repository",
+        ),
+        "c2b3b_source_authorized_by_addendum": False,
+        "future_implementation_scope_supersession": {
+            "historical_scope_id": "future_c2b3b_maximum_path_scope",
+            "operative": False,
+            "consumers_may_use": False,
+            "active_replacement_scope_id": "C2B3B_PRIVATE_ATOMIC_INITIALIZATION",
+            "active_replacement_owner": "commit_close_outcome_addendum.future_c2b3b_path_scope_status",
+            "active_expected_actual_write_paths": 27,
+            "active_maximum_paths": 28,
+            "active_stop_path_ordinal": 29,
+            "newly_required_paths": (
+                "src/ge_nwp_coordinator/state_authority_lock.py",
+                ".docs/writer-session-authority.md",
+                "tests/test_state_authority_lock.py",
+                "tests/test_sqlite_b2c_writer_session.py",
+            ),
+            "preserved_literal": "future_c2b3b_maximum_path_scope",
+            "preserved_values": {
+                "production_paths": 5,
+                "documentation_status_paths": 9,
+                "test_paths": 10,
+                "expected_actual_write_paths": 23,
+                "maximum_paths": 24,
+                "stop_path_ordinal": 25,
+            },
+            "classification": "historical and non-operative for C2B3B after this addendum",
+            "preservation_reason": "preserve the accepted earlier C2B3A freeze byte-for-byte",
+            "operative_scope_owner": "commit_close_outcome_addendum.future_c2b3b_path_scope_status",
+            "old_values_may_be_used_as_active_authority": False,
+            "operative_values": {
+                "production_paths": 6,
+                "documentation_status_paths": 10,
+                "required_changed_tests": 11,
+                "expected_actual_write_paths": 27,
+                "contingency_paths": 1,
+                "maximum_paths": 28,
+                "stop_path_ordinal": 29,
+            },
+        },
+    },
+    "direct_oracle_requirements": {
+        "separately_authored_direct_literal": True,
+        "owner_derived_expected_values": False,
+        "positive_reference_cases": (
+            "distinct cross-class process-control pairs",
+            "distinct same-class KeyboardInterrupt, SystemExit, and GeneratorExit pairs",
+            "same-instance KeyboardInterrupt, SystemExit, and GeneratorExit pairs",
+            "pre-linked cause and separately pre-linked context",
+            "separately linked third exception and cycle-safe identity traversal",
+            "no exact interpreter graph promise and exact outward identity/type/args/SystemExit.code",
+            "raw synthetic payload never copied to a safe Coordinator value or artifact",
+            "QU/QK retained-close normal, ordinary, KeyboardInterrupt, SystemExit, and GeneratorExit outcomes",
+            "every P0/C1/C2/R1/R2/R3/L1/H1/H2/T1/H3 before/after boundary",
+            "release_unproved same-fd retry and descriptor reclamation ambiguity without numeric-fd retry",
+            "H2 terminalization before authority-registry removal and X before H3",
+            "finalizer failure with retry_reachable=false and ordinary A -> X",
+            "pre-X rejection and recovery/replay admission only after X",
+        ),
+        "mutant_families": (
+            "type-to-identity collapse or wrong diagonal routing",
+            "exact graph, cycle, context, cause, suppression, or traceback promises",
+            "deliberate graph scrub, restoration, payload copy, report, or universal sanitization",
+            "descriptor close as release proof or descriptor-close retry",
+            "X, authority-registry removal, same-process acquisition, recovery, or replay before their proof gates",
+            "writer-session registry removal before X or descriptor reclamation required for X",
+            "retry after wrapper loss, registry scan, hidden disposal, or finalizer automatic retry",
+            "C2K1/C3K1 pending-state routing or ordinary A -> X lock-primitive bypass",
+            "future-path omission, stale 23/24 scope, dynamic owner/oracle derivation, or C2B3B implementation claim",
+        ),
+        "semantic_execution_protection": {
+            "diagnostic": "C2B3A_INDEPENDENT_ORACLE_SEMANTIC_EXECUTION_INVALID",
+            "expect_violation_exact_validator_and_diagnostic": True,
+            "mutant_dataflow": "each protected mutant has exactly one candidate = _candidate(), one or more direct candidate-rooted assignments, and the identical candidate reaches one final _expect_violation with the exact diagnostic",
+            "mutant_control_flow": "each protected mutant is one branch-free linear function with no unrelated local assignment, call, or possible pre-validation termination",
+            "positive_body_and_reference_helper_execution_protected": True,
+            "positive_result_dataflow": "each helper result is a single immutable reaching definition consumed directly by discriminating field assertions; overwrite, deletion, mutation, alias, shadow target, and unused results are rejected",
+            "bounded_isolated_physical_counterfactuals": True,
+            "whole_file_source_hash_authority": False,
+            "generic_semantic_dispatcher": False,
+        },
+    },
+    "privacy_and_non_authority": {
+        "C2B3_owned_forbidden_material": (
+            "raw connection or cursor",
+            "transaction controller",
+            "mutation-slot object",
+            "writer-lock object",
+            "quarantine object or registry internals",
+            "ordinary COMMIT or close exception",
+            "SQL or parameters",
+            "SQLite or operator-state path",
+            "WorkSpec or complete WorkSpec representation",
+            "credentials or authority-lock material",
+            "private environment values",
+        ),
+        "C2B3_owned_forbidden_destinations": (
+            "public or persisted value",
+            "result or conflict",
+            "recovery disposition",
+            "error graph or traceback note",
+            "log or report",
+            "generated artifact",
+        ),
+        "coordinator_generated_safe_error_is_content_free": True,
+        "raw_process_control_policy": "process_control_relational_policy",
+        "raw_process_control_is_report_or_persistence_surface": False,
+        "preexisting_raw_process_control_payload_sanitized": False,
+        "new_private_payload_or_graph_material_introduced_by_C2B3": False,
+        "deliberate_primary_to_secondary_relation_introduced_by_C2B3": False,
+        "exact_interpreter_graph_or_traceback_shape_promised": False,
+        "tests_reports_and_provenance_are_evidence_only": True,
+        "new_authority": False,
+    },
+    "nonimplementation": {
+        "production_behavior": False,
+        "schema_or_migration": False,
+        "public_api_or_package_export": False,
+        "StateStore_or_public_WriterSession_surface": False,
+        "author_effect_source": False,
+        "worker_scheduler_queue_service_model_or_reconciler": False,
+        "Bridge_or_Execution_Substrate_behavior": False,
+        "external_IO": False,
+        "new_authority": False,
+    },
+}
+
+
 EXPECTED_INITIALIZATION_GOLDEN_VECTOR = {'vector_id': 'c2b3a-initialization-single-work-v1',
  'vector_version': 1,
  'transaction_timestamp': '2026-08-21T12:34:56Z',
@@ -1621,6 +3216,112 @@ EXPECTED_INITIALIZATION_GOLDEN_VECTOR = {'vector_id': 'c2b3a-initialization-sing
                                  'transaction_timestamp': '2026-08-21T12:34:56Z'}}
 
 
+EXPECTED_PROCESS_CONTROL_REFERENCE_CASES = {'cross-k-s': ('distinct_instance', 'KeyboardInterrupt', ('cross-k-s',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'cross-k-g': ('distinct_instance', 'KeyboardInterrupt', ('cross-k-g',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'cross-s-k': ('distinct_instance', 'SystemExit', (32,), 32, ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'cross-s-g': ('distinct_instance', 'SystemExit', (33,), 33, ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'cross-g-k': ('distinct_instance', 'GeneratorExit', ('cross-g-k',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'cross-g-s': ('distinct_instance', 'GeneratorExit', ('cross-g-s',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'distinct-k': ('distinct_instance', 'KeyboardInterrupt', ('same-class-k-1',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'distinct-s': ('distinct_instance', 'SystemExit', (35,), 35, ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'distinct-g': ('distinct_instance', 'GeneratorExit', ('same-class-g-1',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'same-k': ('same_instance', 'KeyboardInterrupt', ('same-instance-k',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'same-s': ('same_instance', 'SystemExit', (37,), 37, ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'same-g': ('same_instance', 'GeneratorExit', ('same-instance-g',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 1, 1, True, True, None, None, None, None, None, False, False),
+ 'prelinked-cause': ('distinct_instance', 'SystemExit', (38,), 38, ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 2, 1, True, True, None, 'GeneratorExit', None, None, None, False, False),
+ 'prelinked-context': ('distinct_instance', 'GeneratorExit', ('context-primary',), 'not_applicable', ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 2, 1, True, True, None, None, 'KeyboardInterrupt', None, None, False, False),
+ 'linked-cycle': ('distinct_instance', 'SystemExit', (39,), 39, ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 2, 3, True, True, None, 'KeyboardInterrupt', None, None, 'KeyboardInterrupt', False, False),
+ 'private-payload': ('distinct_instance', 'SystemExit', (('opaque-synthetic-payload', 40),), ('opaque-synthetic-payload', 40), ('raise-primary', 'raise-secondary', 'bare-reraise-primary'), ('catch-primary', 'catch-secondary', 'bare-reraise-primary'), 2, 2, True, True, (('opaque-synthetic-payload', 40),), 'GeneratorExit', None, None, 'KeyboardInterrupt', False, False)}
+
+
+CLEANUP_SAFE_PROJECTION_FIELDS = (
+    "state", "entered", "completed", "admission_open", "wrapper_reachable",
+    "ordinary_closing", "connection_owned", "connection_closed_proved",
+    "credential_authority", "mutation_slot_owned", "database_binding_owned",
+    "writer_lock_release", "descriptor_outcome", "descriptor_retryable",
+    "descriptor_owned", "authority_lock_terminal",
+    "authority_lock_registry_present", "writer_session_registry_present",
+    "close_attempts", "unlock_attempts", "descriptor_close_attempts",
+    "finalizer_attempted", "retry_reachable", "effective_cleanup_outcome",
+    "selected_outward", "cleanup_failure_suppressed", "X",
+    "recovery_admitted", "replay_admitted", "new_operation_admitted",
+)
+
+
+CLEANUP_REFERENCE_INPUT_CASES = (('normal-a', ('A', None, None, 'normal', 'normal', 'normal', False, 'normal', 'none')), ('normal-qu', ('QU', None, None, 'normal', 'normal', 'normal', False, 'normal', 'none')), ('normal-qk', ('QK', None, None, 'normal', 'normal', 'normal', False, 'normal', 'none')), ('normal-pu', ('PU', None, None, 'normal', 'normal', 'normal', False, 'normal', 'none')),
+ ('normal-pk', ('PK', None, None, 'normal', 'normal', 'normal', False, 'normal', 'none')), ('p0-before', ('A', 'P0', 'before', 'normal', 'normal', 'normal', False, 'ordinary', 'none')), ('p0-after', ('A', 'P0', 'after', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'none')), ('c1-before', ('QU', 'C1', 'before', 'normal', 'normal', 'normal', False, 'SystemExit', 'none')),
+ ('c1-after', ('QU', 'C1', 'after', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'none')), ('c2-before', ('QU', 'C2', 'before', 'normal', 'normal', 'normal', False, 'normal', 'none')), ('c2-after', ('QU', 'C2', 'after', 'normal', 'normal', 'normal', False, 'ordinary', 'none')), ('r1-before', ('PU', 'R1', 'before', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'none')),
+ ('r1-after', ('PU', 'R1', 'after', 'normal', 'normal', 'normal', False, 'SystemExit', 'none')), ('r2-before', ('PU', 'R2', 'before', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'none')), ('r2-after', ('PU', 'R2', 'after', 'normal', 'normal', 'normal', False, 'normal', 'none')), ('r3-before', ('PU', 'R3', 'before', 'normal', 'normal', 'normal', False, 'ordinary', 'none')),
+ ('r3-after', ('PU', 'R3', 'after', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'none')), ('l1-before', ('PU', 'L1', 'before', 'normal', 'normal', 'normal', False, 'SystemExit', 'none')), ('l1-after', ('PU', 'L1', 'after', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'none')), ('h1-before', ('PU', 'H1', 'before', 'normal', 'normal', 'normal', False, 'normal', 'none')),
+ ('h1-after', ('PU', 'H1', 'after', 'normal', 'normal', 'normal', False, 'ordinary', 'none')), ('h2-before', ('PU', 'H2', 'before', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'none')), ('h2-between', ('PU', 'H2', 'between', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'none')), ('h2-after', ('PU', 'H2', 'after', 'normal', 'normal', 'normal', False, 'SystemExit', 'none')),
+ ('t1-before', ('PU', 'T1', 'before', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'none')), ('t1-after', ('PU', 'T1', 'after', 'normal', 'normal', 'normal', False, 'normal', 'none')), ('h3-before', ('PU', 'H3', 'before', 'normal', 'normal', 'normal', False, 'ordinary', 'none')), ('h3-after', ('PU', 'H3', 'after', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'none')),
+ ('primary-pu-k', ('PU', None, None, 'normal', 'normal', 'normal', False, 'normal', 'KeyboardInterrupt')), ('primary-pu-s', ('PU', None, None, 'normal', 'normal', 'normal', False, 'normal', 'SystemExit')), ('primary-pu-g', ('PU', None, None, 'normal', 'normal', 'normal', False, 'normal', 'GeneratorExit')),
+ ('primary-pk-k', ('PK', None, None, 'normal', 'normal', 'normal', False, 'normal', 'KeyboardInterrupt')), ('primary-pk-s', ('PK', None, None, 'normal', 'normal', 'normal', False, 'normal', 'SystemExit')), ('primary-pk-g', ('PK', None, None, 'normal', 'normal', 'normal', False, 'normal', 'GeneratorExit')),
+ ('precedence-pu-k-s', ('PU', 'R1', 'before', 'normal', 'normal', 'normal', False, 'SystemExit', 'KeyboardInterrupt')), ('precedence-pu-s-g', ('PU', 'R2', 'before', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'SystemExit')), ('precedence-pu-g-k', ('PU', 'R3', 'before', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'GeneratorExit')),
+ ('precedence-pk-k-g', ('PK', 'L1', 'before', 'normal', 'normal', 'normal', False, 'GeneratorExit', 'KeyboardInterrupt')), ('precedence-pk-s-k', ('PK', 'H1', 'before', 'normal', 'normal', 'normal', False, 'KeyboardInterrupt', 'SystemExit')), ('precedence-pk-g-s', ('PK', 'H2', 'before', 'normal', 'normal', 'normal', False, 'SystemExit', 'GeneratorExit')),
+ ('finalizer-cleanup-k', ('PU', 'R1', 'before', 'normal', 'normal', 'normal', True, 'KeyboardInterrupt', 'none')), ('finalizer-cleanup-s', ('PU', 'R2', 'before', 'normal', 'normal', 'normal', True, 'SystemExit', 'none')), ('finalizer-cleanup-g', ('PU', 'R3', 'before', 'normal', 'normal', 'normal', True, 'GeneratorExit', 'none')),
+ ('finalizer-primary-k', ('PU', None, None, 'normal', 'normal', 'normal', True, 'normal', 'KeyboardInterrupt')), ('finalizer-primary-s', ('PU', None, None, 'normal', 'normal', 'normal', True, 'normal', 'SystemExit')), ('finalizer-primary-g', ('PU', None, None, 'normal', 'normal', 'normal', True, 'normal', 'GeneratorExit')),
+ ('close-qu-ordinary', ('QU', None, None, 'ordinary', 'normal', 'normal', False, 'normal', 'none')), ('close-qu-k', ('QU', None, None, 'KeyboardInterrupt', 'normal', 'normal', False, 'normal', 'none')), ('close-qk-s', ('QK', None, None, 'SystemExit', 'normal', 'normal', False, 'normal', 'none')), ('close-qk-g', ('QK', None, None, 'GeneratorExit', 'normal', 'normal', False, 'normal', 'none')),
+ ('close-qu-g-primary-k', ('QU', None, None, 'GeneratorExit', 'normal', 'normal', False, 'normal', 'KeyboardInterrupt')), ('close-qk-k-primary-s', ('QK', None, None, 'KeyboardInterrupt', 'normal', 'normal', False, 'normal', 'SystemExit')), ('unlock-unproved', ('PU', None, None, 'normal', 'unproved', 'normal', False, 'ordinary', 'none')),
+ ('unlock-retry-normal', ('PU', None, None, 'normal', 'retry_normal', 'normal', False, 'normal', 'none')), ('descriptor-unknown', ('PK', None, None, 'normal', 'normal', 'unknown', False, 'normal', 'none')))
+
+EXPECTED_CLEANUP_REFERENCE_CASES = {'normal-a': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, False, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'normal-qu': ('X', ('P0', 'C1', 'C2', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'C1', 'C2', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 1, 1, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'normal-qk': ('X', ('P0', 'C1', 'C2', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'C1', 'C2', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 1, 1, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'normal-pu': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'normal-pk': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'p0-before': ('A', ('P0',), (), True, True, False, False, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'ordinary', 'none', True, False, False, False, False),
+ 'p0-after': ('A-closing', ('P0',), ('P0',), False, True, True, False, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'KeyboardInterrupt', 'cleanup_KeyboardInterrupt', False, False, False, False, False),
+ 'c1-before': ('QU', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'SystemExit', 'cleanup_SystemExit', False, False, False, False, False),
+ 'c1-after': ('PU', ('P0', 'C1', 'C2'), ('P0', 'C1', 'C2'), False, True, False, False, True, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'GeneratorExit', 'cleanup_GeneratorExit', False, False, False, False, False),
+ 'c2-before': ('PU', ('P0', 'C1', 'C2'), ('P0', 'C1', 'C2'), False, True, False, False, True, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'normal', 'none', False, False, False, False, False),
+ 'c2-after': ('PU', ('P0', 'C1', 'C2'), ('P0', 'C1', 'C2'), False, True, False, False, True, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'ordinary', 'none', True, False, False, False, False),
+ 'r1-before': ('PU', ('P0', 'R1'), ('P0',), False, True, False, False, True, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'KeyboardInterrupt', 'cleanup_KeyboardInterrupt', False, False, False, False, False),
+ 'r1-after': ('PU', ('P0', 'R1'), ('P0', 'R1'), False, True, False, False, True, False, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'SystemExit', 'cleanup_SystemExit', False, False, False, False, False),
+ 'r2-before': ('PU', ('P0', 'R1', 'R2'), ('P0', 'R1'), False, True, False, False, True, False, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'GeneratorExit', 'cleanup_GeneratorExit', False, False, False, False, False),
+ 'r2-after': ('PU', ('P0', 'R1', 'R2'), ('P0', 'R1', 'R2'), False, True, False, False, True, False, False, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'normal', 'none', False, False, False, False, False),
+ 'r3-before': ('PU', ('P0', 'R1', 'R2', 'R3'), ('P0', 'R1', 'R2'), False, True, False, False, True, False, False, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'ordinary', 'none', True, False, False, False, False),
+ 'r3-after': ('PU', ('P0', 'R1', 'R2', 'R3'), ('P0', 'R1', 'R2', 'R3'), False, True, False, False, True, False, False, False, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'KeyboardInterrupt', 'cleanup_KeyboardInterrupt', False, False, False, False, False),
+ 'l1-before': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1'), ('P0', 'R1', 'R2', 'R3'), False, True, False, False, True, False, False, False, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'SystemExit', 'cleanup_SystemExit', False, False, False, False, False),
+ 'l1-after': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1'), ('P0', 'R1', 'R2', 'R3', 'L1'), False, True, False, False, True, False, False, False, 'release_proved', 'not_attempted', True, True, False, True, True, 0, 1, 0, False, True, 'GeneratorExit', 'cleanup_GeneratorExit', False, False, False, False, False),
+ 'h1-before': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), ('P0', 'R1', 'R2', 'R3', 'L1'), False, True, False, False, True, False, False, False, 'release_proved', 'not_attempted', True, True, False, True, True, 0, 1, 0, False, True, 'normal', 'none', False, False, False, False, False),
+ 'h1-after': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, False, True, True, 0, 1, 1, False, True, 'ordinary', 'none', True, False, False, False, False),
+ 'h2-before': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, False, True, True, 0, 1, 1, False, True, 'KeyboardInterrupt', 'cleanup_KeyboardInterrupt', False, False, False, False, False),
+ 'h2-between': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, True, True, 0, 1, 1, False, True, 'GeneratorExit', 'cleanup_GeneratorExit', False, False, False, False, False),
+ 'h2-after': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, True, 0, 1, 1, False, True, 'SystemExit', 'cleanup_SystemExit', False, False, False, False, False),
+ 't1-before': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, True, 0, 1, 1, False, True, 'GeneratorExit', 'cleanup_GeneratorExit', False, False, False, False, False),
+ 't1-after': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, True, 0, 1, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'h3-before': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, True, 0, 1, 1, False, True, 'ordinary', 'none', True, True, True, True, True),
+ 'h3-after': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'KeyboardInterrupt', 'cleanup_KeyboardInterrupt', False, True, True, True, True),
+ 'primary-pu-k': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'commit_KeyboardInterrupt', False, True, True, True, True),
+ 'primary-pu-s': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'commit_SystemExit', False, True, True, True, True),
+ 'primary-pu-g': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'commit_GeneratorExit', False, True, True, True, True),
+ 'primary-pk-k': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'commit_KeyboardInterrupt', False, True, True, True, True),
+ 'primary-pk-s': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'commit_SystemExit', False, True, True, True, True),
+ 'primary-pk-g': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'commit_GeneratorExit', False, True, True, True, True),
+ 'precedence-pu-k-s': ('PU', ('P0', 'R1'), ('P0',), False, True, False, False, True, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'SystemExit', 'commit_KeyboardInterrupt', True, False, False, False, False),
+ 'precedence-pu-s-g': ('PU', ('P0', 'R1', 'R2'), ('P0', 'R1'), False, True, False, False, True, False, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'GeneratorExit', 'commit_SystemExit', True, False, False, False, False),
+ 'precedence-pu-g-k': ('PU', ('P0', 'R1', 'R2', 'R3'), ('P0', 'R1', 'R2'), False, True, False, False, True, False, False, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'KeyboardInterrupt', 'commit_GeneratorExit', True, False, False, False, False),
+ 'precedence-pk-k-g': ('PK', ('P0', 'R1', 'R2', 'R3', 'L1'), ('P0', 'R1', 'R2', 'R3'), False, True, False, False, True, False, False, False, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, False, True, 'GeneratorExit', 'commit_KeyboardInterrupt', True, False, False, False, False),
+ 'precedence-pk-s-k': ('PK', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), ('P0', 'R1', 'R2', 'R3', 'L1'), False, True, False, False, True, False, False, False, 'release_proved', 'not_attempted', True, True, False, True, True, 0, 1, 0, False, True, 'KeyboardInterrupt', 'commit_SystemExit', True, False, False, False, False),
+ 'precedence-pk-g-s': ('PK', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, False, True, True, 0, 1, 1, False, True, 'SystemExit', 'commit_GeneratorExit', True, False, False, False, False),
+ 'finalizer-cleanup-k': ('PU', ('P0', 'R1'), ('P0',), False, False, False, False, True, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, True, False, 'KeyboardInterrupt', 'none', True, False, False, False, False),
+ 'finalizer-cleanup-s': ('PU', ('P0', 'R1', 'R2'), ('P0', 'R1'), False, False, False, False, True, False, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, True, False, 'SystemExit', 'none', True, False, False, False, False),
+ 'finalizer-cleanup-g': ('PU', ('P0', 'R1', 'R2', 'R3'), ('P0', 'R1', 'R2'), False, False, False, False, True, False, False, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 0, 0, 0, True, False, 'GeneratorExit', 'none', True, False, False, False, False),
+ 'finalizer-primary-k': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, False, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, True, False, 'normal', 'none', False, True, True, True, True),
+ 'finalizer-primary-s': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, False, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, True, False, 'normal', 'none', False, True, True, True, True),
+ 'finalizer-primary-g': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, False, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 1, 1, True, False, 'normal', 'none', False, True, True, True, True),
+ 'close-qu-ordinary': ('QU', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'ordinary', 'none', True, False, False, False, False),
+ 'close-qu-k': ('QU', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'KeyboardInterrupt', 'cleanup_KeyboardInterrupt', False, False, False, False, False),
+ 'close-qk-s': ('QK', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'SystemExit', 'cleanup_SystemExit', False, False, False, False, False),
+ 'close-qk-g': ('QK', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'GeneratorExit', 'cleanup_GeneratorExit', False, False, False, False, False),
+ 'close-qu-g-primary-k': ('QU', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'GeneratorExit', 'commit_KeyboardInterrupt', True, False, False, False, False),
+ 'close-qk-k-primary-s': ('QK', ('P0', 'C1'), ('P0',), False, True, False, True, False, True, True, True, 'not_attempted', 'not_attempted', True, True, False, True, True, 1, 0, 0, False, True, 'KeyboardInterrupt', 'commit_SystemExit', True, False, False, False, False),
+ 'unlock-unproved': ('PU', ('P0', 'R1', 'R2', 'R3', 'L1'), ('P0', 'R1', 'R2', 'R3'), False, True, False, False, True, False, False, False, 'release_unproved', 'not_attempted', True, True, False, True, True, 0, 1, 0, False, True, 'ordinary', 'none', True, False, False, False, False),
+ 'unlock-retry-normal': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclaimed', False, False, True, False, False, 0, 2, 1, False, True, 'normal', 'none', False, True, True, True, True),
+ 'descriptor-unknown': ('X', ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), ('P0', 'R1', 'R2', 'R3', 'L1', 'H1', 'H2', 'T1', 'H3'), False, True, False, False, True, False, False, False, 'release_proved', 'reclamation_unknown', False, False, True, False, False, 0, 1, 1, False, True, 'normal', 'none', False, True, True, True, True)}
+
+
 class _ContractViolation(Exception):
     pass
 
@@ -1640,14 +3341,14 @@ def _read_allowed_text(path: Path) -> str:
         requested in ALLOWED_ORACLE_RELATIVE_PATHS,
         "C2B3A_ORACLE_FORBIDDEN_INPUT",
     )
-    expected = ROOT / requested
-    _require(path == expected, "C2B3A_ORACLE_FORBIDDEN_INPUT")
-    _require(not expected.is_symlink(), "C2B3A_ORACLE_FORBIDDEN_INPUT")
+    expected_path = ROOT / requested
+    _require(path == expected_path, "C2B3A_ORACLE_FORBIDDEN_INPUT")
+    _require(not expected_path.is_symlink(), "C2B3A_ORACLE_FORBIDDEN_INPUT")
     try:
-        resolved = expected.resolve(strict=True)
+        resolved = expected_path.resolve(strict=True)
     except (OSError, RuntimeError):
         raise _ContractViolation("C2B3A_ORACLE_FORBIDDEN_INPUT") from None
-    _require(resolved == expected, "C2B3A_ORACLE_FORBIDDEN_INPUT")
+    _require(resolved == expected_path, "C2B3A_ORACLE_FORBIDDEN_INPUT")
     return resolved.read_text(encoding="utf-8")
 
 
@@ -1711,115 +3412,24 @@ def _validate_golden_vector(candidate: object) -> None:
     )
 
 
-def _planning_markdown_prefix_stripped(line: str) -> str:
-    remaining = line
-    while True:
-        candidate = remaining.lstrip(" \t")
-        if candidate.startswith(">"):
-            remaining = candidate[1:]
-            continue
-        if (
-            len(candidate) >= 2
-            and candidate[0] in "-+*"
-            and candidate[1] in " \t"
-        ):
-            remaining = candidate[2:]
-            continue
-        digit_end = 0
-        while digit_end < len(candidate):
-            digit = candidate[digit_end]
-            if not digit.isdigit():
-                break
-            digit_end += 1
-        if (
-            digit_end > 0
-            and digit_end + 1 < len(candidate)
-            and candidate[digit_end] in ".)"
-            and candidate[digit_end + 1] in " \t"
-        ):
-            remaining = candidate[digit_end + 2 :]
-            continue
-        return candidate
-
-
-def _planning_fence_candidate(line: str) -> tuple[str, int, str] | None:
-    candidate = _planning_markdown_prefix_stripped(line)
-    if not candidate or candidate[0] not in "`~":
-        return None
-    marker = candidate[0]
-    run_length = 0
-    while run_length < len(candidate) and candidate[run_length] == marker:
-        run_length += 1
-    if run_length < 3:
-        return None
-    remainder = candidate[run_length:]
-    if marker == "`" and "`" in remainder:
-        return None
-    return marker, run_length, remainder
-
-
-def _planning_normalized_line(line: str) -> str:
-    stripped = _planning_markdown_prefix_stripped(line)
-    lowered = stripped.lower()
-    ascii_spaced = lowered.replace("\t", " ")
-    pieces = ascii_spaced.split(" ")
-    separator = " "
-    normalized = separator.join(piece for piece in pieces if piece)
-    if normalized.endswith("."):
-        normalized = normalized[:-1]
-    return normalized
-
-
-def _planning_nonfenced_normalized_lines(text: str) -> tuple[str, ...]:
-    lines = text.splitlines()
-    _require(
-        bool(lines) and lines[0] == "# C2B3 Program Initialization",
-        "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-    )
-    prose: list[str] = []
-    fence: tuple[str, int] | None = None
-    for line in lines:
-        candidate = _planning_fence_candidate(line)
-        if fence is not None:
-            if (
-                candidate is not None
-                and candidate[0] == fence[0]
-                and candidate[1] >= fence[1]
-                and all(character in " \t" for character in candidate[2])
-            ):
-                fence = None
-            continue
-        if candidate is not None:
-            fence = (candidate[0], candidate[1])
-            continue
-        normalized = _planning_normalized_line(line)
-        if normalized:
-            prose.append(normalized)
-    _require(fence is None, "C2B3A_CURRENT_SOURCE_CONTRADICTION")
-    return tuple(prose)
-
-
 def _validate_planning_status(text: object) -> None:
-    _require(type(text) is str, "C2B3A_CURRENT_SOURCE_CONTRADICTION")
-    assert isinstance(text, str)
-    prose = _planning_nonfenced_normalized_lines(text)
-    for claim in PLANNING_AUTHORITY_CLAIMS:
-        _require(
-            claim not in prose,
-            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
-        )
-    for claim in PLANNING_CURRENT_SOURCE_CLAIMS:
-        _require(
-            claim not in prose,
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        )
+    _require(
+        type(text) is str,
+        "C2B3A_PLANNING_PROJECTION_INVALID",
+    )
+    _require(
+        text == EXPECTED_PLANNING_PROJECTION,
+        "C2B3A_PLANNING_PROJECTION_INVALID",
+    )
 
 
 def _validate_contract(candidate: object) -> None:
     _require(type(candidate) is dict, "C2B3A_TOP_LEVEL_INVALID")
     assert isinstance(candidate, dict)
     _require(
-        tuple(candidate) == tuple(EXPECTED_INITIALIZATION_CONTRACT),
+        tuple(candidate)
+        == tuple(EXPECTED_INITIALIZATION_CONTRACT)
+        + ("commit_close_outcome_addendum",),
         "C2B3A_TOP_LEVEL_INVALID",
     )
     _require(
@@ -1965,11 +3575,19 @@ def _validate_contract(candidate: object) -> None:
         == EXPECTED_INITIALIZATION_CONTRACT["nonimplementation"],
         "C2B3A_NONIMPLEMENTATION_INVALID",
     )
+    _require(
+        candidate["commit_close_outcome_addendum"]
+        == EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM,
+        "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID",
+    )
 
 
 def _candidate() -> dict[str, object]:
     value = deepcopy(EXPECTED_INITIALIZATION_CONTRACT)
     assert type(value) is dict
+    value["commit_close_outcome_addendum"] = deepcopy(
+        EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM
+    )
     return value
 
 
@@ -2119,6 +3737,496 @@ def _named_reraise_reference(
             "propagated_signature": propagated_signature,
         }
     assert False
+
+
+def _exception_graph_identity_walk(
+    exception: BaseException,
+) -> tuple[int, ...]:
+    pending: tuple[BaseException, ...] = (exception,)
+    seen: tuple[int, ...] = ()
+    while pending:
+        current = pending[0]
+        pending = pending[1:]
+        if id(current) in seen:
+            continue
+        seen += (id(current),)
+        if isinstance(current.__cause__, BaseException):
+            pending += (current.__cause__,)
+        if isinstance(current.__context__, BaseException):
+            pending += (current.__context__,)
+    return seen
+
+
+def _relational_process_control_reference(
+    primary: BaseException,
+    secondary: BaseException,
+) -> dict[str, object]:
+    entered: tuple[str, ...] = ()
+    completed: tuple[str, ...] = ()
+    primary_graph_before = _exception_graph_identity_walk(primary)
+    secondary_graph_before = _exception_graph_identity_walk(secondary)
+    primary_notes_before = (
+        primary.__dict__["__notes__"]
+        if "__notes__" in primary.__dict__
+        else None
+    )
+    primary_cause_type_name_before = (
+        type(primary.__cause__).__name__
+        if isinstance(primary.__cause__, BaseException)
+        else None
+    )
+    primary_context_type_name_before = (
+        type(primary.__context__).__name__
+        if isinstance(primary.__context__, BaseException)
+        else None
+    )
+    secondary_cause_type_name_before = (
+        type(secondary.__cause__).__name__
+        if isinstance(secondary.__cause__, BaseException)
+        else None
+    )
+    secondary_context_type_name_before = (
+        type(secondary.__context__).__name__
+        if isinstance(secondary.__context__, BaseException)
+        else None
+    )
+    caught_primary_object: BaseException | None = None
+    caught_secondary_object: BaseException | None = None
+    try:
+        try:
+            entered += ("raise-primary",)
+            raise primary
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as caught_primary:
+            caught_primary_object = caught_primary
+            completed += ("catch-primary",)
+            try:
+                entered += ("raise-secondary",)
+                raise secondary
+            except (KeyboardInterrupt, SystemExit, GeneratorExit) as caught_secondary:
+                caught_secondary_object = caught_secondary
+                completed += ("catch-secondary",)
+            entered += ("bare-reraise-primary",)
+            raise
+    except (KeyboardInterrupt, SystemExit, GeneratorExit) as outward_primary:
+        completed += ("bare-reraise-primary",)
+        return {
+            "safe_projection": (
+                "same_instance" if primary is secondary else "distinct_instance",
+                type(outward_primary).__name__,
+                outward_primary.args,
+                (
+                    outward_primary.code
+                    if type(outward_primary) is SystemExit
+                    else "not_applicable"
+                ),
+                entered,
+                completed,
+                len(primary_graph_before),
+                len(secondary_graph_before),
+                len(primary_graph_before) == len(set(primary_graph_before)),
+                len(secondary_graph_before) == len(set(secondary_graph_before)),
+                (
+                    tuple(primary_notes_before)
+                    if type(primary_notes_before) is list
+                    else None
+                ),
+                primary_cause_type_name_before,
+                primary_context_type_name_before,
+                secondary_cause_type_name_before,
+                secondary_context_type_name_before,
+                False,
+                False,
+            ),
+            "provided_primary": primary,
+            "provided_secondary": secondary,
+            "caught_primary": caught_primary_object,
+            "caught_secondary": caught_secondary_object,
+            "outward_primary": outward_primary,
+            "identity_relation": (
+                "same_instance" if primary is secondary else "distinct_instance"
+            ),
+            "outward_type": type(outward_primary),
+            "outward_args": outward_primary.args,
+            "outward_SystemExit_code": (
+                outward_primary.code
+                if type(outward_primary) is SystemExit
+                else "not_applicable"
+            ),
+            "entered": entered,
+            "completed": completed,
+            "primary_graph_before": primary_graph_before,
+            "secondary_graph_before": secondary_graph_before,
+            "primary_graph_after": _exception_graph_identity_walk(outward_primary),
+            "exact_interpreter_graph_promise": False,
+            "Coordinator_graph_assignment_or_restoration": False,
+        }
+    assert False
+
+
+def _cleanup_reference_result(
+    *,
+    state: str,
+    entered: tuple[str, ...],
+    completed: tuple[str, ...],
+    admission_open: bool,
+    wrapper_reachable: bool,
+    ordinary_closing: bool,
+    connection_owned: bool,
+    connection_closed_proved: bool,
+    credential_authority: bool,
+    mutation_slot_owned: bool,
+    database_binding_owned: bool,
+    writer_lock_release: str,
+    descriptor_outcome: str,
+    descriptor_retryable: bool,
+    descriptor_owned: bool,
+    authority_lock_terminal: bool,
+    authority_lock_registry_present: bool,
+    writer_session_registry_present: bool,
+    close_attempts: int,
+    unlock_attempts: int,
+    descriptor_close_attempts: int,
+    finalizer_attempted: bool,
+    retry_reachable: bool,
+    effective_cleanup_outcome: str,
+    selected_outward: str,
+    cleanup_failure_suppressed: bool,
+) -> dict[str, object]:
+    return {
+        "safe_projection": (
+            state,
+            entered,
+            completed,
+            admission_open,
+            wrapper_reachable,
+            ordinary_closing,
+            connection_owned,
+            connection_closed_proved,
+            credential_authority,
+            mutation_slot_owned,
+            database_binding_owned,
+            writer_lock_release,
+            descriptor_outcome,
+            descriptor_retryable,
+            descriptor_owned,
+            authority_lock_terminal,
+            authority_lock_registry_present,
+            writer_session_registry_present,
+            close_attempts,
+            unlock_attempts,
+            descriptor_close_attempts,
+            finalizer_attempted,
+            retry_reachable,
+            effective_cleanup_outcome,
+            selected_outward,
+            cleanup_failure_suppressed,
+            state == "X",
+            state == "X",
+            state == "X",
+            state == "X",
+        ),
+        "state": state,
+        "entered": entered,
+        "completed": completed,
+        "admission_open": admission_open,
+        "wrapper_reachable": wrapper_reachable,
+        "ordinary_closing": ordinary_closing,
+        "connection_owned": connection_owned,
+        "connection_closed_proved": connection_closed_proved,
+        "credential_authority": credential_authority,
+        "mutation_slot_owned": mutation_slot_owned,
+        "database_binding_owned": database_binding_owned,
+        "writer_lock_release": writer_lock_release,
+        "descriptor_outcome": descriptor_outcome,
+        "descriptor_retryable": descriptor_retryable,
+        "descriptor_owned": descriptor_owned,
+        "authority_lock_terminal": authority_lock_terminal,
+        "authority_lock_registry_present": authority_lock_registry_present,
+        "writer_session_registry_present": writer_session_registry_present,
+        "close_attempts": close_attempts,
+        "unlock_attempts": unlock_attempts,
+        "descriptor_close_attempts": descriptor_close_attempts,
+        "finalizer_attempted": finalizer_attempted,
+        "retry_reachable": retry_reachable,
+        "effective_cleanup_outcome": effective_cleanup_outcome,
+        "selected_outward": selected_outward,
+        "cleanup_failure_suppressed": cleanup_failure_suppressed,
+        "X": state == "X",
+        "recovery_admitted": state == "X",
+        "replay_admitted": state == "X",
+        "new_operation_admitted": state == "X",
+    }
+
+
+def _cleanup_reference(
+    initial_state: str,
+    fault_step: str | None,
+    fault_position: str | None,
+    connection_outcome: str,
+    unlock_outcome: str,
+    descriptor_close_outcome: str,
+    finalizer: bool,
+    cleanup_outcome: str,
+    earlier_primary: str,
+) -> tuple[object, ...]:
+    assert initial_state in ("A", "QU", "QK", "PU", "PK")
+    assert fault_step in (
+        None,
+        "P0",
+        "C1",
+        "C2",
+        "R1",
+        "R2",
+        "R3",
+        "L1",
+        "H1",
+        "H2",
+        "T1",
+        "H3",
+    )
+    assert fault_position in (None, "before", "between", "after")
+    assert connection_outcome in ("normal", "ordinary", "KeyboardInterrupt", "SystemExit", "GeneratorExit")
+    assert unlock_outcome in ("normal", "unproved", "retry_normal")
+    assert descriptor_close_outcome in ("normal", "unknown")
+    assert type(finalizer) is bool
+    assert cleanup_outcome in ("normal", "ordinary", "KeyboardInterrupt", "SystemExit", "GeneratorExit")
+    assert earlier_primary in ("none", "KeyboardInterrupt", "SystemExit", "GeneratorExit")
+    assert (fault_step is None) == (fault_position is None)
+    assert fault_position != "between" or fault_step == "H2"
+
+    state = initial_state
+    entered: tuple[str, ...] = ()
+    completed: tuple[str, ...] = ()
+    admission_open = initial_state == "A"
+    wrapper_reachable = not finalizer
+    ordinary_closing = False
+    connection_owned = initial_state in ("QU", "QK")
+    connection_closed_proved = initial_state in ("PU", "PK")
+    credential_authority = True
+    mutation_slot_owned = True
+    database_binding_owned = True
+    writer_lock_release = "not_attempted"
+    descriptor_outcome = "not_attempted"
+    descriptor_retryable = True
+    descriptor_owned = True
+    authority_lock_terminal = False
+    authority_lock_registry_present = True
+    writer_session_registry_present = True
+    close_attempts = 0
+    unlock_attempts = 0
+    descriptor_close_attempts = 0
+    finalizer_attempted = finalizer
+    retry_reachable = not finalizer
+    effective_cleanup_outcome = "normal"
+    halted = False
+
+    entered += ("P0",)
+    if fault_step == "P0" and fault_position == "before" and not finalizer:
+        effective_cleanup_outcome = cleanup_outcome
+        halted = True
+    else:
+        admission_open = False
+        if state == "A":
+            state = "A-closing"
+            ordinary_closing = True
+        completed += ("P0",)
+        if fault_step == "P0" and fault_position in ("before", "after"):
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+
+    if not halted and initial_state in ("QU", "QK"):
+        entered += ("C1",)
+        if fault_step == "C1" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            close_attempts += 1
+            if connection_outcome == "normal":
+                completed += ("C1",)
+                entered += ("C2",)
+                connection_closed_proved = True
+                connection_owned = False
+                state = "PU" if initial_state == "QU" else "PK"
+                completed += ("C2",)
+                if fault_step in ("C1", "C2") and fault_position in (
+                    "before",
+                    "after",
+                ):
+                    effective_cleanup_outcome = cleanup_outcome
+                    halted = True
+            else:
+                effective_cleanup_outcome = connection_outcome
+                halted = True
+
+    if not halted:
+        entered += ("R1",)
+        if fault_step == "R1" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            credential_authority = False
+            completed += ("R1",)
+            if fault_step == "R1" and fault_position == "after":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+
+    if not halted:
+        entered += ("R2",)
+        if fault_step == "R2" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            mutation_slot_owned = False
+            completed += ("R2",)
+            if fault_step == "R2" and fault_position == "after":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+
+    if not halted:
+        entered += ("R3",)
+        if fault_step == "R3" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            database_binding_owned = False
+            completed += ("R3",)
+            if fault_step == "R3" and fault_position == "after":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+
+    if not halted:
+        entered += ("L1",)
+        if fault_step == "L1" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            unlock_attempts += 1
+            if unlock_outcome == "unproved":
+                writer_lock_release = "release_unproved"
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+            else:
+                if unlock_outcome == "retry_normal":
+                    writer_lock_release = "release_unproved"
+                    unlock_attempts += 1
+                writer_lock_release = "release_proved"
+                completed += ("L1",)
+                if fault_step == "L1" and fault_position == "after":
+                    effective_cleanup_outcome = cleanup_outcome
+                    halted = True
+
+    if not halted:
+        entered += ("H1",)
+        if fault_step == "H1" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            descriptor_retryable = False
+            descriptor_owned = False
+            descriptor_close_attempts += 1
+            descriptor_outcome = (
+                "reclaimed"
+                if descriptor_close_outcome == "normal"
+                else "reclamation_unknown"
+            )
+            completed += ("H1",)
+            if fault_step == "H1" and fault_position == "after":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+
+    if not halted:
+        entered += ("H2",)
+        if fault_step == "H2" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            authority_lock_terminal = True
+            if fault_step == "H2" and fault_position == "between":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+            else:
+                authority_lock_registry_present = False
+                completed += ("H2",)
+                if fault_step == "H2" and fault_position == "after":
+                    effective_cleanup_outcome = cleanup_outcome
+                    halted = True
+
+    if not halted:
+        entered += ("T1",)
+        if fault_step == "T1" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            state = "X"
+            ordinary_closing = False
+            completed += ("T1",)
+            if fault_step == "T1" and fault_position == "after":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+
+    if not halted:
+        entered += ("H3",)
+        if fault_step == "H3" and fault_position == "before":
+            effective_cleanup_outcome = cleanup_outcome
+            halted = True
+        else:
+            writer_session_registry_present = False
+            completed += ("H3",)
+            if fault_step == "H3" and fault_position == "after":
+                effective_cleanup_outcome = cleanup_outcome
+                halted = True
+
+    selected_outward = "none"
+    if not finalizer:
+        if earlier_primary != "none":
+            selected_outward = "commit_" + earlier_primary
+        elif halted and effective_cleanup_outcome in (
+            "KeyboardInterrupt",
+            "SystemExit",
+            "GeneratorExit",
+        ):
+            selected_outward = "cleanup_" + effective_cleanup_outcome
+    cleanup_failure_suppressed = halted and (
+        finalizer
+        or earlier_primary != "none"
+        or effective_cleanup_outcome == "ordinary"
+    )
+    assert not (
+        connection_closed_proved
+        and (state in ("QU", "QK") or connection_owned)
+    )
+    assert not (state in ("PU", "PK") and connection_owned)
+    assert not (
+        finalizer and not wrapper_reachable and admission_open
+    )
+    return _cleanup_reference_result(
+        state=state,
+        entered=entered,
+        completed=completed,
+        admission_open=admission_open,
+        wrapper_reachable=wrapper_reachable,
+        ordinary_closing=ordinary_closing,
+        connection_owned=connection_owned,
+        connection_closed_proved=connection_closed_proved,
+        credential_authority=credential_authority,
+        mutation_slot_owned=mutation_slot_owned,
+        database_binding_owned=database_binding_owned,
+        writer_lock_release=writer_lock_release,
+        descriptor_outcome=descriptor_outcome,
+        descriptor_retryable=descriptor_retryable,
+        descriptor_owned=descriptor_owned,
+        authority_lock_terminal=authority_lock_terminal,
+        authority_lock_registry_present=authority_lock_registry_present,
+        writer_session_registry_present=writer_session_registry_present,
+        close_attempts=close_attempts,
+        unlock_attempts=unlock_attempts,
+        descriptor_close_attempts=descriptor_close_attempts,
+        finalizer_attempted=finalizer_attempted,
+        retry_reachable=retry_reachable,
+        effective_cleanup_outcome=effective_cleanup_outcome,
+        selected_outward=selected_outward,
+        cleanup_failure_suppressed=cleanup_failure_suppressed,
+    )["safe_projection"]
 
 
 def _expect_violation(candidate: object, code: str) -> None:
@@ -2492,7 +4600,19 @@ def _direct_literal_assignment(
     ]
     _require(len(assignments) == 1, "C2B3A_ORACLE_EXPECTED_NOT_LITERAL")
     assignment = assignments[0]
-    _require(isinstance(assignment.value, ast.Dict), "C2B3A_ORACLE_EXPECTED_NOT_LITERAL")
+    expected_node_type: type[ast.AST]
+    if type(expected) is dict:
+        expected_node_type = ast.Dict
+    elif type(expected) is tuple:
+        expected_node_type = ast.Tuple
+    elif type(expected) is str:
+        expected_node_type = ast.Constant
+    else:
+        raise _ContractViolation("C2B3A_ORACLE_EXPECTED_NOT_LITERAL")
+    _require(
+        isinstance(assignment.value, expected_node_type),
+        "C2B3A_ORACLE_EXPECTED_NOT_LITERAL",
+    )
     try:
         value = ast.literal_eval(assignment.value)
     except (SyntaxError, ValueError):
@@ -2677,7 +4797,14 @@ def _assert_oracle_architecture(source: str) -> None:
             )
             _require(
                 not any(
-                    "registry" in name.lower()
+                    (
+                        "registry" in name.lower()
+                        and name
+                        not in {
+                            "authority_lock_registry_present",
+                            "writer_session_registry_present",
+                        }
+                    )
                     or "dispatcher" in name.lower()
                     or "runners" in name.lower()
                     for name in target_names
@@ -2710,6 +4837,11 @@ def _assert_oracle_architecture(source: str) -> None:
     _direct_allowed_import_inventory(tree)
     _direct_literal_assignment(
         tree,
+        "EXPECTED_PLANNING_PROJECTION",
+        EXPECTED_PLANNING_PROJECTION,
+    )
+    _direct_literal_assignment(
+        tree,
         "EXPECTED_INITIALIZATION_CONTRACT",
         EXPECTED_INITIALIZATION_CONTRACT,
     )
@@ -2718,12 +4850,41 @@ def _assert_oracle_architecture(source: str) -> None:
         "EXPECTED_INITIALIZATION_GOLDEN_VECTOR",
         EXPECTED_INITIALIZATION_GOLDEN_VECTOR,
     )
+    _direct_literal_assignment(
+        tree,
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM",
+        EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM,
+    )
+    _direct_literal_assignment(
+        tree,
+        "EXPECTED_PROCESS_CONTROL_REFERENCE_CASES",
+        EXPECTED_PROCESS_CONTROL_REFERENCE_CASES,
+    )
+    _direct_literal_assignment(
+        tree,
+        "CLEANUP_SAFE_PROJECTION_FIELDS",
+        CLEANUP_SAFE_PROJECTION_FIELDS,
+    )
+    _direct_literal_assignment(
+        tree,
+        "CLEANUP_REFERENCE_INPUT_CASES",
+        CLEANUP_REFERENCE_INPUT_CASES,
+    )
+    _direct_literal_assignment(
+        tree,
+        "EXPECTED_CLEANUP_REFERENCE_CASES",
+        EXPECTED_CLEANUP_REFERENCE_CASES,
+    )
 
 
 def test_owner_literal_equals_independent_expected_contract() -> None:
     owner_contract_candidate = _owner_contract()
-    assert owner_contract_candidate == EXPECTED_INITIALIZATION_CONTRACT
-    assert tuple(owner_contract_candidate) == tuple(EXPECTED_INITIALIZATION_CONTRACT)
+    assert owner_contract_candidate == _candidate()
+    assert tuple(owner_contract_candidate) == tuple(_candidate())
+    assert (
+        owner_contract_candidate["commit_close_outcome_addendum"]
+        == EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM
+    )
     _validate_contract(owner_contract_candidate)
 
 
@@ -2930,6 +5091,24 @@ def _run_mutation(value):
         _assert_oracle_architecture(mutant)
     assert str(exc_info.value) == "C2B3A_ORACLE_EXPECTED_NOT_LITERAL"
 
+    mutant = source.replace(
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM = {",
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM = _owner_contract()[\"commit_close_outcome_addendum\"] or {",
+        1,
+    )
+    with pytest.raises(_ContractViolation) as exc_info:
+        _assert_oracle_architecture(mutant)
+    assert str(exc_info.value) == "C2B3A_ORACLE_EXPECTED_NOT_LITERAL"
+
+    mutant = source.replace(
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM = {",
+        "EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM = _production_contract() or {",
+        1,
+    )
+    with pytest.raises(_ContractViolation) as exc_info:
+        _assert_oracle_architecture(mutant)
+    assert str(exc_info.value) == "C2B3A_ORACLE_EXPECTED_NOT_LITERAL"
+
 
 def test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses() -> None:
     text = _read_allowed_text(OWNER_PATH)
@@ -2952,148 +5131,152 @@ def test_owner_literal_parser_rejects_marker_fence_and_literal_bypasses() -> Non
     assert str(exc_info.value) == "C2B3A_OWNER_LITERAL_INVALID"
 
 
-def _planning_mutant_at_position(text: str, claim: str, position: str) -> str:
-    if position == "prelude":
-        return text.replace(
-            "# C2B3 Program Initialization\n",
-            "# C2B3 Program Initialization\n\n" + claim + "\n",
-            1,
-        )
-    if position == "middle":
-        return text.replace(
-            "## Private Delegation Shape",
-            claim + "\n\n## Private Delegation Shape",
-            1,
-        )
-    if position == "after-source-layout":
-        return text.replace(
-            "## Planned C2B3B Source Layout\n",
-            "## Planned C2B3B Source Layout\n\n" + claim + "\n",
-            1,
-        )
-    assert position == "tail"
-    return text.rstrip("\n") + "\n\n" + claim + "\n"
-
-
-def test_planning_status_baseline_scans_complete_nonfenced_document() -> None:
+def test_planning_status_baseline_is_exact_closed_projection() -> None:
     planning_document_candidate = _read_allowed_text(PLANNING_PATH)
+    assert planning_document_candidate == EXPECTED_PLANNING_PROJECTION
+    assert planning_document_candidate.count(PLANNING_PROJECTION_BEGIN_MARKER) == 1
+    assert planning_document_candidate.count(PLANNING_PROJECTION_END_MARKER) == 1
+    assert planning_document_candidate.endswith(
+        PLANNING_PROJECTION_END_MARKER + "\n"
+    )
     _validate_planning_status(planning_document_candidate)
 
 
-@pytest.mark.parametrize(
-    "position",
-    ("prelude", "middle", "after-source-layout", "tail"),
-)
-@pytest.mark.parametrize(
-    ("claim", "code"),
-    (
-        (
-            "The planning document is semantic authority.",
-            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
-        ),
-        (
-            "The planning document co-owns semantic truth.",
-            "C2B3A_PLANNING_AUTHORITY_CONTRADICTION",
-        ),
-        (
-            "Program initialization source is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Program initialization is implemented.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Private delegation is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Receipt persistence is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Replay runtime is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Recovery runtime is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-        (
-            "Author-effect source is current.",
-            "C2B3A_CURRENT_SOURCE_CONTRADICTION",
-        ),
-    ),
-)
-def test_planning_additive_contradictions_are_rejected_at_every_position(
-    claim: str,
-    code: str,
-    position: str,
-) -> None:
+def test_planning_projection_closed_grammar_counterfactuals_are_rejected() -> None:
     planning_document_candidate = _read_allowed_text(PLANNING_PATH)
-    _validate_planning_status(planning_document_candidate)
-    mutant = _planning_mutant_at_position(
-        planning_document_candidate,
-        claim,
-        position,
+    before_begin = "The earlier manifest governs C2B3B.\n"
+    after_end = "One extra path is allowed.\n"
+    unrecognized_block = (
+        "<!-- C2B3A_PLANNING_UNRECOGNIZED_BEGIN -->\n"
+        "The next path requires reassessment.\n"
+        "<!-- C2B3A_PLANNING_UNRECOGNIZED_END -->\n"
     )
-    with pytest.raises(_ContractViolation) as exc_info:
-        _validate_planning_status(mutant)
-    assert str(exc_info.value) == code
-
-
-@pytest.mark.parametrize("marker", ("```", "~~~"))
-def test_planning_correctly_closed_fenced_claim_is_ignored(marker: str) -> None:
-    planning_document_candidate = _read_allowed_text(PLANNING_PATH)
-    fenced = (
-        marker
-        + "text\nAuthor-effect source is current.\n"
-        + marker
-        + "\n"
+    swapped = planning_document_candidate.replace(
+        PLANNING_PROJECTION_BEGIN_MARKER,
+        "__C2B3A_BEGIN__",
+        1,
     )
-    mutant = _planning_mutant_at_position(
-        planning_document_candidate,
-        fenced,
-        "middle",
+    swapped = swapped.replace(
+        PLANNING_PROJECTION_END_MARKER,
+        PLANNING_PROJECTION_BEGIN_MARKER,
+        1,
     )
-    _validate_planning_status(mutant)
-
-
-def test_planning_unclosed_fence_and_text_bearing_pseudo_closer_are_bounded() -> None:
-    planning_document_candidate = _read_allowed_text(PLANNING_PATH)
-    unclosed = _planning_mutant_at_position(
-        planning_document_candidate,
-        "```text\nAuthor-effect source is current.",
-        "tail",
+    swapped = swapped.replace(
+        "__C2B3A_BEGIN__",
+        PLANNING_PROJECTION_END_MARKER,
+        1,
     )
-    with pytest.raises(_ContractViolation) as exc_info:
-        _validate_planning_status(unclosed)
-    assert str(exc_info.value) == "C2B3A_CURRENT_SOURCE_CONTRADICTION"
+    for mutant in (
+        before_begin + planning_document_candidate,
+        planning_document_candidate + after_end,
+        planning_document_candidate.replace(
+            PLANNING_PROJECTION_END_MARKER,
+            unrecognized_block + PLANNING_PROJECTION_END_MARKER,
+            1,
+        ),
+        planning_document_candidate.replace(
+            PLANNING_PROJECTION_BEGIN_MARKER,
+            PLANNING_PROJECTION_BEGIN_MARKER
+            + "\n"
+            + PLANNING_PROJECTION_BEGIN_MARKER,
+            1,
+        ),
+        planning_document_candidate.replace(
+            PLANNING_PROJECTION_END_MARKER,
+            PLANNING_PROJECTION_END_MARKER
+            + "\n"
+            + PLANNING_PROJECTION_END_MARKER,
+            1,
+        ),
+        planning_document_candidate.replace(
+            PLANNING_PROJECTION_BEGIN_MARKER,
+            "",
+            1,
+        ),
+        planning_document_candidate.replace(
+            PLANNING_PROJECTION_END_MARKER,
+            "",
+            1,
+        ),
+        planning_document_candidate.replace(
+            "<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->",
+            PLANNING_PROJECTION_BEGIN_MARKER
+            + "\n<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->",
+            1,
+        ),
+        swapped,
+        planning_document_candidate
+        + "The implementation is limited to the earlier manifest.\n",
+        planning_document_candidate + "23 expected paths are operative.\n",
+        planning_document_candidate + "24 paths are the maximum.\n",
+        planning_document_candidate + "The twenty-fifth path is permitted.\n",
+    ):
+        with pytest.raises(_ContractViolation) as exc_info:
+            _validate_planning_status(mutant)
+        assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
-    fenced = (
-        "```text\n"
-        "``` text-bearing pseudo-closer\n"
-        "> - Author-effect source is current.\n"
-        "```"
+    stage_specific_mutations = (
+        (
+            "- a distinct committed Coordinator repository baseline;\n",
+            "",
+        ),
+        (
+            "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+            "  strategic baseline, produced after and bound to that committed baseline;\n",
+            "",
+        ),
+        (
+            "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n",
+            "- a refreshed Coordinator snapshot, or an explicitly equivalent strategic\n",
+        ),
+        (
+            "- a distinct committed Coordinator repository baseline;\n"
+            "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+            "  strategic baseline, produced after and bound to that committed baseline;\n",
+            "- one committed Coordinator snapshot or equivalent strategic baseline;\n",
+        ),
+        (
+            "- a distinct committed Coordinator repository baseline;\n"
+            "- a refreshed exact Coordinator snapshot, or an explicitly equivalent exact\n"
+            "  strategic baseline, produced after and bound to that committed baseline;\n",
+            "- one committed Coordinator repository baseline used as both the baseline "
+            "and refreshed snapshot;\n",
+        ),
+        (
+            "- an accepted independent audit of the committed C2B3A contract baseline;\n",
+            "- an accepted independent audit of the C2B3A contract baseline;\n",
+        ),
+        (
+            "- a committed clean Coordinator baseline;\n",
+            "- a Coordinator baseline;\n",
+        ),
+        (
+            "- a committed clean Coordinator baseline;\n",
+            "- a committed Coordinator baseline;\n",
+        ),
+        (
+            "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n",
+            "- a refreshed Coordinator snapshot or explicitly equivalent strategic\n",
+        ),
+        (
+            "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n",
+            "- an exact Coordinator snapshot or explicitly equivalent exact\n",
+        ),
+        (
+            "- a refreshed exact Coordinator snapshot or explicitly equivalent exact\n"
+            "  strategic baseline bound to that clean committed baseline;\n",
+            "- the committed clean Coordinator baseline;\n",
+        ),
+        ("- an exact C2B3B source implementation prompt;\n", ""),
+        ("- fresh opening repository and patch provenance;\n", ""),
     )
-    pseudo_closer = _planning_mutant_at_position(
-        planning_document_candidate,
-        fenced,
-        "middle",
-    )
-    _validate_planning_status(pseudo_closer)
-
-
-def test_planning_markdown_prefixes_do_not_hide_forbidden_claims() -> None:
-    planning_document_candidate = _read_allowed_text(PLANNING_PATH)
-    mutant = _planning_mutant_at_position(
-        planning_document_candidate,
-        "> - Author-effect\t source   is current.",
-        "tail",
-    )
-    with pytest.raises(_ContractViolation) as exc_info:
-        _validate_planning_status(mutant)
-    assert str(exc_info.value) == "C2B3A_CURRENT_SOURCE_CONTRADICTION"
+    assert len(stage_specific_mutations) == 13
+    for old, new in stage_specific_mutations:
+        mutant = planning_document_candidate.replace(old, new, 1)
+        assert mutant != planning_document_candidate
+        with pytest.raises(_ContractViolation) as exc_info:
+            _validate_planning_status(mutant)
+        assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
 
 def test_owner_and_five_path_scope_counterfactuals_are_rejected() -> None:
@@ -4521,3 +6704,710 @@ def test_nonimplementation_surface_is_closed() -> None:
         candidate = _candidate()
         candidate["nonimplementation"][key] = True
         _expect_violation(candidate, "C2B3A_NONIMPLEMENTATION_INVALID")
+
+
+def test_commit_close_addendum_direct_oracle_matrix_is_closed() -> None:
+    addendum = _owner_contract()["commit_close_outcome_addendum"]
+    assert addendum == EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM
+    assert tuple(addendum) == (
+        "identity",
+        "normative_surface_and_precedence",
+        "commit_axis",
+        "close_axis",
+        "process_control_inventory",
+        "matrix_identity_overlay",
+        "session_state_legend",
+        "orthogonal_cleanup_facets",
+        "row_field_order",
+        "outcome_matrix",
+        "controller_and_resource_custody",
+        "process_control_relational_policy",
+        "legacy_exception_probe_ledger_classification",
+        "post_close_cleanup_contract",
+        "explicit_disposal",
+        "finalizer",
+        "recovery_and_safe_command_custody",
+        "future_c2b3b_path_scope_status",
+        "direct_oracle_requirements",
+        "privacy_and_non_authority",
+        "nonimplementation",
+    )
+    assert addendum["commit_axis"] == (
+        ("C1", "COMMIT returns normally"),
+        ("C2", "COMMIT raises an ordinary SQLite exception"),
+        ("C3", "COMMIT raises another ordinary Exception"),
+        ("C4", "COMMIT raises KeyboardInterrupt"),
+        ("C5", "COMMIT raises SystemExit"),
+        ("C6", "COMMIT raises GeneratorExit"),
+    )
+    assert addendum["close_axis"] == (
+        ("K1", "close returns normally and closure is proved"),
+        ("K2", "close raises an ordinary SQLite exception"),
+        ("K3", "close raises another ordinary Exception"),
+        ("K4", "close raises KeyboardInterrupt"),
+        ("K5", "close raises SystemExit"),
+        ("K6", "close raises GeneratorExit"),
+    )
+    assert addendum["row_field_order"] == (
+        "row_id",
+        "commit_axis_id",
+        "close_axis_id",
+        "known_commit_state",
+        "outward_result_or_exception",
+        "outward_identity_requirements",
+        "raise_form",
+        "repair_owned_propagation_frame_delta",
+        "cause_context_suppression_notes",
+        "raw_connection_disposition",
+        "raw_connection_owner",
+        "controller_state",
+        "session_state",
+        "mutation_slot_disposition",
+        "operation_lease_completion",
+        "writer_lock_disposition",
+        "quarantine_publication",
+        "new_operation_admission",
+        "committed_result_delivered",
+        "permitted_recovery_or_replay",
+        "automatic_semantic_retry",
+        "rollback_after_commit_start",
+        "secondary_failure_posture",
+        "C2B3_private_material_added_or_copied_outward",
+    )
+    matrix = addendum["outcome_matrix"]
+    assert type(matrix) is tuple
+    assert len(matrix) == 36
+    assert tuple(row[0] for row in matrix) == (
+        "C1K1", "C1K2", "C1K3", "C1K4", "C1K5", "C1K6",
+        "C2K1", "C2K2", "C2K3", "C2K4", "C2K5", "C2K6",
+        "C3K1", "C3K2", "C3K3", "C3K4", "C3K5", "C3K6",
+        "C4K1", "C4K2", "C4K3", "C4K4", "C4K5", "C4K6",
+        "C5K1", "C5K2", "C5K3", "C5K4", "C5K5", "C5K6",
+        "C6K1", "C6K2", "C6K3", "C6K4", "C6K5", "C6K6",
+    )
+    assert len(set(row[0] for row in matrix)) == 36
+    assert all(type(row) is tuple for row in matrix)
+    assert all(len(row) == 24 for row in matrix)
+    assert addendum["matrix_identity_overlay"] == {
+        "matrix_axes": "exception types only; object identity is orthogonal",
+        "different_exact_classes": "necessarily distinct objects",
+        "diagonal_rows": ("C4K4", "C5K5", "C6K6"),
+        "diagonal_discriminator": "same_instance iff commit_exception is cleanup_exception; otherwise distinct_instance",
+        "same_exact_class_implies_same_object": False,
+        "additional_cartesian_axis": False,
+        "dynamic_generation": False,
+    }
+    assert all(
+        "dispatch by object identity" in matrix[index][8]
+        for index in (21, 28, 35)
+    )
+    assert all(
+        "object-identity discriminator" in matrix[index][22]
+        for index in (21, 28, 35)
+    )
+    assert matrix[6][12] == "A" and matrix[12][12] == "A"
+    assert "ordinary A -> X" in matrix[6][17]
+    assert "ordinary A -> X" in matrix[12][17]
+
+
+def test_commit_close_addendum_custody_recovery_and_scope_are_exact() -> None:
+    addendum = deepcopy(EXPECTED_COMMIT_CLOSE_OUTCOME_ADDENDUM)
+    matrix = addendum["outcome_matrix"]
+    assert matrix[1][12] == "QK"
+    assert matrix[7][12] == "QU"
+    assert all(matrix[index][12] == "PU" for index in (18, 24, 30))
+    assert all(row[20] is False and row[21] is False for row in matrix)
+    assert tuple(
+        matrix[index][4]
+        for index in (21, 22, 23, 27, 28, 29, 33, 34, 35)
+    ) == (
+        "propagate original COMMIT-time KeyboardInterrupt",
+        "propagate original COMMIT-time KeyboardInterrupt",
+        "propagate original COMMIT-time KeyboardInterrupt",
+        "propagate original COMMIT-time SystemExit",
+        "propagate original COMMIT-time SystemExit",
+        "propagate original COMMIT-time SystemExit",
+        "propagate original COMMIT-time GeneratorExit",
+        "propagate original COMMIT-time GeneratorExit",
+        "propagate original COMMIT-time GeneratorExit",
+    )
+    assert addendum["orthogonal_cleanup_facets"] == {
+        "writer_lock_release": (
+            "not_attempted",
+            "release_unproved",
+            "release_proved",
+        ),
+        "descriptor_outcome": (
+            "not_attempted",
+            "reclaimed",
+            "reclamation_unknown",
+        ),
+        "finalizer_liveness": (
+            "finalizer_attempted",
+            "retry_reachable",
+        ),
+        "wrapper_loss_after_failed_one_shot_finalizer": {
+            "finalizer_attempted": True,
+            "retry_reachable": False,
+        },
+        "X_requires_descriptor_reclaimed": False,
+        "X_requires_post_X_session_registry_removal": False,
+        "CLEANING": "transient single-owner execution condition; never stable custody state",
+    }
+    cleanup = addendum["post_close_cleanup_contract"]
+    assert cleanup["ordered_steps"] == (
+        "P0", "C1", "C2", "R1", "R2", "R3", "L1", "H1", "H2", "T1", "H3",
+    )
+    assert cleanup["acknowledgement_complete_boundary"] == {
+        "C1_and_C2_remain_ordered_responsibilities": True,
+        "successful_C1_is_stable_or_outwardly_observable_before_C2": False,
+        "C1_after_fault_is_independently_observable": False,
+        "C2_before_fault_is_independently_observable": False,
+        "normal_close_requires_before_result_or_propagation": (
+            "record connection_closed_proved",
+            "clear raw connection custody",
+            "publish QU -> PU or QK -> PK",
+        ),
+        "closure_proved_QU_or_QK_with_connection_custody": False,
+        "PU_or_PK_with_connection_custody": False,
+        "extra_stable_session_state": False,
+    }
+    assert tuple(cleanup["step_contracts"]) == cleanup["ordered_steps"]
+    assert cleanup["step_contracts"]["L1"]["proof"] == (
+        "normal return from real fcntl.flock(exact_retained_fd, LOCK_UN), then release_proved publication under lifecycle/fork gate"
+    )
+    assert cleanup["step_contracts"]["L1"]["every_non_normal_exit"] == "release_unproved"
+    assert cleanup["step_contracts"]["H1"]["writer_lock_release_proof"] is False
+    assert cleanup["step_contracts"]["H1"]["retry_numeric_fd"] is False
+    assert cleanup["step_contracts"]["H1"]["gates_X"] is False
+    assert cleanup["step_contracts"]["H2"]["under_lifecycle_fork_gate_order"] == (
+        "publish release-proved terminal facts and descriptor outcome",
+        "identity-check and remove exact _ACTIVE_LOCK_RESOURCES entry",
+    )
+    assert cleanup["step_contracts"]["T1"]["writer_session_registry_retained_through_X"] is True
+    assert cleanup["step_contracts"]["H3"]["precondition"] == "X"
+    assert cleanup["matrix_continuation"] == {
+        "direct_entry_rows": ("C4K1", "C5K1", "C6K1"),
+        "entry_state": "PU after C2 before residual cleanup",
+        "possible_propagation_states": ("PU", "X"),
+        "C2K1_C3K1_state": "A",
+        "C2K1_C3K1_later_route": "ordinary A -> X through P0/R1/R2/R3/L1/H1/H2/T1/H3",
+        "remaining_close_failure_rows": "QU or QK until a later C1/C2 continuation",
+    }
+    relational = addendum["process_control_relational_policy"]
+    assert relational["guarantee_scope"] == "C2B3 deliberate actions only"
+    assert relational["exact_before_after_graph_reachability_cycle_or_traceback_promise"] is False
+    assert relational["exact_interpreter_preservation_guaranteed"] is False
+    assert relational["distinct_graph_disjoint"]["exact_full_graph_shape_promised"] is False
+    assert relational["distinct_prelinked"]["exact_link_preservation_promised"] is False
+    assert relational["same_instance"]["distinct_secondary_exists"] is False
+    assert relational["same_instance"]["exact_pre_second_raise_traceback_or_complete_graph_restored"] is False
+    assert relational["preexisting_private_payload"]["universal_sanitization_claim"] is False
+    assert addendum["legacy_exception_probe_ledger_classification"] == {
+        "ledger_path": "commit_uncertainty_cleanup_gate.close_not_proved.process_control_exception_graph_ledger",
+        "classification": "historical_runtime_observation",
+        "normative": False,
+        "operative_for_c2b3b": False,
+        "portable_contract": False,
+        "preserved_for_original_c2b3a_evidence": True,
+        "superseded_for_target_semantics_by": "process_control_relational_policy",
+        "observed_values_scope": "exact traceback, cause, context, suppression, cycle, and reachability values are observations of the original bounded reference branch only",
+        "consumer_rule": "no implementation, test oracle, planning projection, or future prompt may use those observed values as target requirements",
+    }
+    assert addendum["explicit_disposal"]["applies_to"] == ("A", "QU", "QK", "PU", "PK")
+    assert addendum["explicit_disposal"]["uses_weakref_finalize_callback_as_retry_mechanism"] is False
+    assert addendum["finalizer"]["weakref_finalize_invocation"] == "one-shot"
+    assert addendum["finalizer"]["failure_before_X_after_wrapper_loss"] == {
+        "finalizer_attempted": True,
+        "retry_reachable": False,
+        "further_in_process_attempt_promised": False,
+        "posture": "truthful fail-closed state and progress until process termination",
+    }
+    scope = addendum["future_c2b3b_path_scope_status"]
+    assert scope["required_path_counts"] == (6, 10, 11)
+    assert scope["expected_actual_write_paths"] == 27
+    assert scope["maximum_paths"] == 28
+    assert scope["twenty_ninth_path"] == "hard stop and scope reassessment condition"
+    assert len(scope["required_production_paths"]) == 6
+    assert len(scope["required_documentation_status_paths"]) == 10
+    assert len(scope["required_changed_test_paths"]) == 11
+    assert scope["contingency_path"] == "tests/test_c2b2_private_development_readers.py"
+    assert scope["future_implementation_scope_supersession"] == {
+        "historical_scope_id": "future_c2b3b_maximum_path_scope",
+        "operative": False,
+        "consumers_may_use": False,
+        "active_replacement_scope_id": "C2B3B_PRIVATE_ATOMIC_INITIALIZATION",
+        "active_replacement_owner": "commit_close_outcome_addendum.future_c2b3b_path_scope_status",
+        "active_expected_actual_write_paths": 27,
+        "active_maximum_paths": 28,
+        "active_stop_path_ordinal": 29,
+        "newly_required_paths": (
+            "src/ge_nwp_coordinator/state_authority_lock.py",
+            ".docs/writer-session-authority.md",
+            "tests/test_state_authority_lock.py",
+            "tests/test_sqlite_b2c_writer_session.py",
+        ),
+        "preserved_literal": "future_c2b3b_maximum_path_scope",
+        "preserved_values": {
+            "production_paths": 5,
+            "documentation_status_paths": 9,
+            "test_paths": 10,
+            "expected_actual_write_paths": 23,
+            "maximum_paths": 24,
+            "stop_path_ordinal": 25,
+        },
+        "classification": "historical and non-operative for C2B3B after this addendum",
+        "preservation_reason": "preserve the accepted earlier C2B3A freeze byte-for-byte",
+        "operative_scope_owner": "commit_close_outcome_addendum.future_c2b3b_path_scope_status",
+        "old_values_may_be_used_as_active_authority": False,
+        "operative_values": {
+            "production_paths": 6,
+            "documentation_status_paths": 10,
+            "required_changed_tests": 11,
+            "expected_actual_write_paths": 27,
+            "contingency_paths": 1,
+            "maximum_paths": 28,
+            "stop_path_ordinal": 29,
+        },
+    }
+
+
+def _process_control_reference_cases() -> tuple[
+    tuple[str, BaseException, BaseException], ...
+]:
+    same_k = KeyboardInterrupt("same-instance-k")
+    same_s = SystemExit(37)
+    same_g = GeneratorExit("same-instance-g")
+
+    cause_secondary = GeneratorExit("cause-secondary")
+    cause_primary = SystemExit(38)
+    cause_primary.__cause__ = cause_secondary
+
+    context_secondary = KeyboardInterrupt("context-secondary")
+    context_primary = GeneratorExit("context-primary")
+    context_primary.__context__ = context_secondary
+
+    third = KeyboardInterrupt("third")
+    cycle_primary = SystemExit(39)
+    cycle_secondary = GeneratorExit("cycle-secondary")
+    cycle_primary.__cause__ = third
+    third.__context__ = cycle_primary
+    cycle_secondary.__context__ = third
+
+    opaque_payload = ("opaque-synthetic-payload", 40)
+    payload_primary = SystemExit(opaque_payload)
+    payload_secondary = KeyboardInterrupt(opaque_payload)
+    payload_cause = GeneratorExit(opaque_payload)
+    payload_context = KeyboardInterrupt(opaque_payload)
+    payload_primary.__notes__ = [opaque_payload]
+    payload_primary.__cause__ = payload_cause
+    payload_secondary.__context__ = payload_context
+
+    return (
+        ("cross-k-s", KeyboardInterrupt("cross-k-s"), SystemExit(31)),
+        ("cross-k-g", KeyboardInterrupt("cross-k-g"), GeneratorExit("cross-g")),
+        ("cross-s-k", SystemExit(32), KeyboardInterrupt("cross-s-k")),
+        ("cross-s-g", SystemExit(33), GeneratorExit("cross-s-g")),
+        ("cross-g-k", GeneratorExit("cross-g-k"), KeyboardInterrupt("cross-k")),
+        ("cross-g-s", GeneratorExit("cross-g-s"), SystemExit(34)),
+        (
+            "distinct-k",
+            KeyboardInterrupt("same-class-k-1"),
+            KeyboardInterrupt("same-class-k-2"),
+        ),
+        ("distinct-s", SystemExit(35), SystemExit(36)),
+        (
+            "distinct-g",
+            GeneratorExit("same-class-g-1"),
+            GeneratorExit("same-class-g-2"),
+        ),
+        ("same-k", same_k, same_k),
+        ("same-s", same_s, same_s),
+        ("same-g", same_g, same_g),
+        ("prelinked-cause", cause_primary, cause_secondary),
+        ("prelinked-context", context_primary, context_secondary),
+        ("linked-cycle", cycle_primary, cycle_secondary),
+        ("private-payload", payload_primary, payload_secondary),
+    )
+
+
+def test_process_control_reference_case_fixture_is_closed_and_privacy_safe() -> None:
+    cases = _process_control_reference_cases()
+    by_id = {
+        case_id: (primary, secondary)
+        for case_id, primary, secondary in cases
+    }
+    assert tuple(by_id) == tuple(EXPECTED_PROCESS_CONTROL_REFERENCE_CASES)
+
+    cause_primary, cause_secondary = by_id["prelinked-cause"]
+    context_primary, context_secondary = by_id["prelinked-context"]
+    cycle_primary, cycle_secondary = by_id["linked-cycle"]
+    payload_primary, payload_secondary = by_id["private-payload"]
+    third = cycle_primary.__cause__
+    payload_cause = payload_primary.__cause__
+    payload_context = payload_secondary.__context__
+    opaque_payload = ("opaque-synthetic-payload", 40)
+
+    assert cause_primary.__cause__ is cause_secondary
+    assert context_primary.__context__ is context_secondary
+    assert cycle_primary.__cause__ is third
+    assert third is not None
+    assert third.__context__ is cycle_primary
+    assert cycle_secondary.__context__ is third
+    identity_walk = _exception_graph_identity_walk(cycle_primary)
+    assert id(cycle_primary) in identity_walk
+    assert id(third) in identity_walk
+    assert payload_primary.__notes__ == [opaque_payload]
+    assert payload_primary.__cause__ is payload_cause
+    assert payload_secondary.__context__ is payload_context
+
+    coordinator_safe_error = ("commit_outcome_unknown", None, True)
+    coordinator_logs: tuple[object, ...] = ()
+    coordinator_reports: tuple[object, ...] = ()
+    coordinator_serialized_values: tuple[object, ...] = ()
+    coordinator_persisted_values: tuple[object, ...] = ()
+    assert opaque_payload not in coordinator_safe_error
+    assert opaque_payload not in coordinator_logs
+    assert opaque_payload not in coordinator_reports
+    assert opaque_payload not in coordinator_serialized_values
+    assert opaque_payload not in coordinator_persisted_values
+
+
+def test_commit_close_relational_process_control_reference_cases_are_exact() -> None:
+    cases = _process_control_reference_cases()
+    assert tuple(case_id for case_id, _, _ in cases) == tuple(
+        EXPECTED_PROCESS_CONTROL_REFERENCE_CASES
+    )
+
+    for case_id, primary, secondary in cases:
+        observed = _relational_process_control_reference(primary, secondary)
+        expected = EXPECTED_PROCESS_CONTROL_REFERENCE_CASES[case_id]
+        assert observed["safe_projection"] == expected
+        assert observed["provided_primary"] is primary
+        assert observed["provided_secondary"] is secondary
+        assert observed["caught_primary"] is primary
+        assert observed["caught_secondary"] is secondary
+        assert observed["outward_primary"] is primary
+
+
+def test_cleanup_reference_vector_shape_is_exact() -> None:
+    assert len(CLEANUP_REFERENCE_INPUT_CASES) == 55
+    assert len(EXPECTED_CLEANUP_REFERENCE_CASES) == 55
+    assert tuple(
+        case_id for case_id, _ in CLEANUP_REFERENCE_INPUT_CASES
+    ) == tuple(EXPECTED_CLEANUP_REFERENCE_CASES)
+    assert len(set(EXPECTED_CLEANUP_REFERENCE_CASES)) == 55
+    assert len(CLEANUP_SAFE_PROJECTION_FIELDS) == 30
+
+
+def test_post_close_cleanup_reference_model_covers_every_release_point() -> None:
+    cases = CLEANUP_REFERENCE_INPUT_CASES
+    assert tuple(case_id for case_id, _ in cases) == tuple(
+        EXPECTED_CLEANUP_REFERENCE_CASES
+    )
+    for case_id, inputs in cases:
+        observed = _cleanup_reference(*inputs)
+        expected = EXPECTED_CLEANUP_REFERENCE_CASES[case_id]
+        assert observed == expected
+
+
+
+def test_commit_close_mutant_m16_missing_matrix_row_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:-1]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m17_duplicate_matrix_row_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:-1] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][0],)
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m18_reordered_matrix_rows_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = (candidate["commit_close_outcome_addendum"]["outcome_matrix"][1], candidate["commit_close_outcome_addendum"]["outcome_matrix"][0]) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][2:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m19_c1k2_state_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:1] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][1][:12] + ("QU",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][1][13:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][2:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m20_c4k1_state_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:18] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][18][:12] + ("A",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][18][13:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][19:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m21_cleanup_primary_precedence_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:21] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][21][:4] + ("propagate close-time KeyboardInterrupt",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][21][5:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][22:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m22_named_raise_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:3] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][3][:6] + ("raise caught_exception",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][3][7:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][4:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m23_reconstructed_system_exit_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:4] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][4][:5] + ("reconstructed SystemExit with normalized code",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][4][6:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][5:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m24_post_commit_rollback_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:6] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][6][:20] + (True,) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][6][21:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][7:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m25_slot_release_before_quarantine_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:7] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][7][:13] + ("released before quarantine publication",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][7][14:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][8:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m26_pending_cleanup_sql_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["explicit_disposal"]["while_PU_or_PK"] = "recreate connection and run SQL"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m27_finalizer_retry_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["finalizer"]["weakref_finalize_invocation"] = "repeatable"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m28_work_spec_recovery_custody_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["recovery_and_safe_command_custody"]["complete_work_spec_reaches_recovery"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m29_production_behavior_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["nonimplementation"]["worker_scheduler_queue_service_model_or_reconciler"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m30_scope_maximum_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["maximum_paths"] = 29
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m31_same_class_implies_same_object_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["matrix_identity_overlay"]["same_exact_class_implies_same_object"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m32_distinct_same_class_routing_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["matrix_identity_overlay"]["diagonal_discriminator"] = "same exact class always selects same_instance"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m33_same_instance_routing_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["same_instance"]["selection"] = "always distinct_instance"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m34_prelinked_cause_promise_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["distinct_prelinked"]["exact_link_preservation_promised"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m35_prelinked_context_promise_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["exact_interpreter_preservation_guaranteed"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m36_fixed_graph_shape_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["exact_before_after_graph_reachability_cycle_or_traceback_promise"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m37_graph_scrub_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["preexisting_relation_deliberately_removed"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m38_universal_sanitization_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["preexisting_private_payload"]["universal_sanitization_claim"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m39_raw_payload_copy_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["preexisting_private_payload"]["copied_or_added_by_C2B3"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m40_raw_payload_report_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["process_control_relational_policy"]["raw_process_control"]["serialize_persist_log_format_render_or_report"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m41_descriptor_close_release_proof_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["L1"]["proof"] = "normal descriptor close return"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m42_x_before_release_proof_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["T1"]["preconditions"] = ("applicable C2", "R1", "R2", "R3")
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m43_authority_registry_before_release_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["H2"]["preconditions"] = ("one H1 attempt",)
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m44_acquisition_on_unproved_release_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["H2"]["same_process_acquisition"] = "permitted while release_unproved"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m45_recovery_on_unproved_release_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["recovery_replay_gate"]["blocked_lock_facet"] = None
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m46_replay_on_unproved_release_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["L1"]["release_unproved_forbids"] = ("descriptor close", "X publication", "new same-process writer")
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m47_descriptor_close_retry_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["H1"]["retry_numeric_fd"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m48_session_registry_before_x_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["H3"]["precondition"] = "PU or PK"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m49_descriptor_reclamation_x_gate_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["orthogonal_cleanup_facets"]["X_requires_descriptor_reclaimed"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m50_retry_after_wrapper_loss_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["finalizer"]["failure_before_X_after_wrapper_loss"]["retry_reachable"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m51_hidden_registry_cleanup_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["finalizer"]["hidden_cleanup_service_or_registry_scan"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m52_c2k1_pending_state_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:6] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][6][:12] + ("PU",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][6][13:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][7:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m53_c3k1_pending_state_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["outcome_matrix"] = candidate["commit_close_outcome_addendum"]["outcome_matrix"][:12] + (candidate["commit_close_outcome_addendum"]["outcome_matrix"][12][:12] + ("PK",) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][12][13:],) + candidate["commit_close_outcome_addendum"]["outcome_matrix"][13:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m54_a_to_x_lock_bypass_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["ordinary_A_to_X"]["shared_lock_release_primitive"] = False
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m55_finalizer_automatic_retry_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["finalizer"]["automatic_retry"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m56_finalizer_clears_progress_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["finalizer"]["failure_after_close_proof"] = "clear every incomplete responsibility"
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m57_missing_lock_source_path_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_production_paths"] = candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_production_paths"][:5]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m58_missing_writer_authority_doc_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_documentation_status_paths"] = candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_documentation_status_paths"][:7] + candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_documentation_status_paths"][8:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m59_missing_lock_test_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_changed_test_paths"] = candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_changed_test_paths"][:7] + candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_changed_test_paths"][8:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m60_missing_writer_session_test_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_changed_test_paths"] = candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_changed_test_paths"][:6] + candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["required_changed_test_paths"][7:]
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m61_historical_scope_reactivation_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["expected_actual_write_paths"] = 23
+    candidate["commit_close_outcome_addendum"]["future_c2b3b_path_scope_status"]["maximum_paths"] = 24
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m62_dynamic_oracle_derivation_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["matrix_identity_overlay"]["dynamic_generation"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m63_implementation_claim_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["nonimplementation"]["production_behavior"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m64_h2_order_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["H2"]["under_lifecycle_fork_gate_order"] = ("identity-check and remove exact _ACTIVE_LOCK_RESOURCES entry", "publish release-proved terminal facts and descriptor outcome")
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
+
+
+def test_commit_close_mutant_m65_new_operation_in_pending_state_is_rejected() -> None:
+    candidate = _candidate()
+    candidate["commit_close_outcome_addendum"]["post_close_cleanup_contract"]["step_contracts"]["P0"]["new_operation_admission_in_PU_or_PK"] = True
+    _expect_violation(candidate, "C2B3A_COMMIT_CLOSE_ADDENDUM_INVALID")
