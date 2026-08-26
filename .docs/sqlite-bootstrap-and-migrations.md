@@ -575,3 +575,23 @@ The two explicit indexes are
 is `direct_local_first_productive_acceptance` in state `available`, version 0,
 with null consumed bindings. `.docs/c2b-durable-development-state.md` owns the
 exact target table, trigger, privacy, and transaction responsibilities.
+
+<!-- C2B3_NARROWED_MIGRATION_BEGIN -->
+## Vertical-slice migration narrowing
+
+The previously selected migration-0003 relation inventory, object counts,
+named indexes, triggers, bootstrap row, and cumulative totals are reopened and
+non-operative for the first vertical-slice design. This addendum selects no
+replacement schema or arithmetic.
+
+Pre-I/O design must first determine whether migration-0002 structures suffice.
+Remote-contact design may select only migration-0003 relations required by the
+executable path. Local-Git and ES phases must likewise justify only their
+minimum durable needs. Every selection requires separate authorization and
+fresh contract/audit treatment before production SQL.
+
+Current implemented capability remains generation 2 at terminal migration
+0002. Migration 0002 bytes, catalog, and meanings are unchanged. No migration
+0003 resource, schema object, bootstrap row, runtime, or operator-state
+mutation is implemented or authorized here.
+<!-- C2B3_NARROWED_MIGRATION_END -->

@@ -435,3 +435,51 @@ effects reuse that attempt, candidate, AttemptFence, originating command, and
 post-bound author EffectFence. They create no attempt, candidate, second
 command, author effect, or program version. A new semantic attempt remains
 possible only after an explicit attempt-selecting Coordinator decision.
+
+<!-- C2B3_NARROWED_PROGRESSION_BEGIN -->
+## Narrowed first vertical-slice progression boundary
+
+Initialization is route-neutral; author-effect delivery selects the first
+`direct_local_bootstrap` bounded direct/non-ES route. The intended operational
+topology is one qualified remote Linux host, but topology/profile/transport are
+evidence, not semantic identity or authority. No Mac fallback or third adapter
+kind exists.
+
+The governing dependency order is pre-I/O progression, remote worker contact
+through semantic decision, separate local-Git effect and stop, then ES
+migration before another productive bootstrap slice. It is not a frozen
+program/tranche count.
+
+The bootstrap path permits at most one productive acceptance. Local Git remains
+a separate effect after acceptance and permits at most one isolated feature-
+branch commit, zero push/remote-ref/PR/merge/deploy/publication effects, and no
+blind retry after ambiguity. The
+`qualified_remote_host_readiness_evidence_gate` requires accepted owning-process
+evidence that one remote Linux host is qualified before real retrieval,
+process-separated worker or Codex invocation, validation, review, or Git
+execution; that operational evidence is not identity, authority, progression
+truth, runtime truth, or permission for Mac or Coordinator-host fallback. The
+earlier formulation that
+`accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate`
+requires an accepted clean exact ES Git OID is rejected: cleanliness qualifies
+the accepted ES repository baseline, not the Git OID. Before the recorded ES
+scenario is initialized or executed, the gate requires three jointly bound
+facts: an accepted clean ES repository baseline established by accepted
+repository-status evidence; that same accepted clean baseline resolved to one
+concrete exact ES Git object OID; and accepted owning-ES-repository
+contract/adoption evidence applicable to that same exact OID and recorded
+scenario. The exact OID identifies the immutable Git object to which the
+accepted baseline and adoption evidence are bound. Exact-OID evidence without
+accepted baseline-cleanliness evidence, clean-baseline evidence without a
+concrete exact OID, evidence not bound to the same accepted baseline, or
+adoption evidence for another OID or another scenario is insufficient. A
+branch name, moving ref, worktree path, snapshot title, chat label, Codex
+report, ChatGPT report, or prose assertion cannot fill a missing component by
+itself. The gate transfers no ES admission, runtime, lifecycle,
+retained-result, or contract authority to Coordinator. Chat or model reports
+cannot substitute for either intrinsic gate.
+
+Exact initialization, custody, verification, source invocation, evidence,
+Git, migration, replay/recovery, and latch representations remain just-in-time
+questions. No next source tranche is authorized.
+<!-- C2B3_NARROWED_PROGRESSION_END -->

@@ -598,3 +598,28 @@ twelve private reader roles, with no public surface or production caller. No
 C2B product reader caller, writer, mutation transaction, complete family graph verifier, replay/recovery,
 C2B3 behavior, worker, Bridge dependency, ES dependency, service, queue,
 scheduler, or autonomous loop exists.
+
+<!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->
+## C2B3 vertical-slice governing narrowing
+
+Section 36 of `.docs/c2b-durable-development-state.md` supersedes only the
+named route selections, horizontal implementation order, active path-count
+manifests, and previously selected initialization/migration target shapes. It
+replaces them with governing architecture and just-in-time questions, not a
+future implementation design.
+
+Initialization is route-neutral. Route selection occurs only at author-effect
+delivery, whose first route is the existing `direct_local_bootstrap` bounded
+direct/non-ES compatibility path to one qualified remote Linux host. It does
+not mean the user's Mac, the Coordinator host, or physical colocation, and it
+introduces no third adapter kind.
+
+Coordinator remains durable-progression authority only. Parent standing grant,
+current verification, worker execution, Git truth, validation/review evidence,
+and publication authority remain outside it. The worker receives no
+Coordinator SQLite or writer access. At most one productive bootstrap
+acceptance and one later isolated local feature-branch commit are permitted;
+push, remote-ref mutation, PR, merge, deployment, and publication remain zero.
+All exact future values, relations, migration inventory, and replay/evidence
+layouts are deferred to the phase that first needs them.
+<!-- C2B3_NARROWED_ARCHITECTURE_END -->

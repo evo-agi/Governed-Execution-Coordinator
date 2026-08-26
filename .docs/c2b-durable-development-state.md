@@ -18505,3 +18505,249 @@ replay/recovery, and privacy matrix before any C2B3D source may begin.
 <!-- C2B3A_OWNER_RETAINED_TAIL_END -->
 
 <!-- C2B3A_OWNER_ADDENDUM_END -->
+
+## 36. C2B3 Vertical-Slice Governing Narrowing Addendum
+
+This finite addendum replaces the rejected identity/schema freeze with only
+governing architecture, sequencing, authority separation, effect ceilings,
+prerequisites, current status, and required just-in-time design questions. It
+does not select future values, schemas, digests, relations, migration
+inventory, replay algebra, or evidence-record layouts. The complete rejected
+design is evidence outside the repository and has no governing authority.
+
+<!-- C2B3_NARROWED_RESET_CONTRACT_PYTHON_BEGIN -->
+
+```python
+{
+    "critical_path_narrowing_addendum": {
+        "contract_identity": {
+            "workstream": "COORDINATOR_VERTICAL_SLICE_GOVERNING_NARROWING",
+            "semantic_owner": ".docs/c2b-durable-development-state.md#36-c2b3-vertical-slice-governing-narrowing-addendum",
+            "status": "accepted governing target; production implementation absent",
+            "scope": "architecture, sequencing, authority, effect ceilings, prerequisites, current status, and just-in-time deferrals only",
+            "rejected_identity_schema_candidate_operative": False,
+        },
+        "finite_supersession": {
+            "all_non_superseded_C2B3A_semantics_remain_operative": True,
+            "supersedes_only": (
+                "owner_decisions.planned_adapter_kind as initialization route selection",
+                "later_author_effect_owner_decisions.planned_adapter_kind for the first delivery",
+                "later_author_effect_owner_decisions.direct_local_bootstrap_selected for the first delivery",
+                "direct_local_first_productive_acceptance as the required durable representation",
+                "horizontal C2B3B/C2B4/C2B5/C2B6 order as implementation order",
+                "future C2B3B path-count manifests as implementation authority",
+                "existing migration-0003 inventory and totals as selected target",
+                "existing initialization version and graph shape as mandatory vertical-slice selection",
+                "Section 26 target tranche sequence as operative implementation order",
+                "Section 4 C2B4 ownership order as operative implementation order",
+            ),
+            "preserved_route_field_dispositions": (
+                (
+                    "owner_decisions.planned_adapter_kind",
+                    "execution_substrate",
+                    "non-operative during route-neutral initialization",
+                ),
+                (
+                    "later_author_effect_owner_decisions.planned_adapter_kind",
+                    "execution_substrate",
+                    "first author-effect delivery selects direct_local_bootstrap",
+                ),
+                (
+                    "later_author_effect_owner_decisions.direct_local_bootstrap_selected",
+                    False,
+                    "first author-effect delivery selects direct_local_bootstrap",
+                ),
+            ),
+            "route_specific_latch_disposition": "policy ceiling retained; exact durable representation deferred",
+            "migration_0003_disposition": "inventory, names, counts, indexes, triggers, and totals reopened rather than replaced",
+            "initialization_shape_disposition": "exact version, records, graph, replay, and recovery reopened for pre-I/O just-in-time design",
+        },
+        "governing_decisions": {
+            "horizontal_implementation_sequence_superseded": True,
+            "initialization_route_neutral": True,
+            "initialization_forbids": (
+                "adapter",
+                "host",
+                "transport",
+                "endpoint",
+                "delivery",
+                "external request",
+            ),
+            "route_selection_boundary": "author-effect delivery",
+            "first_route": "direct_local_bootstrap",
+            "first_route_meaning": "bounded direct/non-ES bootstrap",
+            "first_route_does_not_mean": (
+                "user Mac",
+                "Coordinator host",
+                "physical colocation",
+            ),
+            "intended_first_physical_topology": "one qualified remote Linux host",
+            "topology_profile_transport_are_operational_evidence_only": True,
+            "topology_profile_transport_are_semantic_identity_or_authority": False,
+            "adapter_kinds_remain": (
+                "execution_substrate",
+                "direct_local_bootstrap",
+            ),
+            "third_adapter_kind_introduced": False,
+            "authority_separation": (
+                "Coordinator owns durable progression only",
+                "external source owns the parent standing grant",
+                "external verifier supplies current verification",
+                "Coordinator cannot issue its parent grant or author verified",
+                "persisted authority evidence is not automatically fresh permission",
+                "user is not a routine per-effect approver",
+                "worker has no Coordinator SQLite or writer access",
+                "Git owns object and ref truth",
+                "validators and reviewers own their evidence",
+                "reports, model output, Bridge records, and transport receipts remain evidence only",
+            ),
+            "raw_WorkSpec_in_Coordinator_SQLite": False,
+            "retrieval_bearer_authority_in_Coordinator_SQLite": False,
+            "ref_or_digest_is_retrieval_authority": False,
+            "productive_bootstrap_acceptance_maximum": 1,
+            "productive_bootstrap_exact_durable_representation": "deferred",
+            "local_Git_effect_separate_after_semantic_acceptance": True,
+            "effect_ceilings": {
+                "local_feature_branch_commits": 1,
+                "pushes": 0,
+                "remote_ref_mutations": 0,
+                "pull_requests": 0,
+                "merges": 0,
+                "deployments": 0,
+                "publication_effects": 0,
+            },
+            "ambiguous_Git_outcome_permits_blind_second_commit": False,
+            "qualified_remote_host_readiness_evidence_gate": (
+                "satisfied only by accepted evidence produced through the owning remote-host readiness process",
+                "establishes that one remote Linux host is qualified for the exact first-route activities about to occur",
+                "before acceptance no real WorkSpec retrieval, process-separated worker or Codex invocation, validation, review, or local-Git execution may begin",
+                "operational/readiness evidence only; not semantic identity, execution authority, a parent grant, Coordinator progression truth, runtime truth, or permission for Mac fallback",
+                "failure or absence authorizes neither execution on the user's Mac nor execution on the Coordinator host",
+                "evidence schema, producer implementation, transport, profile format, and durable storage mechanism remain deferred",
+            ),
+            "accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate": (
+                "before recorded ES scenario initialization or execution requires all three jointly bound facts: one accepted clean ES repository baseline established by accepted repository-status evidence, that same accepted clean baseline resolved to one concrete exact ES Git object OID, and accepted owning-ES-repository contract/adoption evidence applicable to that exact OID and recorded scenario",
+                "cleanliness qualifies the accepted ES repository baseline, not the Git OID; the exact OID identifies the immutable Git object to which that accepted baseline and adoption evidence are bound",
+                "exact-OID evidence without accepted baseline-cleanliness evidence is insufficient, and accepted clean-baseline evidence without a concrete exact Git object OID is insufficient",
+                "the baseline-cleanliness evidence and exact-OID evidence must identify the same accepted baseline; independently supplied or otherwise unbound evidence is insufficient",
+                "owning-repository contract/adoption evidence must apply to that same exact OID and recorded scenario; evidence for another OID or another scenario is insufficient",
+                "a branch name, moving ref, worktree path, snapshot title, chat label, Codex report, ChatGPT report, or prose assertion cannot satisfy any missing component by itself",
+                "the gate transfers no ES admission, runtime, lifecycle, retained-result, or contract authority to Coordinator",
+                "gate DTO, persistent gate schema, exact evidence file format, exact Git command, ignored-file treatment, reliable-submit DTO or implementation, Coordinator-to-ES adapter protocol, and any new migration-0003 surface remain deferred",
+            ),
+            "post_acceptance_bootstrap_gate": "no second productive bootstrap slice before accepted ES reliable-submit and adapter-conformance gates",
+        },
+        "critical_path_order": {
+            "dependency_order": (
+                "pre-I/O Coordinator progression",
+                "remote worker contact through semantic decision",
+                "separate local-Git effect and stop",
+                "migration to ES before another productive bootstrap slice",
+            ),
+            "mandatory_program_or_tranche_count_frozen": False,
+            "checkpoint_division_rule": "future implementation prompts may divide or combine internal checkpoints while preserving authority, validation, and provenance boundaries",
+        },
+        "just_in_time_design_deferrals": {
+            "meaning": "required questions, not selected schemas",
+            "pre_IO_durable_progression": (
+                "exact route-neutral initialization versioning",
+                "minimum initialization and author-effect durable graph",
+                "whether existing migration-0002 structures suffice",
+                "exact replay and recovery for records this phase writes",
+                "durable representation of the one-shot bootstrap ceiling",
+            ),
+            "remote_worker_contact": (
+                "minimum safe WorkSpec custody and retrieval contract",
+                "external verifier-result persistence",
+                "source invocation identity and lookup",
+                "capsule custody",
+                "validation and review evidence",
+                "only migration-0003 relations required by the executable path",
+            ),
+            "local_Git_effect": (
+                "Git command, delivery, invocation, and observation values",
+                "authority binding",
+                "Git reconciliation",
+                "evidence sufficient for committed, absent, or unresolved",
+                "no-blind-retry enforcement",
+            ),
+            "ES_migration": (
+                "reliable keyed submit",
+                "caller-response-loss recovery",
+                "Nomad ambiguous-registration reconciliation",
+                "retained-result and capsule transport",
+                "Coordinator adapter conformance",
+                "bootstrap disablement after migration",
+            ),
+        },
+        "explicit_non_selections": (
+            "custody receipt fields, digests, authenticity ordering, or canonical vectors",
+            "initialization command version, fields, digest, row count, graph rank, or recovery graph",
+            "custody relation fields, indexes, foreign keys, or SQL feasibility",
+            "verifier-result fields, enums, unions, cardinalities, attestations, or relation",
+            "local-Git command, delivery, invocation, observation fields, or digests",
+            "generic worker/local-Git union schema",
+            "source-journal or definite-absence proof schema",
+            "authority/Git digest DAG or topological order",
+            "migration-0003 relation names, counts, indexes, triggers, or totals",
+            "future-schema SQLite fixture",
+            "future-value canonical vectors",
+            "cross-record resealing matrix or implementation-level mutants",
+            "new latch row or value",
+        ),
+        "preserved_C2B3A": {
+            "transaction_and_cleanup_semantics": (
+                "one Coordinator writer",
+                "one shared mutation slot",
+                "existing transaction controller",
+                "BEGIN IMMEDIATE",
+                "writer and session fencing",
+                "receipt-first replay",
+                "CAS",
+                "one commit attempt",
+                "commit uncertainty",
+                "A/QU/QK/PU/PK/X cleanup states and order",
+                "lock-release proof",
+                "finalizer and liveness treatment",
+                "privacy and process-control precedence",
+                "exact committed, definitely-not-committed, and unresolved recovery classifications",
+                "no external I/O",
+            ),
+            "C2A_values_or_vectors_changed": False,
+        },
+        "current_and_target_status": {
+            "current": (
+                "application generation 2",
+                "terminal migration 0002",
+                "C2A1 values",
+                "C2B2 row and value modules",
+                "C2B2 private production-unintegrated readers",
+                "existing bounded transaction and writer authority",
+            ),
+            "absent_target_capabilities": (
+                "worker",
+                "custodian",
+                "external verifier",
+                "migration 0003",
+                "source invocation",
+                "evidence and decision runtime",
+                "Git effect runtime",
+                "Execution Substrate adapter",
+                "publication",
+            ),
+            "production_source_changed_or_authorized": False,
+            "runtime_implemented_or_authorized": False,
+            "independent_audit_performed": False,
+        },
+    }
+}
+```
+
+<!-- C2B3_NARROWED_RESET_CONTRACT_PYTHON_END -->
+
+This addendum has higher precedence only for the finite paths named in
+`finite_supersession.supersedes_only`. Every other committed C2B3A semantic,
+including its transaction and cleanup authority, remains operative. Open
+questions in the deferral ledger must be resolved immediately before the phase
+that needs them and require a separately authorized source tranche and fresh
+independent audit.

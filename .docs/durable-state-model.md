@@ -461,3 +461,24 @@ explicit index. Migration 0003 and all C2B reader production integration,
 writer, mutation, replay/recovery, ingest, decision runtime,
 authority-verifier, and latch behavior remain absent; the current private
 readers do not populate durable state or confer product authority.
+
+<!-- C2B3_NARROWED_DURABLE_STATE_BEGIN -->
+## Vertical-slice durable-state narrowing
+
+Earlier migration-0003 inventories, physical totals, route-specific latch
+shape, and exact initialization graph are reopened and non-operative as the
+vertical-slice design. No replacement table, field, key, FK, index, trigger,
+digest, row count, graph rank, or schema total is selected here.
+
+The governing durable facts are only that initialization is route-neutral,
+durable intent precedes external I/O, the bootstrap route has a one-productive-
+acceptance ceiling, local Git is a separate post-acceptance effect with one
+commit maximum and zero publication, and ambiguous Git outcome forbids blind
+retry. Raw WorkSpec and retrieval bearer authority never enter SQLite.
+
+The exact minimum records, migration sufficiency, replay/recovery, one-shot
+representation, custody, verifier result, invocation, evidence, Git
+reconciliation, and ES conformance are assigned to the just-in-time phase that
+first needs them. Current state remains generation 2 at migration 0002; no
+target runtime or migration-0003 source exists.
+<!-- C2B3_NARROWED_DURABLE_STATE_END -->

@@ -216,6 +216,39 @@ absent and requires a separately authorized implementation tranche and a fresh
 independent read-only audit.
 <!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_END -->
 
+<!-- C2B3_NARROWED_PLANNING_BEGIN -->
+## Governing vertical-slice narrowing projection
+
+Section 36 of `.docs/c2b-durable-development-state.md` is the sole semantic
+owner for this narrowing. This planning projection selects no new value,
+digest, relation, migration inventory, or physical schema.
+
+The preserved initialization and later author-effect adapter selections are
+non-operative for the first vertical slice. Initialization has no adapter,
+host, transport, endpoint, delivery, or external request. The first route is
+selected at author-effect delivery and uses `direct_local_bootstrap`, meaning a
+bounded direct/non-ES path to one qualified remote Linux host—not the user's
+Mac, the Coordinator host, or physical colocation. No third adapter exists.
+
+The old horizontal sequence, route-specific latch shape, path-count manifests,
+and migration/initialization target shapes are reopened rather than replaced.
+The policy still permits at most one productive bootstrap acceptance and,
+after semantic acceptance, one separate isolated local feature-branch commit.
+Push, remote-ref mutation, PR, merge, deployment, and publication remain zero;
+an ambiguous Git outcome never permits a blind second commit.
+
+Required dependency order is pre-I/O progression, remote contact through
+semantic decision, separate local Git and stop, then ES migration before
+another productive bootstrap slice. The exact initialization graph, custody,
+verification, invocation, capsule, evidence, Git protocol, reconciliation,
+replay/recovery, latch representation, migration relations, reliable submit,
+and conformance details remain just-in-time design questions.
+
+All non-superseded committed C2B3A one-writer, transaction, COMMIT/close,
+cleanup, replay, recovery, privacy, process-control, and no-external-I/O
+semantics remain operative. C2B3 source remains unauthorized.
+<!-- C2B3_NARROWED_PLANNING_END -->
+
 <!-- C2B3A_PLANNING_PROJECTION_END -->
 """
 

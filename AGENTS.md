@@ -606,3 +606,24 @@ them.
 Docs, tests, and code must change together for authority-sensitive behavior.
 After changes, update `.docs/` to reflect reality and ensure there is no drift
 between code and documentation.
+
+## Vertical-slice governing narrowing
+
+Section 36 of `.docs/c2b-durable-development-state.md` supersedes the
+horizontal C2B3-C2B6 implementation order and only the finite route,
+route-specific latch, active path-manifest, initialization-shape, and
+migration-target selections it names. It freezes governing authority,
+dependency order, prerequisites, and effect ceilings, not future schemas.
+
+Initialization is route-neutral. First author-effect delivery uses the existing
+`direct_local_bootstrap` bounded direct/non-ES route to one qualified remote
+Linux host, never Mac fallback, and introduces no third adapter. At most one
+productive bootstrap acceptance and one separate post-acceptance local feature-
+branch commit are permitted; all publication effects remain zero and Git
+ambiguity forbids blind retry.
+
+Exact initialization, custody, verification, invocation, evidence, Git,
+migration, latch, reliable-submit, and conformance designs are deferred to the
+phase that first needs them. Do not infer source authorization. Current
+generation-2/migration-0002/C2A1/C2B2/writer-transaction capability remains the
+only implemented posture.

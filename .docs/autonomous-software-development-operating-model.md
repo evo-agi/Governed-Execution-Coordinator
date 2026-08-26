@@ -501,3 +501,33 @@ public API, mutation, replay, recovery, C2B3, migration 0003, or external
 effect. Remaining C2B2 production integration and C2B3-C2B6 remain target-only;
 their composition is unchanged beyond the implemented migration-0002 physical
 core, pure row/value layer, and private readers.
+
+<!-- C2B3_NARROWED_OPERATING_MODEL_BEGIN -->
+## Narrowed first vertical-slice operating order
+
+The horizontal C2B3-C2B6 sequence is no longer operative implementation order.
+The only frozen dependency order is:
+
+1. pre-I/O Coordinator progression;
+2. remote worker contact through semantic decision;
+3. a separate local-Git effect and stop;
+4. migration to ES before another productive bootstrap slice.
+
+This is not a mandatory program or tranche count. Future prompts may divide or
+combine internal checkpoints while preserving authority, validation, and
+provenance boundaries.
+
+Each phase must resolve only the questions it needs. Pre-I/O work owns
+route-neutral initialization, minimum durable graph, migration-0002 sufficiency,
+replay/recovery, and one-shot-ceiling questions. Remote contact owns minimum
+custody/retrieval, verifier, invocation, capsule, evidence, and executable-path
+migration questions. Local Git owns command/delivery/observation,
+reconciliation, authority, outcome evidence, and no-blind-retry questions. ES
+migration owns reliable keyed submit, response-loss and Nomad ambiguity,
+retained results/capsules, conformance, and bootstrap disablement.
+
+These are required questions, not selected future schemas. Current capability
+remains generation 2, migration 0002, C2A1, C2B2 private values/readers, and
+existing bounded writer/transaction authority. All target execution remains
+absent.
+<!-- C2B3_NARROWED_OPERATING_MODEL_END -->

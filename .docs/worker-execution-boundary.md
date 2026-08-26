@@ -413,3 +413,30 @@ attempt-bound retrieval contract exists.
 C2B0 adds no worker, supervisor, process launch, source invocation, external
 cancellation, capsule store, model/provider client, direct-local adapter, ES
 adapter, Git effect, service/API/IPC, queue, scheduler, or runtime behavior.
+
+<!-- C2B3_NARROWED_WORKER_BOUNDARY_BEGIN -->
+## Narrowed first-route worker boundary
+
+The first author-effect delivery uses the existing `direct_local_bootstrap`
+compatibility token as a bounded direct/non-ES route to one qualified remote
+Linux host. The token does not imply the user's Mac, Coordinator-host
+execution, physical colocation, or a third adapter kind. Initialization remains
+route-neutral, and topology/profile/transport observations are operational
+evidence only.
+
+The worker receives neither Coordinator SQLite nor writer authority. Raw
+WorkSpec and retrieval bearer authority never enter Coordinator SQLite, and a
+ref/digest cannot authorize retrieval. External standing authority and current
+verification remain external. The
+`qualified_remote_host_readiness_evidence_gate` must be satisfied by accepted
+owning-process evidence that one remote Linux host is qualified before real
+retrieval, process-separated worker or Codex invocation, validation, review, or
+Git execution. That operational evidence is not identity or authority, and its
+failure or absence permits neither Mac nor Coordinator-host fallback.
+
+The route may yield at most one productive acceptance. A second productive
+bootstrap slice is blocked until accepted ES reliable-submit and adapter-
+conformance gates. Exact custody, retrieval, invocation, capsule, evidence,
+protocol, supervision, transport, and conformance mechanics remain just-in-
+time design questions and no runtime/source is authorized.
+<!-- C2B3_NARROWED_WORKER_BOUNDARY_END -->

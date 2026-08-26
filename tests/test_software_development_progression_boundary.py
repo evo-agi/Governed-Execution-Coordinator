@@ -823,3 +823,43 @@ def test_progression_markdown_closer_suffix_is_ascii_space_tab_only() -> None:
         assert str(rejected.value) == (
             "progression.repair3|heading=<none>|failure=unbalanced_fence"
         )
+
+
+def test_narrowed_vertical_slice_progression_ceiling_and_prerequisites_are_exact() -> None:
+    document = _doc()
+    document_compact = _compact(document)
+    assert document.count("<!-- C2B3_NARROWED_PROGRESSION_BEGIN -->") == 1
+    assert document.count("<!-- C2B3_NARROWED_PROGRESSION_END -->") == 1
+    for expected in (
+        "Initialization is route-neutral",
+        "author-effect delivery selects the first",
+        "`direct_local_bootstrap` bounded direct/non-ES route",
+        "one qualified remote Linux host",
+        "No Mac fallback or third adapter kind exists.",
+        "It is not a frozen program/tranche count.",
+        "at most one productive acceptance",
+        "at most one isolated feature-",
+        "zero push/remote-ref/PR/merge/deploy/publication effects",
+        "no blind retry after ambiguity",
+        "`qualified_remote_host_readiness_evidence_gate` requires accepted owning-process evidence",
+        "one remote Linux host is qualified before real retrieval",
+        "process-separated worker or Codex invocation",
+        "not identity, authority, progression truth, runtime truth, or permission for Mac or Coordinator-host fallback",
+        "`accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate` requires an accepted clean exact ES Git OID",
+        "accepted owning-ES-repository contract/adoption evidence",
+        "Chat or model reports cannot substitute for either intrinsic gate.",
+        "remain just-in-time questions",
+        "No next source tranche is authorized.",
+    ):
+        assert expected in document_compact
+    for forbidden in (
+        "WorkSpecCustodyReceiptV1",
+        "VerifiedAuthorityResultV1",
+        "LocalGitCommandV1",
+        "LocalGitDeliveryV1",
+        "LocalGitObservationV1",
+        "canonical_positive_vectors",
+        "prerequisite_00061",
+        "prerequisite_00054",
+    ):
+        assert forbidden not in document

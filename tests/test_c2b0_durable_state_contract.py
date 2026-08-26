@@ -1,5 +1,6 @@
 import ast
 import builtins
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -205,6 +206,39 @@ C2B3A_PLANNING_PROJECTION_APPROVED_TEXT = (
     "absent and requires a separately authorized implementation tranche and a fresh\n"
     "independent read-only audit.\n"
     "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_END -->\n"
+    "\n"
+    "<!-- C2B3_NARROWED_PLANNING_BEGIN -->\n"
+    "## Governing vertical-slice narrowing projection\n"
+    "\n"
+    "Section 36 of `.docs/c2b-durable-development-state.md` is the sole semantic\n"
+    "owner for this narrowing. This planning projection selects no new value,\n"
+    "digest, relation, migration inventory, or physical schema.\n"
+    "\n"
+    "The preserved initialization and later author-effect adapter selections are\n"
+    "non-operative for the first vertical slice. Initialization has no adapter,\n"
+    "host, transport, endpoint, delivery, or external request. The first route is\n"
+    "selected at author-effect delivery and uses `direct_local_bootstrap`, meaning a\n"
+    "bounded direct/non-ES path to one qualified remote Linux host—not the user's\n"
+    "Mac, the Coordinator host, or physical colocation. No third adapter exists.\n"
+    "\n"
+    "The old horizontal sequence, route-specific latch shape, path-count manifests,\n"
+    "and migration/initialization target shapes are reopened rather than replaced.\n"
+    "The policy still permits at most one productive bootstrap acceptance and,\n"
+    "after semantic acceptance, one separate isolated local feature-branch commit.\n"
+    "Push, remote-ref mutation, PR, merge, deployment, and publication remain zero;\n"
+    "an ambiguous Git outcome never permits a blind second commit.\n"
+    "\n"
+    "Required dependency order is pre-I/O progression, remote contact through\n"
+    "semantic decision, separate local Git and stop, then ES migration before\n"
+    "another productive bootstrap slice. The exact initialization graph, custody,\n"
+    "verification, invocation, capsule, evidence, Git protocol, reconciliation,\n"
+    "replay/recovery, latch representation, migration relations, reliable submit,\n"
+    "and conformance details remain just-in-time design questions.\n"
+    "\n"
+    "All non-superseded committed C2B3A one-writer, transaction, COMMIT/close,\n"
+    "cleanup, replay, recovery, privacy, process-control, and no-external-I/O\n"
+    "semantics remain operative. C2B3 source remains unauthorized.\n"
+    "<!-- C2B3_NARROWED_PLANNING_END -->\n"
     "\n"
     "<!-- C2B3A_PLANNING_PROJECTION_END -->\n"
 )
@@ -3246,6 +3280,7 @@ SECTION_HEADINGS = (
     "33. Family Replay Deferral And Tranche Ownership",
     "34. C2B2 Remaining Nonimplementation",
     "35. C2B3A Program-Initialization Contract Freeze",
+    "36. C2B3 Vertical-Slice Governing Narrowing Addendum",
 )
 
 DECISION_KINDS = (
@@ -8426,6 +8461,17 @@ def _section_prose(text: str, heading: str) -> str:
 
 def _assert_c2b3a_owner_addendum_prose(text: str) -> None:
     diagnostic = "C2B3A_COMMIT_CLOSE_OWNER_PROSE_INVALID"
+    narrowing_heading = "## 36. C2B3 Vertical-Slice Governing Narrowing Addendum\n"
+    if type(text) is str and narrowing_heading in text:
+        if text.count(narrowing_heading) != 1:
+            raise AssertionError(diagnostic)
+        try:
+            _assert_narrowed_reset_governing_surface(
+                _narrowed_reset_addendum(text)
+            )
+        except AssertionError:
+            raise AssertionError(diagnostic) from None
+        text = text[: text.index(narrowing_heading)].rstrip("\n") + "\n"
     section_heading = "## 35. C2B3A Program-Initialization Contract Freeze\n"
     markers = (
         "    # C2B3A_OWNER_ADDENDUM_BEGIN",
@@ -16388,3 +16434,1009 @@ def test_c2b3a_planning_markdown_prefixes_do_not_hide_claims() -> None:
     with pytest.raises(AssertionError) as exc_info:
         _assert_c2b3a_planning_status(mutant)
     assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
+
+
+NARROWED_RESET_BEGIN_MARKER = "<!-- C2B3_NARROWED_RESET_CONTRACT_PYTHON_BEGIN -->"
+NARROWED_RESET_END_MARKER = "<!-- C2B3_NARROWED_RESET_CONTRACT_PYTHON_END -->"
+EXPECTED_NARROWED_RESET_TRAILING_PROSE = (
+    "\n\nThis addendum has higher precedence only for the finite paths named in\n"
+    "`finite_supersession.supersedes_only`. Every other committed C2B3A semantic,\n"
+    "including its transaction and cleanup authority, remains operative. Open\n"
+    "questions in the deferral ledger must be resolved immediately before the phase\n"
+    "that needs them and require a separately authorized source tranche and fresh\n"
+    "independent audit.\n"
+)
+
+EXPECTED_NARROWED_SUPERSEDES_ONLY = (
+    "owner_decisions.planned_adapter_kind as initialization route selection",
+    "later_author_effect_owner_decisions.planned_adapter_kind for the first delivery",
+    "later_author_effect_owner_decisions.direct_local_bootstrap_selected for the first delivery",
+    "direct_local_first_productive_acceptance as the required durable representation",
+    "horizontal C2B3B/C2B4/C2B5/C2B6 order as implementation order",
+    "future C2B3B path-count manifests as implementation authority",
+    "existing migration-0003 inventory and totals as selected target",
+    "existing initialization version and graph shape as mandatory vertical-slice selection",
+    "Section 26 target tranche sequence as operative implementation order",
+    "Section 4 C2B4 ownership order as operative implementation order",
+)
+
+EXPECTED_NARROWED_ROUTE_DISPOSITIONS = (
+    (
+        "owner_decisions.planned_adapter_kind",
+        "execution_substrate",
+        "non-operative during route-neutral initialization",
+    ),
+    (
+        "later_author_effect_owner_decisions.planned_adapter_kind",
+        "execution_substrate",
+        "first author-effect delivery selects direct_local_bootstrap",
+    ),
+    (
+        "later_author_effect_owner_decisions.direct_local_bootstrap_selected",
+        False,
+        "first author-effect delivery selects direct_local_bootstrap",
+    ),
+)
+
+EXPECTED_NARROWED_DEPENDENCY_ORDER = (
+    "pre-I/O Coordinator progression",
+    "remote worker contact through semantic decision",
+    "separate local-Git effect and stop",
+    "migration to ES before another productive bootstrap slice",
+)
+
+EXPECTED_NARROWED_EFFECT_CEILINGS = {
+    "local_feature_branch_commits": 1,
+    "pushes": 0,
+    "remote_ref_mutations": 0,
+    "pull_requests": 0,
+    "merges": 0,
+    "deployments": 0,
+    "publication_effects": 0,
+}
+
+EXPECTED_NARROWED_JIT_DEFERRALS = {
+    "meaning": "required questions, not selected schemas",
+    "pre_IO_durable_progression": (
+        "exact route-neutral initialization versioning",
+        "minimum initialization and author-effect durable graph",
+        "whether existing migration-0002 structures suffice",
+        "exact replay and recovery for records this phase writes",
+        "durable representation of the one-shot bootstrap ceiling",
+    ),
+    "remote_worker_contact": (
+        "minimum safe WorkSpec custody and retrieval contract",
+        "external verifier-result persistence",
+        "source invocation identity and lookup",
+        "capsule custody",
+        "validation and review evidence",
+        "only migration-0003 relations required by the executable path",
+    ),
+    "local_Git_effect": (
+        "Git command, delivery, invocation, and observation values",
+        "authority binding",
+        "Git reconciliation",
+        "evidence sufficient for committed, absent, or unresolved",
+        "no-blind-retry enforcement",
+    ),
+    "ES_migration": (
+        "reliable keyed submit",
+        "caller-response-loss recovery",
+        "Nomad ambiguous-registration reconciliation",
+        "retained-result and capsule transport",
+        "Coordinator adapter conformance",
+        "bootstrap disablement after migration",
+    ),
+}
+
+EXPECTED_NARROWED_NON_SELECTIONS = (
+    "custody receipt fields, digests, authenticity ordering, or canonical vectors",
+    "initialization command version, fields, digest, row count, graph rank, or recovery graph",
+    "custody relation fields, indexes, foreign keys, or SQL feasibility",
+    "verifier-result fields, enums, unions, cardinalities, attestations, or relation",
+    "local-Git command, delivery, invocation, observation fields, or digests",
+    "generic worker/local-Git union schema",
+    "source-journal or definite-absence proof schema",
+    "authority/Git digest DAG or topological order",
+    "migration-0003 relation names, counts, indexes, triggers, or totals",
+    "future-schema SQLite fixture",
+    "future-value canonical vectors",
+    "cross-record resealing matrix or implementation-level mutants",
+    "new latch row or value",
+)
+
+EXPECTED_QUALIFIED_REMOTE_HOST_READINESS_EVIDENCE_GATE = (
+    "satisfied only by accepted evidence produced through the owning remote-host readiness process",
+    "establishes that one remote Linux host is qualified for the exact first-route activities about to occur",
+    "before acceptance no real WorkSpec retrieval, process-separated worker or Codex invocation, validation, review, or local-Git execution may begin",
+    "operational/readiness evidence only; not semantic identity, execution authority, a parent grant, Coordinator progression truth, runtime truth, or permission for Mac fallback",
+    "failure or absence authorizes neither execution on the user's Mac nor execution on the Coordinator host",
+    "evidence schema, producer implementation, transport, profile format, and durable storage mechanism remain deferred",
+)
+
+EXPECTED_ACCEPTED_CLEAN_EXACT_ES_OID_AND_OWNING_REPOSITORY_CONTRACT_ADOPTION_EVIDENCE_GATE = (
+    "before recorded ES scenario initialization or execution requires all three jointly bound facts: one accepted clean ES repository baseline established by accepted repository-status evidence, that same accepted clean baseline resolved to one concrete exact ES Git object OID, and accepted owning-ES-repository contract/adoption evidence applicable to that exact OID and recorded scenario",
+    "cleanliness qualifies the accepted ES repository baseline, not the Git OID; the exact OID identifies the immutable Git object to which that accepted baseline and adoption evidence are bound",
+    "exact-OID evidence without accepted baseline-cleanliness evidence is insufficient, and accepted clean-baseline evidence without a concrete exact Git object OID is insufficient",
+    "the baseline-cleanliness evidence and exact-OID evidence must identify the same accepted baseline; independently supplied or otherwise unbound evidence is insufficient",
+    "owning-repository contract/adoption evidence must apply to that same exact OID and recorded scenario; evidence for another OID or another scenario is insufficient",
+    "a branch name, moving ref, worktree path, snapshot title, chat label, Codex report, ChatGPT report, or prose assertion cannot satisfy any missing component by itself",
+    "the gate transfers no ES admission, runtime, lifecycle, retained-result, or contract authority to Coordinator",
+    "gate DTO, persistent gate schema, exact evidence file format, exact Git command, ignored-file treatment, reliable-submit DTO or implementation, Coordinator-to-ES adapter protocol, and any new migration-0003 surface remain deferred",
+)
+
+EXPECTED_NARROWED_TOP_LEVEL_KEYS = (
+    "contract_identity",
+    "finite_supersession",
+    "governing_decisions",
+    "critical_path_order",
+    "just_in_time_design_deferrals",
+    "explicit_non_selections",
+    "preserved_C2B3A",
+    "current_and_target_status",
+)
+EXPECTED_NARROWED_TOP_LEVEL_TYPES = (
+    dict, dict, dict, dict, dict, tuple, dict, dict,
+)
+EXPECTED_NARROWED_IDENTITY_KEYS = (
+    "workstream",
+    "semantic_owner",
+    "status",
+    "scope",
+    "rejected_identity_schema_candidate_operative",
+)
+EXPECTED_NARROWED_IDENTITY_TYPES = (str, str, str, str, bool)
+EXPECTED_NARROWED_FINITE_SUPERSESSION_KEYS = (
+    "all_non_superseded_C2B3A_semantics_remain_operative",
+    "supersedes_only",
+    "preserved_route_field_dispositions",
+    "route_specific_latch_disposition",
+    "migration_0003_disposition",
+    "initialization_shape_disposition",
+)
+EXPECTED_NARROWED_FINITE_SUPERSESSION_TYPES = (
+    bool, tuple, tuple, str, str, str,
+)
+EXPECTED_NARROWED_GOVERNING_DECISION_KEYS = (
+    "horizontal_implementation_sequence_superseded",
+    "initialization_route_neutral",
+    "initialization_forbids",
+    "route_selection_boundary",
+    "first_route",
+    "first_route_meaning",
+    "first_route_does_not_mean",
+    "intended_first_physical_topology",
+    "topology_profile_transport_are_operational_evidence_only",
+    "topology_profile_transport_are_semantic_identity_or_authority",
+    "adapter_kinds_remain",
+    "third_adapter_kind_introduced",
+    "authority_separation",
+    "raw_WorkSpec_in_Coordinator_SQLite",
+    "retrieval_bearer_authority_in_Coordinator_SQLite",
+    "ref_or_digest_is_retrieval_authority",
+    "productive_bootstrap_acceptance_maximum",
+    "productive_bootstrap_exact_durable_representation",
+    "local_Git_effect_separate_after_semantic_acceptance",
+    "effect_ceilings",
+    "ambiguous_Git_outcome_permits_blind_second_commit",
+    "qualified_remote_host_readiness_evidence_gate",
+    "accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate",
+    "post_acceptance_bootstrap_gate",
+)
+EXPECTED_NARROWED_GOVERNING_DECISION_TYPES = (
+    bool, bool, tuple, str, str, str, tuple, str, bool, bool, tuple, bool,
+    tuple, bool, bool, bool, int, str, bool, dict, bool, tuple, tuple, str,
+)
+EXPECTED_NARROWED_EFFECT_CEILING_KEYS = (
+    "local_feature_branch_commits",
+    "pushes",
+    "remote_ref_mutations",
+    "pull_requests",
+    "merges",
+    "deployments",
+    "publication_effects",
+)
+EXPECTED_NARROWED_EFFECT_CEILING_TYPES = (int, int, int, int, int, int, int)
+EXPECTED_NARROWED_CRITICAL_PATH_ORDER_KEYS = (
+    "dependency_order",
+    "mandatory_program_or_tranche_count_frozen",
+    "checkpoint_division_rule",
+)
+EXPECTED_NARROWED_CRITICAL_PATH_ORDER_TYPES = (tuple, bool, str)
+EXPECTED_NARROWED_JIT_DEFERRAL_KEYS = (
+    "meaning",
+    "pre_IO_durable_progression",
+    "remote_worker_contact",
+    "local_Git_effect",
+    "ES_migration",
+)
+EXPECTED_NARROWED_JIT_DEFERRAL_TYPES = (str, tuple, tuple, tuple, tuple)
+EXPECTED_NARROWED_PRESERVED_C2B3A_KEYS = (
+    "transaction_and_cleanup_semantics",
+    "C2A_values_or_vectors_changed",
+)
+EXPECTED_NARROWED_PRESERVED_C2B3A_TYPES = (tuple, bool)
+EXPECTED_NARROWED_CURRENT_AND_TARGET_STATUS_KEYS = (
+    "current",
+    "absent_target_capabilities",
+    "production_source_changed_or_authorized",
+    "runtime_implemented_or_authorized",
+    "independent_audit_performed",
+)
+EXPECTED_NARROWED_CURRENT_AND_TARGET_STATUS_TYPES = (
+    tuple, tuple, bool, bool, bool,
+)
+
+
+def _narrowed_reset_addendum(text: str | None = None) -> dict[str, object]:
+    source = _owner() if text is None else text
+    diagnostic = "C2B3_NARROWED_RESET_OWNER_INVALID"
+    _require(type(source) is str, diagnostic)
+    _require(source.count(NARROWED_RESET_BEGIN_MARKER) == 1, diagnostic)
+    _require(source.count(NARROWED_RESET_END_MARKER) == 1, diagnostic)
+    before, remainder = source.split(NARROWED_RESET_BEGIN_MARKER, 1)
+    payload, after = remainder.split(NARROWED_RESET_END_MARKER, 1)
+    _require(before.endswith("\n"), diagnostic)
+    _require(after == EXPECTED_NARROWED_RESET_TRAILING_PROSE, diagnostic)
+    lines = payload.strip().splitlines()
+    _require(lines[0] == "```python" and lines[-1] == "```", diagnostic)
+    try:
+        parsed = ast.literal_eval("\n".join(lines[1:-1]))
+    except (SyntaxError, ValueError):
+        raise AssertionError(diagnostic) from None
+    _require(type(parsed) is dict, diagnostic)
+    _require(tuple(parsed) == ("critical_path_narrowing_addendum",), diagnostic)
+    value = parsed["critical_path_narrowing_addendum"]
+    _require(type(value) is dict, diagnostic)
+    return value
+
+
+def _require_closed_narrowed_mapping(
+    value: object,
+    expected_keys: tuple[str, ...],
+    expected_types: tuple[type, ...],
+    diagnostic: str,
+) -> None:
+    _require(type(value) is dict, diagnostic)
+    _require(type(expected_keys) is tuple, diagnostic)
+    _require(type(expected_types) is tuple, diagnostic)
+    _require(len(expected_keys) == len(expected_types), diagnostic)
+    _require(tuple(value) == expected_keys, diagnostic)
+    for key, expected_type in zip(expected_keys, expected_types, strict=True):
+        _require(type(value[key]) is expected_type, diagnostic)
+
+
+def _assert_narrowed_reset_governing_surface(value: object) -> None:
+    diagnostic = "C2B3_NARROWED_RESET_INVALID"
+    _require_closed_narrowed_mapping(
+        value,
+        EXPECTED_NARROWED_TOP_LEVEL_KEYS,
+        EXPECTED_NARROWED_TOP_LEVEL_TYPES,
+        diagnostic,
+    )
+
+    identity = value["contract_identity"]
+    _require_closed_narrowed_mapping(
+        identity,
+        EXPECTED_NARROWED_IDENTITY_KEYS,
+        EXPECTED_NARROWED_IDENTITY_TYPES,
+        diagnostic,
+    )
+    _require(identity == {
+        "workstream": "COORDINATOR_VERTICAL_SLICE_GOVERNING_NARROWING",
+        "semantic_owner": ".docs/c2b-durable-development-state.md#36-c2b3-vertical-slice-governing-narrowing-addendum",
+        "status": "accepted governing target; production implementation absent",
+        "scope": "architecture, sequencing, authority, effect ceilings, prerequisites, current status, and just-in-time deferrals only",
+        "rejected_identity_schema_candidate_operative": False,
+    }, diagnostic)
+
+    finite = value["finite_supersession"]
+    _require_closed_narrowed_mapping(
+        finite,
+        EXPECTED_NARROWED_FINITE_SUPERSESSION_KEYS,
+        EXPECTED_NARROWED_FINITE_SUPERSESSION_TYPES,
+        diagnostic,
+    )
+    _require(finite["all_non_superseded_C2B3A_semantics_remain_operative"] is True, diagnostic)
+    _require(finite["supersedes_only"] == EXPECTED_NARROWED_SUPERSEDES_ONLY, diagnostic)
+    _require(finite["preserved_route_field_dispositions"] == EXPECTED_NARROWED_ROUTE_DISPOSITIONS, diagnostic)
+    _require(finite["route_specific_latch_disposition"] == "policy ceiling retained; exact durable representation deferred", diagnostic)
+    _require(finite["migration_0003_disposition"] == "inventory, names, counts, indexes, triggers, and totals reopened rather than replaced", diagnostic)
+    _require(finite["initialization_shape_disposition"] == "exact version, records, graph, replay, and recovery reopened for pre-I/O just-in-time design", diagnostic)
+
+    decisions = value["governing_decisions"]
+    _require_closed_narrowed_mapping(
+        decisions,
+        EXPECTED_NARROWED_GOVERNING_DECISION_KEYS,
+        EXPECTED_NARROWED_GOVERNING_DECISION_TYPES,
+        diagnostic,
+    )
+    _require(decisions["horizontal_implementation_sequence_superseded"] is True, diagnostic)
+    _require(decisions["initialization_route_neutral"] is True, diagnostic)
+    _require(decisions["initialization_forbids"] == (
+        "adapter", "host", "transport", "endpoint", "delivery", "external request",
+    ), diagnostic)
+    _require(decisions["route_selection_boundary"] == "author-effect delivery", diagnostic)
+    _require(decisions["first_route"] == "direct_local_bootstrap", diagnostic)
+    _require(decisions["first_route_meaning"] == "bounded direct/non-ES bootstrap", diagnostic)
+    _require(decisions["first_route_does_not_mean"] == (
+        "user Mac", "Coordinator host", "physical colocation",
+    ), diagnostic)
+    _require(decisions["intended_first_physical_topology"] == "one qualified remote Linux host", diagnostic)
+    _require(decisions["topology_profile_transport_are_operational_evidence_only"] is True, diagnostic)
+    _require(decisions["topology_profile_transport_are_semantic_identity_or_authority"] is False, diagnostic)
+    _require(decisions["adapter_kinds_remain"] == (
+        "execution_substrate", "direct_local_bootstrap",
+    ), diagnostic)
+    _require(decisions["third_adapter_kind_introduced"] is False, diagnostic)
+    _require(decisions["authority_separation"] == (
+        "Coordinator owns durable progression only",
+        "external source owns the parent standing grant",
+        "external verifier supplies current verification",
+        "Coordinator cannot issue its parent grant or author verified",
+        "persisted authority evidence is not automatically fresh permission",
+        "user is not a routine per-effect approver",
+        "worker has no Coordinator SQLite or writer access",
+        "Git owns object and ref truth",
+        "validators and reviewers own their evidence",
+        "reports, model output, Bridge records, and transport receipts remain evidence only",
+    ), diagnostic)
+    _require(decisions["raw_WorkSpec_in_Coordinator_SQLite"] is False, diagnostic)
+    _require(decisions["retrieval_bearer_authority_in_Coordinator_SQLite"] is False, diagnostic)
+    _require(decisions["ref_or_digest_is_retrieval_authority"] is False, diagnostic)
+    _require(decisions["productive_bootstrap_acceptance_maximum"] == 1, diagnostic)
+    _require(decisions["productive_bootstrap_exact_durable_representation"] == "deferred", diagnostic)
+    _require(decisions["local_Git_effect_separate_after_semantic_acceptance"] is True, diagnostic)
+    effect_ceilings = decisions["effect_ceilings"]
+    _require_closed_narrowed_mapping(
+        effect_ceilings,
+        EXPECTED_NARROWED_EFFECT_CEILING_KEYS,
+        EXPECTED_NARROWED_EFFECT_CEILING_TYPES,
+        diagnostic,
+    )
+    _require(effect_ceilings == EXPECTED_NARROWED_EFFECT_CEILINGS, diagnostic)
+    _require(decisions["ambiguous_Git_outcome_permits_blind_second_commit"] is False, diagnostic)
+    _require(
+        decisions["qualified_remote_host_readiness_evidence_gate"]
+        == EXPECTED_QUALIFIED_REMOTE_HOST_READINESS_EVIDENCE_GATE,
+        diagnostic,
+    )
+    _require(
+        decisions["accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate"]
+        == EXPECTED_ACCEPTED_CLEAN_EXACT_ES_OID_AND_OWNING_REPOSITORY_CONTRACT_ADOPTION_EVIDENCE_GATE,
+        diagnostic,
+    )
+    _require(decisions["post_acceptance_bootstrap_gate"] == "no second productive bootstrap slice before accepted ES reliable-submit and adapter-conformance gates", diagnostic)
+
+    order = value["critical_path_order"]
+    _require_closed_narrowed_mapping(
+        order,
+        EXPECTED_NARROWED_CRITICAL_PATH_ORDER_KEYS,
+        EXPECTED_NARROWED_CRITICAL_PATH_ORDER_TYPES,
+        diagnostic,
+    )
+    _require(order == {
+        "dependency_order": EXPECTED_NARROWED_DEPENDENCY_ORDER,
+        "mandatory_program_or_tranche_count_frozen": False,
+        "checkpoint_division_rule": "future implementation prompts may divide or combine internal checkpoints while preserving authority, validation, and provenance boundaries",
+    }, diagnostic)
+    jit_deferrals = value["just_in_time_design_deferrals"]
+    _require_closed_narrowed_mapping(
+        jit_deferrals,
+        EXPECTED_NARROWED_JIT_DEFERRAL_KEYS,
+        EXPECTED_NARROWED_JIT_DEFERRAL_TYPES,
+        diagnostic,
+    )
+    _require(jit_deferrals == EXPECTED_NARROWED_JIT_DEFERRALS, diagnostic)
+    _require(value["explicit_non_selections"] == EXPECTED_NARROWED_NON_SELECTIONS, diagnostic)
+
+    preserved = value["preserved_C2B3A"]
+    _require_closed_narrowed_mapping(
+        preserved,
+        EXPECTED_NARROWED_PRESERVED_C2B3A_KEYS,
+        EXPECTED_NARROWED_PRESERVED_C2B3A_TYPES,
+        diagnostic,
+    )
+    _require(preserved["transaction_and_cleanup_semantics"] == (
+        "one Coordinator writer", "one shared mutation slot",
+        "existing transaction controller", "BEGIN IMMEDIATE",
+        "writer and session fencing", "receipt-first replay", "CAS",
+        "one commit attempt", "commit uncertainty",
+        "A/QU/QK/PU/PK/X cleanup states and order", "lock-release proof",
+        "finalizer and liveness treatment", "privacy and process-control precedence",
+        "exact committed, definitely-not-committed, and unresolved recovery classifications",
+        "no external I/O",
+    ), diagnostic)
+    _require(preserved["C2A_values_or_vectors_changed"] is False, diagnostic)
+
+    status = value["current_and_target_status"]
+    _require_closed_narrowed_mapping(
+        status,
+        EXPECTED_NARROWED_CURRENT_AND_TARGET_STATUS_KEYS,
+        EXPECTED_NARROWED_CURRENT_AND_TARGET_STATUS_TYPES,
+        diagnostic,
+    )
+    _require(status["current"] == (
+        "application generation 2", "terminal migration 0002", "C2A1 values",
+        "C2B2 row and value modules", "C2B2 private production-unintegrated readers",
+        "existing bounded transaction and writer authority",
+    ), diagnostic)
+    _require(status["absent_target_capabilities"] == (
+        "worker", "custodian", "external verifier", "migration 0003",
+        "source invocation", "evidence and decision runtime", "Git effect runtime",
+        "Execution Substrate adapter", "publication",
+    ), diagnostic)
+    _require(status["production_source_changed_or_authorized"] is False, diagnostic)
+    _require(status["runtime_implemented_or_authorized"] is False, diagnostic)
+    _require(status["independent_audit_performed"] is False, diagnostic)
+
+    serialized = repr(value)
+    for forbidden in (
+        "WorkSpecCustodyReceiptV1",
+        "VerifiedAuthorityResultV1",
+        "LocalGitCommandV1",
+        "LocalGitDeliveryV1",
+        "LocalGitObservationV1",
+        "canonical_positive_vectors",
+        "digest_domain",
+        "ordered_fields",
+        "field_contracts",
+        "dependency_dag",
+        "table_count",
+        "trigger_count",
+        "explicit_index_count",
+        "CREATE TABLE",
+        "sqlite3.connect",
+        "prerequisite_00061",
+        "prerequisite_00054",
+    ):
+        _require(forbidden not in serialized, diagnostic)
+
+
+def test_narrowed_reset_owner_is_exact_governing_contract() -> None:
+    value = _narrowed_reset_addendum()
+    _assert_narrowed_reset_governing_surface(value)
+
+
+def test_narrowed_reset_intrinsic_prerequisite_gate_keys_and_non_authority() -> None:
+    value = _narrowed_reset_addendum()
+    decisions = value["governing_decisions"]
+    remote_key = "qualified_remote_host_readiness_evidence_gate"
+    es_key = "accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate"
+    numeric_labels = ("prerequisite_00061", "prerequisite_00054")
+
+    assert remote_key in decisions
+    assert es_key in decisions
+    assert all(label not in decisions for label in numeric_labels)
+    owner = _owner()
+    assert owner.count(f'"{remote_key}"') == 1
+    assert owner.count(f'"{es_key}"') == 1
+    assert all(label not in owner for label in numeric_labels)
+
+    remote_gate = " ".join(decisions[remote_key])
+    for required in (
+        "accepted evidence",
+        "owning remote-host readiness process",
+        "one remote Linux host is qualified",
+        "WorkSpec retrieval",
+        "process-separated worker or Codex invocation",
+        "operational/readiness evidence only",
+        "not semantic identity",
+        "execution authority",
+        "parent grant",
+        "Coordinator progression truth",
+        "runtime truth",
+        "permission for Mac fallback",
+        "Coordinator host",
+    ):
+        assert required in remote_gate
+
+    es_gate = " ".join(decisions[es_key])
+    for required in (
+        "all three jointly bound facts",
+        "accepted clean ES repository baseline",
+        "accepted repository-status evidence",
+        "same accepted clean baseline resolved to one concrete exact ES Git object OID",
+        "cleanliness qualifies the accepted ES repository baseline, not the Git OID",
+        "exact OID identifies the immutable Git object",
+        "exact-OID evidence without accepted baseline-cleanliness evidence is insufficient",
+        "accepted clean-baseline evidence without a concrete exact Git object OID is insufficient",
+        "must identify the same accepted baseline",
+        "owning-ES-repository contract/adoption evidence",
+        "same exact OID and recorded scenario",
+        "another OID or another scenario is insufficient",
+        "branch name, moving ref, worktree path, snapshot title, chat label, Codex report, ChatGPT report, or prose assertion",
+        "cannot satisfy any missing component by itself",
+        "transfers no ES admission, runtime, lifecycle, retained-result, or contract authority",
+        "gate DTO, persistent gate schema",
+        "ignored-file treatment",
+        "any new migration-0003 surface remain deferred",
+    ):
+        assert required in es_gate
+    assert "accepted clean exact ES Git OID" not in es_gate
+
+    for path in (
+        ROOT / ".docs/software-development-progression-boundary.md",
+        ROOT / ".docs/worker-execution-boundary.md",
+    ):
+        projection = path.read_text(encoding="utf-8")
+        assert remote_key in projection
+        assert all(label not in projection for label in numeric_labels)
+    progression = (ROOT / ".docs/software-development-progression-boundary.md").read_text(
+        encoding="utf-8"
+    )
+    assert es_key in progression
+    progression_compact = " ".join(progression.split())
+    for required in (
+        f"The earlier formulation that `{es_key}` requires an accepted clean exact ES Git OID is rejected",
+        "cleanliness qualifies the accepted ES repository baseline, not the Git OID",
+        "three jointly bound facts",
+        "same accepted clean baseline resolved to one concrete exact ES Git object OID",
+        "contract/adoption evidence applicable to that same exact OID and recorded scenario",
+        "adoption evidence for another OID or another scenario is insufficient",
+        "branch name, moving ref, worktree path, snapshot title, chat label, Codex report, ChatGPT report, or prose assertion",
+        "transfers no ES admission, runtime, lifecycle, retained-result, or contract authority",
+    ):
+        assert required in progression_compact
+
+
+def test_narrowed_reset_every_normative_mapping_is_closed_world() -> None:
+    value = _narrowed_reset_addendum()
+    mappings_and_keys = (
+        (value, EXPECTED_NARROWED_TOP_LEVEL_KEYS),
+        (value["contract_identity"], EXPECTED_NARROWED_IDENTITY_KEYS),
+        (value["finite_supersession"], EXPECTED_NARROWED_FINITE_SUPERSESSION_KEYS),
+        (value["governing_decisions"], EXPECTED_NARROWED_GOVERNING_DECISION_KEYS),
+        (
+            value["governing_decisions"]["effect_ceilings"],
+            EXPECTED_NARROWED_EFFECT_CEILING_KEYS,
+        ),
+        (value["critical_path_order"], EXPECTED_NARROWED_CRITICAL_PATH_ORDER_KEYS),
+        (value["just_in_time_design_deferrals"], EXPECTED_NARROWED_JIT_DEFERRAL_KEYS),
+        (value["preserved_C2B3A"], EXPECTED_NARROWED_PRESERVED_C2B3A_KEYS),
+        (
+            value["current_and_target_status"],
+            EXPECTED_NARROWED_CURRENT_AND_TARGET_STATUS_KEYS,
+        ),
+    )
+    for mapping, expected_keys in mappings_and_keys:
+        assert type(mapping) is dict
+        assert tuple(mapping) == expected_keys
+    _assert_narrowed_reset_governing_surface(value)
+
+
+NARROWED_NORMATIVE_MAPPING_PATHS = (
+    ("top_level", ()),
+    ("contract_identity", ("contract_identity",)),
+    ("finite_supersession", ("finite_supersession",)),
+    ("governing_decisions", ("governing_decisions",)),
+    ("effect_ceilings", ("governing_decisions", "effect_ceilings")),
+    ("critical_path_order", ("critical_path_order",)),
+    ("just_in_time_design_deferrals", ("just_in_time_design_deferrals",)),
+    ("preserved_C2B3A", ("preserved_C2B3A",)),
+    ("current_and_target_status", ("current_and_target_status",)),
+)
+
+NARROWED_REQUIRED_ADDITIVE_AND_WEAKENED_CASES = (
+    "add_initialization_adapter_direct_local_bootstrap",
+    "add_initialization_adapter_execution_substrate",
+    "add_initialization_delivery",
+    "add_initialization_transport_and_host",
+    "add_remote_bootstrap_adapter_kind",
+    "add_exact_migration_0003_inventory",
+    "add_coordinator_authors_verified",
+    "add_worker_coordinator_sqlite_access",
+    "add_false_current_capability",
+    "add_chat_identifier_authority",
+    "add_harmless_unknown_identity_field",
+    "reintroduce_prerequisite_00061",
+    "reintroduce_prerequisite_00054",
+    "weaken_remote_host_qualified_readiness_evidence",
+    "weaken_es_exact_oid_requirement",
+    "weaken_es_owning_repository_adoption_evidence",
+)
+
+NARROWED_PRECEDING_TWENTY_FOUR_CASES = (
+    "battery_initialization_execution_substrate",
+    "battery_initialization_direct_local_bootstrap",
+    "battery_initialization_delivery_transport_host",
+    "battery_direct_local_means_mac_or_same_host",
+    "battery_third_adapter_remote_bootstrap",
+    "battery_preserved_first_delivery_execution_substrate",
+    "battery_restore_horizontal_order",
+    "battery_freeze_four_programs_nine_tranches",
+    "battery_exact_migration_0003_inventory",
+    "battery_rejected_custody_dto",
+    "battery_raw_work_spec_in_sqlite",
+    "battery_coordinator_authors_verified",
+    "battery_worker_opens_coordinator_sqlite",
+    "battery_second_productive_bootstrap",
+    "battery_collapse_git_into_acceptance",
+    "battery_two_local_commits",
+    "battery_blind_second_commit",
+    "battery_remove_remote_host_gate_mac_fallback",
+    "battery_remove_clean_es_oid_gate",
+    "battery_report_target_runtime_current",
+    "battery_chat_identifier_authority",
+    "battery_demote_begin_immediate",
+    "battery_jit_question_already_settled",
+    "battery_remove_jit_ledger",
+)
+
+NARROWED_INTRINSIC_GATE_WORD_WEAKENING_CASES = (
+    "weaken_word_qualified",
+    "weaken_word_evidence",
+    "weaken_word_clean",
+    "weaken_word_exact",
+    "weaken_word_oid",
+    "weaken_word_owning_repository_contract_adoption_evidence",
+)
+
+NARROWED_ES_BASELINE_OID_ADOPTION_COUNTERFACTUAL_CASES = (
+    "reject_ambiguous_clean_exact_oid_phrase",
+    "reject_exact_oid_and_adoption_without_clean_baseline",
+    "reject_clean_baseline_and_adoption_without_exact_oid",
+    "reject_unbound_clean_baseline_and_exact_oid_evidence",
+    "reject_adoption_evidence_for_different_oid",
+    "reject_adoption_evidence_for_different_scenario",
+    "reject_dirty_baseline_at_unchanged_oid",
+    "reject_branch_or_moving_ref_as_exact_oid",
+    "reject_report_or_snapshot_as_clean_baseline_evidence",
+    "reject_cleanliness_as_oid_property",
+)
+
+
+def _narrowed_mapping_at_path(
+    value: dict[str, object], path: tuple[str, ...]
+) -> dict[str, object]:
+    current: object = value
+    for key in path:
+        assert type(current) is dict
+        current = current[key]
+    assert type(current) is dict
+    return current
+
+
+def _replace_tuple_text(
+    values: tuple[str, ...], old: str, new: str
+) -> tuple[str, ...]:
+    replaced = tuple(item.replace(old, new) for item in values)
+    assert replaced != values
+    return replaced
+
+
+def _apply_narrowed_counterfactual(
+    candidate: dict[str, object], case_name: str
+) -> None:
+    decisions = candidate["governing_decisions"]
+    status = candidate["current_and_target_status"]
+    preserved = candidate["preserved_C2B3A"]
+    jit = candidate["just_in_time_design_deferrals"]
+    order = candidate["critical_path_order"]
+    remote_key = "qualified_remote_host_readiness_evidence_gate"
+    es_key = "accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate"
+
+    if case_name == "add_initialization_adapter_direct_local_bootstrap":
+        decisions["initialization_adapter"] = "direct_local_bootstrap"
+    elif case_name == "add_initialization_adapter_execution_substrate":
+        decisions["initialization_adapter"] = "execution_substrate"
+    elif case_name == "add_initialization_delivery":
+        decisions["initialization_delivery"] = "direct"
+    elif case_name == "add_initialization_transport_and_host":
+        decisions["initialization_transport"] = "ssh"
+        decisions["initialization_host"] = "remote-linux"
+    elif case_name == "add_remote_bootstrap_adapter_kind":
+        decisions["third_adapter"] = "remote_bootstrap"
+    elif case_name == "add_exact_migration_0003_inventory":
+        decisions["migration_0003_inventory"] = {
+            "relations": ("future_relation",),
+            "cumulative_total": 1,
+        }
+    elif case_name == "add_coordinator_authors_verified":
+        decisions["Coordinator_authors_verified"] = True
+    elif case_name == "add_worker_coordinator_sqlite_access":
+        decisions["worker_Coordinator_SQLite_access_allowed"] = True
+    elif case_name == "add_false_current_capability":
+        status["migration_0003_current"] = True
+    elif case_name == "add_chat_identifier_authority":
+        decisions["chat_identifier_is_architectural_authority"] = True
+    elif case_name == "add_harmless_unknown_identity_field":
+        candidate["contract_identity"]["harmless_unknown"] = None
+    elif case_name == "reintroduce_prerequisite_00061":
+        decisions["prerequisite_00061"] = "satisfied"
+    elif case_name == "reintroduce_prerequisite_00054":
+        decisions["prerequisite_00054"] = "satisfied"
+    elif case_name == "weaken_remote_host_qualified_readiness_evidence":
+        decisions[remote_key] = (
+            "a remote host may be used without accepted qualified readiness evidence",
+        )
+    elif case_name == "weaken_es_exact_oid_requirement":
+        decisions[es_key] = _replace_tuple_text(
+            decisions[es_key], "concrete exact ES Git object OID", "accepted ES revision"
+        )
+    elif case_name == "weaken_es_owning_repository_adoption_evidence":
+        decisions[es_key] = (
+            "an accepted clean ES repository baseline resolved to one concrete exact ES Git object OID satisfies the gate without owning-repository adoption evidence",
+        )
+    elif case_name == "battery_initialization_execution_substrate":
+        decisions["initialization_route"] = "execution_substrate"
+    elif case_name == "battery_initialization_direct_local_bootstrap":
+        decisions["initialization_route"] = "direct_local_bootstrap"
+    elif case_name == "battery_initialization_delivery_transport_host":
+        decisions["initialization_delivery"] = {
+            "transport": "ssh",
+            "host": "remote-linux",
+        }
+    elif case_name == "battery_direct_local_means_mac_or_same_host":
+        decisions["first_route_does_not_mean"] = (
+            "Coordinator host",
+            "physical colocation",
+        )
+    elif case_name == "battery_third_adapter_remote_bootstrap":
+        decisions["third_adapter"] = "remote_bootstrap"
+    elif case_name == "battery_preserved_first_delivery_execution_substrate":
+        decisions["first_route"] = "execution_substrate"
+    elif case_name == "battery_restore_horizontal_order":
+        decisions["horizontal_implementation_sequence_superseded"] = False
+    elif case_name == "battery_freeze_four_programs_nine_tranches":
+        order["mandatory_program_or_tranche_count_frozen"] = True
+        order["mandatory_program_count"] = 4
+        order["mandatory_tranche_count"] = 9
+    elif case_name == "battery_exact_migration_0003_inventory":
+        decisions["migration_0003_inventory"] = {
+            "relations": ("future_relation",),
+            "cumulative_total": 1,
+        }
+    elif case_name == "battery_rejected_custody_dto":
+        decisions["WorkSpecCustodyReceiptV1"] = {
+            "fields": ("receipt_ref", "digest"),
+        }
+    elif case_name == "battery_raw_work_spec_in_sqlite":
+        decisions["raw_WorkSpec_in_Coordinator_SQLite"] = True
+    elif case_name == "battery_coordinator_authors_verified":
+        decisions["Coordinator_authors_verified"] = True
+    elif case_name == "battery_worker_opens_coordinator_sqlite":
+        decisions["worker_Coordinator_SQLite_access_allowed"] = True
+    elif case_name == "battery_second_productive_bootstrap":
+        decisions["productive_bootstrap_acceptance_maximum"] = 2
+    elif case_name == "battery_collapse_git_into_acceptance":
+        decisions["local_Git_effect_separate_after_semantic_acceptance"] = False
+    elif case_name == "battery_two_local_commits":
+        decisions["effect_ceilings"]["local_feature_branch_commits"] = 2
+    elif case_name == "battery_blind_second_commit":
+        decisions["ambiguous_Git_outcome_permits_blind_second_commit"] = True
+    elif case_name == "battery_remove_remote_host_gate_mac_fallback":
+        decisions[remote_key] = ("Mac fallback is allowed",)
+    elif case_name == "battery_remove_clean_es_oid_gate":
+        decisions[es_key] = ("an ES branch name satisfies the gate",)
+    elif case_name == "battery_report_target_runtime_current":
+        status["migration_0003_current"] = True
+        status["worker_current"] = True
+    elif case_name == "battery_chat_identifier_authority":
+        decisions["chat_identifier_is_architectural_authority"] = True
+    elif case_name == "battery_demote_begin_immediate":
+        preserved["transaction_and_cleanup_semantics"] = tuple(
+            item
+            for item in preserved["transaction_and_cleanup_semantics"]
+            if item != "BEGIN IMMEDIATE"
+        )
+    elif case_name == "battery_jit_question_already_settled":
+        remote_questions = list(jit["remote_worker_contact"])
+        remote_questions[0] = "custody schema already settled"
+        jit["remote_worker_contact"] = tuple(remote_questions)
+    elif case_name == "battery_remove_jit_ledger":
+        candidate["just_in_time_design_deferrals"] = {}
+    elif case_name == "reject_ambiguous_clean_exact_oid_phrase":
+        decisions[es_key] = (
+            "before recorded ES scenario initialization or execution requires one accepted clean exact ES Git OID plus accepted owning-repository adoption evidence for that OID and scenario",
+        )
+    elif case_name == "reject_exact_oid_and_adoption_without_clean_baseline":
+        decisions[es_key] = (
+            "one concrete exact ES Git object OID plus owning-repository adoption evidence suffices without an accepted clean repository baseline or baseline-cleanliness evidence",
+        )
+    elif case_name == "reject_clean_baseline_and_adoption_without_exact_oid":
+        decisions[es_key] = (
+            "an accepted clean ES repository baseline plus owning-repository adoption evidence suffices without resolving the baseline to a concrete exact Git object OID",
+        )
+    elif case_name == "reject_unbound_clean_baseline_and_exact_oid_evidence":
+        decisions[es_key] = (
+            "accepted clean-baseline evidence and exact-OID evidence may be supplied independently without proving that they identify the same accepted baseline",
+        )
+    elif case_name == "reject_adoption_evidence_for_different_oid":
+        decisions[es_key] = (
+            "owning-repository adoption evidence for a different OID may satisfy the gate",
+        )
+    elif case_name == "reject_adoption_evidence_for_different_scenario":
+        decisions[es_key] = (
+            "owning-repository adoption evidence for a different recorded scenario may satisfy the gate",
+        )
+    elif case_name == "reject_dirty_baseline_at_unchanged_oid":
+        decisions[es_key] = (
+            "a dirty repository baseline is sufficient when the exact Git object OID is unchanged",
+        )
+    elif case_name == "reject_branch_or_moving_ref_as_exact_oid":
+        decisions[es_key] = (
+            "a branch name or moving ref may substitute for the concrete exact Git object OID",
+        )
+    elif case_name == "reject_report_or_snapshot_as_clean_baseline_evidence":
+        decisions[es_key] = (
+            "a Codex report, ChatGPT report, or snapshot title may substitute for accepted clean-baseline evidence",
+        )
+    elif case_name == "reject_cleanliness_as_oid_property":
+        decisions[es_key] = (
+            "the concrete exact ES Git object OID is itself clean",
+        )
+    elif case_name == "weaken_word_qualified":
+        decisions[remote_key] = _replace_tuple_text(
+            decisions[remote_key], "is qualified", "is prepared"
+        )
+    elif case_name == "weaken_word_evidence":
+        decisions[remote_key] = _replace_tuple_text(
+            decisions[remote_key], "evidence", "material"
+        )
+    elif case_name == "weaken_word_clean":
+        weakened = tuple(
+            item.replace("cleanliness", "status")
+            .replace("clean-baseline", "baseline")
+            .replace("clean ", "")
+            for item in decisions[es_key]
+        )
+        assert weakened != decisions[es_key]
+        decisions[es_key] = weakened
+    elif case_name == "weaken_word_exact":
+        decisions[es_key] = _replace_tuple_text(
+            decisions[es_key], "exact", "approximate"
+        )
+    elif case_name == "weaken_word_oid":
+        decisions[es_key] = _replace_tuple_text(
+            decisions[es_key], "OID", "revision"
+        )
+    elif case_name == "weaken_word_owning_repository_contract_adoption_evidence":
+        weakened = tuple(
+            item.replace(
+                "owning-ES-repository contract/adoption evidence",
+                "scenario evidence",
+            )
+            .replace(
+                "owning-repository contract/adoption evidence",
+                "scenario evidence",
+            )
+            .replace("owning-repository adoption evidence", "scenario evidence")
+            for item in decisions[es_key]
+        )
+        assert weakened != decisions[es_key]
+        decisions[es_key] = weakened
+    else:
+        raise AssertionError(f"unknown narrowed counterfactual: {case_name}")
+
+
+def _assert_narrowed_counterfactual_rejected(
+    candidate: dict[str, object],
+    *,
+    physical_copy: Path | None = None,
+) -> None:
+    literal = repr(candidate)
+    source = literal
+    source_name = "<narrowed-reset-counterfactual>"
+    if physical_copy is not None:
+        assert not physical_copy.exists()
+        physical_copy.write_text(literal + "\n", encoding="utf-8")
+        assert physical_copy.is_file() and not physical_copy.is_symlink()
+        source = physical_copy.read_text(encoding="utf-8")
+        source_name = str(physical_copy)
+    compile(source, source_name, "eval")
+    parsed = ast.literal_eval(source)
+    assert type(parsed) is dict
+    assert parsed == candidate
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_narrowed_reset_governing_surface(parsed)
+    assert str(exc_info.value) == "C2B3_NARROWED_RESET_INVALID"
+
+
+@pytest.mark.parametrize(
+    ("mapping_name", "mapping_path"),
+    NARROWED_NORMATIVE_MAPPING_PATHS,
+    ids=tuple(name for name, _ in NARROWED_NORMATIVE_MAPPING_PATHS),
+)
+def test_narrowed_reset_every_normative_mapping_rejects_unknown_addition(
+    mapping_name: str, mapping_path: tuple[str, ...]
+) -> None:
+    candidate = deepcopy(_narrowed_reset_addendum())
+    target = _narrowed_mapping_at_path(candidate, mapping_path)
+    target[f"harmless_unknown_{mapping_name}"] = None
+    _assert_narrowed_counterfactual_rejected(candidate)
+
+
+@pytest.mark.parametrize(
+    "case_name",
+    NARROWED_REQUIRED_ADDITIVE_AND_WEAKENED_CASES,
+    ids=NARROWED_REQUIRED_ADDITIVE_AND_WEAKENED_CASES,
+)
+def test_narrowed_reset_required_additive_and_weakened_counterfactuals_are_rejected(
+    case_name: str,
+) -> None:
+    candidate = deepcopy(_narrowed_reset_addendum())
+    _apply_narrowed_counterfactual(candidate, case_name)
+    _assert_narrowed_counterfactual_rejected(candidate)
+
+
+@pytest.mark.parametrize(
+    "case_name",
+    NARROWED_PRECEDING_TWENTY_FOUR_CASES,
+    ids=NARROWED_PRECEDING_TWENTY_FOUR_CASES,
+)
+def test_narrowed_reset_preceding_twenty_four_category_battery_is_rejected(
+    case_name: str,
+) -> None:
+    candidate = deepcopy(_narrowed_reset_addendum())
+    _apply_narrowed_counterfactual(candidate, case_name)
+    _assert_narrowed_counterfactual_rejected(candidate)
+
+
+@pytest.mark.parametrize(
+    "case_name",
+    NARROWED_INTRINSIC_GATE_WORD_WEAKENING_CASES,
+    ids=NARROWED_INTRINSIC_GATE_WORD_WEAKENING_CASES,
+)
+def test_narrowed_reset_intrinsic_gate_word_weakening_is_rejected(
+    case_name: str,
+) -> None:
+    candidate = deepcopy(_narrowed_reset_addendum())
+    _apply_narrowed_counterfactual(candidate, case_name)
+    _assert_narrowed_counterfactual_rejected(candidate)
+
+
+@pytest.mark.parametrize(
+    "case_name",
+    NARROWED_ES_BASELINE_OID_ADOPTION_COUNTERFACTUAL_CASES,
+    ids=NARROWED_ES_BASELINE_OID_ADOPTION_COUNTERFACTUAL_CASES,
+)
+def test_narrowed_reset_es_baseline_oid_adoption_counterfactuals_are_rejected(
+    case_name: str,
+    tmp_path: Path,
+) -> None:
+    candidate = deepcopy(_narrowed_reset_addendum())
+    _apply_narrowed_counterfactual(candidate, case_name)
+    _assert_narrowed_counterfactual_rejected(
+        candidate,
+        physical_copy=tmp_path / f"{case_name}.pyexpr",
+    )
+
+
+def test_narrowed_reset_parser_and_governing_mutants_fail_closed() -> None:
+    owner = _owner()
+    for malformed in (
+        owner.replace(NARROWED_RESET_BEGIN_MARKER, "", 1),
+        owner.replace(NARROWED_RESET_END_MARKER, NARROWED_RESET_BEGIN_MARKER, 1),
+        owner.replace("```python\n{\n    \"critical_path_narrowing_addendum\"", "```json\n{\n    \"critical_path_narrowing_addendum\"", 1),
+        owner + "The earlier manifest governs C2B3B.\n",
+    ):
+        with pytest.raises(AssertionError, match="C2B3_NARROWED_RESET_OWNER_INVALID"):
+            _narrowed_reset_addendum(malformed)
+
+    mutations = (
+        ("horizontal_implementation_sequence_superseded", False),
+        ("initialization_route_neutral", False),
+        ("first_route", "execution_substrate"),
+        ("third_adapter_kind_introduced", True),
+        ("raw_WorkSpec_in_Coordinator_SQLite", True),
+        ("retrieval_bearer_authority_in_Coordinator_SQLite", True),
+        ("productive_bootstrap_acceptance_maximum", 2),
+        ("local_Git_effect_separate_after_semantic_acceptance", False),
+        ("ambiguous_Git_outcome_permits_blind_second_commit", True),
+    )
+    for key, replacement in mutations:
+        candidate = _narrowed_reset_addendum()
+        candidate["governing_decisions"][key] = replacement
+        with pytest.raises(AssertionError, match="C2B3_NARROWED_RESET_INVALID"):
+            _assert_narrowed_reset_governing_surface(candidate)
+
+
+def test_narrowed_reset_preserves_committed_c2b3a_and_reopens_details() -> None:
+    value = _narrowed_reset_addendum()
+    _assert_c2b3a_owner_addendum_prose(_owner())
+    assert value["finite_supersession"]["all_non_superseded_C2B3A_semantics_remain_operative"] is True
+    assert value["critical_path_order"]["mandatory_program_or_tranche_count_frozen"] is False
+    assert value["just_in_time_design_deferrals"]["meaning"] == "required questions, not selected schemas"
+    assert value["finite_supersession"]["migration_0003_disposition"].endswith("reopened rather than replaced")
+    assert value["current_and_target_status"]["production_source_changed_or_authorized"] is False

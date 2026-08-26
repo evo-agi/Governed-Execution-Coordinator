@@ -1673,3 +1673,38 @@ def test_operating_model_markdown_closer_suffix_is_ascii_space_tab_only() -> Non
         assert str(tables_rejected.value) == (
             "operating_model.markdown_tables|block=<none>|failure=unbalanced_fence"
         )
+
+
+def test_narrowed_vertical_slice_order_and_jit_ledger_are_exact() -> None:
+    document = (ROOT / DOC_PATH).read_text(encoding="utf-8")
+    document_compact = " ".join(document.split())
+    assert document.count("<!-- C2B3_NARROWED_OPERATING_MODEL_BEGIN -->") == 1
+    assert document.count("<!-- C2B3_NARROWED_OPERATING_MODEL_END -->") == 1
+    ordered = (
+        "1. pre-I/O Coordinator progression;",
+        "2. remote worker contact through semantic decision;",
+        "3. a separate local-Git effect and stop;",
+        "4. migration to ES before another productive bootstrap slice.",
+    )
+    positions = tuple(document.index(item) for item in ordered)
+    assert positions == tuple(sorted(positions))
+    for expected in (
+        "This is not a mandatory program or tranche count.",
+        "route-neutral initialization, minimum durable graph, migration-0002 sufficiency",
+        "minimum custody/retrieval, verifier, invocation, capsule, evidence",
+        "command/delivery/observation",
+        "reliable keyed submit, response-loss and Nomad ambiguity",
+        "These are required questions, not selected future schemas.",
+        "Current capability remains generation 2, migration 0002, C2A1, C2B2",
+        "All target execution remains absent.",
+    ):
+        assert expected in document_compact
+    for forbidden in (
+        "WorkSpecCustodyReceiptV1",
+        "VerifiedAuthorityResultV1",
+        "LocalGitCommandV1",
+        "LocalGitDeliveryV1",
+        "LocalGitObservationV1",
+        "CREATE TABLE",
+    ):
+        assert forbidden not in document

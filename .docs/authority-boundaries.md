@@ -361,3 +361,27 @@ An external authority system remains the author of executable standing
 authority. C2B records at most safe bindings and a future verifier-authored
 status. No verifier exists. Persistence, a digest, a relation, a Coordinator
 decision, or a caller Boolean never becomes executable authorization.
+
+<!-- C2B3_NARROWED_AUTHORITY_BEGIN -->
+## Vertical-slice governing authority boundary
+
+The narrowed vertical-slice target does not change authority ownership.
+Coordinator owns durable progression, never the parent standing grant and
+never authors `verified`. An external authority source owns the parent grant;
+an external verifier supplies current verification immediately before the
+future effect. Persisted evidence is not automatically fresh permission, and
+the user is not a routine per-effect approver.
+
+The worker has no Coordinator SQLite or writer access. Git owns object and ref
+truth. Validators and reviewers own their evidence. Reports, model output,
+Bridge records, topology/profile observations, and transport receipts remain
+evidence only. Raw WorkSpec and retrieval bearer authority never enter
+Coordinator SQLite; a safe ref or digest is identity evidence, not retrieval
+authority.
+
+The first bounded direct/non-ES delivery may yield at most one productive
+acceptance. A separate local-Git effect may later yield at most one isolated
+feature-branch commit, with zero publication effects and no blind retry after
+an ambiguous outcome. Exact durable authority/evidence representations remain
+required just-in-time questions rather than selected schemas.
+<!-- C2B3_NARROWED_AUTHORITY_END -->

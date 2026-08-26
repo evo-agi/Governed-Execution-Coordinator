@@ -1043,3 +1043,46 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
         "C2B0 creates no source module, SQL, schema object, migration, database row",
     ):
         assert phrase in owner
+
+
+def test_narrowed_vertical_slice_architecture_is_governing_not_schema_freeze() -> None:
+    architecture = _text(".docs/architecture.md")
+    architecture_compact = _compact(architecture)
+    owner = _text(".docs/c2b-durable-development-state.md")
+    assert architecture.count("<!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->") == 1
+    assert architecture.count("<!-- C2B3_NARROWED_ARCHITECTURE_END -->") == 1
+    for expected in (
+        "Initialization is route-neutral.",
+        "Route selection occurs only at author-effect delivery",
+        "`direct_local_bootstrap` bounded direct/non-ES compatibility path",
+        "one qualified remote Linux host",
+        "It does not mean the user's Mac, the Coordinator host, or physical colocation",
+        "introduces no third adapter kind",
+        "The worker receives no Coordinator SQLite or writer access.",
+        "At most one productive bootstrap acceptance",
+        "one later isolated local feature-branch commit",
+        "push, remote-ref mutation, PR, merge, deployment, and publication remain zero",
+        "deferred to the phase that first needs them",
+    ):
+        assert expected in architecture_compact
+    for expected in (
+        '"initialization_route_neutral": True',
+        '"first_route": "direct_local_bootstrap"',
+        '"third_adapter_kind_introduced": False',
+        '"raw_WorkSpec_in_Coordinator_SQLite": False',
+        '"retrieval_bearer_authority_in_Coordinator_SQLite": False',
+        '"mandatory_program_or_tranche_count_frozen": False',
+        '"qualified_remote_host_readiness_evidence_gate": (',
+        '"accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate": (',
+    ):
+        assert expected in owner
+    for forbidden in (
+        "WorkSpecCustodyReceiptV1",
+        "VerifiedAuthorityResultV1",
+        "LocalGitObservationV1",
+        "canonical_positive_vectors",
+        "CREATE TABLE",
+        '"prerequisite_00061":',
+        '"prerequisite_00054":',
+    ):
+        assert forbidden not in owner

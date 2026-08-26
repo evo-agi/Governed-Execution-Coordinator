@@ -426,3 +426,23 @@ persistence, complete graph proof, replay, recovery, C2B3 behavior, migration
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.
+
+## Narrowed first vertical-slice target
+
+The accepted pivot now freezes governing architecture only. Initialization is
+route-neutral; first author-effect delivery uses the existing
+`direct_local_bootstrap` bounded direct/non-ES path to one qualified remote
+Linux host, not the user's Mac or Coordinator host. No third adapter is added.
+
+The dependency order is pre-I/O Coordinator progression, remote contact through
+semantic decision, a separate local-Git effect and stop, then ES migration
+before another productive bootstrap slice. This is not a mandatory program or
+tranche count. The bootstrap route permits at most one productive acceptance;
+local Git later permits at most one isolated feature-branch commit and no push,
+remote-ref mutation, PR, merge, deployment, or publication.
+
+Future initialization, custody, verifier, invocation, evidence, Git,
+migration-0003, reliable-submit, and conformance details remain explicit just-
+in-time design questions. Current implementation remains generation 2 at
+migration 0002 with C2A1, C2B2 private values/readers, and existing bounded
+writer/transaction authority only.
