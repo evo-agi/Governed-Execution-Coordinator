@@ -15,6 +15,144 @@ not a service, API, worker, scheduler, queue consumer, provisioner, lease issuer
 authorization issuer, CP workflow, ES runtime, publication system, or general
 orchestrator.
 
+C2B Pre-I/O VS1A adds only a private shared cleanup foundation beneath that
+existing mutation authority. A controller-exclusive scope is token-acknowledged
+before COMMIT. After direct exact-object close, the controller supplies only
+immutable facts; under the lifecycle lock, the resource observes disposal,
+selects the actual successor, and publishes it through one assignment. Exact
+publication acknowledgment precedes alias clearing, and scope use is already
+invalid after assignment. The retained-custody owner's normal direct close
+return is the sole proof; the generic cleanup helper and callbacks cannot mint
+proof. Monotonic pre-close policy is separate from field-free post-proof
+`ResumeActive`; disposal and governing process control can only convert toward
+cleanup, and later completion cannot reverse that direction. Operation
+admission publishes an immutable resource-owned record containing copied
+resource/operation/PID/thread/epoch facts and the exact admitted lease weak
+reference and finalizer identity. Mutable handle-side binding fields are
+compatibility observations only. Retirement first records an exact condition-
+owned non-admitting preparation. Only the live admitted lease can retire
+normally: under that same condition, the resource records local terminality,
+calls `detach()` on the exact bound finalizer, and records
+`EXPLICIT_RETIRED` only from that exact successful return. Finalizer death,
+`.alive == False`, weak-reference clearing, GC, object loss, and caller-built
+acknowledgments are not retirement proof.
+Plain mutation-active/closing retirement defensively records exact slot release;
+controller close-proved release ownership is unchanged. If the operation is the
+sole cleanup blocker, Phase 1 uses the existing cleanup claim and retains the
+record while credential/lock cleanup runs before publication. Finalizer
+execution, direct invocation, GC, or lease/wrapper loss before
+`EXPLICIT_RETIRED` classifies orphan cleanup, keeps admission frozen, and can
+reach X without restoring Active. Loss afterward adds no authority: it can only
+finish publication already authorized by the stored phase or follow current
+cleanup posture.
+One final resource lifecycle assignment under that same condition removes the
+exact record and is the operation-completion linearization point. Python method
+return is caller observation only. Transition and global-stop apply are the two
+vulnerable retained-lease operation-guard paths. Their caller-side envelopes
+create one private immutable exact-object invocation-correlation token before
+their nested helpers can admit. Admission validates the token's exact resource,
+PID, and epoch and binds it through the exact handle owned by the immutable
+resource record in the same condition-protected lifecycle assignment that
+publishes the record. No resource-authoritative record is visible without that
+binding, and the envelope never derives correlation from a returned lease or a
+post-return handle store. It receives compiler-cleanup, `__exit__`, and
+`_close()` escapes, including their first traceable opcodes; neither internal
+method claims coverage of its own first opcode. Before poison, the stabilizer
+checks only the exact token type, its directly stored resource-identity slot,
+and the resource's direct fork-invalid owner-PID sentinel, acquires the existing
+condition, directly unwraps the exact current lifecycle
+state, requires an exact immutable record tuple, and compares the exact token
+object by identity. It reads no lifecycle-epoch property and calls no project
+helper. The first exact current-record match is followed immediately by direct
+poison assignment. Only afterward may `_state_authority` and direct stored
+token/record/resource fields validate PID, epoch, authority, and record
+consistency. Any such failure keeps the poison set and cannot restore admission.
+Absence proves neither no admission nor final assignment and does not poison.
+Post-poison classification, detailed record replacement, successor construction,
+and notification cannot reset poison; controller resolution with
+`_CleanupRequiredAfterResolution` is represented cleanup-owned. The poison
+blocks operation and mutation admission and every admitting successor while
+bounded cleanup proceeds toward X.
+
+After stabilization, a bounded cycle-aware sanitizer reads only C-level
+`BaseException` traceback, cause, context, args, and base instance-dictionary
+storage through descriptors bound from `BaseException`, plus C-level
+`BaseExceptionGroup.exceptions`. It recursively follows `BaseException` values
+through exact built-in tuple, list, dict keys and values, set, and frozenset
+containers; ordinary notes are covered only as base-dictionary content. It
+clears each traceback before reading that exception's other fields. It invokes
+no subclass-defined dynamic descriptor, arbitrary subclass slot, arbitrary
+user-object attribute, or custom container iterator. One ordinary primary-pass
+failure, or one ordinary failure at the replaceable sanitizer call boundary,
+is suppressed beneath the exact outward exception and followed by one
+default-bound non-dispatching fallback pass. Exact identity, type, args,
+`SystemExit.code`, suppression, notes, cause/context identity, group children,
+and ordinary dictionary content remain unchanged before bare reraise. This does
+not claim progress under repeated asynchronous interruption or catastrophic
+allocation failure. The separate
+`require_usable_for_mutation` guard remains an already fail-closed ephemeral/
+unbound-lease path: its reproduced compiler boundary reaches X through existing
+finalizer cleanup without the envelope or poison, while reachable exit paths
+first publish non-admitting preparation. Wrong-PID and fork-child non-authority
+remain unchanged. Absent and never-published handles reject;
+internal retirement does not use matched-none publication, a completion receipt,
+or a registry. Existing transition/global-stop replay remains semantic
+response-loss recovery. Exact `KeyboardInterrupt`, `SystemExit`, and
+`GeneratorExit` identity and `SystemExit.code` remain outward. One opaque
+identity per writer resource binds authority/activity, operation,
+slot/frame, controller token, connection custody/proof, every cleanup cursor,
+and cleanup claim by `is`; PID/epoch equality cannot cross-wire resources. Exact
+variants and single-owned structural cursors prevent contradictory custody.
+Operation identity and its finalizer exist before active publication, and cleanup claims use the exact live
+`threading.Thread` with explicit dead-owner takeover. Safe-error privacy uses
+the same supported base-storage and exact-built-in-container boundary, including
+real cursor/path/SQL/parameter evidence, without extending to dynamic subclass
+descriptors, arbitrary slots or user-object attributes, or custom iterators.
+Sensitive frames return one exact content-free store error
+in a private disposition; after bindings clear, each genuine bound public guard
+reaches an outer catch that validates, sanitizes, and bare-reraises that same
+object by identity without process-control poisoning. A normal close with no pending explicit disposal or orphan
+cleanup permits a later
+explicit retry on the same wrapper using a new operation and connection, as
+fresh apply or exact replay without automatic retry or duplicate effects. The
+same explicit fresh/replay/conflict semantics resolve response loss after the
+final operation assignment; direct transition/global-stop selectors prove no
+duplicate durable effect.
+QU/QK and pending-disposal paths remain non-reusable. Section 35 continues to
+govern cleanup, lock, fork, finalizer, and the separately X-gated affected C2B3
+initialization recovery rule. The B3c1a contract-projection test keeps its
+existing node ID and replaces only the obsolete post-GC Active expectation with
+`ORPHANED` -> non-admitting -> cleanup -> X. The B3c1b change is explicit
+connection-lifetime
+hygiene only; B3c3 is only a private rollback-only proof-owner regression
+adaptation. The unchanged B2b issue is pre-existing HEAD-exact test-resource
+hygiene, strict warning-promotion debt, not repaired by VS1A, and not VS1A
+authority or semantic behavior. The final candidate is exactly twenty-two dirty
+paths: twenty-one tracked modifications, the sole untracked shared-foundation
+test, and zero staged paths. It includes the intentional B3c1a contract
+replacement in `tests/test_b3c1a_writer_session_authority.py`. Fresh independent
+audit remains pending. The accepted same-candidate B4b privacy-contract
+replacement continues to require zero Coordinator frames on its supported
+outward graph. These scope counts are report-only observations bound to
+this exact candidate provenance, not architectural invariants.
+The deterministic real-session race selector makes disposal current after exact
+mutation release and before operation completion, proves non-admission while the
+operation remains represented, and reaches X without restoring Active.
+The shared-foundation test owns three distinct evidence classes: production-
+causal runtime cases, compiled complete-module source mutants, and secondary
+AST/source guards. Its one literal tuple owns the focused selector inventory;
+reports compute the count from those selected node IDs. Source mutants are
+written, parsed, compiled, and imported only from external copies and must leave
+the live repository unchanged. Direct-finalizer counterfactuals assert
+reachability at their actual orphan-mark or cleanup-successor seam. Exact
+commands, node and warning totals, overlaps, and validation-group file
+inventories are report evidence rather than governing architecture; no
+noncausal, duplicate, or unreached seam receives causal credit.
+No public API, schema, migration, initialization, dependency, or external I/O
+is added. These unstaged bytes have not received independent-audit or Git
+acceptance and have not been committed, pushed, or published; a fresh
+independent audit remains pending and VS1B remains unauthorized.
+
 Strategic target direction is recorded separately from current behavior. The
 accepted C1 staged target is model-guided Coordinator durable progression,
 followed by a transport-neutral Worker Execution Boundary, a bounded

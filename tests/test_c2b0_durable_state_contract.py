@@ -35,17 +35,146 @@ C2B3A_PLANNING_PROJECTION_APPROVED_TEXT = (
     "<!-- C2B3A_PLANNING_CURRENT_STATUS_BEGIN -->\n"
     "## Current status\n"
     "\n"
-    "C2B3A remains a target-contract freeze with documentation and direct\n"
-    "documentation-contract tests only. The current repair changes only the owner,\n"
-    "this planning projection, the direct oracle, and the higher-order guard. It is\n"
-    "not an independent audit and does not establish acceptance. Any changed bytes\n"
-    "require a fresh read-only audit.\n"
+    "C2B3A remains a target-contract freeze. The unstaged C2B Pre-I/O VS1A\n"
+    "candidate selects controller-exclusive connection custody and an exact scope-\n"
+    "token activation acknowledgment before COMMIT. After close, the controller\n"
+    "supplies immutable facts only; under the writer-resource lock, the resource\n"
+    "observes current disposal posture, selects the actual successor, and publishes\n"
+    "it through one lifecycle assignment. Exact publication acknowledgment precedes\n"
+    "scope-alias clearing, and scope use is already invalid after assignment. Normal\n"
+    "return from the retained-custody owner's direct exact-object `close()` is the\n"
+    "sole closure proof; a repeated close is permitted only while proof is absent.\n"
+    "Pre-close resumption policy is distinct from field-free post-proof\n"
+    "`ResumeActive`. Disposal and governing process control strengthen or convert\n"
+    "resumption to cleanup, so later completion cannot restore Active. Operation\n"
+    "admission publishes an immutable resource-owned record containing copied\n"
+    "resource/operation/PID/thread/epoch facts and the exact admitted lease weak\n"
+    "reference and finalizer identity. Handle-side binding fields are compatibility\n"
+    "observations only and cannot replace that authority. Retirement first records\n"
+    "an exact condition-owned non-admitting preparation. Normal retirement is then\n"
+    "owned only by the still-live admitted lease: under that same condition, the\n"
+    "resource records local terminality, calls `detach()` on the exact bound\n"
+    "finalizer, and records `EXPLICIT_RETIRED` only from that call's exact successful\n"
+    "return. A dead finalizer, `alive == False`, weak-reference clearing, GC, object\n"
+    "loss, or a caller-built acknowledgment is never retirement proof.\n"
+    "Plain mutation-active/closing retirement defensively records exact slot release;\n"
+    "controller close-proved release ownership is unchanged. If the operation is the\n"
+    "sole cleanup blocker, Phase 1 uses the existing cleanup claim and retains the\n"
+    "record while credential/lock cleanup runs before publication. Finalizer\n"
+    "execution, direct invocation, GC, and lease or wrapper loss before\n"
+    "`EXPLICIT_RETIRED` classify only orphan cleanup, keep admission frozen, and can\n"
+    "reach X without restoring Active. Lease loss after `EXPLICIT_RETIRED` adds no\n"
+    "authority; it can only finish publication already authorized by the stored\n"
+    "resource phase or follow current cleanup posture.\n"
+    "One final resource lifecycle assignment under that same condition removes the\n"
+    "exact record and is the operation-completion linearization point. Python method\n"
+    "return is caller observation only. The two vulnerable retained-lease public\n"
+    "callers, transition apply and global-stop apply, now place one caller-side\n"
+    "process-control envelope around pre-admission correlation creation and the\n"
+    "nested operation-guard helper. One private immutable exact-object token exists\n"
+    "before that helper can admit. Admission validates the token's exact resource,\n"
+    "PID, and epoch and binds it through the exact handle retained by the immutable\n"
+    "resource record in the same condition-protected lifecycle assignment. The\n"
+    "envelope never derives correlation from a returned lease or post-return handle.\n"
+    "It receives compiler-cleanup, `__exit__`, and `_close()` escapes, including\n"
+    "their first traceable opcodes; neither internal method claims to protect its own\n"
+    "first opcode. Before poison, the stabilizer checks only the token's exact type,\n"
+    "directly stored resource identity, and the resource's direct fork-invalid\n"
+    "owner-PID sentinel, acquires the condition, directly inspects the current exact\n"
+    "lifecycle-state type and exact immutable record\n"
+    "tuple, and recognizes the current record through direct frozen/slotted fields\n"
+    "and token-object identity. It reads no lifecycle property and calls no project\n"
+    "or policy helper. One exact match is followed immediately by direct poison\n"
+    "assignment under the condition. Only afterward may `_state_authority` derive\n"
+    "authority and validate PID, epoch, resource, correlation, record, and handle\n"
+    "consistency; failure leaves poison set. Absence proves neither no admission nor\n"
+    "prior final assignment and does not poison. Post-poison classification\n"
+    "distinguishes represented incomplete from represented cleanup-owned. Detailed\n"
+    "record replacement, successor construction, and notification follow poison and\n"
+    "cannot reset it; controller resolution with\n"
+    "`_CleanupRequiredAfterResolution` is represented cleanup-owned. The one-way\n"
+    "poison blocks operation and mutation admission and every admitting successor\n"
+    "while bounded cleanup continues toward X.\n"
+    "\n"
+    "After stabilization, a bounded cycle-aware sanitizer clears traceback fields\n"
+    "in the supported graph: `BaseException` base traceback, cause, context, args,\n"
+    "and base instance dictionary; `BaseExceptionGroup` base children; and\n"
+    "`BaseException` values recursively reached through exact built-in `tuple`,\n"
+    "`list`, `dict`, `set`, and `frozenset` containers. Bound base-class descriptors\n"
+    "and exact built-in operations prevent exception-field dispatch. Subclass\n"
+    "dynamic descriptors, arbitrary subclass slots, arbitrary user-object\n"
+    "attributes, and custom container iteration are excluded. Each base traceback\n"
+    "is cleared before the exception's other base fields are read. Exact identity,\n"
+    "type, args, `SystemExit.code`, suppression, notes, instance-dictionary content,\n"
+    "group-child identity, and cause/context links remain unchanged before bare\n"
+    "reraise. One ordinary primary-traversal or call-boundary failure is contained\n"
+    "and followed by one independently bound non-dispatching fallback, so it cannot\n"
+    "replace the outward exception. Repeated asynchronous interruption,\n"
+    "catastrophic allocation failure, and unsupported private mutation of bound\n"
+    "defaults or C-level descriptors are outside the guarantee. The same outer\n"
+    "privacy boundary handles an exact content-free safe store error through each\n"
+    "genuine bound public operation guard, without process-control poisoning or\n"
+    "reconstruction.\n"
+    "The separate `require_usable_for_mutation` use remains an already fail-closed\n"
+    "ephemeral/unbound-lease path: its reproduced compiler boundary loses the last\n"
+    "lease reference and reaches X through existing finalizer cleanup without the\n"
+    "caller envelope or poison, while reachable exit boundaries are prepared as\n"
+    "non-admitting. Wrong-PID and fork-child non-authority remain unchanged. Later\n"
+    "pre-assignment process control retains the record and strengthens cleanup;\n"
+    "post-assignment process control preserves the assigned state and uses existing\n"
+    "explicit fresh/replay/conflict semantics. An absent or never-published handle\n"
+    "cannot prove prior completion; internal retirement retry stops at exact handle\n"
+    "absence, with no completion receipt or registry. Each writer resource also allocates one opaque\n"
+    "identity shared by its authority, operations, slot/frame, controller token,\n"
+    "connection custody/proof, cleanup cursors, and claim, with authority comparisons\n"
+    "only by `is`. Exact closed variants and single-owned structural cursors replace\n"
+    "the rejected broad snapshot and completed-step model. Cleanup claims bind the\n"
+    "exact `threading.Thread` object with explicit dead-owner takeover. Sensitive\n"
+    "mutation frames return one private safe\n"
+    "disposition; after their bindings clear, the outer public boundary catches,\n"
+    "sanitizes, and bare-reraises the same exact content-free store-error object by\n"
+    "identity. A normal transaction-\n"
+    "connection close with no pending disposal restores the same transition/global-\n"
+    "stop wrapper for a later explicit fresh apply or exact replay; QU/QK and\n"
+    "disposal-pending postures remain non-reusable. The B3c1a contract-projection\n"
+    "test keeps its existing node ID and replaces only its obsolete post-GC Active\n"
+    "expectation: loss before `EXPLICIT_RETIRED` is `ORPHANED`, non-admitting,\n"
+    "cleanup-owned, and eventually X. The B3c1b change is connection-\n"
+    "lifetime hygiene only. The B3c3 change is a private rollback-only regression\n"
+    "adaptation to the selected close-proof owner with no result, durability, public,\n"
+    "or authority widening. The unchanged B2b issue is pre-existing HEAD-exact test-\n"
+    "resource hygiene, strict warning-promotion debt, not repaired by VS1A, and not\n"
+    "VS1A authority or semantic behavior. The candidate has exactly twenty-two dirty\n"
+    "paths: twenty-one tracked modifications, the sole untracked shared-foundation\n"
+    "test, and zero staged paths, including the intentional B3c1a contract\n"
+    "replacement in `tests/test_b3c1a_writer_session_authority.py`. A fresh\n"
+    "independent audit remains pending. The accepted B4b one-byte zero-Coordinator-\n"
+    "frame privacy contract replacement in\n"
+    "`tests/test_b4b_private_atomic_global_stop_persistence.py` remains unchanged.\n"
+    "These bytes have not been staged, committed, pushed, or published. These scope\n"
+    "counts are report-only observations bound to the exact candidate provenance,\n"
+    "not architectural invariants.\n"
+    "\n"
+    "The repaired candidate keeps runtime causal cases, compiled complete-module\n"
+    "source mutants, and secondary AST/source guards as distinct evidence classes.\n"
+    "The shared-foundation test is the owning surface, and its focused inventory is\n"
+    "one literal tuple of selected node IDs. Exact commands, changing node totals,\n"
+    "warning totals, overlaps, and validation-group file inventories are report\n"
+    "evidence rather than governing architecture. Source mutants use external\n"
+    "copies and leave the live repository unchanged. Direct-finalizer\n"
+    "counterfactuals still assert reachability at their actual orphan-mark or\n"
+    "cleanup-successor seam. This is candidate validation evidence only; it is not\n"
+    "an independent-audit acceptance claim.\n"
     "\n"
     "The implemented database remains application generation 2 at terminal\n"
-    "migration `0002_development_program_and_effect_state`. Program initialization,\n"
-    "private delegation, product mutation, receipt persistence, replay or recovery\n"
-    "runtime, retained-connection cleanup runtime, finalizer runtime, and author-\n"
-    "effect source remain absent.\n"
+    "migration `0002_development_program_and_effect_state`. VS1A adds no program-\n"
+    "initialization command, durable development row, reader, replay, recovery, or\n"
+    "author-effect source; it performs no worker, model, Git, Execution Substrate,\n"
+    "Bridge, network, or other external effect; and it changes no schema or\n"
+    "migration. Section-35 C2B3 initialization recovery/replay remains target-only\n"
+    "and affected-resource X-gated. Existing transition and global-stop idempotency/\n"
+    "replay remain same-wrapper capable after proved normal close and are not subject\n"
+    "to that future initialization gate. C2B3B/VS1B remains absent and unauthorized.\n"
     "\n"
     "The structured owner value\n"
     "`commit_close_outcome_addendum.normative_surface_and_precedence` makes\n"
@@ -3281,6 +3410,7 @@ SECTION_HEADINGS = (
     "34. C2B2 Remaining Nonimplementation",
     "35. C2B3A Program-Initialization Contract Freeze",
     "36. C2B3 Vertical-Slice Governing Narrowing Addendum",
+    "37. C2B Pre-I/O VS1A Shared Cleanup Foundation",
 )
 
 DECISION_KINDS = (
@@ -8840,6 +8970,7 @@ def _assert_stop_contract(text: str) -> None:
 def _assert_privacy_contract(text: str) -> None:
     custody = _compact(_section(text, SECTION_HEADINGS[15]))
     values = _compact(_section(text, SECTION_HEADINGS[16]))
+    compacted = _compact(text)
     assert "The physical custodian is explicitly deferred." in custody
     assert "Coordinator SQLite is a safe-reference holder, not a private-material store." in custody
     assert "A safe ref is not retrieval authority." in custody
@@ -8854,7 +8985,10 @@ def _assert_privacy_contract(text: str) -> None:
         "SQLite can reconstruct the private WorkSpec",
         "CapsuleEntryV1: persist complete mapping",
     ):
-        assert forbidden not in _compact(text)
+        _require(
+            forbidden not in compacted,
+            "c2b0.privacy|heading=<all>|failure=forbidden_privacy_claim",
+        )
 
 
 def _assert_schema_contract(text: str) -> None:
@@ -12118,8 +12252,47 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
         assert required in owner
     for required in (
         "planning and implementation-status projection only",
-        "The current repair changes only the owner",
-        "application generation 2 at terminal",
+        "The unstaged C2B Pre-I/O VS1A",
+        "controller-exclusive connection custody and an exact scope-",
+        "selects the actual successor, and publishes",
+        "retained-custody owner's direct exact-object `close()`",
+        "single-owned structural cursors replace\nthe rejected broad",
+        "Cleanup claims bind the\nexact `threading.Thread` object with explicit dead-owner takeover",
+        "private rollback-only regression\nadaptation to the selected close-proof owner",
+        "pre-existing HEAD-exact test-\nresource hygiene, strict warning-promotion debt",
+            "exactly twenty-two dirty\npaths",
+            "twenty-one tracked modifications",
+            "zero staged paths",
+            "intentional B3c1a contract\nreplacement",
+            "tests/test_b3c1a_writer_session_authority.py",
+            "A fresh\nindependent audit remains pending",
+            "accepted B4b one-byte zero-Coordinator-\nframe privacy contract replacement",
+            "two vulnerable retained-lease public\ncallers",
+            "pre-admission correlation creation",
+            "private immutable exact-object token exists",
+            "never derives correlation from a returned lease or post-return handle",
+            "represented incomplete from represented cleanup-owned",
+                "Absence proves neither no admission nor\nprior final assignment",
+            "bounded cycle-aware sanitizer clears traceback fields",
+            "One exact match is followed immediately by direct poison",
+            "reads no lifecycle property and calls no project\nor policy helper",
+            "direct fork-invalid\nowner-PID sentinel",
+            "controller resolution with\n`_CleanupRequiredAfterResolution`",
+            "Bound base-class descriptors\nand exact built-in operations",
+            "Subclass\ndynamic descriptors, arbitrary subclass slots",
+            "One ordinary primary-traversal or call-boundary failure is contained",
+            "through each\ngenuine bound public operation guard",
+            "`require_usable_for_mutation` use remains an already fail-closed",
+            "These scope\ncounts are report-only observations",
+            "runtime causal cases, compiled complete-module",
+            "one literal tuple of selected node IDs",
+            "Source mutants use external\ncopies and leave the live repository unchanged",
+            "report\nevidence rather than governing architecture",
+            "Section-35 C2B3 initialization recovery/replay remains target-only",
+            "Existing transition and global-stop idempotency/\nreplay remain same-wrapper capable",
+            "application generation 2 at terminal",
+        "initialization command, durable development row, reader, replay, recovery",
+        "C2B3B/VS1B remains absent and unauthorized",
         "historical and non-operative",
         "Production is exactly six paths",
         "Documentation/status is exactly ten paths",
@@ -16447,6 +16620,283 @@ EXPECTED_NARROWED_RESET_TRAILING_PROSE = (
     "independent audit.\n"
 )
 
+VS1A_BEGIN_MARKER = "<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_BEGIN -->"
+VS1A_END_MARKER = "<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_END -->"
+EXPECTED_VS1A_PATHS = (
+    ".docs/c2b-durable-development-state.md",
+    ".docs/c2b3-program-initialization.md",
+    ".docs/sqlite-operations-and-recovery.md",
+    ".docs/sqlite-threat-model.md",
+    ".docs/writer-session-authority.md",
+    "AGENTS.md",
+    "README.md",
+    "src/ge_nwp_coordinator/sqlite_connection.py",
+    "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+    "src/ge_nwp_coordinator/sqlite_writer_session.py",
+    "src/ge_nwp_coordinator/state_authority_lock.py",
+    "tests/test_b3c1a_writer_session_authority.py",
+    "tests/test_b3c1b_rollback_only_writer_fencing.py",
+    "tests/test_b3c3_rollback_only_transition_dry_run.py",
+    "tests/test_b3c4b_private_atomic_transition_persistence.py",
+    "tests/test_b3c4c_prerequisite_contract.py",
+    "tests/test_b4b_private_atomic_global_stop_persistence.py",
+    "tests/test_c2b0_durable_state_contract.py",
+    "tests/test_c2b3_program_initialization_contract.py",
+    "tests/test_c2b_pre_io_vs1a_shared_cleanup_foundation.py",
+    "tests/test_sqlite_b2c_writer_session.py",
+    "tests/test_state_authority_lock.py",
+)
+EXPECTED_VS1A_TRAILING_PROSE = """
+
+The controller constructs one private connection scope before publishing any
+resource controller-resolution state. That scope is the sole active connection
+custodian. The resource acknowledges the exact scope token before COMMIT can
+begin. The controller later supplies only immutable intent and close-proof or
+retained-custody facts. Under the existing resource condition lock, the resource
+revalidates the token, operation, slot, proof or custody, and current disposal
+posture; merges cleanup-wins policy; constructs the actual successor; and
+publishes it at one exact lifecycle-state assignment. The controller never
+precomputes that actual successor. Only after the exact publication
+acknowledgment returns may the scope clear its raw and retained aliases. The
+resource assignment itself invalidates scope use, so a stale scope cannot
+borrow, commit, rollback, close, or publish even if acknowledgment delivery is
+interrupted.
+
+C1/C2 proof is connection-free and arises only when `close()` returns normally
+for the exact retained connection on its exact owner process and Thread object.
+An ordinary failure or process-control interruption before that return creates
+no proof. While proof remains absent, cleanup may later repeat `close()` on
+that same object. Once C2 exists, no further close is permitted. No
+`in_transaction`, `ProgrammingError`, exception-text, SQL, reopen, or
+reconstruction probe supplies closure proof. The retained-custody owner itself
+calls `sqlite3.Connection.close(exact_connection)`; the generic transaction
+cleanup helper is not a proof owner, no caller-supplied successful callback may
+mint proof, and the production proof has one exact construction site.
+
+Pre-close policy is not a lifecycle result. Resume-if-close-proved-and-still-
+eligible may strengthen only to cleanup-required. Field-free `ResumeActive` is
+constructed only after exact close proof and only while the resource lock still
+finds resumption eligible. Explicit disposal before publication strengthens the
+policy; disposal after proof publication atomically replaces resumption with
+proof-backed cleanup. Disposal after exact mutation release but before operation
+completion likewise makes proof-backed cleanup current while preserving the
+outstanding exact operation until completion. Operation or mutation completion
+cannot restore Active after disposal. `ContinueCleanup` is always
+non-admitting.
+
+For exact `KeyboardInterrupt`, `SystemExit`, and `GeneratorExit`, the original
+object, args, identity, and `SystemExit.code` retain outward precedence. Each
+retained public caller obtains one private immutable invocation-correlation
+token from its exact resource before calling the helper that can admit an
+operation. Admission validates that resource/PID/epoch binding, rejects a token
+already bound to a represented operation, and publishes the token-bearing exact
+handle only through the immutable resource-owned operation record in the same
+condition-protected lifecycle assignment. The caller never derives correlation
+from the returned lease or a post-return handle capture. The token is ephemeral
+identity only: it cannot admit, mutate, retire, publish, replay, or authorize;
+it is not persisted, serialized, logged, exported, or registered.
+
+On governing process control, the resource checks only the token's exact type,
+directly stored resource identity, and the direct fork-invalid owner-PID
+sentinel before taking its condition. It then
+directly inspects the exact current lifecycle-state type and exact immutable
+operation-record tuple. Direct frozen/slotted field access, exact type checks,
+and token-object identity are the only selection operations. It reads no
+lifecycle property and calls no project or policy helper. One exact current
+match is followed immediately by direct poison assignment under the condition.
+Only after poison may `_state_authority` derive authority and validate PID,
+epoch, resource, correlation, record, and handle consistency. A consistency
+failure leaves poison set and admission denied. Only a represented record
+causes poison, while an absent current record proves neither no admission nor
+final assignment. Classification, detailed record replacement, successor
+construction, and notification occur only after poison and cannot reset it. A
+controller-resolution state carrying `_CleanupRequiredAfterResolution` is
+represented cleanup-owned; represented pre-final-assignment work without an
+existing cleanup owner is represented incomplete.
+
+After the bounded stabilization attempt, the public envelope runs a bounded,
+cycle-aware sanitizer over the supported graph: the governing exception's and
+reachable exceptions' `BaseException` base traceback, cause, context, args, and
+base instance dictionary; `BaseExceptionGroup` base children; and
+`BaseException` values recursively reached through exact built-in `tuple`,
+`list`, `dict`, `set`, and `frozenset` containers. It invokes bound base-class
+descriptors and bound exact built-in operations, clearing an exception's base
+traceback before reading its other base fields. It does not invoke subclass
+dynamic descriptors, arbitrary subclass slots, arbitrary user-object
+attributes, or custom container iteration. It preserves exact object and
+cause/context/group-child identity, type, args, `SystemExit.code`, suppression,
+notes, and instance-dictionary content. One ordinary failure in the primary
+traversal or at its call boundary is contained and followed by one independently
+bound non-dispatching fallback; the original exception remains outward and is
+bare-reraised. No Coordinator traceback frame remains in the supported outward
+exception graph. Repeated asynchronous interruption, catastrophic allocation
+failure, and unsupported private mutation of bound defaults or C-level
+descriptors remain outside the guarantee.
+The resource lifecycle state, not handle-local compatibility fields, remains
+the operation authority. This is an ordinary Python private-object boundary,
+not a claim of cryptographic resistance to arbitrary private reflection.
+
+Phase 1 records preparation under the existing resource condition, retains the
+operation record, verifies exact mutation release, and makes or keeps the
+resource non-admitting. Normal retirement has exactly one owner: the live lease
+already named by that record. While holding the same condition, the resource
+checks the exact record, lease, handle, finalizer, PID, epoch, preparation,
+mutation-release, and cleanup posture; records exact local terminality; invokes
+`detach()` on that exact admission-bound finalizer; and accepts only the
+successful result returned by that call. Only after that result does a complete
+lifecycle-state replacement record `EXPLICIT_RETIRED`. A merely dead finalizer,
+`alive == False`, a cleared weakref, or a caller-built acknowledgment is never
+normal-retirement evidence.
+
+Operation-finalizer execution, direct finalizer invocation, and lease loss
+before `EXPLICIT_RETIRED` are abnormal-loss signals. They classify the record as
+orphaned and cleanup-required, freeze admission, and enter the existing cleanup
+continuation. Cleanup may remove the orphan and reach X without a live lease or
+live finalizer; it never restores Active for that operation. The exact weakref
+callback is an immediate cleanup caller, and explicit session/resource close or
+the existing session finalizer can make the same progress. The active-resource
+registry remains only the existing fork/lifetime registry, not a retry scanner.
+If lease loss occurs after the resource already recorded `EXPLICIT_RETIRED`, the
+loss adds no fact: the stored phase may finish the already-authorized final
+publication, or current disposal may select cleanup.
+
+Final normal publication requires the exact represented resource record,
+preparation identity, `EXPLICIT_RETIRED` phase, exact mutation-release posture,
+and absence of cleanup-required disposition. It does not reconstruct success
+from weakref or finalizer state and does not consult handle-carried binding
+fields. Phase 2 selects the complete successor under the same condition. For a
+claimed sole operation, credential and lock cleanup precede the final assignment.
+The one `self._lifecycle_state = final_successor` assignment remains the
+operation-completion linearization point; Python return is only caller
+observation. Absent handles still reject, and postassignment response loss stays
+within transition/global-stop replay and conflict semantics. No completion
+receipt, second registry, scanner, queue, background service, or new global lock
+is introduced.
+
+The rejected broad optional lifecycle snapshot is absent. Exact closed variants
+make prohibited combinations unconstructible: QU/QK contain the exact retained
+connection and slot; PU/PK contain a close proof and no connection; active-idle
+operation or slot states are invalid; and X contains no authority, operation,
+slot, claim, connection, proof, or cursor. Finite structural cursors encode
+R1/R2/R3/L1/H1/H2/T1 consequences. There is no generic completed-step set from
+which removed custody could be reconstructed. Authority and operations live in
+one activity value; the mutation slot lives in one mutation frame and then its
+slot-bearing cursor; resolution, custody/proof, cursor, claim, binding/lock, and
+terminal facts likewise each have one structural owner. Cross-wired authority,
+operation record, slot, token, retained custody, proof, cursor, or claim values
+are rejected by one exact private resource identity. Each writer resource allocates
+one opaque identity. Every live lifecycle component carries that same object
+directly or through its structural owner, and every authority comparison uses
+`is`. It is not persistent, serializable, registered globally, exported,
+rendered as evidence, or included in safe errors. PID, lifecycle epoch,
+operation number, and value equality remain insufficient.
+
+Each operation handle, lease, exact finalizer, lease-loss weakref callback, and
+immutable resource record is constructed before active publication.
+Construction or publication failure unwinds the never-published values. A
+callback for a never-published handle is a non-authoritative no-op. An absent
+record always rejects publication; handle-local history cannot prove prior
+linearization. Preparation precedes resource-recorded local terminality, the
+exact successful detach precedes `EXPLICIT_RETIRED`, and that resource phase
+precedes the final assignment. After successful detach but before assignment,
+the live explicit lease may retry; if the lease disappears, its weakref callback
+may finish only because `EXPLICIT_RETIRED` is already stored. Before successful
+detach, operation or lease loss belongs only to cleanup. The retained wrapper,
+explicit resource close, and session finalizer remain bounded cleanup callers.
+A fork child cannot complete or clean a parent operation or resource.
+
+A cleanup claim binds one weak reference to the exact `threading.Thread`
+object, resource identity, process, lifecycle epoch, and claim epoch. Its
+claimed wrapper, rather than duplicate identity or cursor fields, owns the
+pending state. The exact live owner may resume; another live
+Thread may not. If the weak reference is dead or the Thread is no longer alive,
+an explicit takeover creates a new token and newer epoch. Reuse of a numeric
+thread identifier grants no authority. If exact thread-affine connection
+custody can no longer perform close, the state remains truthfully unproved.
+
+Ordinary safe-error traceback privacy uses the same supported base-storage
+boundary and one-ordinary-failure containment through the genuine bound
+transition and global-stop operation guards. Prohibited identities must not
+occur through any reached base traceback, cause, context, base exception-group
+child, args, base instance dictionary, or recursive exact built-in `tuple`,
+`list`, `dict`, `set`, and `frozenset` container. The guarantee does not invoke
+subclass dynamic descriptors or custom iterators and does not traverse
+arbitrary subclass slots or user-object attributes. Separate transition and
+global-stop cursor-producing faults
+target their exact idempotency SELECTs. The tests capture and really close the
+exact built-in cursor, database `Path` and resolved string, SQL, parameter
+tuple, and every parameter string, and exclude them by identity and exact
+built-in value. Sensitive transaction frames return a connection-free safe
+disposition carrying the one exact content-free `SQLiteMutationStoreError`
+created for that failure occurrence. Outer bindings are cleared before the same
+object becomes active in the outer public catch, is sanitized in place, and is
+bare-reraised by identity; no second store error is reconstructed at the public
+boundary. Subclassed, malformed, noted, or content-bearing
+candidates fail closed to a fresh content-free integrity error. Raw governing
+process-control exceptions remain outside the safe-disposition path. Their
+exact identity remains primary, but after exact-token lifecycle stabilization
+every supported reachable traceback is cleared before bare re-raise so no
+Coordinator-owned frame can retain an operation lease or record, correlation token, session/resource,
+command or decision, credential/lock, SQLite connection/cursor/path/SQL/
+parameters, or private result payload. Real underlying-COMMIT probes for
+transition and global stop retain exactly one durable event and recover only
+through later exact replay.
+
+After commit uncertainty, a normal close of the transaction connection with no
+pending explicit disposal or orphan cleanup selects `ResumeActive`. Completion of
+the mutation and operation releases restores the same concrete writer-session
+resource to its valid active variant without connection, scope, proof, slot, or
+cleanup-claim residue. A later explicit call on that same wrapper uses a new
+operation lease and fresh transaction connection: a definitely absent commit
+is applied fresh, while an underlying commit is returned only as exact
+idempotency replay. Transition and global-stop retries perform no duplicate
+event, sequence, CAS, current-state, or receipt effect, and the original public
+call never retries automatically. The same explicit fresh/replay/conflict rule
+resolves caller response loss after operation linearization; transition and
+global-stop response-loss selectors prove one durable event and exact replay,
+with changed-digest conflict and no duplicate effect. QU/QK retained-connection custody, pending
+explicit disposal or orphan cleanup, and governing process-control cleanup remain
+non-reusable and continue monotonically toward X. The future C2B3
+initialization-recovery rule remains separately Section-35 governed and X-gated;
+it is not a fresh-session rule for existing transition or global-stop replay.
+
+The change in `tests/test_b3c1b_rollback_only_writer_fencing.py` is test-resource
+lifetime hygiene only. Every directly test-owned SQLite connection now has an
+explicit close after its preserved commit or rollback boundary; fault-injection
+setup retains local ownership through all throwing steps and closes the exact
+connection on any `BaseException` before bare-reraising it. An immediately
+installed, identity-scoped, idempotent, nonthrowing ledger cleanup covers
+expected-error mismatches and assertion exits, clears synthetic close faults,
+and explicitly closes genuinely unproved connections. Helper-level failure
+replacements perform the real close first where closure is meant to be proved.
+No warning filter or suppression is used, and rollback-only fencing, error
+precedence, mutation-slot behavior, and safe-error vocabulary are unchanged.
+
+The change in
+`tests/test_b3c3_rollback_only_transition_dry_run.py` is a private rollback-only
+regression adaptation to the selected close-proof owner, with no B3c3 result,
+durability, public, or authority widening. It instruments and delegates to the
+sealed retained-custody proof owner rather than patching the generic
+`_close_connection` cleanup helper. Ordinary rollback-only ordering and the
+non-persisted dry-run result remain unchanged. A close-unproved failure retains
+the exact governed connection and mutation slot until later explicit cleanup;
+it does not falsely release custody. B3c3 gains no COMMIT, commit-unknown
+result, mutation SQL, sequence allocation, CAS, or durable event. Its owning
+documentation remains unchanged.
+
+The unchanged B2b lock-integration issue is recorded only as: pre-existing
+HEAD-exact test-resource hygiene; strict warning-promotion debt; not repaired by
+VS1A; not VS1A authority or semantic behavior. It is not part of the changed-
+path inventory, and no warning suppression is added.
+
+Section 35's L1/H1/H2/T1/H3 meanings, existing transition/global-stop apply and
+replay, QK/QU truth, rollback-only behavior, public delegation, lock boundary,
+fork rules, and finalizer posture remain unchanged. Program initialization and
+development durable-row mutation remain absent; VS1B remains unauthorized.
+Independent audit acceptance, staging, commit, push, and publication have not
+occurred.
+"""
+
 EXPECTED_NARROWED_SUPERSEDES_ONLY = (
     "owner_decisions.planned_adapter_kind as initialization route selection",
     "later_author_effect_owner_decisions.planned_adapter_kind for the first delivery",
@@ -16674,10 +17124,16 @@ def _narrowed_reset_addendum(text: str | None = None) -> dict[str, object]:
     _require(type(source) is str, diagnostic)
     _require(source.count(NARROWED_RESET_BEGIN_MARKER) == 1, diagnostic)
     _require(source.count(NARROWED_RESET_END_MARKER) == 1, diagnostic)
+    _require(source.count(VS1A_BEGIN_MARKER) == 1, diagnostic)
+    _require(source.count(VS1A_END_MARKER) == 1, diagnostic)
+    _require(
+        source.split(VS1A_END_MARKER, 1)[1] == EXPECTED_VS1A_TRAILING_PROSE,
+        diagnostic,
+    )
     before, remainder = source.split(NARROWED_RESET_BEGIN_MARKER, 1)
     payload, after = remainder.split(NARROWED_RESET_END_MARKER, 1)
     _require(before.endswith("\n"), diagnostic)
-    _require(after == EXPECTED_NARROWED_RESET_TRAILING_PROSE, diagnostic)
+    _require(after.startswith(EXPECTED_NARROWED_RESET_TRAILING_PROSE + "\n## 37. "), diagnostic)
     lines = payload.strip().splitlines()
     _require(lines[0] == "```python" and lines[-1] == "```", diagnostic)
     try:
@@ -17440,3 +17896,669 @@ def test_narrowed_reset_preserves_committed_c2b3a_and_reopens_details() -> None:
     assert value["just_in_time_design_deferrals"]["meaning"] == "required questions, not selected schemas"
     assert value["finite_supersession"]["migration_0003_disposition"].endswith("reopened rather than replaced")
     assert value["current_and_target_status"]["production_source_changed_or_authorized"] is False
+
+
+def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementation() -> None:
+    owner = _owner()
+    assert owner.count(VS1A_BEGIN_MARKER) == 1
+    assert owner.count(VS1A_END_MARKER) == 1
+    payload = owner.split(VS1A_BEGIN_MARKER, 1)[1].split(VS1A_END_MARKER, 1)[0]
+    lines = payload.strip().splitlines()
+    assert lines[0] == "```python"
+    assert lines[-1] == "```"
+    parsed = ast.literal_eval("\n".join(lines[1:-1]))
+    assert tuple(parsed) == ("c2b_pre_io_vs1a_shared_cleanup_foundation",)
+    value = parsed["c2b_pre_io_vs1a_shared_cleanup_foundation"]
+    assert tuple(value) == (
+        "status",
+        "precedence",
+        "implementation_scope",
+        "selected_connection_custody",
+        "closure_proof",
+        "resolution_linearization",
+        "process_control_stabilization",
+        "writer_session_relation",
+        "operation_liveness",
+        "repair_selectors",
+        "repair_counterfactuals",
+        "cleanup_claim",
+        "safe_error_traceback_privacy",
+        "same_wrapper_uncertainty_retry",
+        "b3c1b_test_resource_hygiene",
+        "b3c3_compatibility",
+        "b2b_baseline_hygiene",
+        "preserved",
+        "absent_and_unauthorized",
+        "not_occurred",
+    )
+    assert value["status"] == (
+        "selected implementation repaired after the latest independent-audit "
+        "block; candidate validation is non-audit evidence; fresh independent "
+        "reaudit not yet performed"
+    )
+    assert value["precedence"] == {
+        "section_35_cleanup_owner": True,
+        "section_36_governing_narrowing": True,
+        "section_37_subordinate": True,
+    }
+    assert value["implementation_scope"] == {
+        "scope_counts_are_report_only_observations_bound_to_the_exact_current_candidate": True,
+        "dirty_path_count": 22,
+        "tracked_modification_count": 21,
+        "untracked_count": 1,
+        "staged_path_count": 0,
+        "paths": EXPECTED_VS1A_PATHS,
+        "sole_untracked_path": (
+            "tests/test_c2b_pre_io_vs1a_shared_cleanup_foundation.py"
+        ),
+        "b2b_lock_integration_in_changed_path_inventory": False,
+        "b3c1a_contract_projection_path": (
+            "tests/test_b3c1a_writer_session_authority.py"
+        ),
+        "b3c1a_contract_projection_replacement": (
+            "same node ID projects pre-EXPLICIT_RETIRED GC/finalizer loss as "
+            "ORPHANED -> non-admitting -> cleanup -> X"
+        ),
+        "b4b_privacy_contract_path": (
+            "tests/test_b4b_private_atomic_global_stop_persistence.py"
+        ),
+        "b4b_zero_Coordinator_frame_privacy_replacement": (
+            "accepted one-byte contract replacement retained unchanged"
+        ),
+    }
+    assert value["selected_connection_custody"] == {
+        "controller_exclusive_scope": True,
+        "scope_constructed_before_resource_publication": True,
+        "exact_activation_acknowledgment_before_COMMIT": True,
+        "controller_supplies_immutable_facts_only": True,
+        "actual_successor_selected_under_resource_lock": True,
+        "controller_precomputes_actual_successor": False,
+        "successor_publication": "one exact lifecycle-state assignment",
+        "controller_aliases_cleared_only_after_exact_successor_acknowledgment": True,
+        "scope_use_valid_after_successor_assignment": False,
+        "resource_controller_state_contains_connection": False,
+        "unproved_QU_or_QK_retains_exact_connection_and_slot": True,
+        "proved_PU_or_PK_retains_connection": False,
+    }
+    assert value["closure_proof"] == {
+        "only_source": (
+            "normal return from sqlite3.Connection.close(exact_connection) called "
+            "by the retained-custody owner"
+        ),
+        "generic_close_helper_is_proof_owner": False,
+        "caller_supplied_successful_close_callback": False,
+        "production_proof_construction_sites": 1,
+        "same_object_repeated_close": "permitted only while proof is absent",
+        "close_after_C2": False,
+        "in_transaction_or_ProgrammingError_probe": False,
+        "exception_message_classification": False,
+        "proof_contains_connection": False,
+    }
+    assert value["resolution_linearization"] == {
+        "pre_close_policies": (
+            "resume-if-close-proved-and-still-eligible",
+            "cleanup-required-after-resolution",
+        ),
+        "post_close_resume_result": (
+            "field-free ResumeActive created only after exact close proof"
+        ),
+        "cleanup_wins_merge_under_resource_lock": True,
+        "publication_single_assignment": True,
+        "exact_acknowledgment_required_before_alias_clear": True,
+        "idempotent_reentry_matches_exact_token_intent_and_proof_or_custody": True,
+        "disposal_before_publication": (
+            "monotonically strengthens policy to cleanup-required"
+        ),
+        "disposal_after_proof_publication": (
+            "atomically converts resumption to proof-backed cleanup"
+        ),
+        "disposal_after_exact_mutation_release_before_operation_completion": (
+            "non-admitting proof-backed cleanup; exact operation remains "
+            "represented until completion"
+        ),
+        "operation_completion_can_restore_active_after_disposal": False,
+    }
+    assert value["process_control_stabilization"] == {
+        "governing_types": (
+            "KeyboardInterrupt",
+            "SystemExit",
+            "GeneratorExit",
+        ),
+        "original_object_identity_args_and_SystemExit_code_preserved": True,
+        "internal_retirement_entry_boundary": (
+            "the retained _close handler begins at the owner-PID check; it does "
+            "not claim its own first opcode or the first opcode of __exit__"
+        ),
+        "entry_process_control": (
+            "synchronously marks the represented operation cleanup-required "
+            "under the resource condition before exact bare re-raise"
+        ),
+        "entry_process_control_allows_new_operation": False,
+        "operation_guard_call_site_inventory": {
+            "vulnerable_retained_lease": (
+                "SQLiteWriterSession.apply_transition",
+                "SQLiteWriterSession.apply_global_stop_update",
+            ),
+            "fail_closed_ephemeral_or_unbound_lease": (
+                "WriterSessionResource.require_usable_for_mutation",
+            ),
+            "unresolved": (),
+        },
+        "retained_lease_caller_envelope": (
+            "one public caller try around pre-admission correlation creation and "
+            "one nested helper call; it covers the complete helper, compiler "
+            "cleanup, __exit__, and _close escape"
+        ),
+        "exact_invocation_correlation": (
+            "one private immutable exact-object token is created by the resource "
+            "before the helper can admit; admission binds it through the exact "
+            "handle retained by the immutable resource-owned operation record in "
+            "the same condition-protected lifecycle assignment"
+        ),
+        "correlation_is_authority_or_persisted": False,
+        "stabilizer_depends_on_returned_lease_or_post_return_handle": False,
+        "current_record_classifications": (
+            "REPRESENTED_INCOMPLETE",
+            "REPRESENTED_CLEANUP_OWNED",
+            "NOT_CURRENTLY_REPRESENTED",
+            "INVALID_OR_WRONG_RESOURCE",
+        ),
+        "absence_is_historical_proof_of_final_assignment_or_no_admission": False,
+        "not_currently_represented_effect": (
+            "no poison for that token; semantic response-loss recovery remains "
+            "fresh/replay/conflict owned"
+        ),
+        "traceback_privacy": (
+            "after bounded exact-token stabilization, a cycle-aware sanitizer "
+            "clears traceback fields in supported BaseException base storage, "
+            "BaseExceptionGroup base children, the base instance dictionary, and "
+            "BaseException values reached through exact built-in tuple/list/dict/"
+            "set/frozenset containers; bound base descriptors avoid subclass "
+            "dispatch, identity and semantic links/content are preserved, one "
+            "ordinary primary or call-boundary failure is contained by an "
+            "independently bound fallback, and no Coordinator frame remains in the "
+            "supported graph before bare reraise"
+        ),
+        "traceback_sanitizer_boundary": {
+            "base_storage": (
+                "BaseException.__traceback__",
+                "BaseException.__cause__",
+                "BaseException.__context__",
+                "BaseException.args",
+                "BaseException.__dict__",
+                "BaseExceptionGroup.exceptions",
+            ),
+            "base_descriptor_access": True,
+            "exact_builtin_containers": (
+                "tuple",
+                "list",
+                "dict keys and values",
+                "set",
+                "frozenset",
+            ),
+            "clear_base_traceback_before_other_base_fields": True,
+            "one_ordinary_primary_or_call_boundary_failure_contained": True,
+            "independently_bound_non_dispatching_fallback": True,
+            "semantic_payload_preserved": True,
+            "subclass_dynamic_descriptors": False,
+            "arbitrary_subclass_slots": False,
+            "arbitrary_user_object_attributes": False,
+            "custom_container_iteration": False,
+            "unsupported": (
+                "repeated asynchronous interruption, catastrophic allocation "
+                "failure, or private mutation of bound defaults or C-level "
+                "descriptors"
+            ),
+        },
+        "admission_poison": {
+            "owner": "WriterSessionResource",
+            "initial": False,
+            "only_transition": "clear -> poisoned",
+            "reset": False,
+            "payload": None,
+            "publication": (
+                "after direct exact lifecycle-structure inspection finds one "
+                "current record by token identity, immediate direct assignment "
+                "under the resource condition occurs before notification, policy "
+                "classification, record replacement, successor construction, "
+                "cleanup cursor construction, callback, or any patchable project "
+                "helper"
+            ),
+            "pre_poison_operations": (
+                "exact token type, directly stored resource identity, direct fork-"
+                "invalid owner-PID sentinel, condition acquisition, direct exact "
+                "lifecycle-state type inspection, exact immutable tuple access, "
+                "direct frozen/slotted record fields, and exact token object "
+                "identity only"
+            ),
+            "pre_poison_lifecycle_property_or_project_helper": False,
+            "project_or_patchable_policy_helper_between_match_and_poison": False,
+            "exact_match_immediately_followed_by_poison": True,
+            "post_poison_consistency_validation": (
+                "_state_authority derivation and PID, epoch, resource, correlation, "
+                "record, and handle checks occur only after poison; failure leaves "
+                "poison set and admission denied"
+            ),
+            "post_poison_classification_and_detailed_cleanup": (
+                "classification and exact cleanup-required record marking are "
+                "bounded after poison; failures preserve poison and the caller's "
+                "two attempts remain bounded"
+            ),
+            "controller_resolution_cleanup_required_classification": (
+                "REPRESENTED_CLEANUP_OWNED"
+            ),
+            "readers": (
+                "active_for_owner",
+                "active lifecycle validation",
+                "operation admission",
+                "mutation admission and validation",
+                "controller-scope admission",
+                "mutation-slot release and clearing",
+                "controller successor selection",
+                "final operation successor selection",
+            ),
+            "poisoned_resource_can_publish_admitting_successor": False,
+            "cleanup_can_reach_terminal_X": True,
+        },
+        "mutation_usability_path": (
+            "separate ephemeral/unbound path; it prepublishes Phase-1 "
+            "preparation for reachable exit boundaries, uses no caller envelope "
+            "or poison, and its reproduced compiler-cleanup boundary still loses "
+            "the last lease reference and reaches terminal-X through the existing "
+            "finalizer"
+        ),
+        "wrong_PID_or_fork_child_gains_parent_authority": False,
+        "usable_connection_scope_required_after_proof_publication": False,
+        "unresolved_resume_policy_strengthens_to_cleanup_required": True,
+        "published_resume_converts_to_proof_backed_cleanup": True,
+        "completion_disposition_owner": (
+            "immutable operation record in the resource lifecycle state"
+        ),
+        "completion_disposition_transition": (
+            "resume-eligible to cleanup-required only"
+        ),
+        "operation_completion_linearization": (
+            "one final lifecycle-state assignment under "
+            "WriterSessionResource._condition"
+        ),
+        "python_method_return_is_lifecycle_authority": False,
+        "pre_linearization_process_control": (
+            "operation remains represented and non-admitting; synchronized "
+            "cleanup-required posture wins"
+        ),
+        "post_linearization_process_control": (
+            "assigned state remains authoritative; no retroactive cleanup "
+            "demotion"
+        ),
+        "post_linearization_ambiguity": "caller response loss only",
+        "operation_boundary": (
+            "operation body through mutation cleanup, exact mutation release, "
+            "and operation completion"
+        ),
+        "local_stabilization_error_replaces_governing_process_control": False,
+        "post_poison_detailed_cleanup_RuntimeError_can_reenable_admission": False,
+        "raw_process_control_retained_in_handle_or_resource": False,
+        "stabilization_failure_can_restore_active": False,
+        "background_retry_or_registry_scan": False,
+    }
+    relation = value["writer_session_relation"]
+    assert relation["broad_optional_snapshot"] is False
+    assert relation["arbitrary_completed_step_set"] is False
+    assert relation["closed_variants"] == (
+        "abort-close-unproved",
+        "commit-uncertain-unproved",
+        "commit-known-unproved",
+        "commit-uncertain-pending-cleanup",
+        "commit-known-pending-cleanup",
+        "operations-closing",
+        "mutation-closing",
+        "ordinary-cleanup",
+        "cleanup-claimed",
+        "terminal-X",
+    )
+    assert relation["cleanup_progress"] == (
+        "before-R1-with-slot",
+        "before-R1-without-slot",
+        "before-R2-with-slot",
+        "before-R2-without-slot",
+        "before-R3",
+        "before-L1",
+        "before-H1",
+        "before-H2",
+        "before-T1",
+    )
+    assert relation["single_structural_owners"] == {
+        "authority_and_operations": (
+            "WriterSessionActivity containing immutable "
+            "WriterSessionOperationRecord values"
+        ),
+        "mutation_slot": (
+            "WriterSessionMutationFrame then the slot-bearing cleanup cursor"
+        ),
+        "resolution_identity": "exact ControllerScopeToken",
+        "retained_connection_or_close_proof": (
+            "exclusive arms of RetainedSQLiteConnection before publication"
+        ),
+        "cleanup_cursor": "ContinueCleanup",
+        "cleanup_claim": "WriterSessionCleanupClaimed",
+        "terminal": "field-free WriterSessionTerminalX",
+    }
+    assert relation["cross_wired_authority_activity_or_slot_constructible"] is False
+    assert relation["resource_identity"] == {
+        "type": "private opaque WriterSessionResourceIdentity",
+        "allocation": "one exact object per WriterSessionResource",
+        "comparison": "identity only",
+        "persistence_registry_public_export_or_safe_error_evidence": False,
+        "bound_components": (
+            "resource",
+            "authority",
+            "activity",
+            "resource-owned operation record",
+            "operation completion handle",
+            "mutation slot and frame",
+            "controller scope token",
+            "connection custody, retained connection, and close proof",
+            "every cleanup cursor",
+            "cleanup claim",
+            "unproved and proved cleanup states",
+        ),
+    }
+    assert relation["structural_consequences"] == (
+        "later cursors cannot reconstruct removed authority, operation, slot, "
+        "binding, or lock custody"
+    )
+    assert value["operation_liveness"] == {
+        "completion_handle_exists_before_publication": True,
+        "lease_and_finalizer_exist_before_publication": True,
+        "resource_owns_immutable_admission_record": True,
+        "record_binds_exact_precreated_invocation_correlation": True,
+        "record_copies_resource_operation_PID_thread_and_epoch_facts": True,
+        "record_owns_exact_lease_weakref_and_finalizer_identity": True,
+        "handle_binding_fields_are_authority": False,
+        "construction_or_publication_BaseException_unwinds_exact_record": True,
+        "never_published_callback": "non-authoritative no-op",
+        "explicit_then_finalizer_completion": "non-authoritative no-op",
+        "cleanup_required_is_monotonic": True,
+        "cleanup_required_stores_exception_payload": False,
+        "phase1_retains_exact_handle_and_blocks_admission": True,
+        "exact_mutation_release_acknowledgment_is_condition_owned": True,
+        "phase1_defensive_plain_mutation_release_states": (
+            "mutation-active",
+            "mutation-closing",
+        ),
+        "controller_close_proved_release_owner_changed": False,
+        "phase1_sole_cleanup_blocker_uses_existing_cleanup_claim": True,
+        "cleanup_claim_retains_handle_through_cleanup_actions": True,
+        "standalone_local_retirement_acknowledgment": False,
+        "operation_handle_binds_exact_lease_weakref_and_finalizer": False,
+        "local_terminality_after_phase1_acknowledgment": True,
+        "normal_retirement_owner": "explicit live admitted lease only",
+        "normal_detach_evidence": (
+            "successful return from the exact admission-bound finalizer.detach "
+            "call while the resource condition is held"
+        ),
+        "already_dead_finalizer_is_detach_success": False,
+        "finalizer_alive_false_is_retirement_proof": False,
+        "weakref_clear_is_retirement_proof": False,
+        "weakref_clear_plus_dead_finalizer_is_retirement_proof": False,
+        "finalizer_or_GC_can_publish_normal_Active": False,
+        "finalizer_detach_after_local_terminality": True,
+        "finalizer_detach_before_resource_records_explicit_retirement": True,
+        "resource_records_explicit_retirement_before_final_assignment": True,
+        "direct_live_finalizer_invocation": (
+            "orphan cleanup trigger only; never normal retirement"
+        ),
+        "collected_lease_evidence": (
+            "loss signal that classifies pre-explicit-retirement operation as "
+            "orphan cleanup"
+        ),
+        "lease_loss_after_explicit_retirement": (
+            "adds no authority; existing resource phase may finish publication "
+            "or current cleanup"
+        ),
+        "session_wrapper_retained_through_final_assignment": True,
+        "claimed_cleanup_actions_precede_final_assignment": True,
+        "claimed_cleanup_final_successor": (
+            "terminal-X when observed lock cleanup is complete; otherwise "
+            "non-admitting ordinary cleanup"
+        ),
+        "ordinary_operation_finalizer_forces_cleanup_without_current_disposal": True,
+        "ordinary_operation_finalizer_drives_cleanup_only_when_disposal_is_current": False,
+        "local_stateful_action_after_final_assignment": False,
+        "matched_none_publication_acceptance": False,
+        "internal_retry_after_linearization": (
+            "Phase-1 observes exact handle absence and does not reauthorize publication"
+        ),
+        "semantic_response_loss_recovery": (
+            "existing transition/global-stop fresh, replay, and conflict behavior"
+        ),
+        "fork_child_callback_authority": False,
+    }
+    assert value["repair_selectors"] == (
+        "test_public_retained_lease_exit_envelope_matrix",
+        "test_ordinary_invalid_preflight_process_control_context_graph_is_sanitized",
+        "test_public_stabilization_helper_failures_occur_only_after_direct_poison",
+        "test_public_stabilization_notification_failure_remains_poisoned_and_private",
+        "test_exact_invocation_stabilizer_classifies_only_current_resource_records",
+        "test_controller_resolution_cleanup_required_is_stabilizer_cleanup_owned",
+        "test_invocation_correlation_invalid_wrong_unrepresented_and_duplicate_do_not_select_another_operation",
+        "test_invocation_correlation_cleanup_owned_is_exact_and_fail_closed",
+        "test_invocation_correlation_is_private_immutable_non_authoritative_identity",
+        "test_underlying_commit_process_control_scrubs_coordinator_traceback_and_replays_once",
+        "test_genuine_bound_public_guard_safe_error_has_complete_outward_privacy",
+        "test_exception_traceback_sanitizer_is_cycle_bounded_and_identity_preserving",
+        "test_hostile_exception_subclass_descriptors_are_not_invoked",
+        "test_one_ordinary_sanitizer_core_failure_is_bounded_and_retried",
+        "test_one_ordinary_failure_immediately_before_sanitizer_core_return_is_bounded",
+        "test_public_primary_sanitizer_call_boundary_failure_preserves_process_control",
+        "test_genuine_bound_safe_error_primary_sanitizer_failure_preserves_exact_error",
+        "test_exact_record_post_poison_consistency_failure_never_reenables_admission",
+        "test_mutation_usability_exit_boundaries_remain_fail_closed_without_poison",
+        "test_competing_admission_before_poison_is_governed_after_linearization",
+        "test_fork_child_poison_sees_invalidated_copy_and_cannot_retire_parent",
+        "test_operation_retirement_entry_process_control_is_cleanup_safe",
+        "test_operation_retirement_post_phase1_acknowledgment_process_control_is_cleanup_safe",
+        "test_operation_retirement_post_local_terminal_pre_detach_process_control_is_cleanup_safe",
+        "test_operation_retirement_post_detach_pre_final_publication_process_control_is_cleanup_safe",
+        "test_operation_retirement_post_linearization_response_loss_preserves_final_state",
+        "test_operation_retirement_post_linearization_durable_response_loss_uses_replay_without_duplicate_effect",
+        "test_handle_side_disposition_cannot_change_resource_admission_truth",
+        "test_object_setattr_on_every_handle_mirror_cannot_change_resource_record",
+        "test_operation_retirement_final_assignment_is_last_authoritative_action",
+        "test_operation_publication_requires_resource_owned_explicit_retirement",
+        "test_direct_live_operation_finalizer_fails_closed_and_retry_reaches_terminal_x",
+        "test_direct_live_finalizer_process_control_remains_fail_closed",
+        "test_genuine_operation_collection_is_cleanup_only_and_reaches_x",
+        "test_explicit_normal_retirement_records_detach_before_final_assignment",
+        "test_lease_disappearance_phase_matrix",
+        "test_session_wrapper_disappearance_matrix",
+        "test_process_control_after_lease_loss_classification_reaches_terminal_x",
+        "test_never_published_same_resource_and_stale_epoch_handles_reject",
+        "test_cross_resource_operation_lease_cannot_authorize_retirement",
+        "test_disposal_after_exact_mutation_release_before_operation_completion_remains_nonadmitting_and_reaches_terminal_x",
+        "test_two_real_same_epoch_resources_reject_cross_wired_activity",
+        "test_two_real_same_epoch_resources_reject_cross_wired_mutation_frame",
+        "test_two_real_same_epoch_resources_reject_cross_wired_cleanup_cursor",
+        "test_two_real_same_epoch_resources_reject_cross_wired_unproved_state",
+    )
+    assert value["repair_counterfactuals"] == {
+        "selectors": (
+            "test_entry_process_control_before_phase1_leaves_resource_admitting_is_causally_rejected",
+            "test_vs1a_repair_counterfactual_is_causally_rejected",
+            "test_vs1a_authenticity_counterfactual_is_causally_rejected",
+            "test_explicit_retirement_runtime_counterfactual_fails_closed",
+            "test_compiled_writer_source_mutant_is_killed",
+            "test_exit_poison_compiled_source_mutant_is_causally_rejected",
+        ),
+        "evidence_classes": (
+            "runtime causal cases",
+            "compiled complete-module source mutants",
+            "secondary AST/source guards",
+        ),
+        "exact_commands_counts_node_IDs_overlaps_and_group_inventories": (
+            "report evidence, not governing architecture"
+        ),
+        "focused_inventory_owner": (
+            "one literal selected-node-ID tuple in "
+            "tests/test_c2b_pre_io_vs1a_shared_cleanup_foundation.py"
+        ),
+        "source_mutant_copies_are_external_to_the_repository": True,
+        "direct_finalizer_counterfactual_04_reaches_orphan_mark_seam": True,
+        "direct_finalizer_counterfactual_05_reaches_cleanup_successor_seam": True,
+        "production_cases_reach_mutated_runtime_boundaries": True,
+        "compiled_mutants_import_complete_writer_module_and_run_real_lifecycle": True,
+        "noncausal_runtime_cases_counted": 0,
+        "secondary_AST_source_guards_are_nonsemantic": True,
+        "counterfactuals_pass_with_noop_owning_helper": False,
+    }
+    assert value["cleanup_claim"] == {
+        "owner_identity": "weak reference to the exact threading.Thread object",
+        "integer_get_ident_authority": False,
+        "same_live_owner_resume": True,
+        "other_live_thread_steal": False,
+        "dead_owner_takeover": (
+            "explicit new token and monotonically newer claim epoch"
+        ),
+        "recycled_integer_identifier_is_same_owner": False,
+        "other_process_resume": False,
+        "thread_affine_retained_connection_without_owner": (
+            "remains truthfully unproved"
+        ),
+    }
+    assert value["safe_error_traceback_privacy"] == {
+        "scope": (
+            "traceback fields in supported BaseException base traceback/cause/"
+            "context/args/base-dictionary storage, BaseExceptionGroup base children, "
+            "and BaseException values recursively reached through exact built-in "
+            "tuple/list/dict/set/frozenset containers"
+        ),
+        "cycle_aware": True,
+        "fixed_depth_cutoff": False,
+        "base_descriptor_access": True,
+        "subclass_dynamic_descriptors_or_slots": False,
+        "arbitrary_user_attribute_traversal": False,
+        "custom_container_iteration": False,
+        "one_ordinary_primary_or_call_boundary_failure_contained": True,
+        "real_cursor_producing_faults": (
+            "separate transition and global-stop idempotency SELECT faults"
+        ),
+        "captured_cursor_path_SQL_and_parameters": (
+            "covered by identity and exact built-in value"
+        ),
+        "cause_context_notes_args_and_rendered_content": (
+            "contain no captured private authority"
+        ),
+        "safe_error": (
+            "one exact content-free SQLiteMutationStoreError carried through a "
+            "private disposition, activated on the genuine bound operation-guard "
+            "path, caught at the outer public privacy boundary, sanitized in place, "
+            "and bare-reraised by identity after sensitive bindings are cleared"
+        ),
+        "subclass_or_content_bearing_candidate": (
+            "rejected and replaced by a fresh content-free "
+            "database_integrity_failure"
+        ),
+        "governing_process_control": (
+            "not converted to a safe disposition; exact object identity is "
+            "preserved"
+        ),
+    }
+    assert value["same_wrapper_uncertainty_retry"] == {
+        "normal_connection_close_and_no_pending_disposal": (
+            "ResumeActive after operation and mutation release"
+        ),
+        "transition_no_commit": (
+            "later explicit call on the same wrapper is a fresh apply"
+        ),
+        "transition_underlying_commit": (
+            "later explicit call on the same wrapper is exact replay"
+        ),
+        "global_stop_no_commit": (
+            "later explicit call on the same wrapper is a fresh apply"
+        ),
+        "global_stop_underlying_commit": (
+            "later explicit call on the same wrapper is exact replay"
+        ),
+        "retry_operation_and_connection": (
+            "new operation lease and fresh transaction connection"
+        ),
+        "post_linearization_response_loss": (
+            "later explicit same-wrapper call uses existing "
+            "fresh/replay/conflict semantics"
+        ),
+        "automatic_retry_in_original_call": False,
+        "duplicate_event_sequence_CAS_current_or_receipt_effect": False,
+        "QU_or_QK_with_retained_connection": "non-reusable and cleanup-directed",
+        "explicit_disposal_or_orphan_cleanup_pending": (
+            "non-reusable and cleanup-directed"
+        ),
+        "process_control_cleanup": "ContinueCleanup toward X",
+        "future_C2B3_initialization_recovery": (
+            "separately Section-35 governed and X-gated; not generalized to "
+            "existing replay"
+        ),
+    }
+    assert value["b3c1b_test_resource_hygiene"] == {
+        "classification": "test-resource lifetime hygiene only",
+        "setup_BaseException_closes_exact_locally_owned_connection_and_bare_reraises": True,
+        "ledger_installed_before_expected_error_or_assertion_exit": True,
+        "ledger_cleanup": (
+            "identity-scoped, idempotent, nonthrowing, and explicit"
+        ),
+        "direct_test_owned_connections": (
+            "explicit close in finally after the preserved transaction boundary"
+        ),
+        "fault_injection_connections": (
+            "real close before helper-level failure where proved, otherwise "
+            "exact test ledger and explicit finally cleanup"
+        ),
+        "warning_suppression": False,
+        "rollback_fencing_error_precedence_or_safe_vocabulary_changed": False,
+    }
+    assert value["b3c3_compatibility"] == {
+        "classification": (
+            "private rollback-only regression adaptation to the selected "
+            "close-proof owner"
+        ),
+        "result_durability_public_or_authority_widening": False,
+        "observes_sealed_retained_custody_proof_owner": True,
+        "patches_generic_close_helper": False,
+        "ordinary_rollback_only_cleanup_order_changed": False,
+        "close_unproved_retains_governed_custody_until_explicit_cleanup": True,
+        "COMMIT_or_commit_outcome_unknown_added": False,
+        "owning_documentation_changed": False,
+    }
+    assert value["b2b_baseline_hygiene"] == (
+        "pre-existing HEAD-exact test-resource hygiene",
+        "strict warning-promotion debt",
+        "not repaired by VS1A",
+        "not VS1A authority or semantic behavior",
+    )
+    preserved = value["preserved"]
+    assert preserved["cleanup_order"] == (
+        "P0", "C1", "C2", "R1", "R2", "R3", "L1", "H1", "H2", "T1", "H3"
+    )
+    assert preserved["L1_H1_H2_T1_H3"] == "unchanged Section 35 semantics"
+    assert preserved["transition_and_global_stop_nominal_apply"] is True
+    assert preserved["exact_idempotency_replay"] is True
+    assert preserved["QK_known_result_and_QU_uncertainty"] is True
+    assert preserved["rollback_only_behavior"] is True
+    assert preserved["public_delegation_shape"] is True
+    assert preserved["fork_child_non_authority"] is True
+    assert preserved["session_and_operation_finalizer_boundaries"] is True
+    assert preserved["schema_migrations_dependencies_exports_and_public_API"] == (
+        "unchanged"
+    )
+    assert value["absent_and_unauthorized"] == {
+        "development_program_initialization": True,
+        "development_durable_row_mutation": True,
+        "VS1B": True,
+        "worker_scheduler_service_network_Bridge_ES_or_Git_effect": True,
+    }
+    assert value["not_occurred"] == (
+        "independent audit acceptance",
+        "staging",
+        "commit",
+        "push",
+        "publication",
+    )

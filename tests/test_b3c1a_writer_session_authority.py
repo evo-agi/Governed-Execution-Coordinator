@@ -187,9 +187,14 @@ def test_release_identity_duplicate_stale_wrong_operation_thread_and_fork(
     assert _run_writer_attempt(location) == "acquired:2"
 
 
-def test_operation_finish_and_finalizer_defensively_clear_mutation_slot(tmp_path: Path) -> None:
+def test_operation_finish_and_finalizer_defensively_clear_mutation_slot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     location, session = _managed_session(tmp_path)
     resource = session._resource
+
+    assert resource.active_for_owner()
 
     operation = resource.operation_guard(session)
     mutation = operation._acquire_mutation_lease()
@@ -204,20 +209,64 @@ def test_operation_finish_and_finalizer_defensively_clear_mutation_slot(tmp_path
 
     finalizer_operation = resource.operation_guard(session)
     finalizer_mutation = finalizer_operation._acquire_mutation_lease()
+    finalizer_handle = finalizer_operation._completion_handle
+    exact_finalizer = finalizer_operation._finalizer
     operation_ref = weakref.ref(finalizer_operation)
+    cleanup_attempted = threading.Event()
+    original_continue_cleanup = resource._continue_cleanup
+
+    def pause_cleanup(*, blocking: bool, finalizer: bool) -> None:
+        assert blocking is False
+        assert finalizer is True
+        cleanup_attempted.set()
+
     assert resource._mutation_slot is not None
-    finalizer_operation = None
-    finalizer_mutation = None
-    gc.collect()
-    assert operation_ref() is None
+    with resource._condition:
+        admitted_record = resource._operation_record_for_handle_locked(
+            finalizer_handle
+        )
+        assert admitted_record is not None
+        assert admitted_record.phase is writer_module._OperationRetirementPhase.ADMITTED
+        assert admitted_record.cleanup_required is False
+    assert exact_finalizer.alive is True
+
+    with monkeypatch.context() as cleanup_pause:
+        cleanup_pause.setattr(resource, "_continue_cleanup", pause_cleanup)
+        finalizer_operation = None
+        finalizer_mutation = None
+        gc.collect()
+
+        assert operation_ref() is None
+        assert cleanup_attempted.is_set()
+        assert exact_finalizer.alive is False
+        assert resource._state == writer_module._CLOSING
+        assert resource.active_for_owner() is False
+        assert _operation_count(resource) == 1
+        assert resource._mutation_slot is not None
+        with resource._condition:
+            orphaned_record = resource._operation_record_for_handle_locked(
+                finalizer_handle
+            )
+            assert orphaned_record is not None
+            assert orphaned_record.phase is writer_module._OperationRetirementPhase.ORPHANED
+            assert orphaned_record.phase is not writer_module._OperationRetirementPhase.EXPLICIT_RETIRED
+            assert orphaned_record.cleanup_required is True
+            assert orphaned_record.lease_reference() is None
+        with pytest.raises(WriterSessionError) as orphan_admission_error:
+            resource.operation_guard(session)
+        _assert_writer_error(
+            orphan_admission_error,
+            WriterSessionFailureReason.WRITER_SESSION_CLOSED,
+        )
+
+    assert resource._continue_cleanup == original_continue_cleanup
+    session.close()
+    assert resource._state == writer_module._CLOSED
+    assert resource.cleanup_complete is True
     assert _operation_count(resource) == 0
     assert resource._mutation_slot is None
-
-    after_finalizer_operation = resource.operation_guard(session)
-    after_finalizer_mutation = after_finalizer_operation._acquire_mutation_lease()
-    after_finalizer_mutation._close()
-    after_finalizer_operation._close()
-    session.close()
+    assert resource._credential is None
+    assert resource._authority_lock is None
     assert _run_writer_attempt(location) == "acquired:2"
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from enum import Enum
 import hashlib
 import inspect
@@ -9,6 +10,7 @@ from typing import get_args
 import pytest
 
 import ge_nwp_coordinator
+import ge_nwp_coordinator.sqlite_connection as connection_module
 import ge_nwp_coordinator.sqlite_writer_session as writer_session_module
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
@@ -38,7 +40,7 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "f0ccae80ef3c805802425b1b7716890e8a17eae1194540573470d8356bb892b8"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py": (
-        "b26e9612383cb94ffbaf3393d5ada90ec708c4511c6151a3867acce03380768c"
+        "c01350dc15f753f0c9ecae1e9c253f217a425317e19a60105f053f6295864a3c"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py": (
         "5512294de5030b94936dc43caec659a16c5617633dcafac28cbffed6dc878760"
@@ -185,6 +187,201 @@ def test_private_runtime_sources_remain_frozen_and_public_wrapper_imports_are_bo
     assert writer_source.count("sqlite_transition_dry_run_contracts") == 1
     assert "from ge_nwp_coordinator.sqlite_transition_transaction import _run_atomic_transition_apply" in writer_source
     assert "sqlite_transition_write_contracts" not in writer_source
+
+
+def test_vs1a_resource_identity_has_one_resource_allocation_site_and_no_public_registry() -> None:
+    writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
+    connection_source = _read("src/ge_nwp_coordinator/sqlite_connection.py")
+    resource_init = inspect.getsource(writer_session_module._WriterSessionResource.__init__)
+    assert resource_init.count("_new_writer_session_resource_identity()") == 1
+    assert writer_source.count("_new_writer_session_resource_identity()") == 1
+    assert connection_source.count("def _new_writer_session_resource_identity(") == 1
+    assert "_WRITER_SESSION_RESOURCE_IDENTITIES" not in connection_source
+    assert "_WRITER_SESSION_RESOURCE_IDENTITIES" not in writer_source
+    assert "_WriterSessionResourceIdentity" not in ge_nwp_coordinator.__all__
+    assert "_new_writer_session_resource_identity" not in ge_nwp_coordinator.__all__
+    assert "_WriterSessionResourceIdentity" not in writer_session_module.__all__
+
+
+def test_vs1a_every_live_lifecycle_family_carries_exact_resource_identity() -> None:
+    assert "resource_identity" in writer_session_module._WriterSessionAuthority.__dataclass_fields__
+    assert "resource_identity" in writer_session_module._OperationCompletionHandle.__slots__
+    assert hasattr(writer_session_module._WriterSessionMutationSlot, "resource_identity")
+    assert hasattr(writer_session_module._ControllerScopeToken, "resource_identity")
+    assert "resource_identity" in connection_module._SQLiteConnectionCustodyIdentity.__dataclass_fields__
+    assert hasattr(connection_module._RetainedSQLiteConnection, "resource_identity")
+    assert hasattr(connection_module._SQLiteConnectionCloseProof, "resource_identity")
+    for cursor_type in writer_session_module._CLEANUP_CURSOR_TYPES:
+        assert hasattr(cursor_type, "resource_identity")
+    assert "resource_identity" in writer_session_module._WriterSessionCleanupClaim.__dataclass_fields__
+
+    for state_type in (
+        writer_session_module._WriterSessionAbortCloseUnproved,
+        writer_session_module._WriterSessionCommitUncertainUnproved,
+        writer_session_module._WriterSessionCommitKnownUnproved,
+        writer_session_module._WriterSessionAbortPendingCleanup,
+        writer_session_module._WriterSessionCommitUncertainPendingCleanup,
+        writer_session_module._WriterSessionCommitKnownPendingCleanup,
+    ):
+        source = inspect.getsource(state_type)
+        assert "__post_init__" in source
+
+
+def test_vs1a_resource_identity_comparisons_are_identity_only() -> None:
+    total = 0
+    for path in (
+        "src/ge_nwp_coordinator/sqlite_connection.py",
+        "src/ge_nwp_coordinator/sqlite_writer_session.py",
+    ):
+        source = _read(path)
+        tree = ast.parse(source)
+        comparisons = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Compare)
+            and "resource_identity" in (ast.get_source_segment(source, node) or "")
+        ]
+        assert comparisons
+        total += len(comparisons)
+        assert all(
+            all(isinstance(operator, (ast.Is, ast.IsNot)) for operator in node.ops)
+            for node in comparisons
+        )
+    assert total >= 20
+    transaction_source = _read(
+        "src/ge_nwp_coordinator/sqlite_transition_transaction.py"
+    )
+    assert "operation_lease._completion_handle.resource_identity" in transaction_source
+
+
+def test_vs1a_completion_fence_is_monotonic_and_precedes_fallible_completion() -> None:
+    handle_source = inspect.getsource(writer_session_module._OperationCompletionHandle)
+    record_source = inspect.getsource(writer_session_module._WriterSessionOperationRecord)
+    operation_exit = inspect.getsource(writer_session_module._WriterSessionOperationLease.__exit__)
+    operation_close = inspect.getsource(writer_session_module._WriterSessionOperationLease._close)
+    mutation_close = inspect.getsource(writer_session_module._WriterSessionMutationLease._close)
+    operation_finalizer = inspect.getsource(
+        writer_session_module._finalize_writer_session_operation
+    )
+    mark_source = inspect.getsource(
+        writer_session_module._WriterSessionResource._mark_operation_cleanup_required
+    )
+    release_source = inspect.getsource(
+        writer_session_module._WriterSessionResource._release_mutation_slot
+    )
+    prepare_source = inspect.getsource(
+        writer_session_module._WriterSessionResource._prepare_operation_retirement
+    )
+    local_retirement_source = inspect.getsource(
+        writer_session_module._WriterSessionResource._retire_operation_lease_locally
+    )
+    publish_source = inspect.getsource(
+        writer_session_module._WriterSessionResource._publish_prepared_operation_retirement
+    )
+    successor_source = inspect.getsource(
+        writer_session_module._WriterSessionResource._state_after_operation_completion
+    )
+
+    assert 'object.__setattr__(self, "_cleanup_required", True)' in handle_source
+    assert 'object.__setattr__(self, "_cleanup_required", False)' not in handle_source
+    assert "exception" not in tuple(writer_session_module._OperationCompletionHandle.__slots__)
+    assert "with self._condition:" in mark_source
+    assert "successor_record = replace(record, cleanup_required=True)" in mark_source
+    assert "_state_with_replaced_operation_record_locked(" in mark_source
+    assert "with self._condition:" in release_source
+    assert "mutation_release_acknowledgment=release_acknowledgment" in release_source
+    assert "with self._condition:" in prepare_source
+    assert "retirement_preparation_acknowledgment=acknowledgment" in prepare_source
+    assert "_operation_has_exact_mutation_release_acknowledgment(" in prepare_source
+    assert "with self._condition:" in local_retirement_source
+    assert "admitted_lease = record.lease_reference()" in local_retirement_source
+    assert "finalizer = record.finalizer" in local_retirement_source
+    assert local_retirement_source.index("operation_lease._closed = True") < (
+        local_retirement_source.index("finalizer.detach()")
+    )
+    assert local_retirement_source.index("finalizer.detach()") < (
+        local_retirement_source.index("_is_successful_exact_operation_finalizer_detach(")
+    )
+    assert ".alive" not in local_retirement_source
+    assert "phase=_OperationRetirementPhase.EXPLICIT_RETIRED" in local_retirement_source
+    assert operation_exit.index("_mark_operation_cleanup_required(") < operation_exit.index(
+        "self._close()"
+    )
+    assert mutation_close.index("_mark_operation_cleanup_required(") > mutation_close.index(
+        "_release_mutation_slot("
+    )
+    finalizer_try = next(
+        statement
+        for statement in ast.parse(operation_finalizer).body[0].body
+        if isinstance(statement, ast.Try)
+    )
+    ordinary_finalizer_source = "\n".join(
+        ast.unparse(statement) for statement in finalizer_try.body
+    )
+    process_control_handler_source = "\n".join(
+        ast.unparse(statement)
+        for handler in finalizer_try.handlers
+        for statement in handler.body
+    )
+    assert "_mark_operation_orphaned" in ordinary_finalizer_source
+    assert "_publish_prepared_operation_retirement" not in ordinary_finalizer_source
+    assert "active_for_owner" not in ordinary_finalizer_source
+    assert "_continue_cleanup(blocking=False, finalizer=True)" in ordinary_finalizer_source
+    assert "_mark_operation_orphaned" in process_control_handler_source
+    assert operation_close.index("_prepare_operation_retirement(") < operation_close.index(
+        "_retire_operation_lease_locally("
+    )
+    assert operation_close.index("_retire_operation_lease_locally(") < operation_close.index(
+        "_publish_prepared_operation_retirement("
+    )
+    assignment = "self._lifecycle_state = final_successor"
+    assert publish_source.count(assignment) == 1
+    assert publish_source.index(assignment) < publish_source.index(
+        "self._notify_operation_retirement_waiters_locked()"
+    )
+    assert "completion_acknowledged" not in handle_source
+    assert "completion_acknowledged" not in publish_source
+    assert "record.retirement_preparation_acknowledgment" in publish_source
+    assert "record.phase is not _OperationRetirementPhase.EXPLICIT_RETIRED" in publish_source
+    assert "or record.cleanup_required" in publish_source
+    assert "_operation_has_exact_local_retirement_locked" not in publish_source
+    assert "record is None" in publish_source
+    assert "raise WriterSessionError(" in publish_source
+    assert "_OperationLocalRetirementAcknowledgment" not in handle_source
+    assert "_OperationLocalRetirementAcknowledgment" not in inspect.getsource(
+        writer_session_module
+    )
+    assert tuple(writer_session_module._WriterSessionOperationRecord.__dataclass_fields__) == (
+        "handle",
+        "resource_identity",
+        "operation_id",
+        "owner_pid",
+        "owner_thread",
+        "lifecycle_epoch",
+        "lease_reference",
+        "finalizer",
+        "phase",
+        "cleanup_required",
+        "mutation_release_acknowledgment",
+        "retirement_preparation_acknowledgment",
+    )
+    assert "frozen=True" in record_source
+    assert successor_source.count("if record.cleanup_required:") >= 3
+    released_branch = successor_source.split(
+        "if type(state) is _WriterSessionControllerCloseProvedReleased:", 1
+    )[1]
+    assert released_branch.index("if record.cleanup_required:") < released_branch.index(
+        "return _WriterSessionActive(activity)"
+    )
+    normal_try = next(
+        statement
+        for statement in ast.parse(operation_close.lstrip()).body[0].body
+        if isinstance(statement, ast.Try)
+    )
+    assert isinstance(normal_try.body[-1], ast.Expr)
+    assert "_publish_prepared_operation_retirement" in ast.unparse(
+        normal_try.body[-1]
+    )
 
 
 def test_docs_pin_exact_private_to_public_preflight_mapping() -> None:

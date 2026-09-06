@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Callable
+from contextlib import ExitStack
+import gc
 import inspect
 import os
 from pathlib import Path
@@ -60,7 +62,6 @@ from test_sqlite_b2c_writer_session import (
     _run_writer_attempt,
     _wait_for_child_result,
     _wait_for_event,
-    _writer_rows,
 )
 
 
@@ -78,6 +79,12 @@ FROM writer_ownership
 ORDER BY singleton_id
 LIMIT 2"""
 PRIVATE_SENTINEL = "PRIVATE-B3C1B-SENTINEL-DO-NOT-LEAK"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _force_final_sqlite_connection_collection() -> object:
+    yield
+    assert type(gc.collect()) is int
 
 
 class _SyntheticSQLiteError(sqlite3.DatabaseError):
@@ -144,6 +151,51 @@ class _FaultingConnection(sqlite3.Connection):
         if self.close_error is not None:
             raise self.close_error
         super().close()
+
+
+class _FaultingConnectionLedger:
+    """Test-only exact-identity owner for transferred faulting connections."""
+
+    def __init__(self) -> None:
+        self._connections: dict[int, _FaultingConnection] = {}
+        self.cleanup_failure_count = 0
+
+    @property
+    def connections(self) -> tuple[_FaultingConnection, ...]:
+        return tuple(self._connections.values())
+
+    def adopt(self, connection: _FaultingConnection) -> None:
+        if type(connection) is not _FaultingConnection or id(connection) in self._connections:
+            raise ValueError("invalid faulting connection transfer")
+        self._connections[id(connection)] = connection
+
+    def cleanup(self) -> None:
+        owned = tuple(self._connections.values())
+        self._connections.clear()
+        for connection in owned:
+            try:
+                connection.close_error = None
+                connection.close()
+            except BaseException:
+                self.cleanup_failure_count += 1
+                try:
+                    connection.close_error = None
+                    sqlite3.Connection.close(connection)
+                except BaseException:
+                    self.cleanup_failure_count += 1
+
+
+def _close_locally_owned_faulting_connection_preserving_primary(
+    connection: _FaultingConnection,
+) -> None:
+    try:
+        connection.close()
+    except BaseException:
+        try:
+            connection.close_error = None
+            sqlite3.Connection.close(connection)
+        except BaseException:
+            pass
 
 
 def _sqlite_error_code(name: str, fallback: int) -> int:
@@ -246,6 +298,29 @@ def _assert_controller_raises(
     return exc_info.value
 
 
+def _assert_controller_close_unproved_raises(
+    session: object,
+    error_class: str,
+    *,
+    private_values: tuple[object, ...] = (),
+) -> SQLiteMutationStoreError:
+    resource = session._resource
+    with resource.operation_guard(session) as operation:
+        with pytest.raises(SQLiteMutationStoreError) as exc_info:
+            transaction_module._run_rollback_only_writer_fencing(
+                operation_lease=operation,
+            )
+        assert resource._state == "abort_close_unproved"
+        assert resource._mutation_slot is not None
+        with pytest.raises(WriterSessionError) as unavailable:
+            operation._acquire_mutation_lease()
+        assert unavailable.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+    _assert_safe_mutation_error(exc_info.value, error_class, private_values=private_values)
+    assert resource._state == "abort_close_unproved"
+    assert resource._mutation_slot is not None
+    return exc_info.value
+
+
 def _assert_controller_filesystem_failure(
     session: object,
     error_class: str,
@@ -294,19 +369,29 @@ def _open_faulting_connection(
     validation_execute_error: sqlite3.Error | None = None,
     validation_execute_sql_fragment: str | None = None,
     close_error: sqlite3.Error | None = None,
+    ownership_ledger: _FaultingConnectionLedger | None = None,
 ) -> _FaultingConnection:
     connection = sqlite3.connect(
         location.database_path,
         isolation_level=None,
         factory=_FaultingConnection,
     )
-    apply_observational_connection_posture(connection)
-    connection.select_execute_error = select_execute_error
-    connection.select_cursor = select_cursor
-    connection.validation_execute_error = validation_execute_error
-    connection.validation_execute_sql_fragment = validation_execute_sql_fragment
-    connection.close_error = close_error
-    return connection
+    locally_owned = True
+    try:
+        apply_observational_connection_posture(connection)
+        connection.select_execute_error = select_execute_error
+        connection.select_cursor = select_cursor
+        connection.validation_execute_error = validation_execute_error
+        connection.validation_execute_sql_fragment = validation_execute_sql_fragment
+        connection.close_error = close_error
+        if ownership_ledger is not None:
+            ownership_ledger.adopt(connection)
+        locally_owned = False
+        return connection
+    except BaseException:
+        if locally_owned:
+            _close_locally_owned_faulting_connection_preserving_primary(connection)
+        raise
 
 
 def _patch_bound_open_connect(
@@ -314,16 +399,18 @@ def _patch_bound_open_connect(
     location: CoordinatorStateLocation,
     *,
     close_error: sqlite3.Error | None = None,
-) -> list[_FaultingConnection]:
-    opened_connections: list[_FaultingConnection] = []
+) -> _FaultingConnectionLedger:
+    ledger = _FaultingConnectionLedger()
 
     def connect_uri(uri: str, *, busy_timeout_ms: int) -> _FaultingConnection:
-        connection = _open_faulting_connection(location, close_error=close_error)
-        opened_connections.append(connection)
-        return connection
+        return _open_faulting_connection(
+            location,
+            close_error=close_error,
+            ownership_ledger=ledger,
+        )
 
     monkeypatch.setattr(connection_module, "_connect_uri", connect_uri)
-    return opened_connections
+    return ledger
 
 
 def _patch_post_open_structural_binding_mismatch(monkeypatch: pytest.MonkeyPatch) -> Callable[[], int]:
@@ -352,16 +439,59 @@ def _cleanup_faulting_connections(connections: list[_FaultingConnection]) -> Non
     for connection in connections:
         if connection.close_error is not None:
             connection.close_error = None
-            connection.close()
+        connection.close()
+        _assert_sqlite_connection_closed(connection)
+
+
+def _assert_sqlite_connection_closed(connection: sqlite3.Connection) -> None:
+    with pytest.raises(sqlite3.ProgrammingError):
+        connection.execute("SELECT 1")
+
+
+def _patch_retained_close_failure_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    original_close = connection_module._RetainedSQLiteConnection._close_with_proof
+    close_attempts = 0
+
+    def fail_once(retained: object) -> object:
+        nonlocal close_attempts
+        close_attempts += 1
+        if close_attempts == 1:
+            raise RuntimeError(PRIVATE_SENTINEL)
+        return original_close(retained)
+
+    monkeypatch.setattr(
+        connection_module._RetainedSQLiteConnection,
+        "_close_with_proof",
+        fail_once,
+    )
 
 
 def _table_count(location: CoordinatorStateLocation, table_name: str) -> int:
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         return int(connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0])
+    finally:
+        connection.close()
+
+
+def _writer_rows(location: CoordinatorStateLocation) -> list[tuple[object, ...]]:
+    connection = sqlite3.connect(location.database_path)
+    try:
+        return connection.execute(
+            """
+            SELECT singleton_id, writer_ref, generation, issued_ref,
+                   issuance_nonce_digest, acquired_at
+            FROM writer_ownership
+            ORDER BY singleton_id
+            """
+        ).fetchall()
+    finally:
+        connection.close()
 
 
 def _global_stop_rows(location: CoordinatorStateLocation) -> list[tuple[object, ...]]:
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         return connection.execute(
             """
             SELECT singleton_id, schema_id, version, active, stop_id, reason_class,
@@ -370,6 +500,8 @@ def _global_stop_rows(location: CoordinatorStateLocation) -> list[tuple[object, 
             ORDER BY singleton_id
             """
         ).fetchall()
+    finally:
+        connection.close()
 
 
 def _state_counts(location: CoordinatorStateLocation) -> dict[str, int]:
@@ -392,9 +524,12 @@ def _replace_writer_row(location: CoordinatorStateLocation, **updates: object) -
     assert updates
     assignments = ", ".join(f"{column} = ?" for column in updates)
     values = tuple(updates.values())
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         connection.execute(f"UPDATE writer_ownership SET {assignments} WHERE singleton_id = 1", values)
         connection.commit()
+    finally:
+        connection.close()
 
 
 def _copy_database_to_temp(location: CoordinatorStateLocation, target: Path) -> Path:
@@ -410,23 +545,32 @@ def _swap_database_file(location: CoordinatorStateLocation, replacement: Path, b
 
 
 def _delete_writer_row(location: CoordinatorStateLocation) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         connection.execute("DELETE FROM writer_ownership")
         connection.commit()
+    finally:
+        connection.close()
 
 
 def _set_malformed_digest(location: CoordinatorStateLocation) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         connection.execute("PRAGMA ignore_check_constraints = ON")
         connection.execute("UPDATE writer_ownership SET issuance_nonce_digest = ?", ("B" * 64,))
         connection.commit()
+    finally:
+        connection.close()
 
 
 def _break_managed_schema(location: CoordinatorStateLocation) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         connection.execute("PRAGMA foreign_keys = OFF")
         connection.execute("DROP TABLE lease_identity_records")
         connection.commit()
+    finally:
+        connection.close()
 
 
 def _assert_database_writable(location: CoordinatorStateLocation) -> None:
@@ -436,6 +580,44 @@ def _assert_database_writable(location: CoordinatorStateLocation) -> None:
         connection.execute("ROLLBACK")
     finally:
         connection.close()
+
+
+def test_direct_test_helpers_close_every_owned_sqlite_connection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases: tuple[
+        tuple[str, Callable[[CoordinatorStateLocation], object]],
+        ...,
+    ] = (
+        ("table-count", lambda location: _table_count(location, "writer_ownership")),
+        ("writer-rows", _writer_rows),
+        ("global-stop-rows", _global_stop_rows),
+        ("replace-writer", lambda location: _replace_writer_row(location, generation=1)),
+        ("delete-writer", _delete_writer_row),
+        ("malformed-digest", _set_malformed_digest),
+        ("break-schema", _break_managed_schema),
+    )
+
+    for case_name, invoke in cases:
+        location, session = _managed_session(tmp_path / case_name)
+        session.close()
+        opened: list[sqlite3.Connection] = []
+        with monkeypatch.context() as helper_patch:
+            original_connect = sqlite3.connect
+
+            def tracking_connect(*args: object, **kwargs: object) -> sqlite3.Connection:
+                connection = original_connect(*args, **kwargs)
+                opened.append(connection)
+                return connection
+
+            helper_patch.setattr(sqlite3, "connect", tracking_connect)
+            invoke(location)
+
+        assert len(opened) == 1
+        _assert_sqlite_connection_closed(opened[0])
+        opened.clear()
+        assert type(gc.collect()) is int
 
 
 def test_controller_entry_point_is_operation_lease_only() -> None:
@@ -605,30 +787,36 @@ def test_bound_open_post_open_structural_mismatch_close_succeeds_preserves_prima
     location, session = _managed_session(tmp_path)
     try:
         with monkeypatch.context() as direct_patch:
-            opened = _patch_bound_open_connect(direct_patch, location)
-            validation_calls = _patch_post_open_structural_binding_mismatch(direct_patch)
-            with pytest.raises(_StateDatabaseAuthorityBindingMismatch) as direct_error:
-                connection_module._open_bound_existing_sqlite_connection(
-                    session._resource._database_binding,
-                    read_only=False,
-                )
-            assert validation_calls() == 2
-            assert len(opened) == 1
-            assert opened[0].close_count == 1
-            assert direct_error.value.__cause__ is None
-            assert direct_error.value.__context__ is None
+            ledger = _patch_bound_open_connect(direct_patch, location)
+            with ExitStack() as resources:
+                resources.callback(ledger.cleanup)
+                validation_calls = _patch_post_open_structural_binding_mismatch(direct_patch)
+                with pytest.raises(_StateDatabaseAuthorityBindingMismatch) as direct_error:
+                    connection_module._open_bound_existing_sqlite_connection(
+                        session._resource._database_binding,
+                        read_only=False,
+                    )
+                opened = ledger.connections
+                assert validation_calls() == 2
+                assert len(opened) == 1
+                assert opened[0].close_count == 1
+                assert direct_error.value.__cause__ is None
+                assert direct_error.value.__context__ is None
 
         with monkeypatch.context() as controller_patch:
-            opened = _patch_bound_open_connect(controller_patch, location)
-            validation_calls = _patch_post_open_structural_binding_mismatch(controller_patch)
-            _assert_controller_filesystem_failure(
-                session,
-                "database_integrity_failure",
-                private_values=(location.state_root, location.database_path),
-            )
-            assert validation_calls() == 2
-            assert len(opened) == 1
-            assert opened[0].close_count == 1
+            ledger = _patch_bound_open_connect(controller_patch, location)
+            with ExitStack() as resources:
+                resources.callback(ledger.cleanup)
+                validation_calls = _patch_post_open_structural_binding_mismatch(controller_patch)
+                _assert_controller_filesystem_failure(
+                    session,
+                    "database_integrity_failure",
+                    private_values=(location.state_root, location.database_path),
+                )
+                opened = ledger.connections
+                assert validation_calls() == 2
+                assert len(opened) == 1
+                assert opened[0].close_count == 1
     finally:
         session.close()
 
@@ -642,34 +830,38 @@ def test_bound_open_post_open_structural_mismatch_close_failure_preserves_primar
     close_error = _SyntheticSQLiteError(_sqlite_error_code("SQLITE_BUSY", 5))
     try:
         with monkeypatch.context() as direct_patch:
-            opened = _patch_bound_open_connect(direct_patch, location, close_error=close_error)
-            validation_calls = _patch_post_open_structural_binding_mismatch(direct_patch)
-            with pytest.raises(_StateDatabaseAuthorityBindingMismatch) as direct_error:
-                connection_module._open_bound_existing_sqlite_connection(
-                    session._resource._database_binding,
-                    read_only=False,
-                )
-            assert validation_calls() == 2
-            assert len(opened) == 1
-            assert opened[0].close_count == 1
-            assert direct_error.value.__cause__ is None
-            assert direct_error.value.__context__ is None
-            assert PRIVATE_SENTINEL not in _render_exception_graph(direct_error.value)
-            _cleanup_faulting_connections(opened)
+            ledger = _patch_bound_open_connect(direct_patch, location, close_error=close_error)
+            with ExitStack() as resources:
+                resources.callback(ledger.cleanup)
+                validation_calls = _patch_post_open_structural_binding_mismatch(direct_patch)
+                with pytest.raises(_StateDatabaseAuthorityBindingMismatch) as direct_error:
+                    connection_module._open_bound_existing_sqlite_connection(
+                        session._resource._database_binding,
+                        read_only=False,
+                    )
+                opened = ledger.connections
+                assert validation_calls() == 2
+                assert len(opened) == 1
+                assert opened[0].close_count == 1
+                assert direct_error.value.__cause__ is None
+                assert direct_error.value.__context__ is None
+                assert PRIVATE_SENTINEL not in _render_exception_graph(direct_error.value)
 
         with monkeypatch.context() as controller_patch:
-            opened = _patch_bound_open_connect(controller_patch, location, close_error=close_error)
-            validation_calls = _patch_post_open_structural_binding_mismatch(controller_patch)
-            error = _assert_controller_filesystem_failure(
-                session,
-                "database_integrity_failure",
-                private_values=(location.state_root, location.database_path),
-            )
-            assert validation_calls() == 2
-            assert len(opened) == 1
-            assert opened[0].close_count == 1
-            assert PRIVATE_SENTINEL not in _render_exception_graph(error)
-            _cleanup_faulting_connections(opened)
+            ledger = _patch_bound_open_connect(controller_patch, location, close_error=close_error)
+            with ExitStack() as resources:
+                resources.callback(ledger.cleanup)
+                validation_calls = _patch_post_open_structural_binding_mismatch(controller_patch)
+                error = _assert_controller_filesystem_failure(
+                    session,
+                    "database_integrity_failure",
+                    private_values=(location.state_root, location.database_path),
+                )
+                opened = ledger.connections
+                assert validation_calls() == 2
+                assert len(opened) == 1
+                assert opened[0].close_count == 1
+                assert PRIVATE_SENTINEL not in _render_exception_graph(error)
     finally:
         session.close()
 
@@ -687,32 +879,36 @@ def test_bound_open_post_open_operational_failure_close_failure_preserves_primar
     close_error = _SyntheticSQLiteError(_sqlite_error_code("SQLITE_BUSY", 5))
     try:
         with monkeypatch.context() as direct_patch:
-            opened = _patch_bound_open_connect(direct_patch, location, close_error=close_error)
-            _patch_post_open_operational_posture_failure(direct_patch)
-            with pytest.raises(_StateDatabaseAuthorityBindingUnavailable) as direct_error:
-                connection_module._open_bound_existing_sqlite_connection(
-                    session._resource._database_binding,
-                    read_only=False,
-                )
-            assert len(opened) == 1
-            assert opened[0].close_count == 1
-            assert direct_error.value.__cause__ is None
-            assert direct_error.value.__context__ is None
-            assert PRIVATE_SENTINEL not in _render_exception_graph(direct_error.value)
-            _cleanup_faulting_connections(opened)
+            ledger = _patch_bound_open_connect(direct_patch, location, close_error=close_error)
+            with ExitStack() as resources:
+                resources.callback(ledger.cleanup)
+                _patch_post_open_operational_posture_failure(direct_patch)
+                with pytest.raises(_StateDatabaseAuthorityBindingUnavailable) as direct_error:
+                    connection_module._open_bound_existing_sqlite_connection(
+                        session._resource._database_binding,
+                        read_only=False,
+                    )
+                opened = ledger.connections
+                assert len(opened) == 1
+                assert opened[0].close_count == 1
+                assert direct_error.value.__cause__ is None
+                assert direct_error.value.__context__ is None
+                assert PRIVATE_SENTINEL not in _render_exception_graph(direct_error.value)
 
         with monkeypatch.context() as controller_patch:
-            opened = _patch_bound_open_connect(controller_patch, location, close_error=close_error)
-            _patch_post_open_operational_posture_failure(controller_patch)
-            error = _assert_controller_filesystem_failure(
-                session,
-                "mutation_failed",
-                private_values=(location.state_root, location.database_path),
-            )
-            assert len(opened) == 1
-            assert opened[0].close_count == 1
-            assert PRIVATE_SENTINEL not in _render_exception_graph(error)
-            _cleanup_faulting_connections(opened)
+            ledger = _patch_bound_open_connect(controller_patch, location, close_error=close_error)
+            with ExitStack() as resources:
+                resources.callback(ledger.cleanup)
+                _patch_post_open_operational_posture_failure(controller_patch)
+                error = _assert_controller_filesystem_failure(
+                    session,
+                    "mutation_failed",
+                    private_values=(location.state_root, location.database_path),
+                )
+                opened = ledger.connections
+                assert len(opened) == 1
+                assert opened[0].close_count == 1
+                assert PRIVATE_SENTINEL not in _render_exception_graph(error)
     finally:
         session.close()
 
@@ -1354,18 +1550,22 @@ def test_begin_failure_closes_opened_connection_and_is_mutation_failed(
 ) -> None:
     location, session = _managed_session(tmp_path)
     close_calls = 0
-    original_close = transaction_module._close_connection
+    original_close = connection_module._RetainedSQLiteConnection._close_with_proof
 
     def fail_begin(connection: sqlite3.Connection) -> None:
         raise RuntimeError(PRIVATE_SENTINEL)
 
-    def tracking_close(connection: sqlite3.Connection) -> SQLiteMutationStoreError | None:
+    def tracking_close(retained: object) -> object:
         nonlocal close_calls
         close_calls += 1
-        return original_close(connection)
+        return original_close(retained)
 
     monkeypatch.setattr(transaction_module, "_begin_immediate", fail_begin)
-    monkeypatch.setattr(transaction_module, "_close_connection", tracking_close)
+    monkeypatch.setattr(
+        connection_module._RetainedSQLiteConnection,
+        "_close_with_proof",
+        tracking_close,
+    )
     try:
         _assert_controller_raises(session, "mutation_failed", private_values=(location.database_path,))
         assert close_calls == 1
@@ -1519,14 +1719,11 @@ def test_fetch_and_cursor_close_failures_are_safe(
             ),
             "mutation_failed",
         ),
-        (
+        pytest.param(
             "connection-close",
-            lambda monkeypatch: monkeypatch.setattr(
-                transaction_module,
-                "_close_connection",
-                lambda connection: transaction_module._mutation_failed(),
-            ),
+            _patch_retained_close_failure_once,
             "mutation_failed",
+            id="connection-close-<lambda>-mutation_failed",
         ),
     ),
 )
@@ -1540,7 +1737,14 @@ def test_capability_and_resolution_failures_return_mutation_failed(
     location, session = _managed_session(tmp_path / case_name)
     patcher(monkeypatch)
     try:
-        _assert_controller_raises(session, expected_error, private_values=(location.database_path,))
+        if case_name == "connection-close":
+            _assert_controller_close_unproved_raises(
+                session,
+                expected_error,
+                private_values=(location.database_path,),
+            )
+        else:
+            _assert_controller_raises(session, expected_error, private_values=(location.database_path,))
     finally:
         session.close()
 
@@ -1565,13 +1769,9 @@ def test_rollback_and_close_failures_supersede_planned_errors(
     close_location, close_session = _managed_session(tmp_path / "close-precedence")
     _replace_writer_row(close_location, writer_ref="writer-other")
     with monkeypatch.context() as close_patch:
-        close_patch.setattr(
-            transaction_module,
-            "_close_connection",
-            lambda connection: transaction_module._mutation_failed(),
-        )
+        _patch_retained_close_failure_once(close_patch)
         try:
-            _assert_controller_raises(close_session, "mutation_failed")
+            _assert_controller_close_unproved_raises(close_session, "mutation_failed")
         finally:
             close_session.close()
 
@@ -1583,7 +1783,7 @@ def test_admitted_controller_close_failure_remains_mutation_failed_after_match(
     location, session = _managed_session(tmp_path)
     resource = session._resource
     original_open = transaction_module._open_bound_existing_sqlite_connection
-    original_close = transaction_module._close_connection
+    original_close = connection_module._RetainedSQLiteConnection._close_with_proof
     opened_connections: list[sqlite3.Connection] = []
     close_calls = 0
     result: _WriterIssuanceMatch | None = None
@@ -1593,14 +1793,19 @@ def test_admitted_controller_close_failure_remains_mutation_failed_after_match(
         opened_connections.append(connection)
         return connection
 
-    def fail_after_real_close(connection: sqlite3.Connection) -> SQLiteMutationStoreError:
+    def fail_once_before_close_proof(retained: object) -> object:
         nonlocal close_calls
         close_calls += 1
-        assert original_close(connection) is None
-        return transaction_module._mutation_failed()
+        if close_calls == 1:
+            raise RuntimeError(PRIVATE_SENTINEL)
+        return original_close(retained)
 
     monkeypatch.setattr(transaction_module, "_open_bound_existing_sqlite_connection", tracking_open)
-    monkeypatch.setattr(transaction_module, "_close_connection", fail_after_real_close)
+    monkeypatch.setattr(
+        connection_module._RetainedSQLiteConnection,
+        "_close_with_proof",
+        fail_once_before_close_proof,
+    )
     try:
         with resource.operation_guard(session) as operation:
             with pytest.raises(SQLiteMutationStoreError) as exc_info:
@@ -1611,12 +1816,15 @@ def test_admitted_controller_close_failure_remains_mutation_failed_after_match(
             assert result is None
             assert close_calls == 1
             assert len(opened_connections) == 1
-            assert resource._mutation_slot is None
-            mutation = operation._acquire_mutation_lease()
-            operation._require_active_mutation_authority()
-            mutation._close()
+            assert resource._state == "abort_close_unproved"
+            assert resource._mutation_slot is not None
+            with pytest.raises(WriterSessionError) as unavailable:
+                operation._acquire_mutation_lease()
+            assert unavailable.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
     finally:
         session.close()
+    assert close_calls == 2
+    _assert_sqlite_connection_closed(opened_connections[0])
 
 
 def test_capability_borrow_lifecycle_process_thread_and_privacy(
@@ -1855,16 +2063,20 @@ def test_mutation_slot_is_held_through_connection_close_and_outer_operation_rema
 ) -> None:
     location, session = _managed_session(tmp_path)
     resource = session._resource
-    original_close = transaction_module._close_connection
+    original_close = connection_module._RetainedSQLiteConnection._close_with_proof
     slot_seen_during_close = False
 
-    def checking_close(connection: sqlite3.Connection) -> SQLiteMutationStoreError | None:
+    def checking_close(retained: object) -> object:
         nonlocal slot_seen_during_close
         assert resource._mutation_slot is not None
         slot_seen_during_close = True
-        return original_close(connection)
+        return original_close(retained)
 
-    monkeypatch.setattr(transaction_module, "_close_connection", checking_close)
+    monkeypatch.setattr(
+        connection_module._RetainedSQLiteConnection,
+        "_close_with_proof",
+        checking_close,
+    )
     try:
         with resource.operation_guard(session) as operation:
             assert transaction_module._run_rollback_only_writer_fencing(
@@ -1885,12 +2097,12 @@ def test_session_close_waits_for_controller_operation_to_exit(
 ) -> None:
     location, session = _managed_session(tmp_path)
     resource = session._resource
-    original_close_connection = transaction_module._close_connection
+    original_close_connection = connection_module._RetainedSQLiteConnection._close_with_proof
     close_done = threading.Event()
     close_errors: list[BaseException] = []
     closer_started = False
 
-    def tracking_connection_close(connection: sqlite3.Connection) -> SQLiteMutationStoreError | None:
+    def tracking_connection_close(retained: object) -> object:
         nonlocal closer_started
         if not closer_started:
             closer_started = True
@@ -1914,9 +2126,13 @@ def test_session_close_waits_for_controller_operation_to_exit(
             assert resource._state == writer_module._CLOSING
             assert close_done.is_set() is False
             tracking_connection_close.closer = closer
-        return original_close_connection(connection)
+        return original_close_connection(retained)
 
-    monkeypatch.setattr(transaction_module, "_close_connection", tracking_connection_close)
+    monkeypatch.setattr(
+        connection_module._RetainedSQLiteConnection,
+        "_close_with_proof",
+        tracking_connection_close,
+    )
     with resource.operation_guard(session) as operation:
         assert transaction_module._run_rollback_only_writer_fencing(
             operation_lease=operation,
@@ -2132,3 +2348,111 @@ def test_new_module_is_private_unexported_and_static_shape_is_closed() -> None:
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
     ]
+def test_open_faulting_connection_setup_baseexception_closes_exact_local_connection_and_preserves_primary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location, session = _managed_session(tmp_path)
+    session.close()
+    opened: list[_FaultingConnection] = []
+    original_connect = sqlite3.connect
+    primary = KeyboardInterrupt()
+    synthetic_close = _SyntheticSQLiteError(_sqlite_error_code("SQLITE_BUSY", 5))
+    ledger = _FaultingConnectionLedger()
+
+    def tracking_connect(*args: object, **kwargs: object) -> _FaultingConnection:
+        connection = original_connect(*args, **kwargs)
+        assert type(connection) is _FaultingConnection
+        opened.append(connection)
+        return connection
+
+    def fail_setup(connection: sqlite3.Connection, **kwargs: object) -> None:
+        del kwargs
+        assert type(connection) is _FaultingConnection
+        connection.close_error = synthetic_close
+        raise primary
+
+    monkeypatch.setattr(sqlite3, "connect", tracking_connect)
+    # Patch the exact module-global used by the helper.
+    monkeypatch.setitem(
+        _open_faulting_connection.__globals__,
+        "apply_observational_connection_posture",
+        fail_setup,
+    )
+
+    with pytest.raises(KeyboardInterrupt) as captured:
+        _open_faulting_connection(location, ownership_ledger=ledger)
+    assert captured.value is primary
+    assert primary.__cause__ is None
+    assert primary.__context__ is None
+    assert len(opened) == 1
+    assert opened[0].close_count == 1
+    _assert_sqlite_connection_closed(opened[0])
+    assert ledger.connections == ()
+
+
+def test_fault_ledger_assertion_exit_runs_idempotent_exact_cleanup(
+    tmp_path: Path,
+) -> None:
+    location, session = _managed_session(tmp_path)
+    session.close()
+    adopted = _open_faulting_connection(location)
+    unrelated = _open_faulting_connection(location)
+    ledger = _FaultingConnectionLedger()
+    ledger.adopt(adopted)
+    with pytest.raises(AssertionError, match="intentional assertion exit"):
+        with ExitStack() as resources:
+            resources.callback(ledger.cleanup)
+            raise AssertionError("intentional assertion exit")
+    _assert_sqlite_connection_closed(adopted)
+    assert unrelated.execute("SELECT 1").fetchone() == (1,)
+    close_count = adopted.close_count
+    ledger.cleanup()
+    assert adopted.close_count == close_count
+    unrelated.close()
+
+
+def test_fault_ledger_expected_error_mismatch_runs_idempotent_exact_cleanup(
+    tmp_path: Path,
+) -> None:
+    location, session = _managed_session(tmp_path)
+    session.close()
+    adopted = _open_faulting_connection(location)
+    ledger = _FaultingConnectionLedger()
+    ledger.adopt(adopted)
+    mismatch: BaseException | None = None
+    try:
+        with ExitStack() as resources:
+            resources.callback(ledger.cleanup)
+            with pytest.raises(ValueError):
+                pass
+    except BaseException as exc:
+        mismatch = exc
+    assert mismatch is not None
+    _assert_sqlite_connection_closed(adopted)
+    count = adopted.close_count
+    ledger.cleanup()
+    assert adopted.close_count == count
+
+
+def test_fault_ledger_close_unproved_until_cleanup_is_exact_idempotent_and_warning_clean(
+    tmp_path: Path,
+) -> None:
+    location, session = _managed_session(tmp_path)
+    session.close()
+    synthetic_close = _SyntheticSQLiteError(_sqlite_error_code("SQLITE_BUSY", 5))
+    connection = _open_faulting_connection(location, close_error=synthetic_close)
+    ledger = _FaultingConnectionLedger()
+    ledger.adopt(connection)
+    with ExitStack() as resources:
+        resources.callback(ledger.cleanup)
+        with pytest.raises(_SyntheticSQLiteError) as close_failure:
+            connection.close()
+        assert close_failure.value is synthetic_close
+        assert connection.execute("SELECT 1").fetchone() == (1,)
+        assert connection.close_count == 1
+    _assert_sqlite_connection_closed(connection)
+    assert connection.close_count == 2
+    ledger.cleanup()
+    assert connection.close_count == 2
+    assert type(gc.collect()) is int

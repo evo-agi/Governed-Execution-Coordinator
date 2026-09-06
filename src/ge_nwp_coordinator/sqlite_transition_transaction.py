@@ -33,7 +33,12 @@ from ge_nwp_coordinator.persistence_contracts import (
     next_transition_event_sequence,
     normalize_transaction_timestamp,
 )
-from ge_nwp_coordinator.sqlite_connection import _open_bound_existing_sqlite_connection
+from ge_nwp_coordinator.sqlite_connection import (
+    _RetainedSQLiteConnection,
+    _SQLiteConnectionCloseProof,
+    _make_retained_sqlite_connection,
+    _open_bound_existing_sqlite_connection,
+)
 from ge_nwp_coordinator.sqlite_errors import (
     SQLiteMutationStoreError,
     SQLiteMutationStoreErrorCode,
@@ -96,7 +101,18 @@ from ge_nwp_coordinator.sqlite_transition_select_support import (
     _MutationReadCapabilityFailureReason,
 )
 from ge_nwp_coordinator.sqlite_writer_session import (
+    _CleanupRequiredAfterResolution,
+    _ControllerCloseProvedFacts,
+    _ControllerCloseUnprovedFacts,
+    _ControllerResolutionActivationAcknowledgment,
+    _ControllerResolutionIntent,
+    _ControllerScopeToken,
+    _ControllerSuccessorPublicationAcknowledgment,
+    _ResumeIfCloseProvedAndStillEligible,
+    _SafeMutationFailureDisposition,
+    _require_safe_mutation_store_error_payload,
     _WriterIssuanceMatch,
+    _WriterSessionControllerResolution,
     _WriterSessionOperationLease,
     _WriterSessionAuthorityClosed,
     _WriterSessionAuthorityUnavailable,
@@ -136,6 +152,8 @@ from ge_nwp_coordinator.state_store import (
 
 _CONTROLLER_CONSTRUCTION_KEY = object()
 _CAPABILITY_CONSTRUCTION_KEY = object()
+_SQLITE_COMMIT_FAILED = object()
+_SQLITE_COMMIT_NOT_RETURNED = object()
 
 _CONTROLLER_NEW = "NEW"
 _CONTROLLER_TRANSACTION_ACTIVE = "TRANSACTION_ACTIVE"
@@ -143,6 +161,302 @@ _CONTROLLER_FENCED = "FENCED"
 _CONTROLLER_CAPABILITY_ACTIVE = "CAPABILITY_ACTIVE"
 _CONTROLLER_RESOLVING = "RESOLVING"
 _CONTROLLER_CLOSED = "CLOSED"
+_CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED = "COMMIT_UNCERTAIN_QUARANTINED"
+_CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED = "COMMIT_SUCCEEDED_QUARANTINED"
+_CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING = (
+    "COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING"
+)
+_CONTROLLER_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING = (
+    "COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING"
+)
+
+
+class _ControllerConnectionScope:
+    """Controller-exclusive connection custody validated by one resource token."""
+
+    __slots__ = (
+        "_activation_acknowledgment",
+        "_close_proved",
+        "_operation_lease",
+        "_owner_pid",
+        "_owner_thread",
+        "_proved_facts",
+        "_publication_acknowledgment",
+        "_resolved",
+        "_retained_connection",
+        "_scope_token",
+    )
+    __hash__ = object.__hash__
+
+    def __init__(
+        self,
+        *,
+        operation_lease: _WriterSessionOperationLease,
+        connection: sqlite3.Connection,
+    ) -> None:
+        if (
+            type(operation_lease) is not _WriterSessionOperationLease
+            or not isinstance(connection, sqlite3.Connection)
+        ):
+            raise _mutation_failed()
+        self._operation_lease = operation_lease
+        self._close_proved: bool | None = None
+        self._retained_connection: _RetainedSQLiteConnection | None = (
+            _make_retained_sqlite_connection(
+                connection,
+                operation_lease._completion_handle.resource_identity,
+            )
+        )
+        self._scope_token = _ControllerScopeToken(
+            self._retained_connection,
+            operation_lease._completion_handle,
+        )
+        self._activation_acknowledgment: _ControllerResolutionActivationAcknowledgment | None = None
+        self._owner_pid = os.getpid()
+        self._owner_thread = get_ident()
+        self._proved_facts: _ControllerCloseProvedFacts | None = None
+        self._publication_acknowledgment: _ControllerSuccessorPublicationAcknowledgment | None = None
+        self._resolved = False
+
+    def __repr__(self) -> str:
+        return "<_ControllerConnectionScope>"
+
+    def __reduce__(self) -> object:
+        raise TypeError("invalid controller input")
+
+    def activate(self) -> _ControllerResolutionActivationAcknowledgment:
+        if self._resolved:
+            raise _mutation_failed()
+        acknowledgment = self._activation_acknowledgment
+        if type(acknowledgment) is not _ControllerResolutionActivationAcknowledgment:
+            try:
+                acknowledgment = self._operation_lease._activate_controller_scope(
+                    scope_token=self._scope_token,
+                )
+                self._activation_acknowledgment = acknowledgment
+            except BaseException:
+                observed = self._operation_lease._controller_resolution_for_scope(
+                    scope_token=self._scope_token,
+                )
+                if type(observed) is _WriterSessionControllerResolution:
+                    self._activation_acknowledgment = (
+                        _ControllerResolutionActivationAcknowledgment(
+                            self._scope_token,
+                            observed,
+                        )
+                    )
+                raise
+        return acknowledgment
+
+    def commit(self) -> object | None:
+        connection = self._borrow_connection()
+        return _commit_transaction(connection)
+
+    def rollback(self) -> SQLiteMutationStoreError | None:
+        connection = self._borrow_connection()
+        return _rollback_transaction(connection)
+
+    def close_after_commit(
+        self,
+        *,
+        commit_succeeded: bool,
+        force_cleanup: bool,
+    ) -> bool:
+        if self._resolved:
+            if force_cleanup:
+                self.stabilize_process_control()
+            return self._close_proved is True
+        self._validated_activation()
+        retained_connection = self._retained_connection
+        if type(retained_connection) is not _RetainedSQLiteConnection:
+            raise _mutation_failed()
+        intent = (
+            _ControllerResolutionIntent.COMMIT_KNOWN
+            if commit_succeeded
+            else _ControllerResolutionIntent.COMMIT_UNCERTAIN
+        )
+        try:
+            close_proof = retained_connection._close_with_proof()
+        except Exception:
+            self._publish_facts(
+                _ControllerCloseUnprovedFacts(intent, retained_connection)
+            )
+            return False
+        except BaseException:
+            try:
+                self._publish_facts(
+                    _ControllerCloseUnprovedFacts(intent, retained_connection)
+                )
+            except BaseException:
+                try:
+                    self._operation_lease._stabilize_controller_process_control(
+                        scope_token=self._scope_token,
+                        proved_facts=None,
+                    )
+                except BaseException:
+                    pass
+            raise
+        facts = _ControllerCloseProvedFacts(
+            intent,
+            close_proof,
+            _CleanupRequiredAfterResolution()
+            if force_cleanup
+            else _ResumeIfCloseProvedAndStillEligible(),
+        )
+        self._proved_facts = facts
+        self._publish_facts(facts)
+        return True
+
+    def close_before_commit(self) -> bool:
+        if self._resolved:
+            return self._close_proved is True
+        self._validated_activation()
+        retained_connection = self._retained_connection
+        if type(retained_connection) is not _RetainedSQLiteConnection:
+            raise _mutation_failed()
+        intent = _ControllerResolutionIntent.PRECOMMIT_ABORT
+        try:
+            close_proof = retained_connection._close_with_proof()
+        except Exception:
+            self._publish_facts(
+                _ControllerCloseUnprovedFacts(intent, retained_connection)
+            )
+            return False
+        except BaseException:
+            try:
+                self._publish_facts(
+                    _ControllerCloseUnprovedFacts(intent, retained_connection)
+                )
+            except BaseException:
+                try:
+                    self._operation_lease._stabilize_controller_process_control(
+                        scope_token=self._scope_token,
+                        proved_facts=None,
+                    )
+                except BaseException:
+                    pass
+            raise
+        facts = _ControllerCloseProvedFacts(
+            intent,
+            close_proof,
+            _ResumeIfCloseProvedAndStillEligible(),
+        )
+        self._proved_facts = facts
+        self._publish_facts(facts)
+        return True
+
+    def stabilize_process_control(self) -> None:
+        self._operation_lease._stabilize_controller_process_control(
+            scope_token=self._scope_token,
+            proved_facts=self._proved_facts,
+        )
+
+    def _validated_activation(self) -> _WriterSessionControllerResolution:
+        if (
+            self._resolved
+            or self._owner_pid != os.getpid()
+            or self._owner_thread != get_ident()
+            or type(self._activation_acknowledgment)
+            is not _ControllerResolutionActivationAcknowledgment
+        ):
+            raise _mutation_failed()
+        try:
+            return self._operation_lease._require_controller_scope(
+                acknowledgment=self._activation_acknowledgment,
+                scope_token=self._scope_token,
+            )
+        except WriterSessionError:
+            observed = self._operation_lease._controller_resolution_for_scope(
+                scope_token=self._scope_token,
+            )
+            if type(observed) is not _WriterSessionControllerResolution:
+                raise _mutation_failed() from None
+            self._activation_acknowledgment = (
+                _ControllerResolutionActivationAcknowledgment(
+                    self._scope_token,
+                    observed,
+                )
+            )
+            return observed
+
+    def _borrow_connection(self) -> sqlite3.Connection:
+        self._validated_activation()
+        retained_connection = self._retained_connection
+        if type(retained_connection) is not _RetainedSQLiteConnection:
+            raise _mutation_failed()
+        try:
+            return retained_connection._borrow_exact_connection()
+        except Exception:
+            raise _mutation_failed() from None
+
+    def _publish_facts(
+        self,
+        facts: _ControllerCloseProvedFacts | _ControllerCloseUnprovedFacts,
+    ) -> None:
+        if self._resolved:
+            acknowledgment = self._publication_acknowledgment
+            if type(acknowledgment) is not _ControllerSuccessorPublicationAcknowledgment:
+                raise _mutation_failed()
+            return
+        activation = self._activation_acknowledgment
+        if type(activation) is not _ControllerResolutionActivationAcknowledgment:
+            raise _mutation_failed()
+        try:
+            acknowledgment = self._operation_lease._publish_controller_resolution(
+                acknowledgment=activation,
+                facts=facts,
+            )
+        except Exception:
+            observed = self._operation_lease._controller_resolution_for_scope(
+                scope_token=self._scope_token,
+            )
+            if type(observed) is _WriterSessionControllerResolution:
+                activation = _ControllerResolutionActivationAcknowledgment(
+                    self._scope_token,
+                    observed,
+                )
+                self._activation_acknowledgment = activation
+            acknowledgment = self._operation_lease._publish_controller_resolution(
+                acknowledgment=activation,
+                facts=facts,
+            )
+        except BaseException:
+            try:
+                acknowledgment = self._operation_lease._publish_controller_resolution(
+                    acknowledgment=activation,
+                    facts=facts,
+                )
+                if type(facts) is _ControllerCloseProvedFacts:
+                    try:
+                        self._operation_lease._stabilize_controller_process_control(
+                            scope_token=self._scope_token,
+                            proved_facts=facts,
+                        )
+                    except BaseException:
+                        pass
+                self._accept_publication_acknowledgment(acknowledgment, facts)
+            except BaseException:
+                pass
+            raise
+        self._accept_publication_acknowledgment(acknowledgment, facts)
+
+    def _accept_publication_acknowledgment(
+        self,
+        acknowledgment: object,
+        facts: _ControllerCloseProvedFacts | _ControllerCloseUnprovedFacts,
+    ) -> None:
+        if (
+            type(acknowledgment) is not _ControllerSuccessorPublicationAcknowledgment
+            or acknowledgment.scope_token is not self._scope_token
+        ):
+            raise _mutation_failed()
+        self._publication_acknowledgment = acknowledgment
+        self._close_proved = type(facts) is _ControllerCloseProvedFacts
+        # Connection aliases clear only after the exact resource acknowledgment.
+        self._retained_connection = None
+        self._activation_acknowledgment = None
+        self._resolved = True
+
 
 _SQLITE_INTEGRITY_PRIMARY_RESULT_CODES = frozenset(
     code
@@ -278,7 +592,7 @@ class _MutationCapabilityState:
     __hash__ = object.__hash__
 
     def __init__(self, *, connection: sqlite3.Connection, epoch: object) -> None:
-        if type(connection) is not sqlite3.Connection:
+        if not isinstance(connection, sqlite3.Connection):
             raise ValueError("invalid capability input")
         self._active = True
         self._connection: sqlite3.Connection | None = connection
@@ -385,6 +699,7 @@ class _CoordinatorMutationTransactionController:
         "_capability_state",
         "_commit_attempt_started",
         "_connection",
+        "_connection_scope",
         "_epoch",
         "_operation_lease",
         "_owner_pid",
@@ -412,6 +727,7 @@ class _CoordinatorMutationTransactionController:
         self._resolution_state = _MutationCommitResolutionState.NEW
         self._commit_attempt_started = False
         self._connection: sqlite3.Connection | None = None
+        self._connection_scope: _ControllerConnectionScope | None = None
         self._transaction_began = False
         self._epoch: object | None = None
         self._capability_state: _MutationCapabilityState | None = None
@@ -490,6 +806,13 @@ class _CoordinatorMutationTransactionController:
                 planned_exception = exc
             except Exception:
                 planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
             cleanup_exception = self._resolve_rollback_before_commit()
         finally:
             mutation_lease._close()
@@ -527,6 +850,13 @@ class _CoordinatorMutationTransactionController:
                 planned_exception = exc
             except Exception:
                 planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
             cleanup_exception = self._resolve_rollback_before_commit()
         finally:
             mutation_lease._close()
@@ -569,6 +899,13 @@ class _CoordinatorMutationTransactionController:
                 planned_exception = exc
             except Exception:
                 planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
             if planned_exception is not None and not self._commit_attempt_started:
                 cleanup_exception = self._resolve_rollback_before_commit()
         finally:
@@ -616,6 +953,13 @@ class _CoordinatorMutationTransactionController:
                 planned_exception = exc
             except Exception:
                 planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
             if planned_exception is not None and not self._commit_attempt_started:
                 cleanup_exception = self._resolve_rollback_before_commit()
         finally:
@@ -875,7 +1219,8 @@ class _CoordinatorMutationTransactionController:
             _execute_accepted_work_item_cas(connection, plan.accepted_work_item_cas)
         self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
 
-        committed = self._commit_after_fresh_writes(connection, planned_transition)
+        del connection
+        committed = self._commit_after_fresh_writes(planned_transition)
         if type(committed) is not CommittedTransition:
             raise _database_integrity_failure()
         return committed
@@ -910,55 +1255,173 @@ class _CoordinatorMutationTransactionController:
             _execute_accepted_global_stop_current_cas(connection, plan.accepted_global_stop_current_cas)
         self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
 
-        committed = self._commit_after_fresh_writes(connection, planned_update)
+        del connection
+        committed = self._commit_after_fresh_writes(planned_update)
         if type(committed) is not CommittedGlobalStopUpdate:
             raise _database_integrity_failure()
         return committed
 
     def _commit_after_fresh_writes(
         self,
-        connection: sqlite3.Connection,
         planned_result: object,
     ) -> object:
         invalidation_failure = self._invalidate_capability_for_resolution()
         if invalidation_failure is not None:
             raise invalidation_failure
-        self._set_resolution_state(_MutationCommitResolutionState.CAPABILITY_INVALIDATED)
-        self._set_resolution_state(_MutationCommitResolutionState.COMMIT_ATTEMPT_STARTED)
-        self._commit_attempt_started = True
+        self._set_resolution_state(
+            _MutationCommitResolutionState.CAPABILITY_INVALIDATED
+        )
+        self._prepare_controller_scope()
+        commit_observation: object = _SQLITE_COMMIT_NOT_RETURNED
         try:
-            commit_failure = _commit_transaction(connection)
-        except Exception:
-            commit_failure = _commit_outcome_unknown()
-        if commit_failure is not None and (
-            type(commit_failure) is not SQLiteMutationStoreError
-            or commit_failure.error_class != SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN.value
-        ):
-            commit_failure = _commit_outcome_unknown()
-        self._transaction_began = False
-        if commit_failure is not None:
+            self._set_resolution_state(
+                _MutationCommitResolutionState.COMMIT_ATTEMPT_STARTED
+            )
+            self._commit_attempt_started = True
+            scope = self._connection_scope
+            if type(scope) is not _ControllerConnectionScope:
+                raise _mutation_failed()
             try:
-                self._set_resolution_state(_MutationCommitResolutionState.COMMIT_OUTCOME_UNKNOWN)
+                commit_observation = scope.commit()
+            except Exception:
+                commit_observation = _commit_outcome_unknown()
+            if commit_observation is not None:
+                try:
+                    checked_commit_error = _require_safe_mutation_store_error_payload(
+                        commit_observation
+                    )
+                    if (
+                        object.__getattribute__(
+                            checked_commit_error,
+                            "error_class",
+                        )
+                        != SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN.value
+                    ):
+                        raise ValueError("invalid commit failure")
+                    commit_observation = checked_commit_error
+                except Exception:
+                    commit_observation = _commit_outcome_unknown()
+            self._transaction_began = False
+            if commit_observation is not None:
+                try:
+                    self._set_resolution_state(
+                        _MutationCommitResolutionState.COMMIT_OUTCOME_UNKNOWN
+                    )
+                except SQLiteMutationStoreError:
+                    pass
+                self._close_after_commit_resolution(
+                    commit_succeeded=False,
+                    force_cleanup=False,
+                )
+                raise commit_observation from None
+
+            try:
+                self._set_resolution_state(
+                    _MutationCommitResolutionState.COMMIT_SUCCEEDED
+                )
             except SQLiteMutationStoreError:
-                pass
-            self._close_after_commit_resolution()
-            raise commit_failure
-
-        try:
-            self._set_resolution_state(_MutationCommitResolutionState.COMMIT_SUCCEEDED)
-        except SQLiteMutationStoreError:
-            self._close_after_commit_resolution()
+                self._close_after_commit_resolution(
+                    commit_succeeded=True,
+                    force_cleanup=False,
+                )
+                return planned_result
+            self._close_after_commit_resolution(
+                commit_succeeded=True,
+                force_cleanup=False,
+            )
             return planned_result
-        self._close_after_commit_resolution()
-        return planned_result
+        except Exception:
+            raise
+        except BaseException:
+            if not self._commit_attempt_started:
+                raise
+            self._stabilize_process_control_commit_resolution(
+                commit_succeeded=commit_observation is None,
+            )
+            raise
 
-    def _resolve_rollback_before_commit(self) -> SQLiteMutationStoreError | None:
+    def _stabilize_process_control_commit_resolution(
+        self,
+        *,
+        commit_succeeded: bool,
+    ) -> None:
+        self._transaction_began = False
+        target_state = (
+            _MutationCommitResolutionState.COMMIT_SUCCEEDED
+            if commit_succeeded
+            else _MutationCommitResolutionState.COMMIT_OUTCOME_UNKNOWN
+        )
+        try:
+            self._set_resolution_state(target_state)
+        except SQLiteMutationStoreError:
+            pass
+        scope = self._connection_scope
+        try:
+            self._close_after_commit_resolution(
+                commit_succeeded=commit_succeeded,
+                force_cleanup=True,
+            )
+            return
+        except BaseException:
+            pass
+        if type(scope) is _ControllerConnectionScope:
+            try:
+                scope.stabilize_process_control()
+                return
+            except BaseException:
+                pass
+        try:
+            self._close_after_commit_resolution(
+                commit_succeeded=commit_succeeded,
+                force_cleanup=True,
+            )
+        except BaseException:
+            if type(scope) is _ControllerConnectionScope:
+                try:
+                    scope.stabilize_process_control()
+                except BaseException:
+                    pass
+
+    def _prepare_controller_scope(self) -> _ControllerConnectionScope:
+        scope = self._connection_scope
+        if type(scope) is _ControllerConnectionScope:
+            self._connection = None
+            if not scope._resolved:
+                scope.activate()
+            return scope
+        connection = self._connection
+        if not isinstance(connection, sqlite3.Connection):
+            raise _mutation_failed()
+        scope = _ControllerConnectionScope(
+            operation_lease=self._operation_lease,
+            connection=connection,
+        )
+        try:
+            self._connection_scope = scope
+            self._connection = None
+            connection = None
+            scope.activate()
+        except BaseException:
+            if self._connection_scope is scope:
+                self._connection = None
+            raise
+        return scope
+
+    def _resolve_rollback_before_commit(
+        self,
+    ) -> SQLiteMutationStoreError | None:
         if self._commit_attempt_started:
-            self._close_after_commit_resolution()
+            self._close_after_commit_resolution(
+                commit_succeeded=False,
+                force_cleanup=True,
+            )
             return _commit_outcome_unknown()
         self._state = _CONTROLLER_RESOLVING
         cleanup_failure: SQLiteMutationStoreError | None = None
-        capability_invalidated = self._resolution_state is _MutationCommitResolutionState.CAPABILITY_INVALIDATED
+        capability_invalidated = (
+            self._resolution_state
+            is _MutationCommitResolutionState.CAPABILITY_INVALIDATED
+        )
         rollback_resolved = False
         if self._capability is not None:
             invalidation_failure = self._invalidate_capability_for_resolution()
@@ -966,37 +1429,68 @@ class _CoordinatorMutationTransactionController:
                 cleanup_failure = invalidation_failure
             else:
                 try:
-                    self._set_resolution_state(_MutationCommitResolutionState.CAPABILITY_INVALIDATED)
+                    self._set_resolution_state(
+                        _MutationCommitResolutionState.CAPABILITY_INVALIDATED
+                    )
                     capability_invalidated = True
                 except SQLiteMutationStoreError as exc:
                     cleanup_failure = exc
-        if self._transaction_began and self._connection is not None:
+
+        if self._transaction_began or self._connection is not None:
             try:
-                rollback_failure = _rollback_transaction(self._connection)
+                scope = self._prepare_controller_scope()
             except Exception:
-                rollback_failure = _mutation_failed()
-            if rollback_failure is not None:
-                cleanup_failure = rollback_failure
-            elif capability_invalidated:
+                return cleanup_failure or _mutation_failed()
+            if self._transaction_began:
                 try:
-                    self._set_resolution_state(_MutationCommitResolutionState.ROLLBACK_RESOLVED)
-                    rollback_resolved = True
-                except SQLiteMutationStoreError as exc:
-                    cleanup_failure = exc
+                    rollback_failure = scope.rollback()
+                except Exception:
+                    rollback_failure = _mutation_failed()
+                except BaseException:
+                    try:
+                        scope.close_before_commit()
+                    except BaseException:
+                        pass
+                    self._transaction_began = False
+                    raise
+                if rollback_failure is not None:
+                    cleanup_failure = rollback_failure
+                elif capability_invalidated:
+                    try:
+                        self._set_resolution_state(
+                            _MutationCommitResolutionState.ROLLBACK_RESOLVED
+                        )
+                        rollback_resolved = True
+                    except SQLiteMutationStoreError as exc:
+                        cleanup_failure = exc
             self._transaction_began = False
-        if self._connection is not None:
             try:
-                close_failure = _close_connection(self._connection)
+                close_proved = scope.close_before_commit()
             except Exception:
-                close_failure = _mutation_failed()
-            if close_failure is not None:
-                cleanup_failure = close_failure
-            elif rollback_resolved:
-                try:
-                    self._set_resolution_state(_MutationCommitResolutionState.CLOSED)
-                except SQLiteMutationStoreError as exc:
-                    cleanup_failure = exc
-            self._connection = None
+                close_proved = False
+                cleanup_failure = cleanup_failure or _mutation_failed()
+            if close_proved:
+                self._connection_scope = None
+                if rollback_resolved:
+                    try:
+                        self._set_resolution_state(
+                            _MutationCommitResolutionState.CLOSED
+                        )
+                    except SQLiteMutationStoreError as exc:
+                        cleanup_failure = cleanup_failure or exc
+            else:
+                self._connection_scope = None
+                cleanup_failure = cleanup_failure or _mutation_failed()
+        elif self._connection_scope is not None:
+            scope = self._connection_scope
+            try:
+                close_proved = scope.close_before_commit()
+            except Exception:
+                close_proved = False
+            self._connection_scope = None
+            if not close_proved:
+                cleanup_failure = cleanup_failure or _mutation_failed()
+        self._connection = None
         self._state = _CONTROLLER_CLOSED
         return cleanup_failure
 
@@ -1017,23 +1511,51 @@ class _CoordinatorMutationTransactionController:
         self._epoch = None
         return invalidation_failure
 
-    def _close_after_commit_resolution(self) -> None:
-        close_succeeded = False
-        if self._connection is not None:
+    def _close_after_commit_resolution(
+        self,
+        *,
+        commit_succeeded: bool,
+        force_cleanup: bool,
+    ) -> None:
+        scope = self._connection_scope
+        if type(scope) is not _ControllerConnectionScope:
+            raise _mutation_failed()
+        try:
             try:
-                close_failure = _close_connection(self._connection)
+                close_proved = scope.close_after_commit(
+                    commit_succeeded=commit_succeeded,
+                    force_cleanup=force_cleanup,
+                )
             except Exception:
-                close_failure = _mutation_failed()
-            close_succeeded = close_failure is None
-            self._connection = None
-        self._transaction_began = False
-        self._state = _CONTROLLER_CLOSED
-        if close_succeeded:
+                close_proved = scope.close_after_commit(
+                    commit_succeeded=commit_succeeded,
+                    force_cleanup=force_cleanup,
+                )
+        finally:
+            if scope._resolved:
+                close_proved = scope._close_proved
+                if close_proved:
+                    if force_cleanup:
+                        self._state = (
+                            _CONTROLLER_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING
+                            if commit_succeeded
+                            else _CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING
+                        )
+                    else:
+                        self._state = _CONTROLLER_CLOSED
+                else:
+                    self._state = (
+                        _CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED
+                        if commit_succeeded
+                        else _CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED
+                    )
+        if close_proved:
             try:
-                self._set_resolution_state(_MutationCommitResolutionState.CLOSED)
+                self._set_resolution_state(
+                    _MutationCommitResolutionState.CLOSED
+                )
             except SQLiteMutationStoreError:
                 pass
-
     def _set_resolution_state(self, state: _MutationCommitResolutionState) -> None:
         current_state = self._resolution_state
         if type(current_state) is not _MutationCommitResolutionState:
@@ -1077,15 +1599,32 @@ def _run_atomic_transition_apply(
     *,
     operation_lease: _WriterSessionOperationLease,
     transition_command: TransitionCommand,
-) -> TransitionApplyOutcome:
+) -> TransitionApplyOutcome | _SafeMutationFailureDisposition:
     if type(operation_lease) is not _WriterSessionOperationLease:
-        raise _mutation_failed()
-    checked_command = _validate_transition_dry_run_preflight(transition_command)
-    controller = _CoordinatorMutationTransactionController(
-        key=_CONTROLLER_CONSTRUCTION_KEY,
-        operation_lease=operation_lease,
-    )
-    return controller.run_atomic_transition_apply(transition_command=checked_command)
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        checked_command = _validate_transition_dry_run_preflight(transition_command)
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_atomic_transition_apply(transition_command=checked_command)
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        checked_command = None
+        transition_command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    checked_command = None
+    transition_command = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
 
 
 def _run_atomic_global_stop_apply(
@@ -1093,21 +1632,64 @@ def _run_atomic_global_stop_apply(
     operation_lease: _WriterSessionOperationLease,
     global_stop_command: GlobalStopCommand,
     typed_operator_decision: GlobalStopOperatorDecision,
-) -> GlobalStopApplyOutcome:
+) -> GlobalStopApplyOutcome | _SafeMutationFailureDisposition:
     if type(operation_lease) is not _WriterSessionOperationLease:
-        raise _mutation_failed()
-    preflight = _validate_global_stop_apply_preflight(
-        global_stop_command,
-        typed_operator_decision,
-    )
-    controller = _CoordinatorMutationTransactionController(
-        key=_CONTROLLER_CONSTRUCTION_KEY,
-        operation_lease=operation_lease,
-    )
-    return controller.run_atomic_global_stop_apply(
-        global_stop_command=preflight.command,
-        typed_operator_decision=preflight.typed_operator_decision,
-    )
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        preflight = _validate_global_stop_apply_preflight(
+            global_stop_command,
+            typed_operator_decision,
+        )
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_atomic_global_stop_apply(
+            global_stop_command=preflight.command,
+            typed_operator_decision=preflight.typed_operator_decision,
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        preflight = None
+        global_stop_command = None  # type: ignore[assignment]
+        typed_operator_decision = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    preflight = None
+    global_stop_command = None  # type: ignore[assignment]
+    typed_operator_decision = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _safe_mutation_failure_disposition(
+    error: SQLiteMutationStoreError,
+) -> _SafeMutationFailureDisposition:
+    try:
+        checked = _require_safe_mutation_store_error_payload(error)
+        if BaseException.with_traceback(checked, None) is not checked:
+            raise ValueError("invalid safe mutation error")
+        checked.__cause__ = None
+        checked.__context__ = None
+        return _SafeMutationFailureDisposition(checked)
+    except Exception:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+
+
+def _new_safe_mutation_failure_disposition(
+    error_code: SQLiteMutationStoreErrorCode,
+) -> _SafeMutationFailureDisposition:
+    if type(error_code) is not SQLiteMutationStoreErrorCode:
+        error_code = SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+    return _SafeMutationFailureDisposition(SQLiteMutationStoreError(error_code))
 
 
 def _utc_transaction_timestamp() -> str:
@@ -1768,13 +2350,13 @@ def _rollback_transaction(connection: sqlite3.Connection) -> SQLiteMutationStore
     return None
 
 
-def _commit_transaction(connection: sqlite3.Connection) -> SQLiteMutationStoreError | None:
+def _commit_transaction(connection: sqlite3.Connection) -> object | None:
     try:
         connection.execute("COMMIT")
     except sqlite3.Error:
-        return _commit_outcome_unknown()
+        return _SQLITE_COMMIT_FAILED
     except Exception:
-        return _commit_outcome_unknown()
+        return _SQLITE_COMMIT_FAILED
     return None
 
 

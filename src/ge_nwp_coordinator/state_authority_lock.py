@@ -7,6 +7,7 @@ writer acquisition. Holding this lock is not writer authority.
 from __future__ import annotations
 
 from _thread import allocate_lock
+from dataclasses import dataclass, replace
 from enum import Enum
 import os
 from pathlib import Path
@@ -44,7 +45,67 @@ _PRIVATE_DIR_MODE = 0o700
 _PRIVATE_FILE_MODE = 0o600
 _ACTIVE = "active"
 _CLOSING = "closing"
+_RELEASE_UNPROVED = "release_unproved"
+_RELEASE_PROVED = "release_proved"
 _CLOSED = "closed"
+_DESCRIPTOR_NOT_ATTEMPTED = "not_attempted"
+_DESCRIPTOR_RECLAIMED = "reclaimed"
+_DESCRIPTOR_RECLAMATION_UNKNOWN = "reclamation_unknown"
+
+
+@dataclass(frozen=True, slots=True)
+class _StateAuthorityLockCleanupSnapshot:
+    """One complete publication of authority-lock release and reclamation truth."""
+
+    descriptor: int
+    attempted_descriptor: int | None
+    owner_pid: int
+    state: str
+    descriptor_outcome: str
+    registry_removed: bool
+    finalizer_attempted: bool
+    retry_reachable: bool
+
+    def __post_init__(self) -> None:
+        if type(self.descriptor) is not int or type(self.owner_pid) is not int:
+            raise ValueError("invalid authority-lock state")
+        if self.attempted_descriptor is not None and (
+            type(self.attempted_descriptor) is not int or self.attempted_descriptor < 0
+        ):
+            raise ValueError("invalid authority-lock state")
+        if type(self.registry_removed) is not bool:
+            raise ValueError("invalid authority-lock state")
+        if type(self.finalizer_attempted) is not bool or type(self.retry_reachable) is not bool:
+            raise ValueError("invalid authority-lock state")
+        if self.state in {_ACTIVE, _CLOSING, _RELEASE_UNPROVED}:
+            valid = (
+                self.descriptor >= 0
+                and self.attempted_descriptor is None
+                and self.descriptor_outcome == _DESCRIPTOR_NOT_ATTEMPTED
+                and not self.registry_removed
+                and self.owner_pid >= 0
+            )
+        elif self.state == _RELEASE_PROVED:
+            if self.descriptor_outcome == _DESCRIPTOR_NOT_ATTEMPTED:
+                valid = self.descriptor >= 0 and self.attempted_descriptor is None
+            else:
+                valid = (
+                    self.descriptor == -1
+                    and self.attempted_descriptor is not None
+                    and self.descriptor_outcome
+                    in {_DESCRIPTOR_RECLAIMED, _DESCRIPTOR_RECLAMATION_UNKNOWN}
+                )
+            valid = valid and not self.registry_removed and self.owner_pid >= 0
+        elif self.state == _CLOSED:
+            valid = (
+                self.descriptor == -1
+                and self.descriptor_outcome
+                in {_DESCRIPTOR_RECLAIMED, _DESCRIPTOR_RECLAMATION_UNKNOWN}
+            )
+        else:
+            valid = False
+        if not valid:
+            raise ValueError("invalid authority-lock state")
 
 _LIFECYCLE_GATE = allocate_lock()
 _ACTIVE_LOCK_RESOURCES: dict[tuple[int, int], "_StateAuthorityLockResource"] = {}
@@ -88,8 +149,9 @@ class StateAuthorityLock:
         return self._resource.active_for_owner()
 
     def close(self) -> None:
-        if self._finalizer.alive:
-            self._finalizer()
+        self._resource.cleanup_from_owner()
+        if self._resource.cleanup_terminal and self._finalizer.alive:
+            self._finalizer.detach()
 
     def __enter__(self) -> Self:
         self._resource.require_active_for_owner()
@@ -131,12 +193,47 @@ class _StateAuthorityLockResource:
         state_root_identity: _FilesystemObjectIdentity,
         authority_lock_file_identity: _FilesystemObjectIdentity,
     ) -> None:
-        self._descriptor = descriptor
         self._identity = identity
         self._state_root_identity = state_root_identity
         self._authority_lock_file_identity = authority_lock_file_identity
-        self._owner_pid = os.getpid()
-        self._state = _ACTIVE
+        self._cleanup_snapshot = _StateAuthorityLockCleanupSnapshot(
+            descriptor=descriptor,
+            attempted_descriptor=None,
+            owner_pid=os.getpid(),
+            state=_ACTIVE,
+            descriptor_outcome=_DESCRIPTOR_NOT_ATTEMPTED,
+            registry_removed=False,
+            finalizer_attempted=False,
+            retry_reachable=True,
+        )
+
+    @property
+    def _descriptor(self) -> int:
+        return self._cleanup_snapshot.descriptor
+
+    @property
+    def _owner_pid(self) -> int:
+        return self._cleanup_snapshot.owner_pid
+
+    @property
+    def _state(self) -> str:
+        return self._cleanup_snapshot.state
+
+    @property
+    def _descriptor_outcome(self) -> str:
+        return self._cleanup_snapshot.descriptor_outcome
+
+    @property
+    def _registry_removed(self) -> bool:
+        return self._cleanup_snapshot.registry_removed
+
+    @property
+    def _finalizer_attempted(self) -> bool:
+        return self._cleanup_snapshot.finalizer_attempted
+
+    @property
+    def _retry_reachable(self) -> bool:
+        return self._cleanup_snapshot.retry_reachable
 
     @property
     def identity(self) -> tuple[int, int]:
@@ -147,6 +244,21 @@ class _StateAuthorityLockResource:
         _LIFECYCLE_GATE.acquire()
         try:
             return self._descriptor
+        finally:
+            _LIFECYCLE_GATE.release()
+
+    @property
+    def cleanup_terminal(self) -> bool:
+        _LIFECYCLE_GATE.acquire()
+        try:
+            return self._state == _CLOSED and self._registry_removed
+        finally:
+            _LIFECYCLE_GATE.release()
+
+    def cleanup_status_for_writer(self) -> tuple[str, str, bool]:
+        _LIFECYCLE_GATE.acquire()
+        try:
+            return (self._state, self._descriptor_outcome, self._registry_removed)
         finally:
             _LIFECYCLE_GATE.release()
 
@@ -198,12 +310,13 @@ class _StateAuthorityLockResource:
         _validate_state_database_authority_binding(binding)
 
     def active_in_registry(self) -> bool:
-        return self._owner_pid == os.getpid() and self._state == _ACTIVE and self._descriptor >= 0
+        return self._owner_pid == os.getpid() and not self._registry_removed
 
     def cleanup_from_owner(self) -> None:
+        self._require_owner_for_cleanup()
         _LIFECYCLE_GATE.acquire()
         try:
-            self._cleanup_locked(release_lock=True)
+            self._continue_cleanup_locked(finalizer=False)
         finally:
             _LIFECYCLE_GATE.release()
 
@@ -213,37 +326,126 @@ class _StateAuthorityLockResource:
             return
         _LIFECYCLE_GATE.acquire()
         try:
-            self._cleanup_locked(release_lock=True)
+            self._cleanup_snapshot = replace(
+                self._cleanup_snapshot,
+                finalizer_attempted=True,
+                retry_reachable=False,
+            )
+            self._continue_cleanup_locked(finalizer=True)
         finally:
             _LIFECYCLE_GATE.release()
 
     def cleanup_from_foreign_process(self) -> None:
         self._close_without_lock(release_lock=False)
 
-    def _cleanup_locked(self, *, release_lock: bool) -> None:
-        descriptor = -1
-        identity = self._identity
-        if self._state == _CLOSED and self._descriptor < 0:
-            return
-        self._state = _CLOSING
-        descriptor = self._descriptor
-        self._descriptor = -1
+    def _require_owner_for_cleanup(self) -> None:
+        if self._owner_pid != os.getpid():
+            self.cleanup_from_foreign_process()
+            raise StateAuthorityLockError(
+                StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_PROCESS_MISMATCH
+            )
 
-        try:
-            _close_resource_descriptor(descriptor, release_lock=release_lock)
-        finally:
-            _remove_active_resource(identity, self)
-            self._state = _CLOSED
+    def _continue_cleanup_locked(self, *, finalizer: bool) -> None:
+        snapshot = self._cleanup_snapshot
+        if snapshot.state == _CLOSED and snapshot.registry_removed:
+            return
+        if snapshot.state == _CLOSED:
+            _remove_active_resource(self._identity, self)
+            self._cleanup_snapshot = replace(
+                snapshot,
+                registry_removed=_ACTIVE_LOCK_RESOURCES.get(self._identity) is not self,
+            )
+            return
+        if snapshot.state in {_ACTIVE, _CLOSING, _RELEASE_UNPROVED}:
+            self._cleanup_snapshot = replace(snapshot, state=_RELEASE_UNPROVED)
+            descriptor = self._cleanup_snapshot.descriptor
+            if descriptor < 0:
+                return
+            try:
+                _unlock_authority_descriptor_with_proof(descriptor)
+            except Exception:
+                return
+            except BaseException:
+                if finalizer:
+                    return
+                raise
+            else:
+                self._cleanup_snapshot = replace(self._cleanup_snapshot, state=_RELEASE_PROVED)
+
+        snapshot = self._cleanup_snapshot
+        if snapshot.state == _RELEASE_PROVED and snapshot.descriptor_outcome == _DESCRIPTOR_NOT_ATTEMPTED:
+            descriptor = snapshot.descriptor
+            self._cleanup_snapshot = replace(
+                snapshot,
+                descriptor=-1,
+                attempted_descriptor=descriptor,
+                descriptor_outcome=_DESCRIPTOR_RECLAMATION_UNKNOWN,
+            )
+            try:
+                _reclaim_detached_descriptor_once(descriptor)
+            except Exception:
+                pass
+            except BaseException:
+                if finalizer:
+                    return
+                raise
+            else:
+                self._cleanup_snapshot = replace(
+                    self._cleanup_snapshot,
+                    descriptor_outcome=_DESCRIPTOR_RECLAIMED,
+                )
+
+        snapshot = self._cleanup_snapshot
+        if (
+            snapshot.state == _RELEASE_PROVED
+            and snapshot.descriptor_outcome
+            in {_DESCRIPTOR_RECLAIMED, _DESCRIPTOR_RECLAMATION_UNKNOWN}
+        ):
+            self._cleanup_snapshot = replace(snapshot, state=_CLOSED)
+            _remove_active_resource(self._identity, self)
+            self._cleanup_snapshot = replace(
+                self._cleanup_snapshot,
+                registry_removed=_ACTIVE_LOCK_RESOURCES.get(self._identity) is not self,
+            )
+
+    def _cleanup_locked(self, *, release_lock: bool) -> None:
+        if release_lock:
+            self._continue_cleanup_locked(finalizer=False)
+            return
+        self._close_without_lock(release_lock=False)
 
     def _close_without_lock(self, *, release_lock: bool) -> None:
-        descriptor = self._descriptor
+        snapshot = self._cleanup_snapshot
+        descriptor = snapshot.descriptor
         identity = self._identity
-        self._descriptor = -1
-        self._state = _CLOSED
-        self._owner_pid = -1
-        if _ACTIVE_LOCK_RESOURCES.get(identity) is self:
-            _ACTIVE_LOCK_RESOURCES.pop(identity, None)
-        _close_resource_descriptor(descriptor, release_lock=release_lock)
+        self._cleanup_snapshot = _StateAuthorityLockCleanupSnapshot(
+            descriptor=-1,
+            attempted_descriptor=descriptor if descriptor >= 0 else snapshot.attempted_descriptor,
+            owner_pid=-1,
+            state=_CLOSED,
+            descriptor_outcome=_DESCRIPTOR_RECLAMATION_UNKNOWN,
+            registry_removed=True,
+            finalizer_attempted=snapshot.finalizer_attempted,
+            retry_reachable=False,
+        )
+        try:
+            if _ACTIVE_LOCK_RESOURCES.get(identity) is self:
+                _ACTIVE_LOCK_RESOURCES.pop(identity, None)
+        finally:
+            _close_resource_descriptor(descriptor, release_lock=release_lock)
+
+    def _mark_closed_after_fork(self, descriptor: int) -> None:
+        snapshot = self._cleanup_snapshot
+        self._cleanup_snapshot = _StateAuthorityLockCleanupSnapshot(
+            descriptor=-1,
+            attempted_descriptor=descriptor if descriptor >= 0 else snapshot.attempted_descriptor,
+            owner_pid=-1,
+            state=_CLOSED,
+            descriptor_outcome=_DESCRIPTOR_RECLAMATION_UNKNOWN,
+            registry_removed=True,
+            finalizer_attempted=snapshot.finalizer_attempted,
+            retry_reachable=False,
+        )
 
 
 class _OwnedDescriptor:
@@ -485,11 +687,18 @@ def _close_resource_descriptor(descriptor: int, *, release_lock: bool) -> None:
     if descriptor < 0:
         return
     if release_lock:
-        try:
-            fcntl.flock(descriptor, fcntl.LOCK_UN)  # type: ignore[union-attr]
-        except OSError:
-            pass
+        _unlock_authority_descriptor_with_proof(descriptor)
     _close_raw_descriptor(descriptor)
+
+
+def _unlock_authority_descriptor_with_proof(descriptor: int) -> None:
+    fcntl.flock(descriptor, fcntl.LOCK_UN)  # type: ignore[union-attr]
+
+
+def _reclaim_detached_descriptor_once(descriptor: int) -> None:
+    if type(descriptor) is not int or descriptor < 0:
+        raise ValueError("invalid detached descriptor")
+    os.close(descriptor)
 
 
 def _close_raw_descriptor(descriptor: int) -> None:
@@ -511,9 +720,7 @@ def _close_inherited_descriptor_after_fork(descriptor: int) -> None:
 
 
 def _mark_resource_closed_after_fork(resource: _StateAuthorityLockResource, descriptor: int) -> None:
-    resource._descriptor = -1
-    resource._state = _CLOSED
-    resource._owner_pid = -1
+    resource._mark_closed_after_fork(descriptor)
     _close_inherited_descriptor_after_fork(descriptor)
 
 
@@ -541,12 +748,6 @@ def _lock_identity(descriptor: int) -> tuple[tuple[int, int], _FilesystemObjectI
 
 def _active_resource_for_locked(identity: tuple[int, int]) -> _StateAuthorityLockResource | None:
     resource = _ACTIVE_LOCK_RESOURCES.get(identity)
-    if resource is None:
-        return None
-    if not resource.active_in_registry():
-        resource._close_without_lock(release_lock=False)
-        _ACTIVE_LOCK_RESOURCES.pop(identity, None)
-        return None
     return resource
 
 
@@ -573,7 +774,7 @@ def _at_fork_before() -> None:
     _AT_FORK_SNAPSHOT = tuple(
         (resource, resource._descriptor)
         for resource in _ACTIVE_LOCK_RESOURCES.values()
-        if resource._state == _ACTIVE and resource._descriptor >= 0
+        if resource._descriptor >= 0
     )
 
 
@@ -596,7 +797,7 @@ def _at_fork_child() -> None:
 def _finalize_resource(resource: _StateAuthorityLockResource) -> None:
     try:
         resource.cleanup_from_finalizer()
-    except Exception:
+    except BaseException:
         pass
 
 

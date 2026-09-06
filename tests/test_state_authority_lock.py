@@ -43,6 +43,14 @@ def _attempt_lock(root: str, sender) -> None:
         sender.close()
 
 
+def _wait_then_attempt_lock(root: str, release_receiver, result_sender) -> None:
+    try:
+        release_receiver.recv()
+        _attempt_lock(root, result_sender)
+    finally:
+        release_receiver.close()
+
+
 def _hold_lock(root: str, ready_sender, release_receiver) -> None:
     location = CoordinatorStateLocation.from_trusted_root(Path(root))
     try:
@@ -571,6 +579,54 @@ def test_cross_process_exclusion_release_and_crash_release(tmp_path: Path) -> No
     assert location.state_authority_lock_path.exists()
 
 
+def test_cross_process_acquisition_after_kernel_unlock_can_precede_parent_h2(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = mp.get_context("fork")
+    location = _location(tmp_path / "state")
+    lock = acquire_state_authority_lock(location)
+    resource = lock._resource
+    release_receiver, release_sender = context.Pipe(duplex=False)
+    result_receiver, result_sender = context.Pipe(duplex=False)
+    process = context.Process(
+        target=_wait_then_attempt_lock,
+        args=(str(location.state_root), release_receiver, result_sender),
+    )
+    process.start()
+    release_receiver.close()
+    result_sender.close()
+    observed: list[str] = []
+
+    with monkeypatch.context() as cleanup_fault:
+        def reclaim_after_child_acquires(descriptor: int) -> None:
+            assert resource._state == lock_module._RELEASE_PROVED
+            assert resource._registry_removed is False
+            assert lock_module._ACTIVE_LOCK_RESOURCES.get(resource.identity) is resource
+            release_sender.send("kernel-unlock-observed")
+            assert result_receiver.poll(5), "child did not attempt after kernel unlock"
+            observed.append(result_receiver.recv())
+            os.close(descriptor)
+
+        cleanup_fault.setattr(
+            lock_module,
+            "_reclaim_detached_descriptor_once",
+            reclaim_after_child_acquires,
+        )
+        lock.close()
+
+    release_sender.close()
+    result_receiver.close()
+    process.join(5)
+    if process.is_alive():
+        process.terminate()
+        process.join(5)
+    assert process.exitcode == 0
+    assert observed == ["acquired"]
+    assert resource._registry_removed is True
+    assert resource.cleanup_terminal is True
+
+
 def test_at_fork_registration_and_child_callback_boundaries(monkeypatch: pytest.MonkeyPatch) -> None:
     registrations: list[dict[str, object]] = []
 
@@ -603,6 +659,170 @@ def test_at_fork_registration_and_child_callback_boundaries(monkeypatch: pytest.
     )
     assert ".acquire(" not in source
     assert "LOCK_UN" not in source
+
+
+@pytest.mark.parametrize(
+    "failure_type",
+    (RuntimeError, KeyboardInterrupt, SystemExit, GeneratorExit),
+    ids=("ordinary", "keyboard-interrupt", "system-exit", "generator-exit"),
+)
+def test_unlock_non_normal_exit_retains_exact_descriptor_and_registry_for_same_fd_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_type: type[BaseException],
+) -> None:
+    failure = failure_type("unlock-failed")
+    location = _location(tmp_path / "state")
+    lock = acquire_state_authority_lock(location)
+    resource = lock._resource
+    descriptor = lock._descriptor
+    reclamation_calls: list[int] = []
+
+    with monkeypatch.context() as fault:
+        def fail_unlock(observed: int) -> None:
+            assert observed == descriptor
+            raise failure
+
+        fault.setattr(lock_module, "_unlock_authority_descriptor_with_proof", fail_unlock)
+        fault.setattr(
+            lock_module,
+            "_reclaim_detached_descriptor_once",
+            reclamation_calls.append,
+        )
+        if isinstance(failure, Exception):
+            lock.close()
+        else:
+            with pytest.raises(BaseException) as exc_info:
+                lock.close()
+            assert exc_info.value is failure
+
+        assert resource._state == lock_module._RELEASE_UNPROVED
+        assert resource._descriptor == descriptor
+        assert resource._descriptor_outcome == lock_module._DESCRIPTOR_NOT_ATTEMPTED
+        assert lock_module._ACTIVE_LOCK_RESOURCES[resource.identity] is resource
+        assert reclamation_calls == []
+
+    lock.close()
+    assert resource._state == lock_module._CLOSED
+    assert resource._registry_removed is True
+    assert resource._descriptor == -1
+    _assert_descriptor_closed(descriptor)
+
+
+@pytest.mark.parametrize(
+    "failure_type",
+    (OSError, KeyboardInterrupt, SystemExit, GeneratorExit),
+    ids=("ordinary", "keyboard-interrupt", "system-exit", "generator-exit"),
+)
+def test_descriptor_reclamation_is_one_shot_and_never_writer_lock_release_proof(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_type: type[BaseException],
+) -> None:
+    failure = failure_type("close-failed")
+    location = _location(tmp_path / "state")
+    lock = acquire_state_authority_lock(location)
+    resource = lock._resource
+    descriptor = lock._descriptor
+    calls: list[int] = []
+
+    with monkeypatch.context() as fault:
+        def fail_reclamation(observed: int) -> None:
+            calls.append(observed)
+            assert observed == descriptor
+            assert resource._descriptor == -1
+            raise failure
+
+        fault.setattr(lock_module, "_reclaim_detached_descriptor_once", fail_reclamation)
+        if isinstance(failure, Exception):
+            lock.close()
+            assert resource._state == lock_module._CLOSED
+            assert resource._registry_removed is True
+        else:
+            with pytest.raises(BaseException) as exc_info:
+                lock.close()
+            assert exc_info.value is failure
+            assert resource._state == lock_module._RELEASE_PROVED
+            assert resource._registry_removed is False
+        assert calls == [descriptor]
+        assert resource._descriptor == -1
+        assert resource._descriptor_outcome == lock_module._DESCRIPTOR_RECLAMATION_UNKNOWN
+
+    lock.close()
+    lock.close()
+    assert calls == [descriptor]
+    assert resource._state == lock_module._CLOSED
+    assert resource._registry_removed is True
+
+
+def test_descriptor_fd_reuse_cannot_be_targeted_after_ambiguous_one_shot_close(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path / "state")
+    lock = acquire_state_authority_lock(location)
+    resource = lock._resource
+    descriptor = lock._descriptor
+    calls: list[int] = []
+    reused_descriptor = -1
+
+    def close_then_report_ambiguous(observed: int) -> None:
+        nonlocal reused_descriptor
+        calls.append(observed)
+        assert resource._descriptor == -1
+        os.close(observed)
+        reused_descriptor = os.open("/dev/null", os.O_RDONLY)
+        raise OSError("ambiguous descriptor reclamation")
+
+    with monkeypatch.context() as fault:
+        fault.setattr(
+            lock_module,
+            "_reclaim_detached_descriptor_once",
+            close_then_report_ambiguous,
+        )
+        lock.close()
+        lock.close()
+
+    try:
+        assert calls == [descriptor]
+        assert resource._descriptor == -1
+        assert resource._descriptor_outcome == lock_module._DESCRIPTOR_RECLAMATION_UNKNOWN
+        assert resource._state == lock_module._CLOSED
+        os.fstat(reused_descriptor)
+    finally:
+        if reused_descriptor >= 0:
+            os.close(reused_descriptor)
+
+
+def test_lock_finalizer_catches_baseexception_once_and_preserves_release_unproved_truth(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    location = _location(tmp_path / "state")
+    lock = acquire_state_authority_lock(location)
+    resource = lock._resource
+    reference = weakref.ref(lock)
+    calls = 0
+
+    def interrupt_unlock(descriptor: int) -> None:
+        nonlocal calls
+        calls += 1
+        raise GeneratorExit("finalizer-interrupted")
+
+    with monkeypatch.context() as fault:
+        fault.setattr(lock_module, "_unlock_authority_descriptor_with_proof", interrupt_unlock)
+        del lock
+        gc.collect()
+        gc.collect()
+        assert reference() is None
+        assert calls == 1
+        assert resource._finalizer_attempted is True
+        assert resource._retry_reachable is False
+        assert resource._state == lock_module._RELEASE_UNPROVED
+        assert resource._registry_removed is False
+
+    resource.cleanup_from_owner()
+    assert resource.cleanup_terminal is True
 
 
 def test_lock_path_os_open_calls_are_immediately_owned() -> None:

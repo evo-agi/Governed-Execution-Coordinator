@@ -11,6 +11,7 @@ import traceback
 import pytest
 
 import ge_nwp_coordinator
+import ge_nwp_coordinator.sqlite_connection as connection_module
 from b3_coherent_transition_fixture import (
     FIXTURE_TIMESTAMP,
     _transition_event_row_for_test,
@@ -30,6 +31,7 @@ from ge_nwp_coordinator.sqlite_connection import open_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
 import ge_nwp_coordinator.sqlite_mutation_transaction_contracts as mutation_contracts
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
+from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator.state_machine import (
     TransitionCommand,
     TransitionEvaluation,
@@ -44,9 +46,6 @@ from ge_nwp_coordinator.state_store import (
     WriterSessionError,
     WriterSessionFailureReason,
 )
-from test_b3c1b_rollback_only_writer_fencing import _replace_writer_row
-
-
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 TRANSACTION_MODULE_PATH = PACKAGE_DIR / "sqlite_transition_transaction.py"
@@ -60,16 +59,23 @@ PRIVATE_SENTINEL = "b3c4b-private-sentinel-do-not-leak"
 def _run_apply(fixture: object, command: TransitionCommand | None = None) -> object:
     selected = command if command is not None else fixture.command
     with fixture.writer_session._resource.operation_guard(fixture.writer_session) as operation:
-        return transaction_module._run_atomic_transition_apply(
+        result = transaction_module._run_atomic_transition_apply(
             operation_lease=operation,
             transition_command=selected,
         )
+        if type(result) is transaction_module._SafeMutationFailureDisposition:
+            error = result.error
+            result = None
+            raise error.with_traceback(None) from None
+        return result
 
 
 def _run_apply_raises(
     fixture: object,
     error_class: str,
     command: TransitionCommand | None = None,
+    *,
+    expect_cleanup_complete: bool = True,
 ) -> SQLiteMutationStoreError:
     captured_error: SQLiteMutationStoreError | None = None
     unexpected_ordinary_exception = False
@@ -86,8 +92,11 @@ def _run_apply_raises(
         pytest.fail("mutation path did not raise the expected safe error", pytrace=False)
 
     _assert_mutation_error(captured_error, error_class)
-    if fixture.writer_session._resource._mutation_slot is not None:
-        pytest.fail("mutation slot was not released safely", pytrace=False)
+    if expect_cleanup_complete:
+        if fixture.writer_session._resource._mutation_slot is not None:
+            pytest.fail("mutation slot was not released safely", pytrace=False)
+    elif fixture.writer_session._resource._mutation_slot is None:
+        pytest.fail("close-unproved custody lost its mutation slot", pytrace=False)
     return captured_error
 
 
@@ -335,6 +344,20 @@ def _delete_all_rows(fixture: object, table_name: str) -> None:
         connection.close()
 
 
+def _replace_writer_row(location: object, **updates: object) -> None:
+    assert updates
+    assignments = ", ".join(f"{column} = ?" for column in updates)
+    connection = sqlite3.connect(location.database_path)
+    try:
+        connection.execute(
+            f"UPDATE writer_ownership SET {assignments} WHERE singleton_id = 1",
+            tuple(updates.values()),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def _patch_clock(monkeypatch: pytest.MonkeyPatch, timestamp: str = FIXTURE_TIMESTAMP) -> None:
     monkeypatch.setattr(transaction_module, "_utc_transaction_timestamp", lambda: timestamp)
 
@@ -372,18 +395,22 @@ def _capture_resolution_trace(
 def _record_rollback_and_close(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     calls: list[str] = []
     original_rollback = transaction_module._rollback_transaction
-    original_close = transaction_module._close_connection
+    original_close = connection_module._RetainedSQLiteConnection._close_with_proof
 
     def rollback(connection: sqlite3.Connection) -> object:
         calls.append("rollback")
         return original_rollback(connection)
 
-    def close(connection: sqlite3.Connection) -> object:
+    def close(retained: object) -> object:
         calls.append("close")
-        return original_close(connection)
+        return original_close(retained)
 
     monkeypatch.setattr(transaction_module, "_rollback_transaction", rollback)
-    monkeypatch.setattr(transaction_module, "_close_connection", close)
+    monkeypatch.setattr(
+        connection_module._RetainedSQLiteConnection,
+        "_close_with_proof",
+        close,
+    )
     return calls
 
 
@@ -475,7 +502,9 @@ def test_resolution_state_traces_record_only_successful_milestones(
                 lambda *args: (_ for _ in ()).throw(transaction_module._mutation_failed()),
             )
 
-            _run_apply_raises(fixture, "mutation_failed")
+            with pytest.raises(SQLiteMutationStoreError) as close_exc:
+                _run_apply(fixture)
+            _assert_mutation_error(close_exc.value, "mutation_failed")
 
             assert trace == [
                 state.NEW,
@@ -535,7 +564,9 @@ def test_resolution_state_traces_record_only_successful_milestones(
                 lambda connection: transaction_module._commit_outcome_unknown(),
             )
 
-            _run_apply_raises(fixture, "commit_outcome_unknown")
+            with pytest.raises(SQLiteMutationStoreError) as exc_info:
+                _run_apply(fixture)
+            _assert_mutation_error(exc_info.value, "commit_outcome_unknown")
 
             assert trace == [
                 state.NEW,
@@ -992,32 +1023,100 @@ def test_capability_invalidation_rollback_and_close_failures_preserve_no_partial
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    with make_coherent_transition_fixture_for_test(tmp_path / "capability", ready_dependency=True) as fixture:
-        _patch_clock(monkeypatch)
-        monkeypatch.setattr(
-            transaction_module,
-            "_invalidate_sqlite_mutation_read_capability",
-            lambda *args, **kwargs: transaction_module._mutation_failed(),
-        )
+    with monkeypatch.context() as capability_patch:
+        with make_coherent_transition_fixture_for_test(
+            tmp_path / "capability",
+            ready_dependency=True,
+        ) as fixture:
+            _patch_clock(capability_patch)
+            capability_patch.setattr(
+                transaction_module,
+                "_invalidate_sqlite_mutation_read_capability",
+                lambda *args, **kwargs: transaction_module._mutation_failed(),
+            )
 
-        _run_apply_raises(fixture, "mutation_failed")
+            _run_apply_raises(fixture, "mutation_failed")
 
-        assert transition_event_count_for_test(fixture) == 0
-        assert read_back_fixture_for_test(fixture).work_item.record == fixture.work_item
+            assert transition_event_count_for_test(fixture) == 0
+            assert read_back_fixture_for_test(fixture).work_item.record == fixture.work_item
 
-    with make_coherent_transition_fixture_for_test(tmp_path / "rollback", ready_dependency=True) as fixture:
-        _patch_clock(monkeypatch)
-        monkeypatch.setattr(transaction_module, "_execute_transition_event_insert", lambda *args: (_ for _ in ()).throw(transaction_module._mutation_failed()))
-        monkeypatch.setattr(transaction_module, "_rollback_transaction", lambda connection: transaction_module._mutation_failed())
-        _run_apply_raises(fixture, "mutation_failed")
-        assert transition_event_count_for_test(fixture) == 0
+    with monkeypatch.context() as rollback_patch:
+        with make_coherent_transition_fixture_for_test(
+            tmp_path / "rollback",
+            ready_dependency=True,
+        ) as fixture:
+            _patch_clock(rollback_patch)
+            rollback_patch.setattr(
+                transaction_module,
+                "_execute_transition_event_insert",
+                lambda *args: (_ for _ in ()).throw(
+                    transaction_module._mutation_failed()
+                ),
+            )
+            rollback_patch.setattr(
+                transaction_module,
+                "_rollback_transaction",
+                lambda connection: transaction_module._mutation_failed(),
+            )
+            _run_apply_raises(fixture, "mutation_failed")
+            assert transition_event_count_for_test(fixture) == 0
 
-    with make_coherent_transition_fixture_for_test(tmp_path / "close", ready_dependency=True) as fixture:
-        _patch_clock(monkeypatch)
-        monkeypatch.setattr(transaction_module, "_read_transition_event_max_sequence", lambda capability: (_ for _ in ()).throw(transaction_module._mutation_failed()))
-        monkeypatch.setattr(transaction_module, "_close_connection", lambda connection: transaction_module._mutation_failed())
-        _run_apply_raises(fixture, "mutation_failed")
-        assert transition_event_count_for_test(fixture) == 0
+    with monkeypatch.context() as close_patch:
+        with make_coherent_transition_fixture_for_test(
+            tmp_path / "close",
+            ready_dependency=True,
+        ) as fixture:
+            _patch_clock(close_patch)
+            resource = fixture.writer_session._resource
+            captured_retained: list[object] = []
+            captured_connection: list[sqlite3.Connection] = []
+            original_close = (
+                connection_module._RetainedSQLiteConnection._close_with_proof
+            )
+            close_patch.setattr(
+                transaction_module,
+                "_read_transition_event_max_sequence",
+                lambda capability: (_ for _ in ()).throw(
+                    transaction_module._mutation_failed()
+                ),
+            )
+
+            def fail_before_close_proof(retained: object) -> object:
+                captured_retained.append(retained)
+                captured_connection.append(retained._borrow_exact_connection())
+                raise RuntimeError(PRIVATE_SENTINEL)
+
+            close_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                fail_before_close_proof,
+            )
+            _run_apply_raises(
+                fixture,
+                "mutation_failed",
+                expect_cleanup_complete=False,
+            )
+            assert transition_event_count_for_test(fixture) == 0
+            assert resource._state == "abort_close_unproved"
+            assert resource._retained_connection is captured_retained[0]
+            assert resource._retained_connection.owns_exact_connection(
+                captured_connection[0]
+            )
+            with pytest.raises(WriterSessionError) as unavailable:
+                resource.operation_guard(fixture.writer_session)
+            assert unavailable.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+
+            close_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                original_close,
+            )
+            fixture.writer_session.close()
+            assert resource._state == "closed"
+            assert resource._mutation_slot is None
+            assert resource._retained_connection is None
+            with pytest.raises(sqlite3.ProgrammingError):
+                captured_connection[0].execute("SELECT 1")
 
 
 def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
@@ -1083,7 +1182,7 @@ def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
             _patch_clock(rollback_patch)
             trace = _capture_resolution_trace(rollback_patch)
             close_calls: list[str] = []
-            original_close = transaction_module._close_connection
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
             rollback_patch.setattr(
                 transaction_module,
                 "_read_transition_event_max_sequence",
@@ -1095,11 +1194,15 @@ def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
                 lambda connection: transaction_module._mutation_failed(),
             )
 
-            def close(connection: sqlite3.Connection) -> object:
+            def close(retained: object) -> object:
                 close_calls.append("close")
-                return original_close(connection)
+                return original_close(retained)
 
-            rollback_patch.setattr(transaction_module, "_close_connection", close)
+            rollback_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close,
+            )
 
             _run_apply_raises(fixture, "mutation_failed")
 
@@ -1118,20 +1221,30 @@ def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
         with make_coherent_transition_fixture_for_test(tmp_path / "close-failure", ready_dependency=True) as fixture:
             _patch_clock(close_patch)
             trace = _capture_resolution_trace(close_patch)
-            original_close = transaction_module._close_connection
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
+            close_attempts = 0
             close_patch.setattr(
                 transaction_module,
                 "_read_transition_event_max_sequence",
                 lambda capability: (_ for _ in ()).throw(transaction_module._mutation_failed()),
             )
 
-            def close_after_rollback(connection: sqlite3.Connection) -> object:
-                original_close(connection)
-                return transaction_module._mutation_failed()
+            def close_after_rollback(retained: object) -> object:
+                nonlocal close_attempts
+                close_attempts += 1
+                if close_attempts == 1:
+                    raise RuntimeError(PRIVATE_SENTINEL)
+                return original_close(retained)
 
-            close_patch.setattr(transaction_module, "_close_connection", close_after_rollback)
+            close_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close_after_rollback,
+            )
 
-            _run_apply_raises(fixture, "mutation_failed")
+            with pytest.raises(SQLiteMutationStoreError) as close_exc:
+                _run_apply(fixture)
+            _assert_mutation_error(close_exc.value, "mutation_failed")
 
             assert trace == [
                 state.NEW,
@@ -1142,6 +1255,9 @@ def test_cleanup_failures_do_not_fabricate_successful_resolution_milestones(
                 state.ROLLBACK_RESOLVED,
             ]
             assert state.CLOSED not in trace
+            assert fixture.writer_session._resource._mutation_slot is not None
+            fixture.writer_session.close()
+            assert fixture.writer_session._resource._mutation_slot is None
 
 
 def test_resolution_setter_failures_preserve_cleanup_and_commit_boundaries(
@@ -1191,13 +1307,17 @@ def test_resolution_setter_failures_preserve_cleanup_and_commit_boundaries(
                 "_rollback_transaction",
                 lambda connection: rollback_calls.append("rollback"),
             )
-            original_close = transaction_module._close_connection
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
 
-            def close(connection: sqlite3.Connection) -> object:
+            def close(retained: object) -> object:
                 close_calls.append("close")
-                return original_close(connection)
+                return original_close(retained)
 
-            success_patch.setattr(transaction_module, "_close_connection", close)
+            success_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close,
+            )
 
             result = _assert_committed(_run_apply(fixture), replayed=False)
 
@@ -1235,13 +1355,17 @@ def test_resolution_setter_failures_preserve_cleanup_and_commit_boundaries(
                 "_commit_transaction",
                 lambda connection: transaction_module._commit_outcome_unknown(),
             )
-            original_close = transaction_module._close_connection
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
 
-            def close(connection: sqlite3.Connection) -> object:
+            def close(retained: object) -> object:
                 close_calls.append("close")
-                return original_close(connection)
+                return original_close(retained)
 
-            uncertain_patch.setattr(transaction_module, "_close_connection", close)
+            uncertain_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close,
+            )
 
             _run_apply_raises(fixture, "commit_outcome_unknown")
 
@@ -1289,7 +1413,9 @@ def test_commit_uncertainty_without_underlying_commit_retries_as_fresh_apply(
         _patch_clock(monkeypatch)
         result = _assert_committed(_run_apply(fixture), replayed=False)
         assert result.event.outcome is TransitionEventOutcome.ACCEPTED
-        assert tuple(envelope.event_sequence for envelope in _transition_event_envelopes(fixture)) == (0,)
+        assert tuple(
+            envelope.event_sequence for envelope in _transition_event_envelopes(fixture)
+        ) == (0,)
 
 
 def test_commit_uncertainty_after_underlying_commit_retries_as_exact_replay(
@@ -1327,7 +1453,10 @@ def test_commit_uncertainty_after_underlying_commit_retries_as_exact_replay(
             expected_version=fixture.command.expected_version,
             key=fixture.command.idempotency_key,
         )
-        conflict = _assert_conflict(_run_apply(fixture, changed_digest), "idempotency_key_reuse_conflict")
+        conflict = _assert_conflict(
+            _run_apply(fixture, changed_digest),
+            "idempotency_key_reuse_conflict",
+        )
         assert conflict.conflict_class == "idempotency_key_reuse_conflict"
 
 
@@ -1341,39 +1470,79 @@ def test_close_failure_after_commit_success_or_uncertainty_does_not_change_resol
         with make_coherent_transition_fixture_for_test(tmp_path / "success", ready_dependency=True) as fixture:
             _patch_clock(success_patch)
             trace = _capture_resolution_trace(success_patch)
-            original_close = transaction_module._close_connection
+            exact_connection: list[sqlite3.Connection] = []
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
+            close_attempts = 0
 
-            def close_after_success(connection: sqlite3.Connection) -> object:
-                original_close(connection)
-                return transaction_module._mutation_failed()
+            def close_after_success(retained: object) -> None:
+                nonlocal close_attempts
+                close_attempts += 1
+                exact_connection.append(retained._borrow_exact_connection())
+                if close_attempts == 1:
+                    raise RuntimeError(PRIVATE_SENTINEL)
+                return original_close(retained)
 
-            success_patch.setattr(transaction_module, "_close_connection", close_after_success)
+            success_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close_after_success,
+            )
             result = _assert_committed(_run_apply(fixture), replayed=False)
             assert result.event.outcome is TransitionEventOutcome.ACCEPTED
             assert transition_event_count_for_test(fixture) == 1
             assert trace[-1] is state.COMMIT_SUCCEEDED
             assert state.CLOSED not in trace
+            resource = fixture.writer_session._resource
+            assert resource._state == "commit_succeeded_quarantined"
+            assert resource._mutation_slot is not None
+            assert resource._retained_connection.owns_exact_connection(exact_connection[0])
+            with pytest.raises(WriterSessionError) as blocked:
+                resource.operation_guard(fixture.writer_session)
+            assert blocked.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+            fixture.writer_session.close()
+            assert resource._state == "closed"
+            assert resource._mutation_slot is None
+            assert resource._retained_connection is None
 
     with monkeypatch.context() as uncertainty_patch:
         with make_coherent_transition_fixture_for_test(tmp_path / "uncertain", ready_dependency=True) as fixture:
             _patch_clock(uncertainty_patch)
             trace = _capture_resolution_trace(uncertainty_patch)
-            original_close = transaction_module._close_connection
+            exact_connection: list[sqlite3.Connection] = []
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
+            close_attempts = 0
 
-            def close_after_uncertainty(connection: sqlite3.Connection) -> object:
-                original_close(connection)
-                return transaction_module._mutation_failed()
+            def close_after_uncertainty(retained: object) -> None:
+                nonlocal close_attempts
+                close_attempts += 1
+                exact_connection.append(retained._borrow_exact_connection())
+                if close_attempts == 1:
+                    raise RuntimeError(PRIVATE_SENTINEL)
+                return original_close(retained)
 
             uncertainty_patch.setattr(
                 transaction_module,
                 "_commit_transaction",
                 lambda connection: transaction_module._commit_outcome_unknown(),
             )
-            uncertainty_patch.setattr(transaction_module, "_close_connection", close_after_uncertainty)
-            _run_apply_raises(fixture, "commit_outcome_unknown")
+            uncertainty_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close_after_uncertainty,
+            )
+            with pytest.raises(SQLiteMutationStoreError) as exc_info:
+                _run_apply(fixture)
+            _assert_mutation_error(exc_info.value, "commit_outcome_unknown")
             assert transition_event_count_for_test(fixture) == 0
             assert trace[-1] is state.COMMIT_OUTCOME_UNKNOWN
             assert state.CLOSED not in trace
+            resource = fixture.writer_session._resource
+            assert resource._state == "commit_uncertain_quarantined"
+            assert resource._mutation_slot is not None
+            assert resource._retained_connection.owns_exact_connection(exact_connection[0])
+            fixture.writer_session.close()
+            assert resource._state == "closed"
+            assert resource._mutation_slot is None
 
 
 def test_capability_is_invalidated_before_commit_and_expires_after_resolution(

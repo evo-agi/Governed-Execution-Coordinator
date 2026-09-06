@@ -12,6 +12,9 @@ import traceback
 import pytest
 
 import ge_nwp_coordinator
+import ge_nwp_coordinator.sqlite_connection as connection_module
+import ge_nwp_coordinator.sqlite_global_stop_readers as global_stop_reader_module
+import ge_nwp_coordinator.sqlite_transition_select_support as select_support_module
 from b3_coherent_transition_fixture import (
     global_stop_event_count_for_test,
     make_coherent_transition_fixture_for_test,
@@ -43,6 +46,7 @@ from ge_nwp_coordinator.persistence_contracts import (
 )
 from ge_nwp_coordinator.sqlite_connection import open_existing_sqlite_connection
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
+from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 import ge_nwp_coordinator.sqlite_mutation_transaction_contracts as mutation_contracts
 import ge_nwp_coordinator.sqlite_transition_transaction as transaction_module
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
@@ -62,6 +66,52 @@ PACKAGE_EXPORT_PATH = PACKAGE_DIR / "__init__.py"
 MIGRATION_DIR = PACKAGE_DIR / "sqlite_migrations"
 B4B_TIMESTAMP = "2026-07-22T12:00:04Z"
 PRIVATE_SENTINEL = "b4b-private-sentinel-do-not-leak"
+
+
+def _builtin_container_reaches_identity(
+    value: object,
+    prohibited: tuple[object, ...],
+) -> bool:
+    pending = [value]
+    seen: set[int] = set()
+    while pending:
+        item = pending.pop()
+        if any(item is target for target in prohibited):
+            return True
+        identity = id(item)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        if type(item) is dict:
+            pending.extend(item.keys())
+            pending.extend(item.values())
+        elif type(item) in (tuple, list, set, frozenset):
+            pending.extend(item)
+    return False
+
+
+def _builtin_container_reaches_exact_value(
+    value: object,
+    prohibited: tuple[object, ...],
+) -> bool:
+    pending = [value]
+    seen: set[int] = set()
+    while pending:
+        item = pending.pop()
+        if type(item) in (str, bytes, tuple):
+            for target in prohibited:
+                if type(item) is type(target) and item == target:
+                    return True
+        identity = id(item)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        if type(item) is dict:
+            pending.extend(item.keys())
+            pending.extend(item.values())
+        elif type(item) in (tuple, list, set, frozenset):
+            pending.extend(item)
+    return False
 
 
 def _decision(
@@ -107,11 +157,16 @@ def _run_global_stop_apply(
     decision: GlobalStopOperatorDecision,
 ) -> object:
     with fixture.writer_session._resource.operation_guard(fixture.writer_session) as operation:
-        return transaction_module._run_atomic_global_stop_apply(
+        result = transaction_module._run_atomic_global_stop_apply(
             operation_lease=operation,
             global_stop_command=command,
             typed_operator_decision=decision,
         )
+        if type(result) is transaction_module._SafeMutationFailureDisposition:
+            error = result.error
+            result = None
+            raise error.with_traceback(None) from None
+        return result
 
 
 def _run_global_stop_apply_raises(
@@ -406,6 +461,20 @@ def _rollback(connection: sqlite3.Connection) -> None:
         pass
 
 
+def _replace_writer_row(location: CoordinatorStateLocation, **updates: object) -> None:
+    assert updates
+    assignments = ", ".join(f"{column} = ?" for column in updates)
+    connection = sqlite3.connect(location.database_path)
+    try:
+        connection.execute(
+            f"UPDATE writer_ownership SET {assignments} WHERE singleton_id = 1",
+            tuple(updates.values()),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def test_private_entry_preflight_runs_before_controller_mutation_slot_sqlite_or_clock(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -493,6 +562,173 @@ def test_private_atomic_accepted_activate_commits_event_cas_and_exact_replay(
         assert replay.state == fresh.state
         assert calls == []
         assert global_stop_event_count_for_test(fixture) == 1
+
+
+def test_public_global_stop_safe_error_traceback_direct_locals_and_builtin_containers_exclude_captured_private_authority(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import ge_nwp_coordinator.sqlite_writer_session as writer_module
+
+    with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
+        decision = _decision()
+        command = _command(decision_ref=decision.decision_ref)
+        _seed_receipt(fixture, decision)
+        resource = fixture.writer_session._resource
+        authority_lock = resource._authority_lock
+        raw_failure = RuntimeError(PRIVATE_SENTINEL)
+        connections: list[sqlite3.Connection] = []
+        operations: list[object] = []
+        mutations: list[object] = []
+        controllers: list[object] = []
+        capabilities: list[object] = []
+        cursors: list[sqlite3.Cursor] = []
+        dispositions: list[object] = []
+        sql_values: list[str] = []
+        parameter_values: list[tuple[object, ...]] = []
+        target_active = False
+        original_open = transaction_module._open_controller_connection
+        original_guard = resource.operation_guard
+        original_acquire = resource._acquire_mutation_lease_for_operation
+        original_execute = global_stop_reader_module._execute_select_fetch_two
+        original_cursor_close = select_support_module._close_cursor_safely
+        original_disposition = transaction_module._safe_mutation_failure_disposition
+        original_run = (
+            transaction_module._CoordinatorMutationTransactionController
+            .run_atomic_global_stop_apply
+        )
+        target_sql = global_stop_reader_module._GLOBAL_STOP_EVENT_IDEMPOTENCY_LOOKUP_SELECT.sql
+        expected_parameters = (command.idempotency_key,)
+
+        def capture_open(binding: object) -> sqlite3.Connection:
+            connection = original_open(binding)
+            connections.append(connection)
+            return connection
+
+        def capture_guard(session: object) -> object:
+            operation = original_guard(session)
+            operations.append(operation)
+            return operation
+
+        def capture_mutation(operation: object) -> object:
+            mutation = original_acquire(operation)
+            mutations.append(mutation)
+            return mutation
+
+        def capture_controller(self: object, *args: object, **kwargs: object) -> object:
+            controllers.append(self)
+            return original_run(self, *args, **kwargs)
+
+        def capture_execute(**kwargs: object) -> object:
+            nonlocal target_active
+            if kwargs["sql"] == target_sql:
+                capabilities.extend((kwargs["capability"], kwargs["capability"]._state))
+                sql_values.append(kwargs["sql"])
+                parameter_values.append(kwargs["parameters"])
+                target_active = True
+                try:
+                    return original_execute(**kwargs)
+                finally:
+                    target_active = False
+            return original_execute(**kwargs)
+
+        def fail_target_cursor_close(cursor: object) -> object:
+            if target_active:
+                assert type(cursor) is sqlite3.Cursor
+                cursors.append(cursor)
+                cursor.close()
+                raise raw_failure
+            return original_cursor_close(cursor)
+
+        def capture_disposition(error: SQLiteMutationStoreError) -> object:
+            disposition = original_disposition(error)
+            dispositions.append(disposition)
+            return disposition
+
+        with monkeypatch.context() as fault:
+            _patch_clock(fault)
+            fault.setattr(transaction_module, "_open_controller_connection", capture_open)
+            fault.setattr(resource, "operation_guard", capture_guard)
+            fault.setattr(resource, "_acquire_mutation_lease_for_operation", capture_mutation)
+            fault.setattr(
+                transaction_module._CoordinatorMutationTransactionController,
+                "run_atomic_global_stop_apply",
+                capture_controller,
+            )
+            fault.setattr(global_stop_reader_module, "_execute_select_fetch_two", capture_execute)
+            fault.setattr(select_support_module, "_close_cursor_safely", fail_target_cursor_close)
+            fault.setattr(transaction_module, "_safe_mutation_failure_disposition", capture_disposition)
+            with pytest.raises(SQLiteMutationStoreError) as exc_info:
+                fixture.writer_session.apply_global_stop_update(command, decision)
+
+        assert exc_info.value.error_class == "mutation_failed"
+        assert sql_values == [target_sql]
+        assert parameter_values == [expected_parameters]
+        assert len(cursors) == len(connections) == len(dispositions) == 1
+        assert exc_info.value is dispositions[0].error
+        database_path = fixture.location.database_path
+        resolved_path = str(database_path.resolve())
+        prohibited = (
+            command,
+            decision,
+            resource,
+            resource._credential,
+            authority_lock,
+            raw_failure,
+            database_path,
+            resolved_path,
+            target_sql,
+            expected_parameters,
+            *expected_parameters,
+            *connections,
+            *operations,
+            *mutations,
+            *controllers,
+            *capabilities,
+            *cursors,
+        )
+        safe_values = (resolved_path, target_sql, expected_parameters, *expected_parameters)
+        inspected = 0
+        traceback_cursor = exc_info.value.__traceback__
+        while traceback_cursor is not None:
+            frame_path = Path(traceback_cursor.tb_frame.f_code.co_filename).resolve()
+            if frame_path.is_relative_to(PACKAGE_DIR.resolve()):
+                inspected += 1
+                for value in traceback_cursor.tb_frame.f_locals.values():
+                    assert not _builtin_container_reaches_identity(
+                        value,
+                        prohibited,
+                    )
+                    assert not _builtin_container_reaches_exact_value(
+                        value,
+                        safe_values,
+                    )
+                    if type(value) is str:
+                        assert PRIVATE_SENTINEL not in value
+            traceback_cursor = traceback_cursor.tb_next
+        assert inspected == 0
+        assert exc_info.value.__cause__ is None
+        assert exc_info.value.__context__ is None
+        assert not getattr(exc_info.value, "__notes__", None)
+        rendered = "\n".join(
+            (
+                str(exc_info.value),
+                repr(exc_info.value),
+                repr(exc_info.value.args),
+                repr(getattr(exc_info.value, "__notes__", None)),
+                "".join(traceback.format_exception(exc_info.value)),
+            )
+        )
+        for forbidden in (PRIVATE_SENTINEL, resolved_path, target_sql, *expected_parameters):
+            assert forbidden not in rendered
+        with pytest.raises(sqlite3.ProgrammingError):
+            cursors[0].fetchone()
+        with pytest.raises(sqlite3.ProgrammingError):
+            connections[0].execute("SELECT 1")
+        assert resource._mutation_slot is None
+        assert resource._active_operations == {}
+        fixture.writer_session.close()
+        assert resource.cleanup_complete is True
 
 
 def test_private_atomic_replace_clear_sequence_and_current_updates(
@@ -636,8 +872,6 @@ def test_expected_version_and_stale_writer_conflicts_precede_later_reads_and_wri
 
     with monkeypatch.context() as stale_patch:
         with make_coherent_transition_fixture_for_test(tmp_path / "stale") as fixture:
-            from test_b3c1b_rollback_only_writer_fencing import _replace_writer_row
-
             decision = _decision()
             command = _command(decision_ref=decision.decision_ref)
             _seed_receipt(fixture, decision)
@@ -1042,9 +1276,14 @@ def test_commit_uncertainty_retry_fresh_replay_and_changed_digest_conflict(
 
         monkeypatch.undo()
         _patch_clock(monkeypatch)
-        fresh = _assert_committed(_run_global_stop_apply(fixture, command, decision), replayed=False)
+        fresh = _assert_committed(
+            _run_global_stop_apply(fixture, command, decision),
+            replayed=False,
+        )
         assert fresh.event.outcome is GlobalStopEventOutcome.ACCEPTED
-        assert tuple(envelope.event_sequence for envelope in _global_stop_event_envelopes(fixture)) == (0,)
+        assert tuple(
+            envelope.event_sequence for envelope in _global_stop_event_envelopes(fixture)
+        ) == (0,)
 
     with make_coherent_transition_fixture_for_test(tmp_path / "after") as fixture:
         decision = _decision()
@@ -1068,7 +1307,10 @@ def test_commit_uncertainty_retry_fresh_replay_and_changed_digest_conflict(
         monkeypatch.setattr(transaction_module, "_read_global_stop_event_max_sequence", lambda *args: calls.append("max"))
         monkeypatch.setattr(transaction_module, "evaluate_global_stop_update", lambda *args: calls.append("evaluator"))
         monkeypatch.setattr(transaction_module, "_execute_global_stop_event_insert", lambda *args: calls.append("insert"))
-        replay = _assert_committed(_run_global_stop_apply(fixture, command, decision), replayed=True)
+        replay = _assert_committed(
+            _run_global_stop_apply(fixture, command, decision),
+            replayed=True,
+        )
 
         assert replay.event == committed.event
         assert replay.state == committed.replay_state
@@ -1081,7 +1323,10 @@ def test_commit_uncertainty_retry_fresh_replay_and_changed_digest_conflict(
             decision_ref=decision.decision_ref,
             stop_id="global-stop-b4b-changed",
         )
-        _assert_conflict(_run_global_stop_apply(fixture, changed, decision), "idempotency_key_reuse_conflict")
+        _assert_conflict(
+            _run_global_stop_apply(fixture, changed, decision),
+            "idempotency_key_reuse_conflict",
+        )
 
 
 def test_sql_trace_receipt_select_event_before_cas_and_no_receipt_mutation(
@@ -1249,3 +1494,45 @@ def test_crash_reacquisition_replays_committed_global_stop_update(
             assert global_stop_event_count_for_test(restarted_fixture) == 1
         finally:
             restarted.close()
+
+
+def test_global_stop_commit_success_with_close_unproved_preserves_result_and_qk_custody(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with make_coherent_transition_fixture_for_test(tmp_path) as fixture:
+        decision = _decision()
+        command = _command(decision_ref=decision.decision_ref)
+        _seed_receipt(fixture, decision)
+        exact_connections: list[sqlite3.Connection] = []
+
+        with monkeypatch.context() as fault:
+            _patch_clock(fault)
+
+            def fail_close(retained: object) -> None:
+                exact_connections.append(retained._borrow_exact_connection())
+                raise RuntimeError(PRIVATE_SENTINEL)
+
+            fault.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                fail_close,
+            )
+            result = _assert_committed(
+                _run_global_stop_apply(fixture, command, decision),
+                replayed=False,
+            )
+
+            resource = fixture.writer_session._resource
+            assert result.event.outcome is GlobalStopEventOutcome.ACCEPTED
+            assert resource._state == "commit_succeeded_quarantined"
+            assert resource._mutation_slot is not None
+            assert resource._retained_connection.owns_exact_connection(
+                exact_connections[0]
+            )
+            assert global_stop_event_count_for_test(fixture) == 1
+
+        fixture.writer_session.close()
+        assert resource._state == "closed"
+        assert resource._mutation_slot is None
+        assert resource._retained_connection is None

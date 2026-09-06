@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import inspect
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 import pytest
 
 import ge_nwp_coordinator
+import ge_nwp_coordinator.sqlite_connection as connection_module
 from b3_coherent_transition_fixture import (
     FIXTURE_TIMESTAMP,
     _replace_work_item_lease_for_test,
@@ -64,6 +66,8 @@ def _run_dry_run_raises(
     fixture: object,
     error_class: str,
     command: TransitionCommand | None = None,
+    *,
+    expect_cleanup_complete: bool = True,
 ) -> SQLiteMutationStoreError:
     selected = command if command is not None else fixture.command
     with fixture.writer_session._resource.operation_guard(fixture.writer_session) as operation:
@@ -73,7 +77,10 @@ def _run_dry_run_raises(
                 transition_command=selected,
             )
     _assert_mutation_error(exc_info.value, error_class)
-    assert fixture.writer_session._resource._mutation_slot is None
+    if expect_cleanup_complete:
+        assert fixture.writer_session._resource._mutation_slot is None
+    else:
+        assert fixture.writer_session._resource._mutation_slot is not None
     return exc_info.value
 
 
@@ -650,7 +657,8 @@ def test_result_cleanup_precedence_slot_release_and_capability_expiration(
             original_create = transaction_module._create_sqlite_mutation_read_capability
             original_invalidate = transaction_module._invalidate_sqlite_mutation_read_capability
             original_rollback = transaction_module._rollback_transaction
-            original_close = transaction_module._close_connection
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
+            close_proofs: list[object] = []
 
             def create(**kwargs: object) -> object:
                 capability = original_create(**kwargs)
@@ -666,21 +674,31 @@ def test_result_cleanup_precedence_slot_release_and_capability_expiration(
                 events.append("rollback")
                 return original_rollback(connection)
 
-            def close(connection: sqlite3.Connection) -> object:
+            def close(retained: object) -> object:
                 events.append("close")
-                return original_close(connection)
+                proof = original_close(retained)
+                close_proofs.append(proof)
+                return proof
 
             lifecycle_patch.setattr(transaction_module, "_create_sqlite_mutation_read_capability", create)
             lifecycle_patch.setattr(transaction_module, "_invalidate_sqlite_mutation_read_capability", invalidate)
             lifecycle_patch.setattr(transaction_module, "_rollback_transaction", rollback)
-            lifecycle_patch.setattr(transaction_module, "_close_connection", close)
+            lifecycle_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                close,
+            )
 
             result = _run_dry_run(fixture)
             events.append("returned")
 
             assert result.kind is _RollbackOnlyTransitionDryRunResultKind.ACCEPTED_EVALUATION_NOT_PERSISTED
             assert events == ["capability-created", "invalidate", "rollback", "close", "returned"]
+            assert len(close_proofs) == 1
+            assert type(close_proofs[0]) is connection_module._SQLiteConnectionCloseProof
             assert fixture.writer_session._resource._mutation_slot is None
+            assert fixture.writer_session._resource._retained_connection is None
+            assert fixture.writer_session._resource._state == writer_module._ACTIVE
 
     with make_coherent_transition_fixture_for_test(tmp_path / "expired", ready_dependency=True) as fixture:
         _patch_clock(monkeypatch)
@@ -703,15 +721,123 @@ def test_rollback_and_close_failures_supersede_planned_results(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    with make_coherent_transition_fixture_for_test(tmp_path / "rollback", ready_dependency=True) as fixture:
-        _patch_clock(monkeypatch)
-        monkeypatch.setattr(transaction_module, "_rollback_transaction", lambda connection: transaction_module._mutation_failed())
-        _run_dry_run_raises(fixture, "mutation_failed")
+    with monkeypatch.context() as rollback_patch:
+        with make_coherent_transition_fixture_for_test(
+            tmp_path / "rollback",
+            ready_dependency=True,
+        ) as fixture:
+            _patch_clock(rollback_patch)
+            rollback_patch.setattr(
+                transaction_module,
+                "_rollback_transaction",
+                lambda connection: transaction_module._mutation_failed(),
+            )
+            _run_dry_run_raises(fixture, "mutation_failed")
 
-    with make_coherent_transition_fixture_for_test(tmp_path / "close", ready_dependency=True) as fixture:
+    with monkeypatch.context() as close_patch:
+        with make_coherent_transition_fixture_for_test(
+            tmp_path / "close",
+            ready_dependency=True,
+        ) as fixture:
+            _patch_clock(close_patch)
+            resource = fixture.writer_session._resource
+            before = _state_counts(fixture.location)
+            original_close = connection_module._RetainedSQLiteConnection._close_with_proof
+            captured_retained: list[object] = []
+            captured_connection: list[sqlite3.Connection] = []
+
+            def fail_before_close_proof(retained: object) -> object:
+                captured_retained.append(retained)
+                captured_connection.append(retained._borrow_exact_connection())
+                raise RuntimeError("private B3c3 close fault")
+
+            close_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                fail_before_close_proof,
+            )
+            _run_dry_run_raises(
+                fixture,
+                "mutation_failed",
+                expect_cleanup_complete=False,
+            )
+
+            assert _state_counts(fixture.location) == before
+            assert len(captured_retained) == 1
+            assert len(captured_connection) == 1
+            assert resource._state == writer_module._ABORT_CLOSE_UNPROVED
+            assert resource._retained_connection is captured_retained[0]
+            assert resource._retained_connection.owns_exact_connection(
+                captured_connection[0]
+            )
+            assert resource._mutation_slot is not None
+            assert fixture.writer_session.active is False
+            with pytest.raises(WriterSessionError) as unavailable:
+                resource.operation_guard(fixture.writer_session)
+            assert unavailable.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+
+            close_patch.setattr(
+                connection_module._RetainedSQLiteConnection,
+                "_close_with_proof",
+                original_close,
+            )
+            fixture.writer_session.close()
+            assert resource._state == writer_module._CLOSED
+            assert resource._mutation_slot is None
+            assert resource._retained_connection is None
+            with pytest.raises(sqlite3.ProgrammingError):
+                captured_connection[0].execute("SELECT 1")
+
+
+def test_b3c3_proof_close_does_not_depend_on_legacy_transaction_close_helper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_source = Path(__file__).read_text(encoding="utf-8")
+    test_tree = ast.parse(test_source)
+    transaction_source = TRANSACTION_MODULE_PATH.read_text(encoding="utf-8")
+    proof_source = inspect.getsource(
+        connection_module._RetainedSQLiteConnection._close_with_proof
+    )
+    assert not any(
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "transaction_module"
+        and node.attr == "_close_connection"
+        for node in ast.walk(test_tree)
+    )
+    assert "retained_connection._close_with_proof()" in transaction_source
+    assert "sqlite3.Connection.close(exact_connection)" in proof_source
+    assert tuple(
+        inspect.signature(
+            connection_module._RetainedSQLiteConnection._close_with_proof
+        ).parameters
+    ) == ("self",)
+
+    with make_coherent_transition_fixture_for_test(
+        tmp_path,
+        ready_dependency=True,
+    ) as fixture:
         _patch_clock(monkeypatch)
-        monkeypatch.setattr(transaction_module, "_close_connection", lambda connection: transaction_module._mutation_failed())
-        _run_dry_run_raises(fixture, "mutation_failed")
+        proof_calls = 0
+        original_proof_owner = (
+            connection_module._RetainedSQLiteConnection._close_with_proof
+        )
+
+        def observe_real_proof_owner(retained: object) -> object:
+            nonlocal proof_calls
+            proof_calls += 1
+            return original_proof_owner(retained)
+
+        monkeypatch.setattr(
+            connection_module._RetainedSQLiteConnection,
+            "_close_with_proof",
+            observe_real_proof_owner,
+        )
+        result = _run_dry_run(fixture)
+        assert result.kind is _RollbackOnlyTransitionDryRunResultKind.ACCEPTED_EVALUATION_NOT_PERSISTED
+        assert proof_calls == 1
+        assert fixture.writer_session._resource._mutation_slot is None
 
 
 def test_capability_wrong_thread_and_fork_fail_closed_after_capture(

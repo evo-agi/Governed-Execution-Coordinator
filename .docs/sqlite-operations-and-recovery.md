@@ -12,6 +12,223 @@ and B4c adds guarded public global-stop delegation. Receipt provisioning remains
 separate, and no worker, service, scheduler, orchestration, publication, or
 cross-repository authority exists.
 
+C2B Pre-I/O VS1A adds private interruption-safe cleanup continuation without
+changing the commit-resolution vocabulary or retry contract. The controller
+constructs the sole active connection scope before resource publication. The
+resource acknowledges that exact scope token before COMMIT. After close, the
+controller supplies immutable facts only. Under the existing writer-resource
+lock, the resource observes current disposal posture, merges cleanup-wins
+policy, selects the actual successor, and publishes it through one lifecycle-
+state assignment. Controller aliases clear only after the exact publication
+acknowledgment; scope use is already invalid after assignment. `QK` preserves
+known commit success and `QU` preserves uncertainty; both retain the exact
+unproved connection and slot and reject new operations.
+
+Normal return from `close()` on the exact retained connection is the only C1/C2
+proof. An ordinary failure or process-control interruption creates no proof and
+permits a later close of that same object; no close occurs after C2. There is no
+`in_transaction`, `ProgrammingError`, exception-message, SQL, reopen, or
+reconstruction proof path. Exact closed variants prevent connection/proof
+co-custody, and finite structural cursors carry only custody still valid at the
+next R/L/H/T milestone. The retained-custody owner directly calls the exact
+base SQLite close; the generic transaction cleanup helper is not a proof owner
+and no successful callback can mint proof.
+
+Resume-if-close-proved-and-still-eligible and cleanup-required are monotonic
+pre-close policies, not results. Field-free `ResumeActive` exists only after
+proof. Explicit disposal or orphan cleanup before publication strengthens the
+policy; disposal after proof publication atomically converts resumption to
+proof-backed cleanup. Exact `KeyboardInterrupt`, `SystemExit`, and
+`GeneratorExit` preserve identity through the complete operation body,
+mutation cleanup, exact mutation release, and operation-completion interval.
+The lifecycle state owns one immutable admission record per operation. It
+copies the resource identity, operation number, PID, thread, and epoch and owns
+the exact lease weak reference, finalizer identity, cleanup posture, phase, and
+condition-created acknowledgments. Mutable handle-side binding fields are
+non-authoritative compatibility observations.
+
+Phase 1 records exact mutation release and retirement preparation under the
+resource condition, retains the record, and blocks admission. Defensive release
+is limited to the exact slot in plain mutation-active/closing states and does
+not replace the controller close-proved release owner. A sole cleanup blocker
+uses the existing cleanup claim and stays represented through credential/lock
+cleanup. Normal retirement is owned only by the live lease named by the record.
+Under the same condition, it validates the exact admitted record, records local
+terminality, invokes the exact bound finalizer's `detach()`, and records
+`EXPLICIT_RETIRED` only from that call's exact successful return. Finalizer
+death, `.alive == False`, weak-reference clearing, GC, object loss, or a
+caller-built acknowledgment is not retirement proof.
+
+Finalizer execution, direct invocation, or lease loss before
+`EXPLICIT_RETIRED` marks the operation orphaned and cleanup-required. It keeps
+admission frozen and uses existing cleanup continuation, which can remove the
+orphan and reach X but cannot restore Active. Lease loss afterward adds no
+authority: only the already-recorded explicit phase can finish normal
+publication, otherwise current cleanup wins. Phase 2 rechecks the exact
+resource record and performs one final lifecycle-state assignment. That
+assignment, not Python method return, is the completion linearization point.
+Transition and global-stop apply are the two vulnerable retained-lease callers.
+Each now has an outer process-control envelope that creates one private
+immutable exact-object invocation-correlation token before its nested operation-
+guard helper can admit. Admission validates the token's exact resource, PID,
+and epoch and binds it through the exact handle owned by the immutable resource
+record in the same condition-protected lifecycle assignment that publishes the
+record. The envelope never derives correlation from the returned lease or a
+post-return handle store and receives compiler-cleanup, `__exit__`, and
+`_close()` escapes, including their first traceable opcodes. Neither internal
+method claims protection of its own first opcode. Before poison, the stabilizer
+checks only the token's exact type, directly stored resource identity, and the
+resource's direct fork-invalid owner-PID sentinel, acquires the resource
+condition, directly inspects the current exact lifecycle-
+state type and exact immutable record tuple, and recognizes the record through
+direct frozen/slotted fields and token-object identity. It reads no lifecycle
+property and calls no project or policy helper. A single exact current match is
+followed immediately by direct poison assignment. Only afterward may
+`_state_authority` derive authority and validate PID, epoch, resource,
+correlation, record, and handle consistency; every such failure keeps poison
+set. Absence proves neither no admission nor final assignment and does not
+poison. Classification, detailed record replacement, successor construction,
+and notification occur only after poison and cannot reset it. Controller
+resolution with `_CleanupRequiredAfterResolution` is represented cleanup-owned.
+The one-way payload-free poison blocks operation and mutation admission and
+prevents an admitting successor while bounded cleanup proceeds toward X.
+
+After stabilization, a bounded cycle-aware sanitizer clears traceback fields
+in the supported graph: `BaseException` base traceback, cause, context, args,
+and base instance dictionary; `BaseExceptionGroup` base children; and
+`BaseException` values recursively reached through exact built-in `tuple`,
+`list`, `dict`, `set`, and `frozenset` containers. Bound base-class descriptors
+and exact built-in operations avoid normal exception-field dispatch; subclass
+dynamic descriptors, arbitrary subclass slots, arbitrary user-object
+attributes, and custom container iteration are excluded. Each exception's base
+traceback is cleared before its other base fields are read, while identity,
+args, `SystemExit.code`, cause/context and group-child identities, suppression,
+notes, and instance-dictionary content remain unchanged. One ordinary primary-
+traversal or call-boundary failure is contained and followed by one independently
+bound non-dispatching fallback, so it cannot replace the original bare-reraised
+exception. Repeated asynchronous interruption, catastrophic allocation failure,
+and unsupported private mutation of bound defaults or C-level descriptors are
+outside the guarantee. The separate mutation-
+usability operation guard remains fail-closed without this envelope or poison:
+its unbound compiler-boundary lease reaches X by existing finalizer cleanup, and
+its reachable exit boundaries publish non-admitting preparation. Wrong-PID and
+fork-child authority remain unchanged. No local or resource authority mutation
+follows the final assignment on the normal path.
+
+An operation completion handle, lease, finalizer, lease-loss callback, and
+immutable resource record exist before active publication, so every
+construction/publication interruption can unwind the exact values. After exact
+successful detachment and resource-recorded `EXPLICIT_RETIRED`, but before the
+final assignment, the live explicit close path may retry. If it disappears, the
+lease-loss callback may finish only from that already-recorded phase; the
+retained wrapper, explicit resource close, and session finalizer remain cleanup
+callers, not sources of normal-retirement proof. After assignment, internal
+retirement observes record absence
+without reauthorizing publication; existing transition/global-stop replay is
+semantic response-loss recovery and no completion registry exists. Cleanup
+ownership is the exact live `threading.Thread` object,
+not its recyclable integer identifier. A dead owner permits explicit takeover
+with a new token and epoch; another live Thread or process cannot steal it.
+Authority/operations, mutation slot, resolution token, custody/proof, cleanup
+cursor, cleanup claim, binding/lock, and terminal state each have one structural
+owner. One private opaque resource identity is allocated per writer resource and
+is carried by authority/activity, every operation and slot/frame, controller
+token, retained connection/custody/proof, every cleanup cursor, and cleanup
+claim. Every coherence comparison uses `is`; PID, epoch, operation number, or
+value equality cannot authorize cross-wired values. The identity is neither
+persistent nor public and has no global registry.
+Coordinator safe errors are exposed only after sensitive transaction bindings
+are cleared. The sensitive frame returns a private disposition carrying the one
+exact content-free store-error object. Through each genuine bound public
+operation guard, the outer boundary catches that same object, validates its safe
+shape, applies the same supported base-storage sanitizer and one-ordinary-
+failure containment, and bare-reraises it by identity without process-control
+poisoning; malformed, subclassed, or content-bearing candidates fail closed.
+Governing process-control exceptions do not enter that disposition and retain
+exact identity. B4b's accepted one-byte contract replacement requires zero
+Coordinator traceback frames and remains unchanged. The candidate remains
+unstaged and has not been committed, pushed, or published; a fresh independent
+audit remains pending.
+
+After closure proof, R1 revokes credential authority, R2 clears the exact
+resource-owned mutation slot, and R3 releases the database binding. The old
+resource remains non-admitting after R2 because P0 froze its lifecycle. L1
+normal unlock return proves release; H2 then removes the exact authority-lock
+registry entry and permits a same-process writer even if T1 has not yet
+published old-session X. C2B3 initialization recovery/replay and cleanup
+continuation governed by Section 35 remain blocked until the affected resource
+reaches T1/X. Existing transition and global-stop idempotency/replay remain
+governed by their existing contracts. After normal transaction-connection close
+with no pending explicit disposal or orphan cleanup, the same wrapper becomes active only after operation
+and mutation release; a later explicit call uses a new operation lease and
+fresh connection for fresh apply or exact replay. No original call retries
+automatically. A lost response after operation linearization uses the same
+fresh/replay/conflict semantics; transition and global-stop selectors prove no
+duplicate durable effect. QU/QK, disposal-pending, orphan-cleanup, and governing
+process-control postures remain non-reusable. The future C2B3 initialization
+rule remains separately X-gated and is not generalized to existing replay. H3
+is post-X housekeeping.
+
+The post-R2 race is fixed by a deterministic real-session selector: after exact
+mutation release and before exact operation completion, disposal makes proof-
+backed cleanup current, preserves the outstanding operation until completion,
+rejects new operations, and permits explicit cleanup to reach X without an
+intermediate Active state. Direct runtime selectors cover all three governing
+process-control classes before local terminality, before exact detach, after
+detach but before final assignment, and after assignment for resume and cleanup
+successors. Lease-loss and wrapper-loss phase matrices exercise both sides of
+the stored `EXPLICIT_RETIRED` boundary. The shared-foundation test owns distinct
+production-causal runtime, compiled complete-module source-mutant, and secondary
+AST/source-guard evidence classes. One literal tuple there is the sole focused-
+selector inventory; report counts are computed from its node IDs. Every source
+mutant uses an external copy and leaves the live repository unchanged. The two
+direct-finalizer counterfactuals assert reachability at the real orphan-mark and
+cleanup-successor seams. Exact commands, mutable node and warning totals,
+overlaps, and validation-group file inventories are report evidence rather than
+architecture. No noncausal, duplicate, or unreached seam receives causal credit.
+
+The B3c1a contract-projection test retains its existing node ID and replaces
+only the obsolete post-GC Active expectation: loss before `EXPLICIT_RETIRED`
+becomes `ORPHANED`, non-admitting, cleanup-owned, and eventually X. The B3c1b
+test-file delta is test-resource hygiene only: directly test-owned
+connections close explicitly after their preserved transaction boundary, and
+fault-injection setup and immediately installed ledgers close exact locally
+owned or retained connections on every assertion, mismatch, or setup exit. It
+changes no rollback-only fencing, error precedence, mutation-slot behavior, or
+safe-error vocabulary and uses no warning suppression. Transition and global-
+stop privacy probes use separate real cursor-producing idempotency SELECT
+faults, really close the exact built-in cursor, and cover cursor, database path,
+resolved path, SQL, and parameters by identity and exact value while preserving
+the exact outward safe error.
+
+The B3c3 test delta is a private rollback-only regression adaptation to the
+selected close-proof owner, with no B3c3 result, durability, public, or
+authority widening. It observes the sealed retained-custody proof owner rather
+than patching the generic close helper, preserves rollback-only ordering and no
+COMMIT, and retains close-unproved custody until explicit cleanup. The unchanged
+B2b issue is pre-existing HEAD-exact test-resource hygiene, strict warning-
+promotion debt, not repaired by VS1A, and not VS1A authority or semantic
+behavior. The final candidate scope is exactly twenty-two dirty paths:
+twenty-one tracked modifications, the sole untracked shared-foundation test, and
+zero staged paths. It includes the intentional B3c1a contract replacement in
+`tests/test_b3c1a_writer_session_authority.py` and the accepted B4b zero-
+Coordinator-frame privacy contract replacement in
+`tests/test_b4b_private_atomic_global_stop_persistence.py`; fresh independent
+audit remains pending. These scope counts are report-only observations bound
+to the exact candidate provenance, not architectural invariants.
+
+Writer-lock release is proved only by normal return from the real
+`fcntl.flock(exact_retained_fd, LOCK_UN)` call. Descriptor reclamation is a
+separate one-shot step: the descriptor number is detached before close and the
+attempt is consumed as reclamation-unknown before close. Normal return
+publishes reclaimed; every non-normal outcome remains unknown and is never
+retried by number. A reachable wrapper may resume an unproved lock release, but
+a finalizer performs only one bounded, quiet attempt and supplies no hidden
+recovery loop. Operators must not infer that descriptor close, garbage
+collection, or registry disappearance proves transaction or lock outcome. A
+cross-process writer may acquire after the kernel applies unlock before H2,
+T1, X, or public close return; these facts are not atomic.
+
 The current migration application generation is 2, the terminal catalog is
 exactly `0002_development_program_and_effect_state`, and production migration
 resources are exactly `0001_initial.sql` and

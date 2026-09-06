@@ -17,7 +17,7 @@ import weakref
 
 import pytest
 
-import ge_nwp_coordinator
+import ge_nwp_coordinator, ge_nwp_coordinator.sqlite_connection as connection_module
 import ge_nwp_coordinator.sqlite_migration as migration_module
 import ge_nwp_coordinator.sqlite_writer_session as writer_module
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
@@ -137,6 +137,24 @@ def _writer_generation(location: CoordinatorStateLocation) -> int:
 
 def _operation_count(resource) -> int:
     return len(resource._active_operations)
+
+
+def _publish_commit_known_unproved(operation, retained):
+    scope_token = writer_module._ControllerScopeToken(
+        retained,
+        operation._completion_handle,
+    )
+    acknowledgment = operation._activate_controller_scope(
+        scope_token=scope_token,
+    )
+    publication = operation._publish_controller_resolution(
+        acknowledgment=acknowledgment,
+        facts=writer_module._ControllerCloseUnprovedFacts(
+            writer_module._ControllerResolutionIntent.COMMIT_KNOWN,
+            retained,
+        ),
+    )
+    return publication.successor
 
 
 def _insert_writer_row(
@@ -1671,6 +1689,47 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
 
 
+def test_quarantined_resource_keeps_exact_slot_through_mutation_and_operation_unwind(
+    tmp_path: Path,
+) -> None:
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    operation = resource.operation_guard(session)
+    mutation_lease = operation._acquire_mutation_lease()
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    retained = connection_module._make_retained_sqlite_connection(
+        connection, operation._completion_handle.resource_identity
+    )
+
+    successor = _publish_commit_known_unproved(operation, retained)
+    assert type(successor) is writer_module._WriterSessionCommitKnownUnproved
+    slot = resource._mutation_slot
+    assert slot is not None
+    mutation_lease._close()
+    operation._close()
+
+    assert resource._state == writer_module._COMMIT_SUCCEEDED_QUARANTINED
+    assert resource._mutation_slot is slot
+    assert resource._retained_connection is retained
+    assert retained.owns_exact_connection(connection) is True
+    assert _operation_count(resource) == 0
+    with pytest.raises(WriterSessionError) as blocked_operation:
+        resource.operation_guard(session)
+    assert blocked_operation.value.reason is WriterSessionFailureReason.WRITER_SESSION_CLOSED
+    with pytest.raises(StateAuthorityLockError) as blocked_writer:
+        acquire_sqlite_writer_session(location)
+    assert blocked_writer.value.reason is StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY
+
+    session.close()
+    assert resource._state == writer_module._CLOSED
+    assert type(resource._lifecycle_state) is writer_module._WriterSessionTerminalX
+    assert resource._mutation_slot is None
+    assert resource._retained_connection is None
+    assert _run_writer_attempt(location) == "acquired:2"
+
+
 def test_operation_guard_credential_and_proof_are_not_public_projection_surfaces(tmp_path: Path) -> None:
     location = _location(tmp_path)
     initialize_database(location)
@@ -1688,3 +1747,69 @@ def test_operation_guard_credential_and_proof_are_not_public_projection_surfaces
     finally:
         lease._close()
         session.close()
+
+
+def test_fork_child_quarantined_custody_is_non_authoritative_and_parent_remains_exact(
+    tmp_path: Path,
+) -> None:
+    if not hasattr(os, "fork"):
+        pytest.skip("fork is not available")
+    location = _location(tmp_path)
+    initialize_database(location)
+    session = acquire_sqlite_writer_session(location)
+    resource = session._resource
+    operation = resource.operation_guard(session)
+    mutation_lease = operation._acquire_mutation_lease()
+    connection = sqlite3.connect(":memory:", isolation_level=None)
+    retained = connection_module._make_retained_sqlite_connection(
+        connection, operation._completion_handle.resource_identity
+    )
+    successor = _publish_commit_known_unproved(operation, retained)
+    assert type(successor) is writer_module._WriterSessionCommitKnownUnproved
+    slot = resource._mutation_slot
+    mutation_lease._close()
+    operation._close()
+
+    read_fd, write_fd = os.pipe()
+    child_pid = os.fork()
+    if child_pid == 0:
+        os.close(read_fd)
+        try:
+            try:
+                resource.operation_guard(session)
+            except WriterSessionError as exc:
+                operation_result = exc.reason.value
+            else:
+                operation_result = "unexpected-active"
+            child_result = ":".join(
+                (
+                    resource._state,
+                    str(resource._mutation_slot is None),
+                    str(resource._retained_connection is None),
+                    str(retained.owns_exact_connection(connection)),
+                    str(writer_module._ACTIVE_SESSION_RESOURCES == {}),
+                    operation_result,
+                )
+            )
+            os.write(write_fd, child_result.encode("ascii"))
+        finally:
+            os.close(write_fd)
+            os._exit(0)
+
+    os.close(write_fd)
+    try:
+        child_result = _wait_for_child_result(child_pid, read_fd)
+    finally:
+        os.close(read_fd)
+    assert child_result == (
+        "fork_invalid:True:True:False:True:writer_session_process_mismatch"
+    )
+    assert resource._state == writer_module._COMMIT_SUCCEEDED_QUARANTINED
+    assert resource._mutation_slot is slot
+    assert resource._retained_connection is retained
+    assert retained.owns_exact_connection(connection) is True
+    assert session._resource._authority_lock.active is True
+
+    session.close()
+    assert resource._state == writer_module._CLOSED
+    assert type(resource._lifecycle_state) is writer_module._WriterSessionTerminalX

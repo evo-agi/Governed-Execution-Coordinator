@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 import sqlite3
+from threading import current_thread, get_ident
 from typing import Any
+import weakref
 
 from ge_nwp_coordinator.sqlite_errors import SQLiteStateError, SQLiteStateErrorCode
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
@@ -40,6 +43,244 @@ class SQLiteConnectionPosture:
 
 class _SQLiteOperationalPostureError(SQLiteStateError):
     """Private marker for operational posture failures without raw details."""
+
+
+_RETAINED_CONNECTION_CONSTRUCTION_KEY = object()
+_CLOSE_PROOF_CONSTRUCTION_KEY = object()
+_WRITER_SESSION_RESOURCE_IDENTITY_CONSTRUCTION_KEY = object()
+
+
+class _WriterSessionResourceIdentity:
+    """Opaque identity shared only by components of one writer resource."""
+
+    __slots__ = ()
+    __hash__ = object.__hash__
+
+    def __init__(self, *, key: object) -> None:
+        if key is not _WRITER_SESSION_RESOURCE_IDENTITY_CONSTRUCTION_KEY:
+            raise ValueError("invalid writer resource identity")
+
+    def __repr__(self) -> str:
+        return "<_WriterSessionResourceIdentity>"
+
+    def __reduce__(self) -> object:
+        raise TypeError("invalid writer resource identity")
+
+
+def _new_writer_session_resource_identity() -> _WriterSessionResourceIdentity:
+    return _WriterSessionResourceIdentity(
+        key=_WRITER_SESSION_RESOURCE_IDENTITY_CONSTRUCTION_KEY
+    )
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class _SQLiteConnectionCustodyIdentity:
+    resource_identity: _WriterSessionResourceIdentity
+    connection_identity: int
+    owner_pid: int
+    owner_thread: int
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.resource_identity) is not _WriterSessionResourceIdentity
+            or type(self.connection_identity) is not int
+            or self.connection_identity < 0
+            or type(self.owner_pid) is not int
+            or self.owner_pid < 0
+            or type(self.owner_thread) is not int
+            or self.owner_thread < 0
+        ):
+            raise ValueError("invalid connection custody")
+
+    def __repr__(self) -> str:
+        return "<_SQLiteConnectionCustodyIdentity>"
+
+
+class _RetainedSQLiteConnection:
+    """One exact connection-or-proof custody union for a mutation connection."""
+
+    __slots__ = (
+        "_custody",
+        "_custody_identity",
+        "_owner_thread_ref",
+    )
+    __hash__ = object.__hash__
+
+    def __init__(
+        self,
+        *,
+        key: object,
+        connection: sqlite3.Connection,
+        resource_identity: _WriterSessionResourceIdentity,
+    ) -> None:
+        if key is not _RETAINED_CONNECTION_CONSTRUCTION_KEY:
+            raise ValueError("invalid connection custody")
+        if (
+            not isinstance(connection, sqlite3.Connection)
+            or type(resource_identity) is not _WriterSessionResourceIdentity
+        ):
+            raise ValueError("invalid connection custody")
+        self._custody_identity = _SQLiteConnectionCustodyIdentity(
+            resource_identity,
+            id(connection),
+            os.getpid(),
+            get_ident(),
+        )
+        self._custody: sqlite3.Connection | _SQLiteConnectionCloseProof = connection
+        self._owner_thread_ref = weakref.ref(current_thread())
+
+    def __repr__(self) -> str:
+        return "<_RetainedSQLiteConnection>"
+
+    def __reduce__(self) -> object:
+        raise TypeError("invalid connection custody")
+
+    @property
+    def connection_identity(self) -> int:
+        return self._custody_identity.connection_identity
+
+    @property
+    def custody_identity(self) -> _SQLiteConnectionCustodyIdentity:
+        return self._custody_identity
+
+    @property
+    def resource_identity(self) -> _WriterSessionResourceIdentity:
+        return self._custody_identity.resource_identity
+
+    def _require_owner_thread(self) -> None:
+        identity = self._custody_identity
+        if (
+            identity.owner_pid != os.getpid()
+            or self._owner_thread_ref() is not current_thread()
+            or identity.owner_thread != get_ident()
+        ):
+            raise RuntimeError("connection custody unavailable")
+
+    def _borrow_exact_connection(self) -> sqlite3.Connection:
+        """Return one bounded controller borrow while connection custody remains."""
+
+        self._require_owner_thread()
+        current = self._custody
+        if (
+            not isinstance(current, sqlite3.Connection)
+            or id(current) != self._custody_identity.connection_identity
+        ):
+            raise RuntimeError("connection custody unavailable")
+        return current
+
+    def _close_with_proof(self) -> "_SQLiteConnectionCloseProof":
+        """Publish proof only after the exact base SQLite close returns normally."""
+
+        self._require_owner_thread()
+        current = self._custody
+        if type(current) is _SQLiteConnectionCloseProof:
+            return current
+        if (
+            not isinstance(current, sqlite3.Connection)
+            or id(current) != self._custody_identity.connection_identity
+        ):
+            raise RuntimeError("connection custody unavailable")
+        exact_connection = current
+        sqlite3.Connection.close(exact_connection)
+        proof = _SQLiteConnectionCloseProof(
+            key=_CLOSE_PROOF_CONSTRUCTION_KEY,
+            custody_identity=self._custody_identity,
+        )
+        self._custody = proof
+        return proof
+
+    def owns_exact_connection(self, connection: sqlite3.Connection) -> bool:
+        current = self._custody
+        return (
+            self._custody_identity.owner_pid == os.getpid()
+            and self._owner_thread_ref() is current_thread()
+            and current is connection
+            and id(connection) == self._custody_identity.connection_identity
+        )
+
+    def matches_exact_connection(self, connection: sqlite3.Connection) -> bool:
+        return (
+            isinstance(connection, sqlite3.Connection)
+            and id(connection) == self._custody_identity.connection_identity
+        )
+
+    def matches_scope_identity(
+        self,
+        connection_identity: int,
+        owner_pid: int,
+        owner_thread: int,
+    ) -> bool:
+        return (
+            connection_identity == self._custody_identity.connection_identity
+            and owner_pid == self._custody_identity.owner_pid
+            and owner_thread == self._custody_identity.owner_thread
+        )
+
+    def matches_custody_identity(
+        self,
+        custody_identity: _SQLiteConnectionCustodyIdentity,
+    ) -> bool:
+        return custody_identity is self._custody_identity
+
+
+class _SQLiteConnectionCloseProof:
+    """Connection-free proof created only after exact close returns normally."""
+
+    __slots__ = (
+        "_custody_identity",
+    )
+    __hash__ = object.__hash__
+
+    def __init__(
+        self,
+        *,
+        key: object,
+        custody_identity: _SQLiteConnectionCustodyIdentity,
+    ) -> None:
+        if key is not _CLOSE_PROOF_CONSTRUCTION_KEY:
+            raise ValueError("invalid connection close proof")
+        if type(custody_identity) is not _SQLiteConnectionCustodyIdentity:
+            raise ValueError("invalid connection close proof")
+        self._custody_identity = custody_identity
+
+    @property
+    def connection_identity(self) -> int:
+        return self._custody_identity.connection_identity
+
+    @property
+    def owner_pid(self) -> int:
+        return self._custody_identity.owner_pid
+
+    @property
+    def owner_thread(self) -> int:
+        return self._custody_identity.owner_thread
+
+    @property
+    def custody_identity(self) -> _SQLiteConnectionCustodyIdentity:
+        return self._custody_identity
+
+    @property
+    def resource_identity(self) -> _WriterSessionResourceIdentity:
+        return self._custody_identity.resource_identity
+
+    def __repr__(self) -> str:
+        return "<_SQLiteConnectionCloseProof>"
+
+    def __reduce__(self) -> object:
+        raise TypeError("invalid connection close proof")
+
+
+def _make_retained_sqlite_connection(
+    connection: sqlite3.Connection,
+    resource_identity: _WriterSessionResourceIdentity,
+) -> _RetainedSQLiteConnection:
+    """Prepare exact retained custody without granting a second active user."""
+
+    return _RetainedSQLiteConnection(
+        key=_RETAINED_CONNECTION_CONSTRUCTION_KEY,
+        connection=connection,
+        resource_identity=resource_identity,
+    )
 
 
 def _open_sqlite_connection(
