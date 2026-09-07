@@ -18,6 +18,21 @@ from ge_nwp_coordinator.global_stop import (
     GlobalStopState,
     evaluate_global_stop_update,
 )
+from ge_nwp_coordinator._development_program_initialization_contracts import (
+    DevelopmentProgramInitializationCommandV1,
+    DevelopmentProgramInitializationConflictV1,
+    DevelopmentProgramInitializationRecoveryDispositionV1,
+    DevelopmentProgramInitializationRecoveryResultV1,
+    DevelopmentProgramInitializationResultV1,
+    _development_program_initialization_write_plan,
+    _require_exact_development_program_initialization_command,
+)
+from ge_nwp_coordinator._sqlite_development_program_initialization import (
+    _FreshDevelopmentProgramInitialization,
+    _execute_development_program_initialization_writes,
+    _recover_development_program_initialization_after_fencing,
+    _resolve_development_program_initialization_apply_after_fencing,
+)
 from ge_nwp_coordinator.lease import derive_lease_runtime_decision
 from ge_nwp_coordinator.persistence_contracts import (
     AdmittedBacklogRecordEnvelope,
@@ -787,6 +802,35 @@ class _CoordinatorMutationTransactionController:
             raise _mutation_failed()
         return result
 
+    def run_atomic_development_program_initialization(
+        self,
+        *,
+        command: DevelopmentProgramInitializationCommandV1,
+    ) -> DevelopmentProgramInitializationResultV1 | DevelopmentProgramInitializationConflictV1:
+        checked = _require_exact_development_program_initialization_command(command)
+        result = self._run_atomic_development_program_initialization_transaction(
+            command=checked
+        )
+        if type(result) not in (
+            DevelopmentProgramInitializationResultV1,
+            DevelopmentProgramInitializationConflictV1,
+        ):
+            raise _mutation_failed()
+        return result
+
+    def run_development_program_initialization_recovery(
+        self,
+        *,
+        command: DevelopmentProgramInitializationCommandV1,
+    ) -> DevelopmentProgramInitializationRecoveryResultV1:
+        checked = _require_exact_development_program_initialization_command(command)
+        result = self._run_development_program_initialization_recovery_transaction(
+            command=checked
+        )
+        if type(result) is not DevelopmentProgramInitializationRecoveryResultV1:
+            raise _mutation_failed()
+        return result
+
     def _run_writer_fencing_transaction(self) -> _WriterIssuanceMatch:
         self._require_new_owner()
         mutation_lease = self._acquire_controller_mutation_lease()
@@ -972,6 +1016,112 @@ class _CoordinatorMutationTransactionController:
         if planned_result is None:
             raise _mutation_failed()
         return planned_result
+
+    def _run_atomic_development_program_initialization_transaction(
+        self,
+        *,
+        command: DevelopmentProgramInitializationCommandV1,
+    ) -> DevelopmentProgramInitializationResultV1 | DevelopmentProgramInitializationConflictV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: (
+            DevelopmentProgramInitializationResultV1
+            | DevelopmentProgramInitializationConflictV1
+            | None
+        ) = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is not _WriterIssuanceMatch.MATCH:
+                    planned_exception = _mutation_failed()
+                else:
+                    resolution = (
+                        _resolve_development_program_initialization_apply_after_fencing(
+                            capability=self._capability,
+                            command=command,
+                        )
+                    )
+                    if type(resolution) is _FreshDevelopmentProgramInitialization:
+                        planned_result = self._commit_fresh_development_program_initialization(
+                            resolution
+                        )
+                    elif type(resolution) in (
+                        DevelopmentProgramInitializationResultV1,
+                        DevelopmentProgramInitializationConflictV1,
+                    ):
+                        planned_result = resolution
+                        cleanup_exception = self._resolve_rollback_before_commit()
+                    else:
+                        planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _run_development_program_initialization_recovery_transaction(
+        self,
+        *,
+        command: DevelopmentProgramInitializationCommandV1,
+    ) -> DevelopmentProgramInitializationRecoveryResultV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result = DevelopmentProgramInitializationRecoveryResultV1(
+            disposition=DevelopmentProgramInitializationRecoveryDispositionV1.UNRESOLVED
+        )
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is _WriterIssuanceMatch.MATCH:
+                    result = _recover_development_program_initialization_after_fencing(
+                        capability=self._capability,
+                        command=command,
+                    )
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                try:
+                    self._resolve_rollback_before_commit()
+                except BaseException:
+                    pass
+                raise
+            except Exception:
+                result = DevelopmentProgramInitializationRecoveryResultV1(
+                    disposition=DevelopmentProgramInitializationRecoveryDispositionV1.UNRESOLVED
+                )
+            cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+        if cleanup_exception is not None:
+            return DevelopmentProgramInitializationRecoveryResultV1(
+                disposition=DevelopmentProgramInitializationRecoveryDispositionV1.UNRESOLVED
+            )
+        return result
 
     def _acquire_controller_mutation_lease(self) -> Any:
         mutation_lease_failed = False
@@ -1261,10 +1411,43 @@ class _CoordinatorMutationTransactionController:
             raise _database_integrity_failure()
         return committed
 
+    def _commit_fresh_development_program_initialization(
+        self,
+        fresh: _FreshDevelopmentProgramInitialization,
+    ) -> DevelopmentProgramInitializationResultV1:
+        if type(fresh) is not _FreshDevelopmentProgramInitialization:
+            raise _database_integrity_failure()
+        connection = self._connection
+        if type(connection) is not sqlite3.Connection:
+            raise _mutation_failed()
+        if self._resolution_state is not _MutationCommitResolutionState.CAPABILITY_ACTIVE:
+            raise _mutation_failed()
+        timestamp = _capture_transaction_timestamp()
+        plan = _development_program_initialization_write_plan(
+            fresh.command, timestamp
+        )
+        if type(plan.planned_result) is not DevelopmentProgramInitializationResultV1:
+            raise _database_integrity_failure()
+        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+        _execute_development_program_initialization_writes(connection, plan)
+        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+        del connection
+        committed = self._commit_after_fresh_writes(
+            plan.planned_result,
+            force_cleanup_on_uncertainty=True,
+        )
+        if type(committed) is not DevelopmentProgramInitializationResultV1:
+            raise _database_integrity_failure()
+        return committed
+
     def _commit_after_fresh_writes(
         self,
         planned_result: object,
+        *,
+        force_cleanup_on_uncertainty: bool = False,
     ) -> object:
+        if type(force_cleanup_on_uncertainty) is not bool:
+            raise _mutation_failed()
         invalidation_failure = self._invalidate_capability_for_resolution()
         if invalidation_failure is not None:
             raise invalidation_failure
@@ -1311,7 +1494,7 @@ class _CoordinatorMutationTransactionController:
                     pass
                 self._close_after_commit_resolution(
                     commit_succeeded=False,
-                    force_cleanup=False,
+                    force_cleanup=force_cleanup_on_uncertainty,
                 )
                 raise commit_observation from None
 
@@ -1664,6 +1847,78 @@ def _run_atomic_global_stop_apply(
     preflight = None
     global_stop_command = None  # type: ignore[assignment]
     typed_operator_decision = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_atomic_development_program_initialization(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    command: DevelopmentProgramInitializationCommandV1,
+) -> (
+    DevelopmentProgramInitializationResultV1
+    | DevelopmentProgramInitializationConflictV1
+    | _SafeMutationFailureDisposition
+):
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        checked = _require_exact_development_program_initialization_command(command)
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_atomic_development_program_initialization(
+            command=checked
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        checked = None
+        command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    checked = None
+    command = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_development_program_initialization_recovery(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    command: DevelopmentProgramInitializationCommandV1,
+) -> DevelopmentProgramInitializationRecoveryResultV1 | _SafeMutationFailureDisposition:
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        checked = _require_exact_development_program_initialization_command(command)
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_development_program_initialization_recovery(
+            command=checked
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        checked = None
+        command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    checked = None
+    command = None  # type: ignore[assignment]
     operation_lease = None  # type: ignore[assignment]
     return result
 

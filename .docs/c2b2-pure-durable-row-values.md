@@ -9,11 +9,11 @@ authority remains migration `0002_development_program_and_effect_state` plus
 its cumulative packaged SQL. This record is not a new durable tranche identity,
 schema authority, reader contract, or source of runtime truth.
 
-Slice 2 implements pure, private, no-I/O row/value source. It has no production
-caller. Slice 3 now consumes these values in production-unintegrated private
-SQLite readers recorded in `.docs/c2b2-private-readers.md`; that later slice
-does not change this pure layer. Mutation, exact family replay, commit-outcome
-recovery, and every C2B3 behavior remain absent.
+Slice 2 implements pure, private, no-I/O row/value source. VS1B now consumes a
+bounded subset through its private route-neutral program-genesis mutation;
+Slice 3 consumes these values in private SQLite readers recorded in
+`.docs/c2b2-private-readers.md`. Neither caller changes this pure layer. Every
+non-genesis C2B3 mutation/replay/recovery behavior remains absent.
 The implementation grants no retrieval, authorization, execution, acceptance,
 publication, worker, runtime, adapter, Bridge, or ES authority.
 

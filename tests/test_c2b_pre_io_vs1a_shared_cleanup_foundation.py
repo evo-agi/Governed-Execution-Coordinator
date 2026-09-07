@@ -3646,10 +3646,12 @@ def test_preservation_sections_1_through_36_are_byte_exact() -> None:
 def test_preservation_program_initialization_and_durable_rows_remain_absent(
     tmp_path: Path,
 ) -> None:
-    assert not (
+    # The committed node ID is preserved; VS1B changes its direct oracle from
+    # source absence to private-source presence while fresh schema rows remain empty.
+    assert (
         ROOT / "src/ge_nwp_coordinator/_development_program_initialization_contracts.py"
     ).exists()
-    assert not (
+    assert (
         ROOT / "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py"
     ).exists()
     location = _location(tmp_path)
@@ -7089,6 +7091,25 @@ def _replace_source_exact(
     return source.replace(original, replacement)
 
 
+def _replace_legacy_delegation_source_exact(
+    source: str,
+    original: str,
+    replacement: str,
+    *,
+    count: int,
+) -> str:
+    boundary = "    def _initialize_development_program("
+    assert source.count(boundary) == 1
+    legacy, initialization = source.split(boundary, 1)
+    legacy = _replace_source_exact(
+        legacy,
+        original,
+        replacement,
+        count=count,
+    )
+    return legacy + boundary + initialization
+
+
 def _load_exit_poison_source_mutant(
     case: str,
     tmp_path: Path,
@@ -7176,7 +7197,7 @@ def _load_exit_poison_source_mutant(
             "                pass  # source mutant removes safe-error outer scrub\n",
             count=2,
         )
-        source = _replace_source_exact(
+        source = _replace_legacy_delegation_source_exact(
             source,
             '''            _sanitize_exception_traceback_graph_at_outward_boundary(
                 safe_error,
@@ -7187,7 +7208,7 @@ def _load_exit_poison_source_mutant(
             count=2,
         )
     elif case == "07_bound_guard_correlation_replaced_by_nonmethod_path":
-        source = _replace_source_exact(
+        source = _replace_legacy_delegation_source_exact(
             source,
             "                if type(bound_operation_guard) is MethodType\n",
             "                if False  # source mutant forces non-method compatibility path\n",
@@ -7234,7 +7255,7 @@ def _load_exit_poison_source_mutant(
             count=2,
         )
     elif case == "12_sanitizer_failure_escapes_boundary":
-        source = _replace_source_exact(
+        source = _replace_legacy_delegation_source_exact(
             source,
             '''            _sanitize_exception_traceback_graph_at_outward_boundary(
                 governing,

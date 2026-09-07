@@ -119,22 +119,22 @@ same explicit fresh/replay/conflict semantics resolve response loss after the
 final operation assignment; direct transition/global-stop selectors prove no
 duplicate durable effect.
 QU/QK and pending-disposal paths remain non-reusable. Section 35 continues to
-govern cleanup, lock, fork, finalizer, and the separately X-gated affected C2B3
-initialization recovery rule. The B3c1a contract-projection test keeps its
+govern cleanup, lock, fork, finalizer, and old-resource terminal X. Section 38
+now finitely corrects only the initialization-specific cross-session gate: a
+fresh concrete writer's successful acquisition and fencing admits recovery or
+replay without claiming that the old resource reached X. In the same process,
+fresh acquisition becomes available after H2 and may precede old T1; in another
+process it may succeed after L1 kernel-lock release and before old-process H2
+or T1. The old session remains non-admitting and unusable. The B3c1a
+contract-projection test keeps its
 existing node ID and replaces only the obsolete post-GC Active expectation with
 `ORPHANED` -> non-admitting -> cleanup -> X. The B3c1b change is explicit
 connection-lifetime
 hygiene only; B3c3 is only a private rollback-only proof-owner regression
-adaptation. The unchanged B2b issue is pre-existing HEAD-exact test-resource
-hygiene, strict warning-promotion debt, not repaired by VS1A, and not VS1A
-authority or semantic behavior. The final candidate is exactly twenty-two dirty
-paths: twenty-one tracked modifications, the sole untracked shared-foundation
-test, and zero staged paths. It includes the intentional B3c1a contract
-replacement in `tests/test_b3c1a_writer_session_authority.py`. Fresh independent
-audit remains pending. The accepted same-candidate B4b privacy-contract
-replacement continues to require zero Coordinator frames on its supported
-outward graph. These scope counts are report-only observations bound to
-this exact candidate provenance, not architectural invariants.
+adaptation. VS1A is committed current implementation at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`. Its cleanup order and authority
+semantics are unchanged by VS1B. The B4b privacy contract continues to require
+zero Coordinator frames on its supported outward graph.
 The deterministic real-session race selector makes disposal current after exact
 mutation release and before operation completion, proves non-admission while the
 operation remains represented, and reaches X without restoring Active.
@@ -148,10 +148,14 @@ reachability at their actual orphan-mark or cleanup-successor seam. Exact
 commands, node and warning totals, overlaps, and validation-group file
 inventories are report evidence rather than governing architecture; no
 noncausal, duplicate, or unreached seam receives causal credit.
-No public API, schema, migration, initialization, dependency, or external I/O
-is added. These unstaged bytes have not received independent-audit or Git
-acceptance and have not been committed, pushed, or published; a fresh
-independent audit remains pending and VS1B remains unauthorized.
+VS1B implements one private route-neutral single-work-item program-genesis
+transaction using migration 0002: exactly nine rows, an eight-entry transient
+mutation graph, receipt-first exact replay, and read-only three-way recovery.
+It adds no public API, package export, schema, migration, route, adapter,
+external I/O, worker, attempt, effect, delivery, candidate, capsule, Git effect,
+or bootstrap latch. Raw `WorkSpecV1` is reduced to safe projections and an exact
+safe command before transaction delegation. The new VS1B bytes are
+implementation evidence pending fresh independent audit.
 
 Strategic target direction is recorded separately from current behavior. The
 accepted C1 staged target is model-guided Coordinator durable progression,
@@ -547,9 +551,9 @@ and ordinary product open never migrates. C2B2 pure row/value source is now
 implemented only as four private pure no-I/O modules for exact
 tuple decoding, immutable validation, row and result-projection digests,
 bounded C2A reconstruction, WorkSpec safe projection, and supplied-entry graph
-hashing. Migration 0003, C2B2 private-reader production integration, C2B
-mutations, family replay/recovery, complete family graph verification, C2B3,
-observation ingest, decision runtime, authority verification, WorkSpec custody,
+hashing. VS1B now uses a bounded subset for its private route-neutral
+program-genesis mutation. Migration 0003, non-genesis C2B reader integration and
+mutation/replay/recovery, observation ingest, later decision runtime, authority verification, WorkSpec custody,
 worker/process execution, capsule storage, Git effects, direct-local execution,
 ES routing, and any service, scheduler, queue, publication, or autonomous loop
 remain absent.
@@ -557,10 +561,10 @@ remain absent.
 C2B2 Slice 3 now implements the previously frozen private reader contract:
 seven private aggregate/page values, twenty-four literal query specifications,
 and twelve reader roles through the real nominal transaction capability seam.
-The readers have synthetic execution proofs but no production caller, public
-or package-root API, `StateStore`/`WriterSession` method, mutation, receipt
-persistence, complete graph proof, replay, recovery, C2B3 behavior, migration
-0003, or external effect.
+The readers have synthetic execution proofs. Only the mutation-receipt reader
+has the bounded private VS1B caller; the other eleven have no production caller.
+There is no public or package-root API, `StateStore`/public `WriterSession`
+method, migration 0003, or external effect.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.
@@ -579,8 +583,8 @@ tranche count. The bootstrap route permits at most one productive acceptance;
 local Git later permits at most one isolated feature-branch commit and no push,
 remote-ref mutation, PR, merge, deployment, or publication.
 
-Future initialization, custody, verifier, invocation, evidence, Git,
-migration-0003, reliable-submit, and conformance details remain explicit just-
-in-time design questions. Current implementation remains generation 2 at
-migration 0002 with C2A1, C2B2 private values/readers, and existing bounded
-writer/transaction authority only.
+VS1B now implements route-neutral initialization, exact nine-row/eight-entry
+genesis persistence and verification, receipt-first replay, and readback-only
+recovery. Custody, verifier, invocation, later evidence, Git, migration-0003,
+reliable-submit, and conformance details remain explicit just-in-time design
+questions. Current implementation remains generation 2 at migration 0002.

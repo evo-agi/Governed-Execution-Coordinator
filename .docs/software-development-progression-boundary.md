@@ -376,9 +376,9 @@ Git/CI, or runtime execution work.
 ## C2B1/C2B2 Current Migration, Pure-Value, And Private-Reader Boundary
 
 Status: `CURRENT IMPLEMENTED CONTRACT` for explicit SQLite administration and
-private pure no-I/O row/value validation plus production-unintegrated private
-reader behavior only. C2B0 remains the historical accepted-target contract
-tranche.
+private pure no-I/O row/value validation, private reader behavior, and the
+bounded private C2B3 route-neutral program-genesis family. C2B0 remains the
+historical accepted-target contract tranche.
 
 C2B1 implements exact-current ordinary open and explicit supported-prefix
 migration in `sqlite_migration.py`. Complete-catalog initialization and
@@ -391,18 +391,19 @@ decision, acceptance, effect, publication, or completion truth.
 C2B2 Slice 1 uses this administrative boundary at application generation 2 and
 terminal migration `0002_development_program_and_effect_state`. It implements
 only physical representability for the frozen nineteen-table core. Slice 2
-adds private pure row/value source for those nineteen tables, with no SQLite,
-SQL, capability use, database reader, or production caller. No C2B product
-mutation, complete family graph verification, family replay or recovery, or
-C2B3 behavior is added.
+adds private pure row/value source for those nineteen tables, with no SQLite or
+SQL in that pure layer. C2B3 now consumes the values for only its exact
+nine-row/eight-entry genesis family, verifies the complete family, and owns exact replay
+and readback-only commit-outcome recovery.
 
 C2B2 Slice 3 implements exactly twelve private reader roles over the Slice-2
 values through twenty-four literal SELECT specifications and the existing
-nominal transaction capability. It adds no production caller, package export,
-public reader, `StateStore`/`WriterSession` method, mutation, replay, recovery,
-C2B3 behavior, migration 0003, or external effect.
+nominal transaction capability. Only the mutation-receipt reader has the
+bounded private C2B3 caller. It adds no package export, public reader,
+`StateStore`/public `WriterSession` method, migration 0003, or external effect.
 
-Durable development progression, source-observation ingest, semantic decisions,
+Durable development progression beyond the exact initialization decision,
+source-observation ingest, later semantic decisions,
 effect establishment or execution, WorkSpec custody, worker/process behavior,
 capsule storage, Git effects, direct-local execution, ES routing, and autonomous
 runtime remain unimplemented. C2B1 adds no product progression transaction,
@@ -479,7 +480,9 @@ itself. The gate transfers no ES admission, runtime, lifecycle,
 retained-result, or contract authority to Coordinator. Chat or model reports
 cannot substitute for either intrinsic gate.
 
-Exact initialization, custody, verification, source invocation, evidence,
-Git, migration, replay/recovery, and latch representations remain just-in-time
-questions. No next source tranche is authorized.
+Section 38 of `.docs/c2b-durable-development-state.md` now owns the exact
+route-neutral initialization, nine-row/eight-entry graph, verification, and
+replay/recovery representation implemented by VS1B. Custody, source invocation,
+later evidence, Git, ES migration, and latch representations remain
+just-in-time questions. No next source tranche is authorized.
 <!-- C2B3_NARROWED_PROGRESSION_END -->

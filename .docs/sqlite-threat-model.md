@@ -140,23 +140,27 @@ each have one structural owner. Every live fact is additionally bound to one
 opaque per-resource identity, compared only by `is`. Cross-wiring two real same-
 process, same-epoch resources fails at activity, frame, cursor, scope/custody,
 proof, state, and claim construction. The identity is not persistent, globally
-registered, public, serializable, logged, or safe-error content. The candidate
-remains unstaged, uncommitted, unpushed, and unpublished; fresh independent
-audit remains pending.
+registered, public, serializable, logged, or safe-error content. VS1A is
+committed at `4ffbc5f8881339dce210a50b05200e3f8e837284`; its cleanup semantics remain
+current and unchanged.
 
 R1 revokes credential authority, R2 clears the mutation slot, and R3 releases
 the binding. The old session remains non-admitting after R2 through its P0
 lifecycle state. H2 exact registry removal, not X, is the same-process writer-
-acquisition boundary. T1/X remains the affected resource boundary for Section-
-35 C2B3 initialization recovery/replay and cleanup continuation. Existing
-transition and global-stop idempotency/replay retain their own contracts. A
+acquisition boundary. T1/X remains old-resource-local terminal truth, not the
+cross-session VS1B recovery gate. A different concrete writer may recover or
+replay only after successful independent acquisition and writer fencing; this
+proves no old-resource X. Same-process acquisition may follow H2 before T1,
+while cross-process acquisition may follow L1 kernel unlock before old-process
+H2 or T1. Existing transition and global-stop idempotency/replay retain their own contracts. A
 normal close with no pending explicit disposal or orphan cleanup permits an explicit retry on the same
 wrapper with a new operation and connection; no-commit uncertainty is fresh and
 underlying-commit uncertainty is exact replay, with no automatic retry or
 duplicate durable effect. Post-linearization response loss uses those same
 fresh/replay/conflict rules and does not change resource truth. QU/QK and pending-disposal cleanup remain
-non-reusable. The future C2B3 initialization rule remains separately X-gated.
-H3 is post-X housekeeping and cannot revoke X.
+non-reusable. Recovery performs no registry scan, terminal-witness check,
+old-condition wait, or old-resource mutation. H3 is post-X housekeeping and
+cannot revoke X.
 
 The B3c1a contract-projection test retains its existing node ID and replaces
 only its obsolete post-GC Active expectation: loss before `EXPLICIT_RETIRED`
@@ -169,16 +173,12 @@ rollback, fencing, cleanup precedence, or production error semantics. The B3c3
 test change is a private rollback-only regression adaptation to the sealed
 retained-custody proof owner, with no B3c3 result, durability, public, authority,
 COMMIT, or commit-unknown widening; close-unproved custody remains until
-explicit cleanup. The unchanged B2b issue is pre-existing HEAD-exact test-
-resource hygiene, strict warning-promotion debt, not repaired by VS1A, and not
-VS1A authority or semantic behavior. The final candidate scope is exactly
-twenty-two dirty paths: twenty-one tracked modifications, the sole untracked
-shared-foundation test, and zero staged paths. It includes the intentional
-B3c1a contract replacement in `tests/test_b3c1a_writer_session_authority.py`
-and the accepted B4b zero-Coordinator-frame privacy contract replacement in
-`tests/test_b4b_private_atomic_global_stop_persistence.py`; fresh independent
-audit remains pending. These scope counts are report-only observations bound
-to the exact candidate provenance, not architectural invariants.
+explicit cleanup. The unchanged B2b issue remains pre-existing test-resource
+hygiene and is not VS1B authority or behavior. VS1B's new threat boundary is
+private route-neutral genesis only: raw `WorkSpecV1` is reduced before
+transaction delegation, the transaction and recovery values carry only safe
+refs/projections/digests, and recovery owns no old-resource lookup, witness,
+registry, durable gate, external I/O, or retry authority.
 
 The disposal threat after exact mutation release but before operation completion
 has a deterministic barrier-based real-session test. Disposal is made current

@@ -157,11 +157,13 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         "migration 0001 bytes, history, and table meanings remain unchanged",
         "C2B1 supplies bounded administrative migration mechanics",
         "C2B2 Slice 1 adds only the frozen physical nineteen-table core",
-        "Slice 2 adds only private pure no-I/O row/value contracts for those nineteen tables",
+        "Slice 2 adds private pure no-I/O row/value contracts for those nineteen tables",
         "Slice 3 adds exactly twelve private reader roles over those values",
+        "mutation-receipt reader now has only the private C2B3 initialization caller",
         "accepted C2B0 target contract also reserves",
         "`0003_development_observation_and_progression_state`",
-        "No migration-0003 SQL, C2B private reader production caller or public reader, writer, mutation, replay/recovery, observation ingest, decision runtime",
+        "No migration-0003 SQL, public C2B reader, author/bound-effect mutation, observation ingest, later progression runtime",
+        "C2B3's private initialization mutation is the only implemented C2B durable family behavior",
     ):
         _require(
             phrase in current,
@@ -170,10 +172,10 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
     for phrase in (
         "C2B2 Slice 1 has implemented the migration-0002 physical core at application generation 2",
         "Slice 2 can purely validate already-fetched tuples as private row values",
-        "Slice 3 implements twelve private reader roles, but no production caller exposes them",
+        "Slice 3 implements twelve private reader roles; only the mutation-receipt role has the bounded private VS1B caller",
         "Migration 0003 remains a reserved target identity",
         "accepted complete target comprises implemented migration",
-        "Migration 0003 and all C2B reader production integration, writer, mutation",
+        "Migration 0003 and all C2B reader production integration except the one bounded mutation-receipt caller",
     ):
         _require(
             phrase in target,
@@ -1019,9 +1021,8 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
     )
 
     for phrase in (
-        "C2B2 Slice 1 physically represents the nineteen-table core and Slice 2 implements its private pure row/value layer",
-        "Slice 3 implements the production-unintegrated private database readers",
-        "C2B1/C2B2-Slice-1 administrative migration source and C2B2-Slice-2 pure row/value source are current but confer no product authority.",
+        "broader C2B0 topology remains an accepted target",
+        "Only the mutation-receipt reader has the bounded C2B3 production caller",
         "existing Coordinator SQLite database",
         "existing concrete writer issuance/fencing authority",
         "operation guard",
@@ -1031,8 +1032,9 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
         "public `StateStore` widening",
         "public `WriterSession` widening",
         "Slice 2 provides private pure row/value source for its nineteen tables",
-        "Slice 3 provides exactly twelve private reader roles, with no public surface or production caller",
-        "No C2B product reader caller, writer, mutation transaction, complete family graph verifier, replay/recovery",
+        "Slice 3 provides exactly twelve private reader roles with no public surface; eleven remain production-unintegrated",
+        "route-neutral nine-row/eight-entry program-genesis family",
+        "same-command replay and readback-only commit-outcome resolution",
     ):
         assert phrase in architecture
 
@@ -1062,7 +1064,9 @@ def test_narrowed_vertical_slice_architecture_is_governing_not_schema_freeze() -
         "At most one productive bootstrap acceptance",
         "one later isolated local feature-branch commit",
         "push, remote-ref mutation, PR, merge, deployment, and publication remain zero",
-        "deferred to the phase that first needs them",
+        "exactly nine state rows and eight supplied graph entries",
+        "private readback-only uncertainty resolution",
+        "Exact later-phase values and evidence layouts remain deferred.",
     ):
         assert expected in architecture_compact
     for expected in (

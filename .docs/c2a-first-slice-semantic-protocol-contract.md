@@ -1454,8 +1454,10 @@ from C2A/C2A1 semantic authority.
 
 Migration 0003 remains absent. C2B2 Slice 2 now provides one pure private
 row/value reconstruction consumer of the unchanged C2A1 values. C2B2 private
-readers, C2B mutation, replay, and recovery, and C2B3 behavior remain absent;
-C2B3 has not started. Worker, process, or model execution, Git effects, direct-local
+readers are implemented, and VS1B now consumes the unchanged C2A/C2B2 semantics
+for one private route-neutral program-genesis mutation, exact replay, and
+readback-only recovery. C2A itself remains unchanged and confers no durable
+authority. Worker, process, or model execution, Git effects, direct-local
 execution, ES routing, Bridge integration, publication, service, API, and IPC
 also remain absent.
 

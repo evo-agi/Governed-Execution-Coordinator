@@ -19,14 +19,18 @@ GOVERNANCE`. The authoritative C1 composition record is
 The Coordinator now owns bounded internal durable SQLite mutation authority for
 coding-work state, one separate pure no-I/O C2A1 semantic-value layer, and the
 private pure no-I/O C2B2 row/value layer for the nineteen migration-0002 row
-families, plus twelve production-unintegrated private C2B2 reader roles. The
-reader layer is bounded to literal SELECTs through an already-valid nominal
-transaction capability and has no production caller. The current implementation includes internal durable writer
+families, plus twelve private C2B2 reader roles. Eleven roles remain
+production-unintegrated; the mutation-receipt reader now has only the bounded
+private C2B3 program-initialization caller. The reader layer is bounded to
+literal SELECTs through an already-valid nominal transaction capability. The
+current implementation includes internal durable writer
 issuance, private atomic transition persistence, guarded public transition
 delegation, private atomic global-stop persistence, guarded public global-stop
 delegation, verification of already-persisted operator-decision receipts,
 writer fencing, idempotency, exact replay, accepted-current CAS, rollback, one
-COMMIT attempt, commit uncertainty, and explicit retry.
+COMMIT attempt, commit uncertainty, and explicit retry. C2B3 now also implements
+one private route-neutral program-genesis mutation and private readback-only
+commit-outcome resolution for that exact family.
 
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
@@ -450,10 +454,11 @@ progression controller, and not C2B semantic truth. Slice 2 separately provides
 only private pure tuple-to-value validation, eighteen self-digest checks, five
 receipt result projections, bounded C2A reconstruction, WorkSpec safe
 projection, and the common supplied-entry graph digest primitive. It performs
-no SQL and has no production caller. Slice 3 separately implements private
-database readers with synthetic execution proofs and no production caller.
-C2B product mutation transactions, family replay/recovery, observation ingest, decision runtime,
-effects, and worker/runtime behavior remain absent.
+no SQL. Slice 3 separately implements private database readers with synthetic
+execution proofs; only the mutation-receipt reader has the bounded private C2B3
+caller. C2B3 adds only its program-genesis mutation, exact family verification,
+replay, and recovery. Other C2B mutation families, observation ingest, later
+decision runtime, effects, and worker/runtime behavior remain absent.
 
 ## B2a Writer-Session Contract
 
@@ -573,10 +578,11 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
 
 ## C2B0 Accepted Durable-State Target Topology
 
-Status: `ACCEPTED TARGET CONTRACT`; C2B2 Slice 1 physically represents the
-nineteen-table core and Slice 2 implements its private pure row/value layer,
-while Slice 3 implements the production-unintegrated private database readers.
-Durable product-topology behavior remains absent.
+Status: `CURRENT IMPLEMENTED CONTRACT` for the narrow C2B3 route-neutral
+program-genesis family; the broader C2B0 topology remains an accepted target.
+C2B2 Slice 1 physically represents the nineteen-table core, Slice 2 implements
+its private pure row/value layer, and Slice 3 implements the private database
+readers. Only the mutation-receipt reader has the bounded C2B3 production caller.
 C2B1/C2B2-Slice-1 administrative migration source and C2B2-Slice-2 pure
 row/value source are current but confer no product authority.
 
@@ -594,19 +600,21 @@ establishment, source-observation ingest, and progression decisions. Durable
 intent must precede future external I/O. C2B2 Slice 1 provides the
 migration-0002 physical schema at current generation 2, and Slice 2 provides
 private pure row/value source for its nineteen tables. Slice 3 provides exactly
-twelve private reader roles, with no public surface or production caller. No
-C2B product reader caller, writer, mutation transaction, complete family graph verifier, replay/recovery,
-C2B3 behavior, worker, Bridge dependency, ES dependency, service, queue,
-scheduler, or autonomous loop exists.
+twelve private reader roles with no public surface; eleven remain
+production-unintegrated. C2B3 privately persists and exactly verifies only the
+route-neutral nine-row/eight-entry program-genesis family, including same-command
+replay and readback-only commit-outcome resolution. No author/bound effect,
+observation, later progression-decision runtime, worker, Bridge dependency, ES
+dependency, service, queue, scheduler, or autonomous loop exists.
 
 <!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->
 ## C2B3 vertical-slice governing narrowing
 
-Section 36 of `.docs/c2b-durable-development-state.md` supersedes only the
+Sections 36 and 38 of `.docs/c2b-durable-development-state.md` supersede only the
 named route selections, horizontal implementation order, active path-count
 manifests, and previously selected initialization/migration target shapes. It
-replaces them with governing architecture and just-in-time questions, not a
-future implementation design.
+replace them with governing architecture and, for VS1B, the implemented exact
+route-neutral genesis family. Later phases remain just-in-time questions.
 
 Initialization is route-neutral. Route selection occurs only at author-effect
 delivery, whose first route is the existing `direct_local_bootstrap` bounded
@@ -620,6 +628,9 @@ and publication authority remain outside it. The worker receives no
 Coordinator SQLite or writer access. At most one productive bootstrap
 acceptance and one later isolated local feature-branch commit are permitted;
 push, remote-ref mutation, PR, merge, deployment, and publication remain zero.
-All exact future values, relations, migration inventory, and replay/evidence
-layouts are deferred to the phase that first needs them.
+The implemented VS1B family uses migration 0002 unchanged, one receipt-first
+transaction, exactly nine state rows and eight supplied graph entries, exact
+same-command replay, and private readback-only uncertainty resolution. It adds
+no route, dispatch, worker, capsule, external I/O, or executable authority.
+Exact later-phase values and evidence layouts remain deferred.
 <!-- C2B3_NARROWED_ARCHITECTURE_END -->

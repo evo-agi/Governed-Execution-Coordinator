@@ -110,22 +110,16 @@ cleanup restores the same
 wrapper only after operation and mutation release, for a later explicit fresh
 apply or exact replay with a new operation and connection. QU/QK and disposal-
 pending paths remain non-reusable. The authority lock retains its unchanged
-release/reclamation contract. The B3c1a contract-projection test retains its
+release/reclamation contract. VS1A is committed at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`; its cleanup semantics remain
+current. The B3c1a contract-projection test retains its
 existing node ID and replaces only the obsolete post-GC Active expectation with
 `ORPHANED` -> non-admitting -> cleanup -> X. The B3c1b delta is explicit SQLite
 lifetime
 hygiene only. B3c3 is adapted only as a private rollback-only regression to the
-selected proof owner, with no semantic widening. The unchanged B2b issue is
-pre-existing HEAD-exact test-resource hygiene, strict warning-promotion debt,
-not repaired by VS1A, and not VS1A authority or semantic behavior. The final
-candidate scope is exactly twenty-two dirty paths: twenty-one tracked
-modifications, the sole untracked shared-foundation test, and zero staged paths.
-It includes the intentional B3c1a contract replacement in
-`tests/test_b3c1a_writer_session_authority.py` and the accepted B4b zero-
-Coordinator-frame privacy-contract replacement in
-`tests/test_b4b_private_atomic_global_stop_persistence.py`. Fresh independent audit remains
-pending; the bytes are uncommitted, unpushed, and unpublished. These scope counts
-are report-only observations bound to the exact candidate provenance.
+selected proof owner, with no semantic widening. The unchanged B2b issue
+remains pre-existing test-resource hygiene and is not VS1B authority or
+behavior.
 
 The shared-foundation test owns distinct production-causal runtime, compiled
 complete-module source-mutant, and secondary AST/source-guard evidence classes.
@@ -320,9 +314,10 @@ attempt and establish no background cleaner or hidden lookup retry path.
 H2 exact authority-lock registry removal is the same-process writer-acquisition
 boundary, so a new same-process writer may acquire before T1 publishes old-
 session X. A cross-process writer may acquire after kernel unlock even before
-H2. Neither acquisition is atomic with X or changes old COMMIT truth. T1 is the
-Section-35 boundary for affected C2B3 initialization recovery/replay and cleanup
-continuation. That future initialization gate does not apply to existing
+H2. Neither acquisition is atomic with X or changes old COMMIT truth. For
+VS1B, successful fresh writer acquisition plus transaction writer fencing is
+the cross-session initialization recovery/replay gate. Recovery receives no old
+resource and does not prove or require old X. This does not change existing
 transition/global-stop replay. When the transaction connection closes normally
 and no explicit disposal or orphan cleanup is pending, the exact same session wrapper
 returns to active only after its mutation and operation complete. A later

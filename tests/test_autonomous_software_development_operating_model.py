@@ -844,7 +844,9 @@ def test_classification_ledger_and_authoritative_composition_are_pinned() -> Non
     authority = _compact(_clause("C1-AOM-006", "C1-AOM-007"))
     target_topology = _compact(_clause("C1-AOM-002", "C1-AOM-003"))
     nonimplementation = _compact(_clause("C1-AOM-013"))
-    assert "It also has twelve production-unintegrated private C2B2 reader roles with no public API or production caller" in current
+    assert "It also has twelve private C2B2 reader roles with no public API" in current
+    assert "only the mutation-receipt role has the bounded private C2B3 route-neutral program-initialization caller" in current
+    assert "receipt-first nine-row/eight-entry genesis family" in current
     assert "It has no software-development program runtime, semantic-attempt runtime" in current
     assert "Current executable authorization remains unsupported and fail-closed." in authority
     assert "This subordinate-authorization behavior is not currently implemented." in authority
@@ -1603,7 +1605,7 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         )
     )
     for phrase in (
-        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, and production-unintegrated private reader behavior only",
+        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral genesis family",
         "C2B0 remains the historical contract-freeze tranche",
         "exact-current ordinary SQLite open",
         "explicit supported-prefix migration",
@@ -1618,9 +1620,11 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         "four private pure row/value modules",
         "eighteen row self-digest checks",
         "five receipt result projections",
-        "no SQL, reader capability, database reader, production caller",
+        "no SQL, reader capability, database reader, or independent product writer",
         "C2B2 Slice 3 separately implements exactly twelve private reader roles and twenty-four literal SELECT specifications",
-        "Remaining C2B2 production integration and C2B3-C2B6 remain target-only",
+        "Only its mutation-receipt reader has the bounded private C2B3 caller",
+        "C2B3 now implements only route-neutral program genesis, exact replay, and readback-only uncertainty recovery",
+        "C2B4-C2B6 and every non-genesis C2B3 behavior remain target-only",
     ):
         assert phrase in section
 
@@ -1690,12 +1694,13 @@ def test_narrowed_vertical_slice_order_and_jit_ledger_are_exact() -> None:
     assert positions == tuple(sorted(positions))
     for expected in (
         "This is not a mandatory program or tranche count.",
-        "route-neutral initialization, minimum durable graph, migration-0002 sufficiency",
+        "VS1B has resolved the pre-I/O route-neutral initialization, minimum durable graph, migration-0002 sufficiency",
         "minimum custody/retrieval, verifier, invocation, capsule, evidence",
         "command/delivery/observation",
         "reliable keyed submit, response-loss and Nomad ambiguity",
         "These are required questions, not selected future schemas.",
         "Current capability remains generation 2, migration 0002, C2A1, C2B2",
+        "private VS1B genesis family",
         "All target execution remains absent.",
     ):
         assert expected in document_compact

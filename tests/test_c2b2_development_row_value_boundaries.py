@@ -201,6 +201,21 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
                 if type(value) is dict:
                     assert not any(callable(item) for item in value.values())
     owner_names={name.removesuffix(".py") for name in MODULE_NAMES}
+    expected_consumers={
+        "_development_program_initialization_contracts.py":{
+            "_development_decision_row_values",
+            "_development_program_row_values",
+            "_development_row_value_support",
+        },
+        "_sqlite_development_program_initialization.py":{
+            "_development_decision_row_values",
+            "_development_program_row_values",
+            "_development_row_value_support",
+        },
+        "_sqlite_development_reader_contracts.py":owner_names,
+        "_sqlite_development_readers.py":owner_names,
+    }
+    observed_consumers={}
     for path in (ROOT/"src/ge_nwp_coordinator").glob("*.py"):
         if path in MODULE_PATHS:
             continue
@@ -216,7 +231,16 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
             if isinstance(node,ast.Import)
             for alias in node.names
         )
-        assert imported.isdisjoint(owner_names)
+        imported.update(
+            alias.name.rsplit(".",1)[-1]
+            for node in ast.walk(tree)
+            if isinstance(node,ast.ImportFrom) and node.module is None
+            for alias in node.names
+        )
+        selected=imported & owner_names
+        if selected:
+            observed_consumers[path.name]=selected
+    assert observed_consumers==expected_consumers
 
 
 class _TupleSubclass(tuple):

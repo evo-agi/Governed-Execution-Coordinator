@@ -18754,58 +18754,29 @@ independent audit.
 
 ## 37. C2B Pre-I/O VS1A Shared Cleanup Foundation
 
-This section is a subordinate selected-implementation and current-status
-contract. Sections 35 and 36 retain precedence. Section 37 does not change
-their cleanup order, admission boundaries, authority, replay rules, lock
-semantics, terminal conditions, or nonimplementation boundaries.
+This section is the subordinate record of the committed VS1A cleanup
+foundation. Sections 35 and 36 retain precedence for the VS1A mechanics.
+Section 38 finitely supersedes only their initialization-specific cross-session
+recovery/replay gate; it does not change the VS1A cleanup order, old-resource
+authority, lock semantics, or terminal conditions.
 
 <!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_BEGIN -->
 
 ```python
 {
     "c2b_pre_io_vs1a_shared_cleanup_foundation": {
-        "status": "selected implementation repaired after the latest independent-audit block; candidate validation is non-audit evidence; fresh independent reaudit not yet performed",
+        "status": "committed current implementation at 4ffbc5f8881339dce210a50b05200e3f8e837284",
         "precedence": {
             "section_35_cleanup_owner": True,
             "section_36_governing_narrowing": True,
             "section_37_subordinate": True,
         },
         "implementation_scope": {
-            "scope_counts_are_report_only_observations_bound_to_the_exact_current_candidate": True,
-            "dirty_path_count": 22,
-            "tracked_modification_count": 21,
-            "untracked_count": 1,
-            "staged_path_count": 0,
-            "paths": (
-                ".docs/c2b-durable-development-state.md",
-                ".docs/c2b3-program-initialization.md",
-                ".docs/sqlite-operations-and-recovery.md",
-                ".docs/sqlite-threat-model.md",
-                ".docs/writer-session-authority.md",
-                "AGENTS.md",
-                "README.md",
-                "src/ge_nwp_coordinator/sqlite_connection.py",
-                "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
-                "src/ge_nwp_coordinator/sqlite_writer_session.py",
-                "src/ge_nwp_coordinator/state_authority_lock.py",
-                "tests/test_b3c1a_writer_session_authority.py",
-                "tests/test_b3c1b_rollback_only_writer_fencing.py",
-                "tests/test_b3c3_rollback_only_transition_dry_run.py",
-                "tests/test_b3c4b_private_atomic_transition_persistence.py",
-                "tests/test_b3c4c_prerequisite_contract.py",
-                "tests/test_b4b_private_atomic_global_stop_persistence.py",
-                "tests/test_c2b0_durable_state_contract.py",
-                "tests/test_c2b3_program_initialization_contract.py",
-                "tests/test_c2b_pre_io_vs1a_shared_cleanup_foundation.py",
-                "tests/test_sqlite_b2c_writer_session.py",
-                "tests/test_state_authority_lock.py",
-            ),
-            "sole_untracked_path": "tests/test_c2b_pre_io_vs1a_shared_cleanup_foundation.py",
-            "b2b_lock_integration_in_changed_path_inventory": False,
-            "b3c1a_contract_projection_path": "tests/test_b3c1a_writer_session_authority.py",
-            "b3c1a_contract_projection_replacement": "same node ID projects pre-EXPLICIT_RETIRED GC/finalizer loss as ORPHANED -> non-admitting -> cleanup -> X",
-            "b4b_privacy_contract_path": "tests/test_b4b_private_atomic_global_stop_persistence.py",
-            "b4b_zero_Coordinator_frame_privacy_replacement": "accepted one-byte contract replacement retained unchanged",
+            "commit": "4ffbc5f8881339dce210a50b05200e3f8e837284",
+            "tree": "cb233628f60726fb7aa68e6c846d612b1b0c165b",
+            "branch": "trunk_dev",
+            "current_implementation": True,
+            "historical_candidate_scope_counts_are_current_contract": False,
         },
         "selected_connection_custody": {
             "controller_exclusive_scope": True,
@@ -19164,7 +19135,7 @@ semantics, terminal conditions, or nonimplementation boundaries.
             "QU_or_QK_with_retained_connection": "non-reusable and cleanup-directed",
             "explicit_disposal_or_orphan_cleanup_pending": "non-reusable and cleanup-directed",
             "process_control_cleanup": "ContinueCleanup toward X",
-            "future_C2B3_initialization_recovery": "separately Section-35 governed and X-gated; not generalized to existing replay",
+            "future_C2B3_initialization_recovery": "superseded by the Section-38 fresh-writer acquisition and fencing gate; not generalized to old-session reuse or existing transition/global-stop replay",
         },
         "b3c1b_test_resource_hygiene": {
             "classification": "test-resource lifetime hygiene only",
@@ -19204,19 +19175,15 @@ semantics, terminal conditions, or nonimplementation boundaries.
             "session_and_operation_finalizer_boundaries": True,
             "schema_migrations_dependencies_exports_and_public_API": "unchanged",
         },
-        "absent_and_unauthorized": {
-            "development_program_initialization": True,
-            "development_durable_row_mutation": True,
-            "VS1B": True,
-            "worker_scheduler_service_network_Bridge_ES_or_Git_effect": True,
+        "current_boundary": {
+            "cleanup_foundation_committed": True,
+            "VS1B_reuses_without_altering_cleanup_semantics": True,
+            "worker_scheduler_service_network_Bridge_ES_or_Git_effect_absent": True,
         },
-        "not_occurred": (
-            "independent audit acceptance",
-            "staging",
-            "commit",
-            "push",
-            "publication",
-        ),
+        "committed_provenance": {
+            "commit": "4ffbc5f8881339dce210a50b05200e3f8e837284",
+            "subject": "implement pre-I/O VS1A cleanup foundation",
+        },
     }
 }
 ```
@@ -19431,9 +19398,10 @@ resolves caller response loss after operation linearization; transition and
 global-stop response-loss selectors prove one durable event and exact replay,
 with changed-digest conflict and no duplicate effect. QU/QK retained-connection custody, pending
 explicit disposal or orphan cleanup, and governing process-control cleanup remain
-non-reusable and continue monotonically toward X. The future C2B3
-initialization-recovery rule remains separately Section-35 governed and X-gated;
-it is not a fresh-session rule for existing transition or global-stop replay.
+non-reusable and continue monotonically toward X. Section 38 supersedes the old
+initialization-only X gate with fresh-writer acquisition and fencing; it does
+not alter existing transition/global-stop replay or make the old wrapper
+reusable.
 
 The change in `tests/test_b3c1b_rollback_only_writer_fencing.py` is test-resource
 lifetime hygiene only. Every directly test-owned SQLite connection now has an
@@ -19466,7 +19434,191 @@ path inventory, and no warning suppression is added.
 
 Section 35's L1/H1/H2/T1/H3 meanings, existing transition/global-stop apply and
 replay, QK/QU truth, rollback-only behavior, public delegation, lock boundary,
-fork rules, and finalizer posture remain unchanged. Program initialization and
-development durable-row mutation remain absent; VS1B remains unauthorized.
-Independent audit acceptance, staging, commit, push, and publication have not
-occurred.
+fork rules, and finalizer posture remain unchanged. VS1A is the committed
+current cleanup implementation at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`. Section 38 owns the later VS1B
+program-initialization implementation and its finite X-gate correction.
+
+## 38. Coordinator VS1B Route-Neutral Program Genesis
+
+This section is the finite owner for the VS1B private implementation. It
+re-adopts the Section-35 single-work-item command, projections, row values,
+digests, result projection, and conflict algebra except where the explicit
+cross-session gate below supersedes an initialization-only X-gate statement.
+The new source bytes are implementation evidence pending a fresh independent
+audit; this section is not an audit acceptance claim.
+
+<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_BEGIN -->
+
+```python
+{
+    "coordinator_vs1b_route_neutral_program_genesis": {
+        "status": "implementation evidence pending fresh independent audit",
+        "safe_values": (
+            "DevelopmentAcceptedIntentSafeProjectionV1",
+            "DevelopmentProgramInitializationCommandV1",
+            "DevelopmentProgramInitializationResultV1",
+            "DevelopmentProgramInitializationConflictReasonV1",
+            "DevelopmentProgramInitializationConflictV1",
+            "DevelopmentProgramInitializationRecoveryDispositionV1",
+            "DevelopmentProgramInitializationRecoveryResultV1",
+        ),
+        "route_neutrality": {
+            "adapter_host_transport_endpoint_or_route_field": False,
+            "external_request_or_IO": False,
+            "Git_effect": False,
+        },
+        "fresh_transaction": {
+            "row_order": (
+                "development_program_heads",
+                "development_accepted_intent_revisions",
+                "development_work_item_heads",
+                "development_work_item_revisions",
+                "development_decisions",
+                "development_program_versions",
+                "development_program_version_work_items",
+                "development_work_spec_bindings",
+                "development_mutation_receipts",
+            ),
+            "graph_entries": (
+                (0, "program_head_postimage", 0, "program_ref"),
+                (1, "accepted_intent_revision", 0, "accepted_intent_revision_ref"),
+                (2, "initialize_decision", 0, "decision_ref"),
+                (3, "program_version", 0, "program_version_ref"),
+                (4, "work_item_head_postimage", 0, "work_item_ref"),
+                (5, "work_item_revision", 0, "work_item_revision_ref"),
+                (6, "program_version_work_item", 0, "work_item_ref"),
+                (7, "work_spec_binding", 0, "work_spec_ref"),
+            ),
+            "receipt_is_graph_envelope_not_entry": True,
+            "whole_second_UTC_timestamp_count": 1,
+        },
+        "apply_order": (
+            "writer_fencing",
+            "receipt_lookup",
+            "current_coding_global_stop_read",
+            "expected_stop_ref_and_version_comparison",
+            "active_stop_rejection",
+            "identity_and_collision_checks",
+        ),
+        "receipt_first": {
+            "exact_receipt": "verify complete nine-row result and eight-entry graph, then exact_replay",
+            "changed_command_digest": "mutation_ref_reuse_conflict",
+            "later_valid_head_advancement_invalidates_replay": False,
+            "replay_calls_clock": False,
+        },
+        "historical_head_relational_verification": {
+            "genesis_postimages_remain_receipt_graph_members": True,
+            "current_advanced_heads_replace_genesis_postimages": False,
+            "genesis_current_ref_reuses_already_verified_immutable_row": True,
+            "later_current_ref_uses_family_local_bounded_LIMIT_2_read": True,
+            "program_current_relation": (
+                "referenced_version exists exactly once and validates",
+                "referenced_version.program_ref == current_head.program_ref == command.program_ref",
+                "referenced_version.program_version_ref == current_head.current_program_version_ref",
+                "referenced_version.program_version_number == current_head.current_program_version_number",
+            ),
+            "work_current_relation": (
+                "referenced_revision exists exactly once and validates",
+                "referenced_revision.program_ref == current_head.program_ref == command.program_ref",
+                "referenced_revision.work_item_ref == current_head.work_item_ref == command.work_spec_safe_projection.work_item_ref",
+                "referenced_revision.work_item_revision_ref == current_head.current_work_item_revision_ref",
+                "referenced_revision.work_item_revision_number == current_head.current_work_item_revision_number",
+            ),
+            "coherent_later_apply": "original exact_replay",
+            "coherent_later_recovery": "committed_exact",
+            "contradictory_apply": "database_integrity_failure",
+            "contradictory_recovery": "unresolved",
+            "contradiction_calls_clock_writes_or_COMMIT": False,
+        },
+        "read_only_recovery": {
+            "dispositions": (
+                "committed_exact",
+                "definitely_not_committed",
+                "unresolved",
+            ),
+            "transaction": "BEGIN IMMEDIATE, fenced bounded reads, capability invalidation, ROLLBACK, close",
+            "writes_or_COMMIT": False,
+            "clock_call": False,
+            "complete_receipt_owned_family_required_for_committed_exact": True,
+            "all_selected_family_identities_absent_required_for_definitely_not_committed": True,
+            "partial_mixed_malformed_contradictory_colliding_or_unverifiable": "unresolved",
+        },
+        "cross_session_gate": {
+            "rule": "successful acquisition and fencing of a fresh concrete SQLite writer session",
+            "fresh_path": (
+                "state-authority lock",
+                "managed database-binding validation",
+                "durable writer issuance and generation advancement",
+                "writer credential verification",
+                "operation guard",
+                "shared mutation slot",
+                "transaction controller",
+                "writer fencing",
+            ),
+            "successful_fresh_acquisition_proves_old_resource_X": False,
+            "same_process": "fresh acquisition is unavailable until H2 registry removal; recovery may begin after H2 and before old T1/X",
+            "different_process": "fresh acquisition may succeed after L1 kernel-lock release and before old-process H2 or T1/X",
+            "old_session": "non-admitting, unusable for recovery, replay, or new mutation, and independently continues bounded cleanup toward X",
+            "old_resource_or_session_received_as_recovery_authority": False,
+            "active_session_registry_or_process_local_resource_scan": False,
+            "terminal_witness_cross_session_proof_or_durable_gate": False,
+            "old_condition_wait_or_lifecycle_mutation": False,
+        },
+        "finite_X_gate_supersession": {
+            "supersedes_only": (
+                "T1 as cross-session initialization recovery/replay admission boundary",
+                "fresh recovery requiring observation or proof of original-session X",
+                "recovery/replay blocked solely by old process-local PU/PK before T1",
+                "commit-time recovery requiring proof of prior PU to X",
+                "known-committed replay requiring proof of prior PK to X",
+            ),
+            "preserves_cleanup_order": (
+                "P0", "C1", "C2", "R1", "R2", "R3", "L1", "H1", "H2", "T1", "H3",
+            ),
+            "old_resource_X_remains_local_terminal_truth": True,
+            "transition_and_global_stop_behavior_changed": False,
+        },
+        "safe_command_and_privacy": {
+            "exact_reconstructed_equal_command_accepted": True,
+            "same_Python_object_required": False,
+            "restart_safe_command_custody_or_reconstruction_claim": False,
+            "raw_WorkSpec_scope": "bounded sensitive reducer only",
+            "raw_WorkSpec_persisted_retrieved_retained_logged_reported_or_returned": False,
+            "supplied_refs_exactly_validated_before_WorkSpec_comparison": True,
+            "caller_comparison_string_or_repr_method_before_rejection": False,
+        },
+        "absent": (
+            "revision edge",
+            "semantic attempt",
+            "attempt fence",
+            "authority evaluation",
+            "effect intent",
+            "effect fence",
+            "author command",
+            "effect head",
+            "delivery attempt",
+            "delivery head",
+            "observation",
+            "candidate",
+            "capsule",
+            "worker",
+            "route selection",
+            "external I/O",
+            "Git effect",
+            "bootstrap latch",
+            "automatic semantic retry",
+        ),
+        "non_widening": {
+            "application_generation": 2,
+            "terminal_migration": "0002_development_program_and_effect_state",
+            "migration_0003": False,
+            "schema_change": False,
+            "public_StateStore_or_WriterSession_change": False,
+            "package_export": False,
+        },
+    }
+}
+```
+
+<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_END -->

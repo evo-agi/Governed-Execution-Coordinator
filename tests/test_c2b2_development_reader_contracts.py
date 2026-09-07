@@ -23,6 +23,9 @@ CONTRACTS_PATH = ROOT / "src/ge_nwp_coordinator/_sqlite_development_reader_contr
 READERS_PATH = ROOT / "src/ge_nwp_coordinator/_sqlite_development_readers.py"
 SELECT_SUPPORT_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_transition_select_support.py"
 OWNER_PATH = ROOT / ".docs/c2b-durable-development-state.md"
+EXPECTED_PRODUCTION_READER_IMPORTERS = (
+    "_sqlite_development_program_initialization.py",
+)
 
 EXPECTED_QUERY_SPECIFICATION_NAMES = (
     "_MUTATION_RECEIPT_SELECT",
@@ -588,7 +591,7 @@ def _scope_candidate_contract(
 ) -> None:
     if (
         "_sqlite_development_readers" in package_source
-        or production_importers
+        or production_importers != EXPECTED_PRODUCTION_READER_IMPORTERS
         or c2b3_paths
     ):
         raise AssertionError("C2B2_READER_SCOPE_CONTRACT")
@@ -933,7 +936,7 @@ def test_no_production_caller_public_store_writer_or_c2b3_surface() -> None:
         for path in production
         if "_sqlite_development_readers" in path.read_text(encoding="utf-8")
     }
-    assert importers == set()
+    assert importers == set(EXPECTED_PRODUCTION_READER_IMPORTERS)
     for path in production:
         if path.name == "_sqlite_development_readers.py":
             continue
@@ -951,12 +954,12 @@ def test_no_production_caller_public_store_writer_or_c2b3_surface() -> None:
 @pytest.mark.parametrize("scope_case", ("package_export", "production_caller", "c2b3"))
 def test_scope_counterfactuals_fail_one_fixed_diagnostic(scope_case: str) -> None:
     package_source = (ROOT / "src/ge_nwp_coordinator/__init__.py").read_text(encoding="utf-8")
-    importers: tuple[str, ...] = ()
+    importers = EXPECTED_PRODUCTION_READER_IMPORTERS
     c2b3_paths: tuple[str, ...] = ()
     if scope_case == "package_export":
         package_source += "\nfrom . import _sqlite_development_readers\n"
     elif scope_case == "production_caller":
-        importers = ("sqlite_writer_session.py",)
+        importers = EXPECTED_PRODUCTION_READER_IMPORTERS + ("sqlite_writer_session.py",)
     else:
         c2b3_paths = ("src/ge_nwp_coordinator/c2b3_development_mutation.py",)
     with pytest.raises(AssertionError, match="^C2B2_READER_SCOPE_CONTRACT$"):

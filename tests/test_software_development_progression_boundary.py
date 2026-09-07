@@ -720,14 +720,15 @@ def test_c2b2_current_private_reader_boundary_preserves_progression_nonimplement
         )
     )
     for phrase in (
-        "private pure no-I/O row/value validation plus production-unintegrated private reader behavior only",
+        "private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral program-genesis family",
         "Slice 1 uses this administrative boundary at application generation 2",
         "Slice 2 adds private pure row/value source for those nineteen tables",
-        "no SQLite, SQL, capability use, database reader, or production caller",
+        "no SQLite or SQL in that pure layer",
         "Slice 3 implements exactly twelve private reader roles",
-        "no production caller, package export, public reader, `StateStore`/`WriterSession` method",
-        "No C2B product mutation, complete family graph verification, family replay or recovery, or C2B3 behavior is added",
-        "Durable development progression, source-observation ingest, semantic decisions, effect establishment or execution",
+        "Only the mutation-receipt reader has the bounded private C2B3 caller",
+        "no package export, public reader, `StateStore`/public `WriterSession` method",
+        "exact nine-row/eight-entry genesis family",
+        "Durable development progression beyond the exact initialization decision, source-observation ingest, later semantic decisions",
     ):
         assert phrase in section
 
@@ -848,6 +849,7 @@ def test_narrowed_vertical_slice_progression_ceiling_and_prerequisites_are_exact
         "`accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate` requires an accepted clean exact ES Git OID",
         "accepted owning-ES-repository contract/adoption evidence",
         "Chat or model reports cannot substitute for either intrinsic gate.",
+        "now owns the exact route-neutral initialization, nine-row/eight-entry graph",
         "remain just-in-time questions",
         "No next source tranche is authorized.",
     ):

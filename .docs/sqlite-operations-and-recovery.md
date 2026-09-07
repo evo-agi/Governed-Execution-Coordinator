@@ -146,28 +146,30 @@ failure containment, and bare-reraises it by identity without process-control
 poisoning; malformed, subclassed, or content-bearing candidates fail closed.
 Governing process-control exceptions do not enter that disposition and retain
 exact identity. B4b's accepted one-byte contract replacement requires zero
-Coordinator traceback frames and remains unchanged. The candidate remains
-unstaged and has not been committed, pushed, or published; a fresh independent
-audit remains pending.
+Coordinator traceback frames and remains unchanged. VS1A is committed at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`; VS1B reuses its cleanup machinery
+without changing transition/global-stop behavior.
 
 After closure proof, R1 revokes credential authority, R2 clears the exact
 resource-owned mutation slot, and R3 releases the database binding. The old
 resource remains non-admitting after R2 because P0 froze its lifecycle. L1
 normal unlock return proves release; H2 then removes the exact authority-lock
 registry entry and permits a same-process writer even if T1 has not yet
-published old-session X. C2B3 initialization recovery/replay and cleanup
-continuation governed by Section 35 remain blocked until the affected resource
-reaches T1/X. Existing transition and global-stop idempotency/replay remain
-governed by their existing contracts. After normal transaction-connection close
+published old-session X. VS1B initialization recovery/replay is admitted only
+by successful acquisition and fencing of a different concrete writer session.
+It receives no old resource and makes no claim that fresh acquisition proves
+old-session X. Same-process acquisition may occur after H2 and before T1;
+cross-process acquisition may occur after L1 kernel-lock release and before the
+old process reaches H2 or T1. Existing transition and global-stop
+idempotency/replay remain governed by their existing contracts. After normal transaction-connection close
 with no pending explicit disposal or orphan cleanup, the same wrapper becomes active only after operation
 and mutation release; a later explicit call uses a new operation lease and
 fresh connection for fresh apply or exact replay. No original call retries
 automatically. A lost response after operation linearization uses the same
 fresh/replay/conflict semantics; transition and global-stop selectors prove no
 duplicate durable effect. QU/QK, disposal-pending, orphan-cleanup, and governing
-process-control postures remain non-reusable. The future C2B3 initialization
-rule remains separately X-gated and is not generalized to existing replay. H3
-is post-X housekeeping.
+process-control postures remain non-reusable for the old session. Recovery does
+not wait on or inspect those old-resource states. H3 is post-X housekeeping.
 
 The post-R2 race is fixed by a deterministic real-session selector: after exact
 mutation release and before exact operation completion, disposal makes proof-
@@ -206,16 +208,11 @@ selected close-proof owner, with no B3c3 result, durability, public, or
 authority widening. It observes the sealed retained-custody proof owner rather
 than patching the generic close helper, preserves rollback-only ordering and no
 COMMIT, and retains close-unproved custody until explicit cleanup. The unchanged
-B2b issue is pre-existing HEAD-exact test-resource hygiene, strict warning-
-promotion debt, not repaired by VS1A, and not VS1A authority or semantic
-behavior. The final candidate scope is exactly twenty-two dirty paths:
-twenty-one tracked modifications, the sole untracked shared-foundation test, and
-zero staged paths. It includes the intentional B3c1a contract replacement in
-`tests/test_b3c1a_writer_session_authority.py` and the accepted B4b zero-
-Coordinator-frame privacy contract replacement in
-`tests/test_b4b_private_atomic_global_stop_persistence.py`; fresh independent
-audit remains pending. These scope counts are report-only observations bound
-to the exact candidate provenance, not architectural invariants.
+B2b issue remains pre-existing test-resource hygiene and is not VS1B authority
+or behavior. VS1B adds one private route-neutral program-genesis transaction,
+receipt-first replay, and a read-only resolver that uses `BEGIN IMMEDIATE`,
+writer fencing, bounded family reads, capability invalidation, `ROLLBACK`, and
+the existing close-proof cleanup. It adds no automatic retry.
 
 Writer-lock release is proved only by normal return from the real
 `fcntl.flock(exact_retained_fd, LOCK_UN)` call. Descriptor reclamation is a

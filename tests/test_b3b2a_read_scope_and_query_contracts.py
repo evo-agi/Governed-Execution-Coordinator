@@ -57,6 +57,23 @@ PACKAGE_DIR = ROOT / "src/ge_nwp_coordinator"
 READ_SCOPE_PATH = PACKAGE_DIR / "sqlite_transition_read_scope.py"
 SELECT_SUPPORT_PATH = PACKAGE_DIR / "sqlite_transition_select_support.py"
 
+
+def _imports_sqlite3(source: str, *, filename: str) -> bool:
+    tree = ast.parse(source, filename=filename)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "sqlite3" or alias.name.startswith("sqlite3.")
+            for alias in node.names
+        ):
+            return True
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and (
+            node.module == "sqlite3"
+            or (node.module or "").startswith("sqlite3.")
+        ):
+            return True
+    return False
+
+
 EXPECTED_ROW_COLUMNS = {
     "lease_identity_records": (
         "decision_ref",
@@ -560,18 +577,73 @@ def test_b3b2b_production_module_only_adds_private_bounded_select_readers() -> N
 
 def test_b3b2a_runtime_import_is_the_only_new_sqlite_importer() -> None:
     source_files = list((ROOT / "src").rglob("*.py"))
-    sqlite_importers = {
-        path.relative_to(ROOT).as_posix()
+    sources = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
         for path in source_files
-        if "import sqlite3" in path.read_text(encoding="utf-8")
     }
-    assert sqlite_importers == {
+    expected_sqlite_importers = {
+        "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
         "src/ge_nwp_coordinator/sqlite_transition_select_support.py",
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }
+    sqlite_importers = {
+        relative_path
+        for relative_path, source in sources.items()
+        if _imports_sqlite3(source, filename=relative_path)
+    }
+    assert sqlite_importers == expected_sqlite_importers
+
+    challenge_sources = (
+        ("import sqlite3\n", True),
+        ("import sqlite3 as database\n", True),
+        ("import sqlite3.dbapi2 as dbapi2\n", True),
+        ("import os, sqlite3 as database\n", True),
+        ("from sqlite3 import connect\n", True),
+        ("from sqlite3 import connect as open_database\n", True),
+        ("from sqlite3 import connect, Row as RowType\n", True),
+        ("from sqlite3.dbapi2 import connect as open_database\n", True),
+        (
+            "try:\n"
+            "    import sqlite3\n"
+            "except ImportError:\n"
+            "    pass\n",
+            True,
+        ),
+        ("# import sqlite3\n", False),
+        ('text = "import sqlite3"\n', False),
+        ('"""import sqlite3"""\n', False),
+        ("from . import sqlite3\n", False),
+        ("from .sqlite3 import connect\n", False),
+        ("from ..sqlite3.dbapi2 import connect\n", False),
+        (
+            'import importlib\nimportlib.import_module("sqlite3")\n',
+            False,
+        ),
+    )
+    assert tuple(
+        _imports_sqlite3(source, filename=f"<sqlite-import-challenge-{index}>")
+        for index, (source, _) in enumerate(challenge_sources)
+    ) == tuple(expected for _, expected in challenge_sources)
+    with pytest.raises(SyntaxError):
+        _imports_sqlite3("from sqlite3 import\n", filename="<invalid-python>")
+
+    seventh_path = "src/ge_nwp_coordinator/_seventh_sqlite_importer.py"
+    for seventh_source in (
+        "from sqlite3 import connect\n",
+        "import sqlite3 as database\n",
+    ):
+        seventh_sources = {**sources, seventh_path: seventh_source}
+        seventh_importers = {
+            relative_path
+            for relative_path, source in seventh_sources.items()
+            if _imports_sqlite3(source, filename=relative_path)
+        }
+        assert seventh_importers == expected_sqlite_importers | {seventh_path}
+        with pytest.raises(AssertionError):
+            assert seventh_importers == expected_sqlite_importers
 
 
 def test_b3b2a_docs_pin_private_non_executing_protocol_and_b3c_authority() -> None:

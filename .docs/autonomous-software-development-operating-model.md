@@ -44,8 +44,11 @@ Classification: `CURRENT IMPLEMENTED CONTRACT`. Coordinator currently provides
 bounded durable SQLite mutation authority for the existing coding-work
 transition and `global_stop` contracts, plus a separate internal C2A1 pure
 semantic-value and coherence layer and private pure C2B2 row/value source for
-all nineteen migration-0002 tables. It also has twelve production-unintegrated
-private C2B2 reader roles with no public API or production caller. It has no
+all nineteen migration-0002 tables. It also has twelve private C2B2 reader
+roles with no public API; only the mutation-receipt role has the bounded private
+C2B3 route-neutral program-initialization caller. C2B3 implements that one
+receipt-first nine-row/eight-entry genesis family and readback-only uncertainty
+resolution. It has no
 software-development program runtime, semantic-attempt runtime, dispatcher,
 scheduler, queue consumer,
 worker, worker supervisor, subprocess launcher, model/provider client, ES
@@ -469,9 +472,9 @@ Bridge change, or ES change.
 ## C2B1/C2B2 Current Administrative, Pure-Value, And Private-Reader Composition
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration,
-private pure no-I/O row/value validation, and production-unintegrated private
-reader behavior only. C2B0 remains the historical contract-freeze tranche for
-the target composition above.
+private pure no-I/O row/value validation, private reader behavior, and the
+bounded private C2B3 route-neutral genesis family. C2B0 remains the historical
+contract-freeze tranche for the target composition above.
 
 C2B1 implements exact-current ordinary SQLite open, explicit supported-prefix
 migration, terminal-only application-generation compatibility, cumulative
@@ -484,23 +487,22 @@ Slice 1 adds physical schema representability only. This administrative
 evidence is not program, progression, decision, effect, acceptance,
 publication, or runtime truth.
 
-C2B2 Slice 2 implements only four private pure row/value modules: exact ordered
+C2B2 Slice 2 implements four private pure row/value modules: exact ordered
 tuple boundaries for the nineteen tables, immutable validated values, eighteen
 row self-digest checks, five receipt result projections, bounded C2A
 reconstruction, WorkSpec safe projection, and the common supplied-entry graph
-digest primitive. It adds no SQL, reader capability, database reader,
-production caller, product writer, product mutation, family replay/recovery,
-complete family graph verification, C2B3, migration 0003, observation ingest,
+digest primitive. It adds no SQL, reader capability, database reader, or
+independent product writer. It adds no migration 0003, observation ingest,
 semantic decision, authority verification, WorkSpec custody, worker/process
 execution, capsule
 storage, Git effect, direct-local route, ES route, service, scheduler, queue,
 publication, or autonomous loop. C2B2 Slice 3 separately implements exactly
 twelve private reader roles and twenty-four literal SELECT specifications
-through the existing nominal capability seam. It adds no production caller,
-public API, mutation, replay, recovery, C2B3, migration 0003, or external
-effect. Remaining C2B2 production integration and C2B3-C2B6 remain target-only;
-their composition is unchanged beyond the implemented migration-0002 physical
-core, pure row/value layer, and private readers.
+through the existing nominal capability seam. Only its mutation-receipt reader
+has the bounded private C2B3 caller; it adds no public API or external effect.
+C2B3 now implements only route-neutral program genesis, exact replay, and
+readback-only uncertainty recovery. C2B4-C2B6 and every non-genesis C2B3
+behavior remain target-only.
 
 <!-- C2B3_NARROWED_OPERATING_MODEL_BEGIN -->
 ## Narrowed first vertical-slice operating order
@@ -517,9 +519,9 @@ This is not a mandatory program or tranche count. Future prompts may divide or
 combine internal checkpoints while preserving authority, validation, and
 provenance boundaries.
 
-Each phase must resolve only the questions it needs. Pre-I/O work owns
-route-neutral initialization, minimum durable graph, migration-0002 sufficiency,
-replay/recovery, and one-shot-ceiling questions. Remote contact owns minimum
+Each phase must resolve only the questions it needs. VS1B has resolved the
+pre-I/O route-neutral initialization, minimum durable graph, migration-0002
+sufficiency, and replay/recovery questions without external I/O. Remote contact owns minimum
 custody/retrieval, verifier, invocation, capsule, evidence, and executable-path
 migration questions. Local Git owns command/delivery/observation,
 reconciliation, authority, outcome evidence, and no-blind-retry questions. ES
@@ -527,7 +529,7 @@ migration owns reliable keyed submit, response-loss and Nomad ambiguity,
 retained results/capsules, conformance, and bootstrap disablement.
 
 These are required questions, not selected future schemas. Current capability
-remains generation 2, migration 0002, C2A1, C2B2 private values/readers, and
-existing bounded writer/transaction authority. All target execution remains
-absent.
+remains generation 2, migration 0002, C2A1, C2B2 private values/readers,
+existing bounded writer/transaction authority, and the private VS1B genesis
+family. All target execution remains absent.
 <!-- C2B3_NARROWED_OPERATING_MODEL_END -->

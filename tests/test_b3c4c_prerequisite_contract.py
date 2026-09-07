@@ -40,12 +40,118 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "f0ccae80ef3c805802425b1b7716890e8a17eae1194540573470d8356bb892b8"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py": (
-        "c01350dc15f753f0c9ecae1e9c253f217a425317e19a60105f053f6295864a3c"
+        "60882d03581811dbb3a0523e6070fd45b4b067630805336dc3c6359d51b0e902"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py": (
         "5512294de5030b94936dc43caec659a16c5617633dcafac28cbffed6dc878760"
     ),
 }
+EXPECTED_INITIALIZATION_TRANSACTION_IMPORTS = (
+    (
+        "ge_nwp_coordinator._development_program_initialization_contracts",
+        (
+            "DevelopmentProgramInitializationCommandV1",
+            "DevelopmentProgramInitializationConflictV1",
+            "DevelopmentProgramInitializationRecoveryDispositionV1",
+            "DevelopmentProgramInitializationRecoveryResultV1",
+            "DevelopmentProgramInitializationResultV1",
+            "_development_program_initialization_write_plan",
+            "_require_exact_development_program_initialization_command",
+        ),
+    ),
+    (
+        "ge_nwp_coordinator._sqlite_development_program_initialization",
+        (
+            "_FreshDevelopmentProgramInitialization",
+            "_execute_development_program_initialization_writes",
+            "_recover_development_program_initialization_after_fencing",
+            "_resolve_development_program_initialization_apply_after_fencing",
+        ),
+    ),
+)
+EXPECTED_INITIALIZATION_CONTROLLER_METHODS = (
+    "run_atomic_development_program_initialization",
+    "run_development_program_initialization_recovery",
+    "_run_atomic_development_program_initialization_transaction",
+    "_run_development_program_initialization_recovery_transaction",
+    "_commit_fresh_development_program_initialization",
+)
+EXPECTED_INITIALIZATION_TOP_LEVEL_ENTRIES = (
+    "_run_atomic_development_program_initialization",
+    "_run_development_program_initialization_recovery",
+)
+EXPECTED_INITIALIZATION_CALL_EDGES = (
+    (
+        "_CoordinatorMutationTransactionController._commit_fresh_development_program_initialization",
+        "_development_program_initialization_write_plan",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController._commit_fresh_development_program_initialization",
+        "_execute_development_program_initialization_writes",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController._run_atomic_development_program_initialization_transaction",
+        "_commit_fresh_development_program_initialization",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController._run_atomic_development_program_initialization_transaction",
+        "_resolve_development_program_initialization_apply_after_fencing",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController._run_development_program_initialization_recovery_transaction",
+        "DevelopmentProgramInitializationRecoveryResultV1",
+        3,
+    ),
+    (
+        "_CoordinatorMutationTransactionController._run_development_program_initialization_recovery_transaction",
+        "_recover_development_program_initialization_after_fencing",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController.run_atomic_development_program_initialization",
+        "_require_exact_development_program_initialization_command",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController.run_atomic_development_program_initialization",
+        "_run_atomic_development_program_initialization_transaction",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController.run_development_program_initialization_recovery",
+        "_require_exact_development_program_initialization_command",
+        1,
+    ),
+    (
+        "_CoordinatorMutationTransactionController.run_development_program_initialization_recovery",
+        "_run_development_program_initialization_recovery_transaction",
+        1,
+    ),
+    (
+        "_run_atomic_development_program_initialization",
+        "_require_exact_development_program_initialization_command",
+        1,
+    ),
+    (
+        "_run_atomic_development_program_initialization",
+        "run_atomic_development_program_initialization",
+        1,
+    ),
+    (
+        "_run_development_program_initialization_recovery",
+        "_require_exact_development_program_initialization_command",
+        1,
+    ),
+    (
+        "_run_development_program_initialization_recovery",
+        "run_development_program_initialization_recovery",
+        1,
+    ),
+)
 
 
 class _OtherReason(str, Enum):
@@ -181,6 +287,153 @@ def test_public_sqlite_transition_and_global_stop_preflight_do_not_open_sqlite(
 def test_private_runtime_sources_remain_frozen_and_public_wrapper_imports_are_bounded() -> None:
     for path, expected in EXPECTED_FROZEN_SOURCE_SHA256.items():
         assert _sha256(path) == expected
+
+    transaction_source = _read(
+        "src/ge_nwp_coordinator/sqlite_transition_transaction.py"
+    )
+    transaction_tree = ast.parse(
+        transaction_source,
+        filename="src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+    )
+    initialization_imports = tuple(
+        (
+            node.module,
+            tuple(alias.name for alias in node.names),
+        )
+        for node in transaction_tree.body
+        if isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and "development_program_initialization" in node.module
+    )
+    assert initialization_imports == EXPECTED_INITIALIZATION_TRANSACTION_IMPORTS
+
+    controller_classes = tuple(
+        node
+        for node in transaction_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name.endswith("TransactionController")
+    )
+    assert tuple(node.name for node in controller_classes) == (
+        "_CoordinatorMutationTransactionController",
+    )
+    controller = controller_classes[0]
+    initialization_methods = tuple(
+        node.name
+        for node in controller.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and "development_program_initialization" in node.name
+    )
+    assert initialization_methods == EXPECTED_INITIALIZATION_CONTROLLER_METHODS
+    top_level_functions = tuple(
+        node.name
+        for node in transaction_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    )
+    assert tuple(
+        name for name in top_level_functions if "development_program_initialization" in name
+    ) == EXPECTED_INITIALIZATION_TOP_LEVEL_ENTRIES
+    assert "_run_atomic_transition_apply" in top_level_functions
+    assert "_run_atomic_global_stop_apply" in top_level_functions
+
+    parents = {
+        child: parent
+        for parent in ast.walk(transaction_tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    observed_initialization_calls: list[tuple[str, str]] = []
+    for node in ast.walk(transaction_tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if isinstance(node.func, ast.Name):
+            call_name = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            call_name = node.func.attr
+        else:
+            continue
+        if not (
+            "development_program_initialization" in call_name
+            or call_name.startswith("DevelopmentProgramInitialization")
+        ):
+            continue
+        parent = parents.get(node)
+        while parent is not None and not isinstance(
+            parent, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ):
+            parent = parents.get(parent)
+        assert parent is not None
+        scope_name = parent.name
+        scope_parent = parents.get(parent)
+        while scope_parent is not None and not isinstance(scope_parent, ast.ClassDef):
+            if isinstance(scope_parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                break
+            scope_parent = parents.get(scope_parent)
+        if isinstance(scope_parent, ast.ClassDef):
+            scope_name = f"{scope_parent.name}.{scope_name}"
+        observed_initialization_calls.append((scope_name, call_name))
+    observed_call_edges = tuple(
+        sorted(
+            (scope_name, call_name, observed_initialization_calls.count((scope_name, call_name)))
+            for scope_name, call_name in set(observed_initialization_calls)
+        )
+    )
+    assert observed_call_edges == EXPECTED_INITIALIZATION_CALL_EDGES
+
+    integration_nodes = tuple(
+        node
+        for node in (*controller.body, *transaction_tree.body)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and "development_program_initialization" in node.name
+    )
+    forbidden_connection_calls = {
+        "connect",
+        "_open_controller_connection",
+        "_open_bound_existing_sqlite_connection",
+        "_begin_immediate",
+    }
+    for integration_node in integration_nodes:
+        integration_call_names = {
+            call.func.id
+            if isinstance(call.func, ast.Name)
+            else call.func.attr
+            for call in ast.walk(integration_node)
+            if isinstance(call, ast.Call)
+            and isinstance(call.func, (ast.Name, ast.Attribute))
+        }
+        assert integration_call_names.isdisjoint(forbidden_connection_calls)
+
+    forbidden_external_import_roots = {
+        "aiohttp",
+        "httpx",
+        "requests",
+        "socket",
+        "subprocess",
+        "urllib",
+    }
+    for node in transaction_tree.body:
+        if isinstance(node, ast.Import):
+            imported_roots = {alias.name.split(".", 1)[0] for alias in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            imported_roots = {node.module.split(".", 1)[0]}
+        else:
+            continue
+        assert imported_roots.isdisjoint(forbidden_external_import_roots)
+
+    package_source = _read("src/ge_nwp_coordinator/__init__.py")
+    for public_name in (
+        "initialize_development_program",
+        "apply_development_program_initialization",
+        "resolve_development_program_initialization_commit_outcome",
+        "run_atomic_development_program_initialization",
+        "run_development_program_initialization_recovery",
+    ):
+        assert not hasattr(StateStore, public_name)
+        assert not hasattr(WriterSession, public_name)
+        assert public_name not in ge_nwp_coordinator.__all__
+        assert public_name not in package_source
+    for private_entry in EXPECTED_INITIALIZATION_TOP_LEVEL_ENTRIES:
+        assert private_entry.startswith("_")
+        assert private_entry not in ge_nwp_coordinator.__all__
+        assert not hasattr(ge_nwp_coordinator, private_entry)
 
     writer_source = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
     assert writer_source.count("_run_atomic_transition_apply") == 2

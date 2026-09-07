@@ -1,4 +1,9 @@
-"""Private, production-unintegrated C2B2 development-state SELECT readers."""
+"""Private C2B2 development-state SELECT readers.
+
+VS1B gives only the mutation-receipt reader a private program-initialization
+caller.  The 24-query C2B2 contract and every other reader remain unchanged;
+family-local initialization reads live in the initialization module.
+"""
 
 from __future__ import annotations
 

@@ -3511,7 +3511,22 @@ def _read_allowed_text(path: Path) -> str:
     except (OSError, RuntimeError):
         raise _ContractViolation("C2B3A_ORACLE_FORBIDDEN_INPUT") from None
     _require(resolved == expected_path, "C2B3A_ORACLE_FORBIDDEN_INPUT")
-    return resolved.read_text(encoding="utf-8")
+    source = resolved.read_text(encoding="utf-8")
+    if resolved == PLANNING_PATH:
+        _require(
+            source.count(PLANNING_PROJECTION_BEGIN_MARKER) == 1
+            and source.count(PLANNING_PROJECTION_END_MARKER) == 1,
+            "C2B3A_ORACLE_FORBIDDEN_INPUT",
+        )
+        historical, after = source.split(PLANNING_PROJECTION_END_MARKER, 1)
+        _require(after.startswith("\n"), "C2B3A_ORACLE_FORBIDDEN_INPUT")
+        historical += PLANNING_PROJECTION_END_MARKER + "\n"
+        _require(
+            historical == EXPECTED_PLANNING_PROJECTION,
+            "C2B3A_ORACLE_FORBIDDEN_INPUT",
+        )
+        return historical
+    return source
 
 
 def _owner_contract(text: str | None = None) -> dict[str, object]:

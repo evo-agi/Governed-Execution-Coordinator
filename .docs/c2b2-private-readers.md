@@ -166,8 +166,10 @@ graph, replay, or recovery proof.
 
 ## Remaining Nonimplementation
 
-Still absent are a production caller, public reader API, package-root export,
-`StateStore`/`WriterSession` reader method, C2B mutation API, receipt
-persistence, family graph discovery or completeness, replay, recovery, C2B3,
-migration 0003, and every worker, model, process, capsule, Git, direct-local,
-Execution Substrate, Bridge, publication, or other external effect.
+The mutation-receipt reader now has only the bounded private VS1B
+program-initialization and recovery caller. The other eleven roles remain
+production-unintegrated. Still absent are a public reader API, package-root export,
+`StateStore`/public `WriterSession` reader method, every non-genesis C2B
+mutation, migration 0003, and every worker, model, process, capsule, Git,
+direct-local, Execution Substrate, Bridge, publication, or other external
+effect.

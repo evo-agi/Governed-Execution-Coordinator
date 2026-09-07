@@ -166,17 +166,18 @@ five receipt result projections, bounded C2A reconstruction, WorkSpec safe
 projection, and the common supplied-entry graph digest primitive. It adds no
 SQL, private database reader, read capability, mutation API, family graph
 locator or completeness proof, exact family replay, commit-outcome recovery,
-public surface, production caller, or C2B3 behavior. The historical B3/B4
+or public surface within Slice 2 itself. VS1B now consumes its safe values for
+only the private route-neutral genesis family. The historical B3/B4
 coherent fixture retains schema-0001 graph meanings inside a current physical
 generation-2 temporary database and leaves all nineteen C2B tables empty.
 
 C2B2 Slice 3 adds exactly two private reader source modules, seven private
 aggregate/page values, twenty-four literal query specifications, twelve exact
 private reader roles, and bounded 2/257 SELECT support. It uses only the
-existing nominal mutation read capability, is production-unintegrated, and
-adds no public/package/StateStore/WriterSession reader surface, mutation,
-receipt persistence, family graph completeness, replay, recovery, C2B3,
-migration 0003, or external effect.
+existing nominal mutation read capability. Only the mutation-receipt reader now
+has the bounded private VS1B caller; the other eleven remain
+production-unintegrated. Slice 3 adds no public/package/StateStore/public-WriterSession
+reader surface, migration 0003, or external effect.
 
 C2B1 adds no durable development record, reader, writer, mutation, observation
 ingest, decision runtime, authority verifier, WorkSpec custody, worker/process
@@ -555,20 +556,21 @@ Slice 1 now implements the generation-2 physical schema, and
 terminal migration. Migration 0003 remains unimplemented and deferred. C2B2
 pure row/value source is now implemented only as the private no-I/O Slice-2
 layer. Slice 3 private database readers and bounded SQL/capability use are now
-implemented without a production caller. C2B mutation, replay and recovery,
-complete family graph verification, observation ingest, decisions,
-latch behavior, authority verification, worker/process execution, Git effects,
-direct-local behavior, and ES routing remain unimplemented. C2B3 has not
-started. This sentence describes current production behavior; it does not
-classify documentation-only contract freezes.
+implemented. VS1B gives only the mutation-receipt reader a private production
+caller and implements one private route-neutral program-genesis mutation,
+complete family verification, receipt-first exact replay, and read-only
+three-way recovery. Other C2B mutation families, observation ingest,
+progression decisions, latch behavior, authority verification, worker/process
+execution, Git effects, direct-local behavior, and ES routing remain
+unimplemented.
 
-C2B3A freezes only the single-work-item program-initialization target contract;
+C2B3A froze the single-work-item program-initialization contract;
 the bounded genesis shape is not a permanent one-work-item architecture. The
 sole semantic authority is Section 35 of
 `.docs/c2b-durable-development-state.md`.
 `.docs/c2b3-program-initialization.md` is implementation-status and planning
-only. Program-initialization mutation source requires a committed C2B3A
-snapshot, independent audit, and a later exact implementation prompt.
+only. Section 38 of the durable-state owner now governs the private VS1B
+implementation on the committed C2B3A and VS1A foundation.
 Author-effect establishment remains contract-incomplete and unimplemented.
 No C2B3 public/API/package surface, schema, migration, authority, route,
 worker, Bridge, or ES widening is allowed by this freeze.
@@ -609,7 +611,7 @@ between code and documentation.
 
 ## Vertical-slice governing narrowing
 
-Section 36 of `.docs/c2b-durable-development-state.md` supersedes the
+Sections 36 and 38 of `.docs/c2b-durable-development-state.md` supersede the
 horizontal C2B3-C2B6 implementation order and only the finite route,
 route-specific latch, active path-manifest, initialization-shape, and
 migration-target selections it names. It freezes governing authority,
@@ -622,11 +624,11 @@ productive bootstrap acceptance and one separate post-acceptance local feature-
 branch commit are permitted; all publication effects remain zero and Git
 ambiguity forbids blind retry.
 
-Exact initialization, custody, verification, invocation, evidence, Git,
-migration, latch, reliable-submit, and conformance designs are deferred to the
-phase that first needs them. Do not infer source authorization. Current
-generation-2/migration-0002/C2A1/C2B2/writer-transaction capability remains the
-only implemented posture.
+VS1B now implements exact route-neutral initialization, the
+nine-row/eight-entry genesis family, verification, replay, and readback-only recovery. Custody,
+invocation, later evidence, Git, migration, latch, reliable-submit, and
+conformance designs remain deferred to the phase that first needs them. Do not
+infer source authorization.
 
 ## Pre-I/O VS1A cleanup invariant
 
@@ -795,15 +797,22 @@ operation lease and fresh connection, applying fresh when no commit occurred or
 returning exact replay after an underlying commit. Use the same explicit fresh/
 replay/conflict rules for response loss after the final operation assignment.
 Never retry automatically or duplicate durable effects. QU/QK retained custody, pending disposal, and
-governing process-control cleanup remain non-reusable. Do not generalize the
-future C2B3 initialization X gate to existing replay.
+governing process-control cleanup remain non-reusable. Do not generalize
+VS1B's fresh-writer recovery gate to old-session reuse or to any claim about an
+old resource's terminal state. A fresh concrete writer may recover or replay
+only after independent acquisition and writer fencing. In the same process,
+H2 registry removal permits that acquisition before old T1; in a different
+process, L1 kernel-lock release may permit it before old-process H2 or T1.
+Existing transition/global-stop replay remains unchanged.
 
 P0/C1/C2/R1/R2/R3/L1/H1/H2/T1/H3, lock release and descriptor reclamation,
-same- and cross-process acquisition boundaries, transition/global-stop replay,
-fork non-authority, and finalizer posture remain governed by Section 35.
-VS1A adds no development-program initialization, durable development row,
-schema, migration, public surface, dependency, worker, scheduler, service,
-model, Git, Bridge, ES, network, or publication behavior.
+transition/global-stop replay, fork non-authority, and finalizer posture remain
+governed by Sections 35 and 37. VS1A is committed at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`; VS1B changes none of those
+mechanics. Section 38 owns the private program-genesis mutation and the finite
+same-/cross-process acquisition clarification. It adds no schema, migration,
+public surface, worker, scheduler, service, model, Git, Bridge, ES, network, or
+publication behavior.
 
 The B3c1a contract-projection test retains its existing node ID and replaces
 only the obsolete post-GC Active expectation: loss before `EXPLICIT_RETIRED` is
@@ -821,17 +830,10 @@ COMMIT, no commit-unknown result, ordinary rollback-only ordering, and close-
 unproved custody until explicit cleanup; and adds no result, durability, public,
 or authority widening.
 
-The unchanged B2b issue is recorded only as pre-existing HEAD-exact test-
-resource hygiene, strict warning-promotion debt, not repaired by VS1A, and not
-VS1A authority or semantic behavior. Do not add it to the changed-path
-inventory, suppress the warning, or widen beyond the final twenty-two dirty
-paths: twenty-one tracked modifications, the sole untracked shared-foundation
-test, and zero staged paths. This includes the intentional B3c1a contract
-replacement in `tests/test_b3c1a_writer_session_authority.py` and the accepted
-B4b zero-Coordinator-frame privacy-contract replacement in
-`tests/test_b4b_private_atomic_global_stop_persistence.py`. Fresh independent
-audit remains pending. These scope counts are report-only observations bound to
-the exact candidate provenance, not architectural invariants.
+The unchanged B2b issue remains pre-existing test-resource hygiene and is not
+VS1B authority or behavior. Do not suppress its warning or change its
+semantics. The committed VS1A B3c1a contract replacement and B4b
+zero-Coordinator-frame privacy contract remain unchanged.
 
 Keep production-causal runtime cases, compiled complete-module source mutants,
 and secondary AST/source guards as distinct evidence classes. The shared-
@@ -846,6 +848,7 @@ Exact commands, warning counts, overlaps, and validation-group file inventories
 belong to the implementation and audit reports. Give no causal credit to a
 duplicate, no-op, or unreached owning seam.
 
-The VS1A bytes remain unstaged and uncommitted. Independent-audit acceptance,
-staging, push, and publication have not occurred; fresh independent audit is
-pending, and program initialization and VS1B remain absent and unauthorized.
+VS1B is private implementation evidence pending fresh independent audit. It
+uses migration 0002 and adds no public API/package export, route or external
+I/O, automatic semantic retry, old-resource lookup, terminal witness, or
+restart-safe command custody.

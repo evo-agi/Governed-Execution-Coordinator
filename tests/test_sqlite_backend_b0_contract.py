@@ -13,6 +13,22 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "schemas" / "sqlite" / "coordinator-state-v1.sql"
 
 
+def _imports_sqlite3(source: str, *, filename: str) -> bool:
+    tree = ast.parse(source, filename=filename)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "sqlite3" or alias.name.startswith("sqlite3.")
+            for alias in node.names
+        ):
+            return True
+        if isinstance(node, ast.ImportFrom) and node.level == 0 and (
+            node.module == "sqlite3"
+            or (node.module or "").startswith("sqlite3.")
+        ):
+            return True
+    return False
+
+
 def _contains_requests_client_usage(source: str) -> bool:
     tree = ast.parse(source)
     for node in ast.walk(tree):
@@ -484,6 +500,10 @@ def test_schema_fixture_declares_rollback_journal_posture_without_strict_tables(
 def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() -> None:
     source_files = list((ROOT / "src").rglob("*.py"))
     _assert_no_requests_client_usage(tuple(source_files))
+    sources = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in source_files
+    }
     source = "\n".join(path.read_text(encoding="utf-8") for path in source_files)
     source_without_lock = "\n".join(
         path.read_text(encoding="utf-8")
@@ -508,18 +528,72 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
         assert fragment not in source_without_lock
         assert fragment in lock_source
 
-    sqlite_importers = {
-        path.relative_to(ROOT).as_posix()
-        for path in source_files
-        if "import sqlite3" in path.read_text(encoding="utf-8")
-    }
-    assert sqlite_importers == {
+    expected_sqlite_importers = {
+        "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
         "src/ge_nwp_coordinator/sqlite_transition_select_support.py",
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }
+    sqlite_importers = {
+        relative_path
+        for relative_path, file_source in sources.items()
+        if _imports_sqlite3(file_source, filename=relative_path)
+    }
+    assert sqlite_importers == expected_sqlite_importers
+
+    challenge_sources = (
+        ("import sqlite3\n", True),
+        ("import sqlite3 as database\n", True),
+        ("import sqlite3.dbapi2 as dbapi2\n", True),
+        ("import os, sqlite3 as database\n", True),
+        ("from sqlite3 import connect\n", True),
+        ("from sqlite3 import connect as open_database\n", True),
+        ("from sqlite3 import connect, Row as RowType\n", True),
+        ("from sqlite3.dbapi2 import connect as open_database\n", True),
+        (
+            "try:\n"
+            "    import sqlite3\n"
+            "except ImportError:\n"
+            "    pass\n",
+            True,
+        ),
+        ("# import sqlite3\n", False),
+        ('text = "import sqlite3"\n', False),
+        ('"""import sqlite3"""\n', False),
+        ("from . import sqlite3\n", False),
+        ("from .sqlite3 import connect\n", False),
+        ("from ..sqlite3.dbapi2 import connect\n", False),
+        (
+            'import importlib\nimportlib.import_module("sqlite3")\n',
+            False,
+        ),
+    )
+    assert tuple(
+        _imports_sqlite3(
+            challenge_source,
+            filename=f"<sqlite-import-challenge-{index}>",
+        )
+        for index, (challenge_source, _) in enumerate(challenge_sources)
+    ) == tuple(expected for _, expected in challenge_sources)
+    with pytest.raises(SyntaxError):
+        _imports_sqlite3("from sqlite3 import\n", filename="<invalid-python>")
+
+    seventh_path = "src/ge_nwp_coordinator/_seventh_sqlite_importer.py"
+    for seventh_source in (
+        "from sqlite3 import connect\n",
+        "import sqlite3 as database\n",
+    ):
+        seventh_sources = {**sources, seventh_path: seventh_source}
+        seventh_importers = {
+            relative_path
+            for relative_path, file_source in seventh_sources.items()
+            if _imports_sqlite3(file_source, filename=relative_path)
+        }
+        assert seventh_importers == expected_sqlite_importers | {seventh_path}
+        with pytest.raises(AssertionError):
+            assert seventh_importers == expected_sqlite_importers
 
     state_store = _read("src/ge_nwp_coordinator/state_store.py")
     assert "class StateStore(Protocol)" in state_store

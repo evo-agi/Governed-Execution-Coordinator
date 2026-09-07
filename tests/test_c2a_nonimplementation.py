@@ -21,12 +21,14 @@ from c2a_contract_support import (
 
 EXPECTED_PRODUCTION_FILES = (
     "__init__.py",
+    "_development_program_initialization_contracts.py",
     "_development_decision_row_values.py",
     "_development_effect_row_values.py",
     "_development_program_row_values.py",
     "_development_row_value_support.py",
     "_sqlite_development_reader_contracts.py",
     "_sqlite_development_readers.py",
+    "_sqlite_development_program_initialization.py",
     "_worker_execution_semantic_values.py",
     "backlog.py",
     "canonicalization.py",
@@ -167,8 +169,10 @@ CURRENT_ABSENCE_WORDING = (
     "Migration 0003 remains absent.",
     "C2B2 Slice 2 now provides one pure private row/value reconstruction "
     "consumer of the unchanged C2A1 values.",
-    "C2B2 private readers, C2B mutation, replay, and recovery, and C2B3 "
-    "behavior remain absent; C2B3 has not started.",
+    "C2B2 private readers are implemented, and VS1B now consumes the unchanged "
+    "C2A/C2B2 semantics for one private route-neutral program-genesis mutation, "
+    "exact replay, and readback-only recovery.",
+    "C2A itself remains unchanged and confers no durable authority.",
     "Worker, process, or model execution, Git effects, direct-local execution, "
     "ES routing, Bridge integration, publication, service, API, and IPC also "
     "remain absent.",
@@ -182,12 +186,13 @@ AGENTS_CURRENT_SCHEMA_WORDING = (
     "C2B2 pure row/value source is now implemented only as the private no-I/O "
     "Slice-2 layer.",
     "Slice 3 private database readers and bounded SQL/capability use are now "
-    "implemented without a production caller. C2B mutation, replay and recovery, "
-    "complete family graph verification, observation ingest, "
-    "decisions, latch behavior, authority verification, worker/process "
+    "implemented. VS1B gives only the mutation-receipt reader a private "
+    "production caller and implements one private route-neutral program-genesis "
+    "mutation, complete family verification, receipt-first exact replay, and "
+    "read-only three-way recovery. Other C2B mutation families, observation "
+    "ingest, progression decisions, latch behavior, authority verification, worker/process "
     "execution, Git effects, direct-local behavior, and ES routing remain "
     "unimplemented.",
-    "C2B3 has not started.",
 )
 
 

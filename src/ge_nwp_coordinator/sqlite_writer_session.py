@@ -5555,6 +5555,209 @@ class _SQLiteWriterSession(WriterSession):
             )
             raise
 
+    def _initialize_development_program(
+        self,
+        *,
+        mutation_ref: object,
+        program_ref: object,
+        program_version_ref: object,
+        accepted_intent_revision_ref: object,
+        decision_ref: object,
+        preassigned_semantic_attempt_ref: object,
+        preassigned_candidate_ref: object,
+        coding_global_stop_ref: object,
+        coding_global_stop_version: object,
+        source_intent_ref: object,
+        source_intent_digest: object,
+        work_spec: object,
+        reason_code: object = "program_genesis",
+    ) -> object:
+        """Reduce one transient WorkSpec and privately apply program genesis."""
+
+        command: object | None = None
+        try:
+            try:
+                from ge_nwp_coordinator._sqlite_development_program_initialization import (
+                    _reduce_development_program_initialization_command,
+                )
+
+                command = _reduce_development_program_initialization_command(
+                    mutation_ref=mutation_ref,
+                    program_ref=program_ref,
+                    program_version_ref=program_version_ref,
+                    accepted_intent_revision_ref=accepted_intent_revision_ref,
+                    decision_ref=decision_ref,
+                    preassigned_semantic_attempt_ref=preassigned_semantic_attempt_ref,
+                    preassigned_candidate_ref=preassigned_candidate_ref,
+                    coding_global_stop_ref=coding_global_stop_ref,
+                    coding_global_stop_version=coding_global_stop_version,
+                    source_intent_ref=source_intent_ref,
+                    source_intent_digest=source_intent_digest,
+                    work_spec=work_spec,
+                    reason_code=reason_code,
+                )
+            finally:
+                work_spec = None
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            command = None
+            work_spec = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            command = None
+            work_spec = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        return self._run_development_program_initialization_operation(
+            command=command,
+            recovery=False,
+        )
+
+    def _apply_development_program_initialization(
+        self,
+        command: object,
+    ) -> object:
+        """Privately apply an already reconstructed exact safe command."""
+
+        return self._run_development_program_initialization_operation(
+            command=command,
+            recovery=False,
+        )
+
+    def _resolve_development_program_initialization_commit_outcome(
+        self,
+        command: object,
+    ) -> object:
+        """Read back one initialization family under this fresh writer."""
+
+        return self._run_development_program_initialization_operation(
+            command=command,
+            recovery=True,
+        )
+
+    def _run_development_program_initialization_operation(
+        self,
+        *,
+        command: object,
+        recovery: bool,
+    ) -> object:
+        if type(recovery) is not bool:
+            raise SQLiteMutationStoreError(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+            ) from None
+        resource_reference = weakref.ref(self._resource)
+        invocation_correlation: _OperationInvocationCorrelation | None = None
+
+        def _guarded_initialization(
+            exact_correlation: _OperationInvocationCorrelation,
+        ) -> object:
+            nonlocal self, command
+            bound_operation_guard = self._resource.operation_guard
+            operation_guard_keywords = (
+                {"_invocation_correlation": exact_correlation}
+                if type(bound_operation_guard) is MethodType
+                else {}
+            )
+            with self._resource.operation_guard(
+                self,
+                **operation_guard_keywords,
+            ) as operation_lease:
+                import_failed = False
+                try:
+                    from ge_nwp_coordinator.sqlite_transition_transaction import (
+                        _run_atomic_development_program_initialization,
+                        _run_development_program_initialization_recovery,
+                    )
+                except Exception:
+                    import_failed = True
+                if import_failed:
+                    command = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                        )
+                    )
+                if recovery:
+                    result = _run_development_program_initialization_recovery(
+                        operation_lease=operation_lease,
+                        command=command,
+                    )
+                else:
+                    result = _run_atomic_development_program_initialization(
+                        operation_lease=operation_lease,
+                        command=command,
+                    )
+                if type(result) is _SafeMutationFailureDisposition:
+                    outward_error = _safe_mutation_error_from_disposition(result)
+                    result = None
+                    command = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(outward_error)
+                if result is None:
+                    command = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                        )
+                    )
+                return result
+
+        try:
+            invocation_correlation = (
+                self._resource._new_operation_invocation_correlation()
+            )
+            return _guarded_initialization(invocation_correlation)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(
+                        invocation_correlation
+                    )
+                except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                    try:
+                        resource._stabilize_operation_exit_for_process_control(
+                            invocation_correlation
+                        )
+                    except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                        pass
+            command = None
+            invocation_correlation = None
+            resource = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            accepted_safe_shape = _is_accepted_outward_safe_mutation_store_error(
+                safe_error
+            )
+            command = None
+            invocation_correlation = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            if accepted_safe_shape:
+                raise
+            raise
+
     def close(self) -> None:
         self._resource.close_from_owner()
         if self._resource.cleanup_complete and self._finalizer.alive:

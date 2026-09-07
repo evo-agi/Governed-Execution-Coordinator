@@ -371,6 +371,52 @@ C2B3A_PLANNING_PROJECTION_APPROVED_TEXT = (
     "\n"
     "<!-- C2B3A_PLANNING_PROJECTION_END -->\n"
 )
+C2B3A_VS1B_STATUS_BEGIN_MARKER = (
+    "<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_BEGIN -->"
+)
+C2B3A_VS1B_STATUS_END_MARKER = (
+    "<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->"
+)
+C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT = """<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_BEGIN -->
+## VS1B implemented current status
+
+The preceding C2B3A projection is retained as historical contract and planning evidence.
+Its internal “Current status,” source-absence, candidate-scope, and
+future-C2B3B statements are not current implementation claims after this
+addendum. VS1A is committed at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`, and Section 38 of
+`.docs/c2b-durable-development-state.md` now owns the private VS1B
+route-neutral, single-work-item program-genesis implementation.
+
+VS1B uses the generation-2 migration-0002 schema, the existing writer
+operation guard and shared mutation slot, the existing transaction controller,
+receipt-first exact replay, and read-only three-way recovery. Successful
+acquisition and fencing of a fresh concrete writer session—not proof of the old resource's T1/X state—is the
+cross-session recovery and replay gate. The
+old session remains non-admitting and unusable. Same-process acquisition may
+begin after H2 and before old T1; a different process may acquire after L1
+kernel-lock release and before the old process reaches H2 or T1.
+
+Historical replay and committed recovery continue to reconstruct the original
+genesis result and eight-entry receipt graph from the immutable genesis-family
+evidence. A later mutable program or work-item head is accepted only when the
+immutable row named by its current ref exists exactly once, validates, belongs
+to the same program and work-item owner, and carries exactly the current number
+claimed by the head. The advanced current head does not replace its genesis
+postimage in the historical graph. A contradictory current relation is the
+existing content-free `database_integrity_failure` for apply and `unresolved`
+for recovery. Separately supplied scalar refs are exactly validated before any
+comparison with transient `WorkSpecV1` values.
+
+The implementation adds no public API or package export, no schema or
+migration, no route, adapter, external I/O, worker, attempt, effect, delivery,
+candidate, capsule, Git effect, bootstrap latch, or automatic semantic retry.
+Raw `WorkSpecV1` is transient only in the sensitive reducer. A separately
+reconstructed exact safe command is accepted, but restart-safe command custody
+or reconstruction remains unimplemented. These bytes remain implementation
+evidence pending fresh independent audit.
+<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->
+"""
 C2B3A_SOURCE_ACCEPTANCE_EVIDENCE_LEDGER = (
     "an accepted fresh independent read-only source-acceptance audit;",
     "the exact committed C2B3A contract baseline;",
@@ -2746,7 +2792,8 @@ C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS = (
     "ancestor_kind_chain",
     "ordinal",
 )
-C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES: tuple[tuple[object, ...], ...] = (('_read_allowed_text', '_owner_contract', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
+C2B3A_ORACLE_LEGAL_PROTECTED_LOAD_SITES: tuple[tuple[object, ...], ...] = (('EXPECTED_PLANNING_PROJECTION', '_read_allowed_text', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'If', 'FunctionDef', 'Module'), 0),
+ ('_read_allowed_text', '_owner_contract', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
  ('_read_allowed_text', '_owner_golden_vector', None, 'direct_call_func', ('Name', 'Call', 'IfExp', 'Assign', 'FunctionDef', 'Module'), 0),
  ('EXPECTED_INITIALIZATION_GOLDEN_VECTOR', '_validate_golden_vector', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
  ('EXPECTED_PLANNING_PROJECTION', '_validate_planning_status', None, 'direct_comparison_operand', ('Name', 'Compare', 'Call', 'Expr', 'FunctionDef', 'Module'), 0),
@@ -3411,6 +3458,7 @@ SECTION_HEADINGS = (
     "35. C2B3A Program-Initialization Contract Freeze",
     "36. C2B3 Vertical-Slice Governing Narrowing Addendum",
     "37. C2B Pre-I/O VS1A Shared Cleanup Foundation",
+    "38. Coordinator VS1B Route-Neutral Program Genesis",
 )
 
 DECISION_KINDS = (
@@ -4141,8 +4189,46 @@ def _c2b3a_planning_evidence_ledger(
     return tuple(entries)
 
 
+def _c2b3a_planning_regions(text: str) -> tuple[str, str]:
+    diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
+    historical_begin = "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->"
+    historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->"
+    if type(text) is not str:
+        raise AssertionError(diagnostic)
+    for marker in (
+        historical_begin,
+        historical_end,
+        C2B3A_VS1B_STATUS_BEGIN_MARKER,
+        C2B3A_VS1B_STATUS_END_MARKER,
+    ):
+        if text.count(marker) != 1:
+            raise AssertionError(diagnostic)
+    positions = tuple(
+        text.index(marker)
+        for marker in (
+            historical_begin,
+            historical_end,
+            C2B3A_VS1B_STATUS_BEGIN_MARKER,
+            C2B3A_VS1B_STATUS_END_MARKER,
+        )
+    )
+    if positions != tuple(sorted(positions)):
+        raise AssertionError(diagnostic)
+    historical, current_remainder = text.split(
+        C2B3A_VS1B_STATUS_BEGIN_MARKER,
+        1,
+    )
+    current = C2B3A_VS1B_STATUS_BEGIN_MARKER + current_remainder
+    if historical != C2B3A_PLANNING_PROJECTION_APPROVED_TEXT:
+        raise AssertionError(diagnostic)
+    if current != C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT:
+        raise AssertionError(diagnostic)
+    return historical, current
+
+
 def _assert_c2b3a_planning_status(text: str) -> None:
     diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
+    historical, _current = _c2b3a_planning_regions(text)
     markers = (
         "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->",
         "<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->",
@@ -4159,8 +4245,7 @@ def _assert_c2b3a_planning_status(text: str) -> None:
         "<!-- C2B3A_PLANNING_PRODUCTION_NONIMPLEMENTATION_END -->",
         "<!-- C2B3A_PLANNING_PROJECTION_END -->",
     )
-    if type(text) is not str:
-        raise AssertionError(diagnostic)
+    text = historical
     if any(text.count(marker) != 1 for marker in markers):
         raise AssertionError(diagnostic)
     positions = tuple(text.index(marker) for marker in markers)
@@ -10779,10 +10864,15 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
         ROOT / "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
         ROOT / "src/ge_nwp_coordinator/_sqlite_development_readers.py",
     }
+    vs1b_sources = {
+        ROOT / "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
-    } == slice2_sources | slice3_sources
+    } == slice2_sources | slice3_sources | vs1b_sources
+    assert all(path.is_file() and not path.is_symlink() for path in vs1b_sources)
 
     production_sources = {
         path: path.read_text(encoding="utf-8")
@@ -10793,7 +10883,7 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
     non_c2b_source = "\n".join(
         value
         for path, value in production_sources.items()
-        if path not in slice2_sources | slice3_sources
+        if path not in slice2_sources | slice3_sources | vs1b_sources
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(
@@ -10814,7 +10904,15 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
     assert pyproject["project"]["dependencies"] == []
     assert "scripts" not in pyproject["project"]
     package_root = _text("src/ge_nwp_coordinator/__init__.py")
-    for token in ("DevelopmentProgram", "DevelopmentDecision", "DevelopmentEffectIntent"):
+    for token in (
+        "DevelopmentProgram",
+        "DevelopmentDecision",
+        "DevelopmentEffectIntent",
+        "DevelopmentProgramInitializationCommandV1",
+        "DevelopmentProgramInitializationResultV1",
+        "DevelopmentProgramInitializationConflictV1",
+        "DevelopmentProgramInitializationRecoveryResultV1",
+    ):
         assert token not in package_root
     assert not re.search(
         r"^\s*(?:from|import)\s+(?:execution_substrate|openai_bridge)(?:\.|\s|$)",
@@ -12234,12 +12332,14 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     _assert_c2b3a_owner_addendum_prose(owner)
     _assert_c2b3a_planning_status(planning)
+    historical_planning, current_status = _c2b3a_planning_regions(planning)
     assert (
         owner[owner.index("## 35. C2B3A Program-Initialization Contract Freeze\n")
               : owner.index("    # C2B3A_OWNER_ADDENDUM_BEGIN")]
         == C2B3A_OWNER_PRE_ADDENDUM_SECTION_35_PREFIX
     )
-    assert planning == C2B3A_PLANNING_PROJECTION_APPROVED_TEXT
+    assert historical_planning == C2B3A_PLANNING_PROJECTION_APPROVED_TEXT
+    assert current_status == C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
     for required in (
         '"structured_owner": "commit_close_outcome_addendum"',
         '"planning_is_semantic_authority": False',
@@ -12311,7 +12411,16 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
         "0003 remains reserved and unimplemented",
         "authorizes no production mutation",
     ):
-        assert required in planning
+        assert required in historical_planning
+    for required in (
+        "retained as historical contract and planning evidence",
+        "not current implementation claims",
+        "private VS1B",
+        "route-neutral, single-work-item program-genesis implementation",
+        "no public API or package export",
+        "no schema or\nmigration",
+    ):
+        assert required in current_status
 
     def physical_copy(name: str, value: str) -> str:
         path = tmp_path / (name + ".md")
@@ -12654,14 +12763,25 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
                 planning_mutant,
             )
 
-    for forbidden_path in (
+    for current_vs1b_path in (
         ROOT / "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
         ROOT / "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         ROOT / "tests/test_c2b3_private_atomic_program_initialization.py",
         ROOT / "tests/test_c2b3_program_initialization_recovery.py",
         ROOT / "tests/test_c2b3_private_program_initialization_delegation.py",
     ):
-        assert not forbidden_path.exists()
+        assert current_vs1b_path.is_file()
+        assert not current_vs1b_path.is_symlink()
+    historical_oracle_source = _c2b3a_bounded_oracle_source()
+    for current_only_name in (
+        "_vs1b_owner_contract",
+        "VS1B_OWNER_BEGIN_MARKER",
+        "VS1B_STATUS_BEGIN_MARKER",
+        "test_section_38_owns_exact_vs1b_route_neutral_genesis_contract",
+        "test_section_38_finitely_corrects_x_gate_without_weakening_old_x",
+        "test_vs1b_current_status_supersedes_historical_planning_labels",
+    ):
+        assert current_only_name not in historical_oracle_source
 
 
 def test_c2b3a_protected_callable_inventory_has_exact_twenty_names() -> None:
@@ -16097,14 +16217,14 @@ def test_c2b3a_strict_legal_protected_load_site_allowlist_is_exact() -> None:
     }
     observed = _c2b3a_oracle_protected_load_sites(tree, parents)
     assert observed == _c2b3a_oracle_expected_protected_load_sites()
-    assert len(observed) == 525
+    assert len(observed) == 526
     assert (
         sum(record[3] == "direct_call_func" for record in observed),
         sum(record[3] == "direct_candidate_argument" for record in observed),
         sum(record[3] == "direct_comparison_operand" for record in observed),
         sum(record[3] == "direct_assert_operand" for record in observed),
         sum(record[3] is None for record in observed),
-    ) == (429, 36, 39, 0, 21)
+    ) == (429, 36, 40, 0, 21)
     assert tuple(C2B3A_ORACLE_LEGAL_LOAD_SITE_FIELDS) == (
         "protected_name",
         "enclosing_top_level_function",
@@ -16622,6 +16742,50 @@ EXPECTED_NARROWED_RESET_TRAILING_PROSE = (
 
 VS1A_BEGIN_MARKER = "<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_BEGIN -->"
 VS1A_END_MARKER = "<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_END -->"
+VS1A_SECTION_MARKER = "## 37. C2B Pre-I/O VS1A Shared Cleanup Foundation"
+VS1B_SECTION_MARKER = "## 38. Coordinator VS1B Route-Neutral Program Genesis"
+VS1B_OWNER_BEGIN_MARKER = (
+    "<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_BEGIN -->"
+)
+VS1B_OWNER_END_MARKER = (
+    "<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_END -->"
+)
+EXPECTED_VS1A_SECTION_PREFIX = """## 37. C2B Pre-I/O VS1A Shared Cleanup Foundation
+
+This section is the subordinate record of the committed VS1A cleanup
+foundation. Sections 35 and 36 retain precedence for the VS1A mechanics.
+Section 38 finitely supersedes only their initialization-specific cross-session
+recovery/replay gate; it does not change the VS1A cleanup order, old-resource
+authority, lock semantics, or terminal conditions.
+
+<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_BEGIN -->
+"""
+EXPECTED_VS1B_SECTION_PREFIX = """## 38. Coordinator VS1B Route-Neutral Program Genesis
+
+This section is the finite owner for the VS1B private implementation. It
+re-adopts the Section-35 single-work-item command, projections, row values,
+digests, result projection, and conflict algebra except where the explicit
+cross-session gate below supersedes an initialization-only X-gate statement.
+The new source bytes are implementation evidence pending a fresh independent
+audit; this section is not an audit acceptance claim.
+
+<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_BEGIN -->
+"""
+EXPECTED_VS1B_OWNER_KEYS = (
+    "status",
+    "safe_values",
+    "route_neutrality",
+    "fresh_transaction",
+    "apply_order",
+    "receipt_first",
+    "historical_head_relational_verification",
+    "read_only_recovery",
+    "cross_session_gate",
+    "finite_X_gate_supersession",
+    "safe_command_and_privacy",
+    "absent",
+    "non_widening",
+)
 EXPECTED_VS1A_PATHS = (
     ".docs/c2b-durable-development-state.md",
     ".docs/c2b3-program-initialization.md",
@@ -16856,9 +17020,10 @@ resolves caller response loss after operation linearization; transition and
 global-stop response-loss selectors prove one durable event and exact replay,
 with changed-digest conflict and no duplicate effect. QU/QK retained-connection custody, pending
 explicit disposal or orphan cleanup, and governing process-control cleanup remain
-non-reusable and continue monotonically toward X. The future C2B3
-initialization-recovery rule remains separately Section-35 governed and X-gated;
-it is not a fresh-session rule for existing transition or global-stop replay.
+non-reusable and continue monotonically toward X. Section 38 supersedes the old
+initialization-only X gate with fresh-writer acquisition and fencing; it does
+not alter existing transition/global-stop replay or make the old wrapper
+reusable.
 
 The change in `tests/test_b3c1b_rollback_only_writer_fencing.py` is test-resource
 lifetime hygiene only. Every directly test-owned SQLite connection now has an
@@ -16891,10 +17056,11 @@ path inventory, and no warning suppression is added.
 
 Section 35's L1/H1/H2/T1/H3 meanings, existing transition/global-stop apply and
 replay, QK/QU truth, rollback-only behavior, public delegation, lock boundary,
-fork rules, and finalizer posture remain unchanged. Program initialization and
-development durable-row mutation remain absent; VS1B remains unauthorized.
-Independent audit acceptance, staging, commit, push, and publication have not
-occurred.
+fork rules, and finalizer posture remain unchanged. VS1A is the committed
+current cleanup implementation at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`. Section 38 owns the later VS1B
+program-initialization implementation and its finite X-gate correction.
+
 """
 
 EXPECTED_NARROWED_SUPERSEDES_ONLY = (
@@ -17122,18 +17288,71 @@ def _narrowed_reset_addendum(text: str | None = None) -> dict[str, object]:
     source = _owner() if text is None else text
     diagnostic = "C2B3_NARROWED_RESET_OWNER_INVALID"
     _require(type(source) is str, diagnostic)
-    _require(source.count(NARROWED_RESET_BEGIN_MARKER) == 1, diagnostic)
-    _require(source.count(NARROWED_RESET_END_MARKER) == 1, diagnostic)
-    _require(source.count(VS1A_BEGIN_MARKER) == 1, diagnostic)
-    _require(source.count(VS1A_END_MARKER) == 1, diagnostic)
-    _require(
-        source.split(VS1A_END_MARKER, 1)[1] == EXPECTED_VS1A_TRAILING_PROSE,
-        diagnostic,
+    ordered_markers = (
+        NARROWED_RESET_BEGIN_MARKER,
+        NARROWED_RESET_END_MARKER,
+        VS1A_SECTION_MARKER,
+        VS1A_BEGIN_MARKER,
+        VS1A_END_MARKER,
+        VS1B_SECTION_MARKER,
+        VS1B_OWNER_BEGIN_MARKER,
+        VS1B_OWNER_END_MARKER,
     )
+    _require(all(source.count(marker) == 1 for marker in ordered_markers), diagnostic)
+    positions = tuple(source.index(marker) for marker in ordered_markers)
+    _require(positions == tuple(sorted(positions)), diagnostic)
+
     before, remainder = source.split(NARROWED_RESET_BEGIN_MARKER, 1)
     payload, after = remainder.split(NARROWED_RESET_END_MARKER, 1)
     _require(before.endswith("\n"), diagnostic)
-    _require(after.startswith(EXPECTED_NARROWED_RESET_TRAILING_PROSE + "\n## 37. "), diagnostic)
+    after_narrowed, section_37_remainder = after.split(VS1A_SECTION_MARKER, 1)
+    _require(after_narrowed == EXPECTED_NARROWED_RESET_TRAILING_PROSE + "\n", diagnostic)
+    before_vs1a, after_vs1a_begin = section_37_remainder.split(VS1A_BEGIN_MARKER, 1)
+    _require(
+        VS1A_SECTION_MARKER + before_vs1a + VS1A_BEGIN_MARKER + "\n"
+        == EXPECTED_VS1A_SECTION_PREFIX,
+        diagnostic,
+    )
+    _vs1a_payload, after_vs1a_end = after_vs1a_begin.split(VS1A_END_MARKER, 1)
+    vs1a_trailing, section_38_remainder = after_vs1a_end.split(
+        VS1B_SECTION_MARKER,
+        1,
+    )
+    _require(vs1a_trailing == EXPECTED_VS1A_TRAILING_PROSE, diagnostic)
+    before_vs1b, after_vs1b_begin = section_38_remainder.split(
+        VS1B_OWNER_BEGIN_MARKER,
+        1,
+    )
+    _require(
+        VS1B_SECTION_MARKER + before_vs1b + VS1B_OWNER_BEGIN_MARKER + "\n"
+        == EXPECTED_VS1B_SECTION_PREFIX,
+        diagnostic,
+    )
+    vs1b_payload, after_vs1b_end = after_vs1b_begin.split(
+        VS1B_OWNER_END_MARKER,
+        1,
+    )
+    _require(after_vs1b_end == "\n", diagnostic)
+    vs1b_lines = vs1b_payload.strip().splitlines()
+    _require(
+        len(vs1b_lines) >= 3
+        and vs1b_lines[0] == "```python"
+        and vs1b_lines[-1] == "```",
+        diagnostic,
+    )
+    try:
+        vs1b_parsed = ast.literal_eval("\n".join(vs1b_lines[1:-1]))
+    except (SyntaxError, ValueError):
+        raise AssertionError(diagnostic) from None
+    _require(type(vs1b_parsed) is dict, diagnostic)
+    _require(
+        tuple(vs1b_parsed) == ("coordinator_vs1b_route_neutral_program_genesis",),
+        diagnostic,
+    )
+    vs1b_value = vs1b_parsed["coordinator_vs1b_route_neutral_program_genesis"]
+    _require(type(vs1b_value) is dict, diagnostic)
+    _require(tuple(vs1b_value) == EXPECTED_VS1B_OWNER_KEYS, diagnostic)
+
     lines = payload.strip().splitlines()
     _require(lines[0] == "```python" and lines[-1] == "```", diagnostic)
     try:
@@ -17861,10 +18080,33 @@ def test_narrowed_reset_es_baseline_oid_adoption_counterfactuals_are_rejected(
 
 def test_narrowed_reset_parser_and_governing_mutants_fail_closed() -> None:
     owner = _owner()
+    reordered_sections = (
+        owner.replace(VS1A_SECTION_MARKER, "__VS1A_SECTION__", 1)
+        .replace(VS1B_SECTION_MARKER, VS1A_SECTION_MARKER, 1)
+        .replace("__VS1A_SECTION__", VS1B_SECTION_MARKER, 1)
+    )
     for malformed in (
         owner.replace(NARROWED_RESET_BEGIN_MARKER, "", 1),
         owner.replace(NARROWED_RESET_END_MARKER, NARROWED_RESET_BEGIN_MARKER, 1),
         owner.replace("```python\n{\n    \"critical_path_narrowing_addendum\"", "```json\n{\n    \"critical_path_narrowing_addendum\"", 1),
+        owner.replace(VS1A_SECTION_MARKER, "", 1),
+        owner.replace(VS1B_SECTION_MARKER, "", 1),
+        owner.replace(
+            VS1A_SECTION_MARKER,
+            VS1A_SECTION_MARKER + "\n" + VS1A_SECTION_MARKER,
+            1,
+        ),
+        owner.replace(
+            VS1B_SECTION_MARKER,
+            VS1B_SECTION_MARKER + "\n" + VS1B_SECTION_MARKER,
+            1,
+        ),
+        reordered_sections,
+        owner.replace(
+            VS1B_OWNER_END_MARKER,
+            VS1B_OWNER_END_MARKER + " pseudo-closing text",
+            1,
+        ),
         owner + "The earlier manifest governs C2B3B.\n",
     ):
         with pytest.raises(AssertionError, match="C2B3_NARROWED_RESET_OWNER_INVALID"):
@@ -17928,13 +18170,12 @@ def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementatio
         "b3c3_compatibility",
         "b2b_baseline_hygiene",
         "preserved",
-        "absent_and_unauthorized",
-        "not_occurred",
+        "current_boundary",
+        "committed_provenance",
     )
     assert value["status"] == (
-        "selected implementation repaired after the latest independent-audit "
-        "block; candidate validation is non-audit evidence; fresh independent "
-        "reaudit not yet performed"
+        "committed current implementation at "
+        "4ffbc5f8881339dce210a50b05200e3f8e837284"
     )
     assert value["precedence"] == {
         "section_35_cleanup_owner": True,
@@ -17942,29 +18183,11 @@ def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementatio
         "section_37_subordinate": True,
     }
     assert value["implementation_scope"] == {
-        "scope_counts_are_report_only_observations_bound_to_the_exact_current_candidate": True,
-        "dirty_path_count": 22,
-        "tracked_modification_count": 21,
-        "untracked_count": 1,
-        "staged_path_count": 0,
-        "paths": EXPECTED_VS1A_PATHS,
-        "sole_untracked_path": (
-            "tests/test_c2b_pre_io_vs1a_shared_cleanup_foundation.py"
-        ),
-        "b2b_lock_integration_in_changed_path_inventory": False,
-        "b3c1a_contract_projection_path": (
-            "tests/test_b3c1a_writer_session_authority.py"
-        ),
-        "b3c1a_contract_projection_replacement": (
-            "same node ID projects pre-EXPLICIT_RETIRED GC/finalizer loss as "
-            "ORPHANED -> non-admitting -> cleanup -> X"
-        ),
-        "b4b_privacy_contract_path": (
-            "tests/test_b4b_private_atomic_global_stop_persistence.py"
-        ),
-        "b4b_zero_Coordinator_frame_privacy_replacement": (
-            "accepted one-byte contract replacement retained unchanged"
-        ),
+        "commit": "4ffbc5f8881339dce210a50b05200e3f8e837284",
+        "tree": "cb233628f60726fb7aa68e6c846d612b1b0c165b",
+        "branch": "trunk_dev",
+        "current_implementation": True,
+        "historical_candidate_scope_counts_are_current_contract": False,
     }
     assert value["selected_connection_custody"] == {
         "controller_exclusive_scope": True,
@@ -18494,8 +18717,9 @@ def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementatio
         ),
         "process_control_cleanup": "ContinueCleanup toward X",
         "future_C2B3_initialization_recovery": (
-            "separately Section-35 governed and X-gated; not generalized to "
-            "existing replay"
+            "superseded by the Section-38 fresh-writer acquisition and fencing "
+            "gate; not generalized to old-session reuse or existing "
+            "transition/global-stop replay"
         ),
     }
     assert value["b3c1b_test_resource_hygiene"] == {
@@ -18549,16 +18773,12 @@ def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementatio
     assert preserved["schema_migrations_dependencies_exports_and_public_API"] == (
         "unchanged"
     )
-    assert value["absent_and_unauthorized"] == {
-        "development_program_initialization": True,
-        "development_durable_row_mutation": True,
-        "VS1B": True,
-        "worker_scheduler_service_network_Bridge_ES_or_Git_effect": True,
+    assert value["current_boundary"] == {
+        "cleanup_foundation_committed": True,
+        "VS1B_reuses_without_altering_cleanup_semantics": True,
+        "worker_scheduler_service_network_Bridge_ES_or_Git_effect_absent": True,
     }
-    assert value["not_occurred"] == (
-        "independent audit acceptance",
-        "staging",
-        "commit",
-        "push",
-        "publication",
-    )
+    assert value["committed_provenance"] == {
+        "commit": "4ffbc5f8881339dce210a50b05200e3f8e837284",
+        "subject": "implement pre-I/O VS1A cleanup foundation",
+    }

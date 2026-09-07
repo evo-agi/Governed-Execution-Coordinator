@@ -350,3 +350,42 @@ semantics remain operative. C2B3 source remains unauthorized.
 <!-- C2B3_NARROWED_PLANNING_END -->
 
 <!-- C2B3A_PLANNING_PROJECTION_END -->
+<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_BEGIN -->
+## VS1B implemented current status
+
+The preceding C2B3A projection is retained as historical contract and planning evidence.
+Its internal “Current status,” source-absence, candidate-scope, and
+future-C2B3B statements are not current implementation claims after this
+addendum. VS1A is committed at
+`4ffbc5f8881339dce210a50b05200e3f8e837284`, and Section 38 of
+`.docs/c2b-durable-development-state.md` now owns the private VS1B
+route-neutral, single-work-item program-genesis implementation.
+
+VS1B uses the generation-2 migration-0002 schema, the existing writer
+operation guard and shared mutation slot, the existing transaction controller,
+receipt-first exact replay, and read-only three-way recovery. Successful
+acquisition and fencing of a fresh concrete writer session—not proof of the old resource's T1/X state—is the
+cross-session recovery and replay gate. The
+old session remains non-admitting and unusable. Same-process acquisition may
+begin after H2 and before old T1; a different process may acquire after L1
+kernel-lock release and before the old process reaches H2 or T1.
+
+Historical replay and committed recovery continue to reconstruct the original
+genesis result and eight-entry receipt graph from the immutable genesis-family
+evidence. A later mutable program or work-item head is accepted only when the
+immutable row named by its current ref exists exactly once, validates, belongs
+to the same program and work-item owner, and carries exactly the current number
+claimed by the head. The advanced current head does not replace its genesis
+postimage in the historical graph. A contradictory current relation is the
+existing content-free `database_integrity_failure` for apply and `unresolved`
+for recovery. Separately supplied scalar refs are exactly validated before any
+comparison with transient `WorkSpecV1` values.
+
+The implementation adds no public API or package export, no schema or
+migration, no route, adapter, external I/O, worker, attempt, effect, delivery,
+candidate, capsule, Git effect, bootstrap latch, or automatic semantic retry.
+Raw `WorkSpecV1` is transient only in the sensitive reducer. A separately
+reconstructed exact safe command is accepted, but restart-safe command custody
+or reconstruction remains unimplemented. These bytes remain implementation
+evidence pending fresh independent audit.
+<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->
