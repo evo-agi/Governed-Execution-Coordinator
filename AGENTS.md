@@ -848,7 +848,15 @@ Exact commands, warning counts, overlaps, and validation-group file inventories
 belong to the implementation and audit reports. Give no causal credit to a
 duplicate, no-op, or unreached owning seam.
 
-VS1B is private implementation evidence pending fresh independent audit. It
-uses migration 0002 and adds no public API/package export, route or external
-I/O, automatic semantic retry, old-resource lookup, terminal witness, or
-restart-safe command custody.
+VS1B is the current committed private implementation at
+`327aa4ef6f043a94f700374546fedc456027ae83` and is pushed to the directly
+verified `origin/trunk_dev` ref. The exact VS1B pre-commit candidate received
+externally classified, provenance-bound independent acceptance and its
+post-acceptance commit gate passed. Git owns the commit/ref fact; the audit and
+validation reports remain external evidence rather than Coordinator durable
+authority. C2B3C is currently an uncommitted contract-freeze candidate awaiting
+fresh independent re-audit. C2B3D source, worker execution, and production or
+external effects remain unauthorized. VS1B uses migration 0002
+and adds no public API/package export, route or external I/O, automatic
+semantic retry, old-resource lookup, terminal witness, or restart-safe command
+custody.

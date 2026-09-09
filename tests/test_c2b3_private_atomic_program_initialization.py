@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OWNER_PATH = ROOT / ".docs" / "c2b-durable-development-state.md"
 PLANNING_PATH = ROOT / ".docs" / "c2b3-program-initialization.md"
 VS1B_SECTION_HEADING = "## 38. Coordinator VS1B Route-Neutral Program Genesis"
+C2B3C_SECTION_HEADING = "## 39. Coordinator C2B3C Author-Effect Contract Freeze"
 VS1B_OWNER_BEGIN_MARKER = (
     "<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_BEGIN -->"
 )
@@ -104,15 +105,18 @@ def _read_current_contract_document(path: Path) -> str:
 def _vs1b_owner_contract() -> dict[str, object]:
     source = _read_current_contract_document(OWNER_PATH)
     assert source.count(VS1B_SECTION_HEADING) == 1
+    assert source.count(C2B3C_SECTION_HEADING) == 1
     assert source.count(VS1B_OWNER_BEGIN_MARKER) == 1
     assert source.count(VS1B_OWNER_END_MARKER) == 1
     section = source.split(VS1B_SECTION_HEADING, 1)[1]
+    section, separator, _section_39 = section.partition(C2B3C_SECTION_HEADING)
+    assert separator == C2B3C_SECTION_HEADING
     section = VS1B_SECTION_HEADING + section
     assert section.startswith(EXPECTED_VS1B_OWNER_PREFIX)
     before, remainder = section.split(VS1B_OWNER_BEGIN_MARKER, 1)
     payload, after = remainder.split(VS1B_OWNER_END_MARKER, 1)
     assert before + VS1B_OWNER_BEGIN_MARKER + "\n" == EXPECTED_VS1B_OWNER_PREFIX
-    assert after == "\n"
+    assert after == "\n\n"
     lines = payload.strip().splitlines()
     assert len(lines) >= 3
     assert lines[0] == "```python"
@@ -503,5 +507,13 @@ def test_vs1b_current_status_supersedes_historical_planning_labels() -> None:
         "scalar refs are exactly validated before any comparison",
         "no public API or package export",
         "restart-safe command custody",
+        "current committed private implementation at",
+        "327aa4ef6f043a94f700374546fedc456027ae83",
+        "exact VS1B pre-commit candidate received externally classified, provenance-bound independent acceptance",
+        "post-acceptance commit gate passed",
+        "Git owns the commit/ref fact",
+        "external evidence rather than Coordinator durable authority",
+        "C2B3C is currently an uncommitted contract-freeze candidate awaiting fresh independent re-audit",
+        "C2B3D source, worker execution, and production or external effects remain unauthorized",
     ):
         assert required in status

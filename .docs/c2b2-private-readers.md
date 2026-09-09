@@ -2,8 +2,9 @@
 
 ## Status And Authority
 
-Status: `CURRENT IMPLEMENTED CONTRACT` for the private,
-production-unintegrated C2B2 reader layer.
+Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. Only
+the mutation-receipt reader has the bounded private VS1B program-initialization
+and recovery caller; the other eleven roles remain production-unintegrated.
 
 This is an implementation-status and private-API record. The semantic owner
 remains `.docs/c2b-durable-development-state.md`; migration 0002 and cumulative

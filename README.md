@@ -154,8 +154,15 @@ mutation graph, receipt-first exact replay, and read-only three-way recovery.
 It adds no public API, package export, schema, migration, route, adapter,
 external I/O, worker, attempt, effect, delivery, candidate, capsule, Git effect,
 or bootstrap latch. Raw `WorkSpecV1` is reduced to safe projections and an exact
-safe command before transaction delegation. The new VS1B bytes are
-implementation evidence pending fresh independent audit.
+safe command before transaction delegation. VS1B is the current committed
+private implementation at `327aa4ef6f043a94f700374546fedc456027ae83` and is
+pushed to the directly verified `origin/trunk_dev` ref. The exact VS1B
+pre-commit candidate received externally classified, provenance-bound
+independent acceptance and its post-acceptance commit gate passed. Git owns the
+commit/ref fact; the audit and validation reports remain external evidence rather than
+Coordinator durable authority. C2B3C is currently an uncommitted
+contract-freeze candidate awaiting fresh independent re-audit. C2B3D source,
+worker execution, and production or external effects remain unauthorized.
 
 Strategic target direction is recorded separately from current behavior. The
 accepted C1 staged target is model-guided Coordinator durable progression,

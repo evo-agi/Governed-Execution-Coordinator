@@ -384,9 +384,15 @@ The preceding C2B3A projection is retained as historical contract and planning e
 Its internal “Current status,” source-absence, candidate-scope, and
 future-C2B3B statements are not current implementation claims after this
 addendum. VS1A is committed at
-`4ffbc5f8881339dce210a50b05200e3f8e837284`, and Section 38 of
-`.docs/c2b-durable-development-state.md` now owns the private VS1B
-route-neutral, single-work-item program-genesis implementation.
+`4ffbc5f8881339dce210a50b05200e3f8e837284`. VS1B is the current committed
+private implementation at `327aa4ef6f043a94f700374546fedc456027ae83` and is
+pushed to the directly verified `origin/trunk_dev` ref. The exact VS1B
+pre-commit candidate received externally classified, provenance-bound
+independent acceptance and its post-acceptance commit gate passed. Git owns the
+commit/ref fact; the audit and validation reports remain external evidence rather than
+Coordinator durable authority. Section 38 of
+`.docs/c2b-durable-development-state.md` owns the private VS1B route-neutral,
+single-work-item program-genesis implementation.
 
 VS1B uses the generation-2 migration-0002 schema, the existing writer
 operation guard and shared mutation slot, the existing transaction controller,
@@ -413,8 +419,12 @@ migration, no route, adapter, external I/O, worker, attempt, effect, delivery,
 candidate, capsule, Git effect, bootstrap latch, or automatic semantic retry.
 Raw `WorkSpecV1` is transient only in the sensitive reducer. A separately
 reconstructed exact safe command is accepted, but restart-safe command custody
-or reconstruction remains unimplemented. These bytes remain implementation
-evidence pending fresh independent audit.
+or reconstruction remains unimplemented. Section 39 of
+`.docs/c2b-durable-development-state.md` supersedes current status only and
+owns the accepted-target C2B3C author-effect contract freeze. C2B3C is currently
+an uncommitted contract-freeze candidate awaiting fresh independent re-audit.
+C2B3D source, worker execution, and production or external effects remain
+unauthorized.
 <!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->
 """
 C2B3A_SOURCE_ACCEPTANCE_EVIDENCE_LEDGER = (
@@ -3459,6 +3469,7 @@ SECTION_HEADINGS = (
     "36. C2B3 Vertical-Slice Governing Narrowing Addendum",
     "37. C2B Pre-I/O VS1A Shared Cleanup Foundation",
     "38. Coordinator VS1B Route-Neutral Program Genesis",
+    "39. Coordinator C2B3C Author-Effect Contract Freeze",
 )
 
 DECISION_KINDS = (
@@ -8269,42 +8280,15 @@ def _c2b3a_physically_run_checker_guard_rejection(
     assert executed.stderr == ""
 
 
-def _c2b3a_physically_reject_planning_counterfactual(
-    tmp_path: Path,
-    mutant_id: str,
-    direct_source: str,
-    planning_counterfactual: str,
-) -> None:
-    test_name = "test_stage_specific_planning_counterfactual_is_rejected"
-    physical_source = (
-        direct_source
-        + "\n\ndef "
-        + test_name
-        + "() -> None:\n"
-        + "    planning_counterfactual = "
-        + repr(planning_counterfactual)
-        + "\n"
-        + "    with pytest.raises(_ContractViolation) as exc_info:\n"
-        + "        _validate_planning_status(planning_counterfactual)\n"
-        + "    assert str(exc_info.value) == "
-        + repr("C2B3A_PLANNING_PROJECTION_INVALID")
-        + "\n"
-    )
-    _c2b3a_physically_import_and_collect_mutant(
-        tmp_path,
-        mutant_id,
-        physical_source,
-        expected_nodes=None,
-    )
-
-    mirror_root = tmp_path / mutant_id.lower()
+def _c2b3a_run_historical_planning_physical_oracle(
+    mirror_root: Path,
+) -> subprocess.CompletedProcess[str]:
+    test_name = "test_stage_specific_historical_planning_candidate_is_accepted"
     mutant_path = mirror_root / "tests" / C2B3A_ORACLE_PATH.name
     execute_tmp = mirror_root / "execute-tmp"
     execute_pycache = mirror_root / "execute-pycache"
     execute_basetemp = mirror_root / "execute-basetemp"
-    for directory in (execute_tmp, execute_pycache):
-        directory.mkdir(mode=0o700)
-    executed = subprocess.run(
+    return subprocess.run(
         (
             sys.executable,
             "-B",
@@ -8313,7 +8297,7 @@ def _c2b3a_physically_reject_planning_counterfactual(
             "-p",
             "no:cacheprovider",
             f"--basetemp={execute_basetemp}",
-            "-q",
+            "-vv",
             str(mutant_path) + "::" + test_name,
         ),
         cwd=ROOT,
@@ -8328,10 +8312,94 @@ def _c2b3a_physically_reject_planning_counterfactual(
         capture_output=True,
         check=False,
     )
-    assert executed.returncode == 0, executed.stderr
-    assert "1 passed" in executed.stdout
-    assert " warning" not in executed.stdout.lower()
-    assert executed.stderr == ""
+
+
+def _c2b3a_prepare_historical_planning_physical_oracle(
+    tmp_path: Path,
+    direct_source: str,
+) -> Path:
+    mutant_id = "planning-physical-historical-projection"
+    test_name = "test_stage_specific_historical_planning_candidate_is_accepted"
+    candidate_name = "historical-planning-projection-candidate.md"
+    physical_source = (
+        direct_source
+        + "\n\ndef "
+        + test_name
+        + "() -> None:\n"
+        + "    historical_projection_candidate = Path(__file__).with_name("
+        + repr(candidate_name)
+        + ").read_text(encoding=\"utf-8\")\n"
+        + "    _validate_planning_status(historical_projection_candidate)\n"
+    )
+    _c2b3a_physically_import_and_collect_mutant(
+        tmp_path,
+        mutant_id,
+        physical_source,
+        expected_nodes=C2B3A_ORACLE_EXPECTED_TEST_NODE_NAMES + (test_name,),
+    )
+
+    mirror_root = tmp_path / mutant_id.lower()
+    candidate_path = mirror_root / "tests" / candidate_name
+    execute_tmp = mirror_root / "execute-tmp"
+    execute_pycache = mirror_root / "execute-pycache"
+    for directory in (execute_tmp, execute_pycache):
+        directory.mkdir(mode=0o700)
+    assert (
+        candidate_path.write_text(
+            C2B3A_PLANNING_PROJECTION_APPROVED_TEXT,
+            encoding="utf-8",
+        )
+        == len(C2B3A_PLANNING_PROJECTION_APPROVED_TEXT)
+    )
+    positive_control = _c2b3a_run_historical_planning_physical_oracle(mirror_root)
+    assert positive_control.returncode == 0, (
+        positive_control.stdout + positive_control.stderr
+    )
+    positive_summary = positive_control.stdout.rstrip().splitlines()[-1]
+    assert test_name + " PASSED" in positive_control.stdout
+    assert " 1 passed in " in positive_summary
+    assert "," not in positive_summary
+    assert " warning" not in positive_control.stdout.lower()
+    assert positive_control.stderr == ""
+    return mirror_root
+
+
+def _c2b3a_physically_reject_planning_counterfactual(
+    mirror_root: Path,
+    mutant_id: str,
+    historical_projection_mutant: str,
+) -> None:
+    test_name = "test_stage_specific_historical_planning_candidate_is_accepted"
+    candidate_path = (
+        mirror_root / "tests" / "historical-planning-projection-candidate.md"
+    )
+    assert type(historical_projection_mutant) is str
+    assert historical_projection_mutant != C2B3A_PLANNING_PROJECTION_APPROVED_TEXT
+    assert C2B3A_VS1B_STATUS_BEGIN_MARKER not in historical_projection_mutant
+    assert C2B3A_VS1B_STATUS_END_MARKER not in historical_projection_mutant
+    assert (
+        candidate_path.write_text(historical_projection_mutant, encoding="utf-8")
+        == len(historical_projection_mutant)
+    )
+    assert (
+        candidate_path.read_text(encoding="utf-8")
+        == historical_projection_mutant
+    )
+
+    executed = _c2b3a_run_historical_planning_physical_oracle(mirror_root)
+    failure_context = mutant_id + "|" + executed.stdout + executed.stderr
+    failure_summary = executed.stdout.rstrip().splitlines()[-1]
+    assert executed.returncode == 1, failure_context
+    assert test_name + " FAILED" in executed.stdout, failure_context
+    assert " 1 failed in " in failure_summary, failure_context
+    assert "," not in failure_summary, failure_context
+    assert (
+        "_ContractViolation: C2B3A_PLANNING_PROJECTION_INVALID"
+        in executed.stdout
+    ), failure_context
+    assert "ERROR collecting" not in executed.stdout, failure_context
+    assert " warning" not in executed.stdout.lower(), failure_context
+    assert executed.stderr == "", failure_context
 
 
 def _c2b3a_semantic_function_body_mutant(
@@ -12416,7 +12484,7 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
         "retained as historical contract and planning evidence",
         "not current implementation claims",
         "private VS1B",
-        "route-neutral, single-work-item program-genesis implementation",
+        "route-neutral,\nsingle-work-item program-genesis implementation",
         "no public API or package export",
         "no schema or\nmigration",
     ):
@@ -12440,7 +12508,11 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
     owner_mutants = (
         (
             "process-after-end",
-            owner + "C2B3 preserves the caught traceback tail.\n",
+            owner.replace(
+                owner_end + "\n",
+                owner_end + "\nC2B3 preserves the caught traceback tail.\n",
+                1,
+            ),
         ),
         (
             "process-before-begin",
@@ -12461,7 +12533,11 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
         ),
         (
             "old-scope-after-end",
-            owner + "The earlier manifest governs C2B3B.\n",
+            owner.replace(
+                owner_end + "\n",
+                owner_end + "\nThe earlier manifest governs C2B3B.\n",
+                1,
+            ),
         ),
         (
             "old-scope-unmarked",
@@ -12749,6 +12825,10 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
     }
     assert len(stage_specific_physical_ids) == 13
     direct_source = _c2b3a_bounded_oracle_source()
+    physical_oracle_root = _c2b3a_prepare_historical_planning_physical_oracle(
+        tmp_path,
+        direct_source,
+    )
     for mutant_id, planning_mutant in planning_mutants:
         assert planning_mutant != planning
         planning_mutant = physical_copy("planning-" + mutant_id, planning_mutant)
@@ -12756,11 +12836,20 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
             _assert_c2b3a_planning_status(planning_mutant)
         assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
         if mutant_id in stage_specific_physical_ids:
+            assert planning_mutant.count(C2B3A_VS1B_STATUS_BEGIN_MARKER) == 1
+            historical_projection_mutant, current_status_remainder = (
+                planning_mutant.split(C2B3A_VS1B_STATUS_BEGIN_MARKER, 1)
+            )
+            mutant_current_status = (
+                C2B3A_VS1B_STATUS_BEGIN_MARKER + current_status_remainder
+            )
+            assert historical_projection_mutant != historical_planning
+            assert mutant_current_status == current_status
+            assert mutant_current_status == C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
             _c2b3a_physically_reject_planning_counterfactual(
-                tmp_path,
+                physical_oracle_root,
                 "planning-physical-" + mutant_id,
-                direct_source,
-                planning_mutant,
+                historical_projection_mutant,
             )
 
     for current_vs1b_path in (
@@ -16642,6 +16731,46 @@ def _c2b3a_planning_mutant_at_position(
 def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     _assert_c2b3a_planning_status(planning)
+    historical, current = _c2b3a_planning_regions(planning)
+    c2b3c_current_status = (
+        "Section 39 of\n"
+        "`.docs/c2b-durable-development-state.md` supersedes current status only and\n"
+        "owns the accepted-target C2B3C author-effect contract freeze. C2B3C is currently\n"
+        "an uncommitted contract-freeze candidate awaiting fresh independent re-audit.\n"
+        "C2B3D source, worker execution, and production or external effects remain\n"
+        "unauthorized.\n"
+    )
+    assert c2b3c_current_status not in historical
+    assert current.count(c2b3c_current_status) == 1
+
+    historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->\n"
+    mutants = (
+        planning.replace(c2b3c_current_status, "", 1),
+        planning.replace(
+            "supersedes current status only and\n"
+            "owns the accepted-target C2B3C author-effect contract freeze",
+            "is production implementation and\n"
+            "owns the C2B3C author-effect implementation",
+            1,
+        ),
+        planning.replace(
+            "C2B3D source, worker execution, and production or external effects remain\n"
+            "unauthorized.",
+            "C2B3D and author-effect source are present and authorized.",
+            1,
+        ),
+        planning + "Arbitrary appended current-status material.\n",
+        planning.replace(
+            historical_end,
+            c2b3c_current_status + historical_end,
+            1,
+        ),
+    )
+    for mutant in mutants:
+        assert mutant != planning
+        with pytest.raises(AssertionError) as exc_info:
+            _assert_c2b3a_planning_status(mutant)
+        assert str(exc_info.value) == "C2B3A_PLANNING_PROJECTION_INVALID"
 
 
 @pytest.mark.parametrize(
@@ -16744,6 +16873,7 @@ VS1A_BEGIN_MARKER = "<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_BEGIN -
 VS1A_END_MARKER = "<!-- C2B_PRE_IO_VS1A_SHARED_CLEANUP_CONTRACT_PYTHON_END -->"
 VS1A_SECTION_MARKER = "## 37. C2B Pre-I/O VS1A Shared Cleanup Foundation"
 VS1B_SECTION_MARKER = "## 38. Coordinator VS1B Route-Neutral Program Genesis"
+C2B3C_SECTION_MARKER = "## 39. Coordinator C2B3C Author-Effect Contract Freeze"
 VS1B_OWNER_BEGIN_MARKER = (
     "<!-- COORDINATOR_VS1B_ROUTE_NEUTRAL_PROGRAM_GENESIS_BEGIN -->"
 )
@@ -17297,6 +17427,7 @@ def _narrowed_reset_addendum(text: str | None = None) -> dict[str, object]:
         VS1B_SECTION_MARKER,
         VS1B_OWNER_BEGIN_MARKER,
         VS1B_OWNER_END_MARKER,
+        C2B3C_SECTION_MARKER,
     )
     _require(all(source.count(marker) == 1 for marker in ordered_markers), diagnostic)
     positions = tuple(source.index(marker) for marker in ordered_markers)
@@ -17332,7 +17463,11 @@ def _narrowed_reset_addendum(text: str | None = None) -> dict[str, object]:
         VS1B_OWNER_END_MARKER,
         1,
     )
-    _require(after_vs1b_end == "\n", diagnostic)
+    vs1b_trailing, _section_39_remainder = after_vs1b_end.split(
+        C2B3C_SECTION_MARKER,
+        1,
+    )
+    _require(vs1b_trailing == "\n\n", diagnostic)
     vs1b_lines = vs1b_payload.strip().splitlines()
     _require(
         len(vs1b_lines) >= 3
@@ -18107,7 +18242,6 @@ def test_narrowed_reset_parser_and_governing_mutants_fail_closed() -> None:
             VS1B_OWNER_END_MARKER + " pseudo-closing text",
             1,
         ),
-        owner + "The earlier manifest governs C2B3B.\n",
     ):
         with pytest.raises(AssertionError, match="C2B3_NARROWED_RESET_OWNER_INVALID"):
             _narrowed_reset_addendum(malformed)

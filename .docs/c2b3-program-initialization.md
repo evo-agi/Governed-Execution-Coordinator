@@ -357,9 +357,15 @@ The preceding C2B3A projection is retained as historical contract and planning e
 Its internal “Current status,” source-absence, candidate-scope, and
 future-C2B3B statements are not current implementation claims after this
 addendum. VS1A is committed at
-`4ffbc5f8881339dce210a50b05200e3f8e837284`, and Section 38 of
-`.docs/c2b-durable-development-state.md` now owns the private VS1B
-route-neutral, single-work-item program-genesis implementation.
+`4ffbc5f8881339dce210a50b05200e3f8e837284`. VS1B is the current committed
+private implementation at `327aa4ef6f043a94f700374546fedc456027ae83` and is
+pushed to the directly verified `origin/trunk_dev` ref. The exact VS1B
+pre-commit candidate received externally classified, provenance-bound
+independent acceptance and its post-acceptance commit gate passed. Git owns the
+commit/ref fact; the audit and validation reports remain external evidence rather than
+Coordinator durable authority. Section 38 of
+`.docs/c2b-durable-development-state.md` owns the private VS1B route-neutral,
+single-work-item program-genesis implementation.
 
 VS1B uses the generation-2 migration-0002 schema, the existing writer
 operation guard and shared mutation slot, the existing transaction controller,
@@ -386,6 +392,10 @@ migration, no route, adapter, external I/O, worker, attempt, effect, delivery,
 candidate, capsule, Git effect, bootstrap latch, or automatic semantic retry.
 Raw `WorkSpecV1` is transient only in the sensitive reducer. A separately
 reconstructed exact safe command is accepted, but restart-safe command custody
-or reconstruction remains unimplemented. These bytes remain implementation
-evidence pending fresh independent audit.
+or reconstruction remains unimplemented. Section 39 of
+`.docs/c2b-durable-development-state.md` supersedes current status only and
+owns the accepted-target C2B3C author-effect contract freeze. C2B3C is currently
+an uncommitted contract-freeze candidate awaiting fresh independent re-audit.
+C2B3D source, worker execution, and production or external effects remain
+unauthorized.
 <!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->
