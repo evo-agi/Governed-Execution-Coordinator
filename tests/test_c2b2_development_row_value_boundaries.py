@@ -202,6 +202,7 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
                     assert not any(callable(item) for item in value.values())
     owner_names={name.removesuffix(".py") for name in MODULE_NAMES}
     expected_consumers={
+        "_development_author_effect_establishment_contracts.py":owner_names,
         "_development_program_initialization_contracts.py":{
             "_development_decision_row_values",
             "_development_program_row_values",
@@ -212,6 +213,7 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
             "_development_program_row_values",
             "_development_row_value_support",
         },
+        "_sqlite_development_author_effect_establishment.py":owner_names,
         "_sqlite_development_reader_contracts.py":owner_names,
         "_sqlite_development_readers.py":owner_names,
     }

@@ -27,6 +27,21 @@ from ge_nwp_coordinator._development_program_initialization_contracts import (
     _development_program_initialization_write_plan,
     _require_exact_development_program_initialization_command,
 )
+from ge_nwp_coordinator._development_author_effect_establishment_contracts import (
+    DevelopmentAuthorEffectEstablishmentCommandV1,
+    DevelopmentAuthorEffectEstablishmentConflictV1,
+    DevelopmentAuthorEffectEstablishmentRecoveryDispositionV1,
+    DevelopmentAuthorEffectEstablishmentRecoveryResultV1,
+    DevelopmentAuthorEffectEstablishmentResultV1,
+    _development_author_effect_establishment_write_plan,
+    _require_exact_development_author_effect_establishment_command,
+)
+from ge_nwp_coordinator._sqlite_development_author_effect_establishment import (
+    _FreshDevelopmentAuthorEffectEstablishment,
+    _execute_development_author_effect_establishment_writes,
+    _recover_development_author_effect_establishment_after_fencing,
+    _resolve_development_author_effect_establishment_apply_after_fencing,
+)
 from ge_nwp_coordinator._sqlite_development_program_initialization import (
     _FreshDevelopmentProgramInitialization,
     _execute_development_program_initialization_writes,
@@ -831,6 +846,44 @@ class _CoordinatorMutationTransactionController:
             raise _mutation_failed()
         return result
 
+    def run_atomic_development_author_effect_establishment(
+        self,
+        *,
+        command: DevelopmentAuthorEffectEstablishmentCommandV1,
+    ) -> (
+        DevelopmentAuthorEffectEstablishmentResultV1
+        | DevelopmentAuthorEffectEstablishmentConflictV1
+    ):
+        checked = _require_exact_development_author_effect_establishment_command(
+            command
+        )
+        result = self._run_atomic_development_author_effect_establishment_transaction(
+            command=checked
+        )
+        if type(result) not in (
+            DevelopmentAuthorEffectEstablishmentResultV1,
+            DevelopmentAuthorEffectEstablishmentConflictV1,
+        ):
+            raise _mutation_failed()
+        return result
+
+    def run_development_author_effect_establishment_recovery(
+        self,
+        *,
+        command: DevelopmentAuthorEffectEstablishmentCommandV1,
+    ) -> DevelopmentAuthorEffectEstablishmentRecoveryResultV1:
+        checked = _require_exact_development_author_effect_establishment_command(
+            command
+        )
+        result = (
+            self._run_development_author_effect_establishment_recovery_transaction(
+                command=checked
+            )
+        )
+        if type(result) is not DevelopmentAuthorEffectEstablishmentRecoveryResultV1:
+            raise _mutation_failed()
+        return result
+
     def _run_writer_fencing_transaction(self) -> _WriterIssuanceMatch:
         self._require_new_owner()
         mutation_lease = self._acquire_controller_mutation_lease()
@@ -1120,6 +1173,124 @@ class _CoordinatorMutationTransactionController:
         if cleanup_exception is not None:
             return DevelopmentProgramInitializationRecoveryResultV1(
                 disposition=DevelopmentProgramInitializationRecoveryDispositionV1.UNRESOLVED
+            )
+        return result
+
+    def _run_atomic_development_author_effect_establishment_transaction(
+        self,
+        *,
+        command: DevelopmentAuthorEffectEstablishmentCommandV1,
+    ) -> (
+        DevelopmentAuthorEffectEstablishmentResultV1
+        | DevelopmentAuthorEffectEstablishmentConflictV1
+    ):
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: (
+            DevelopmentAuthorEffectEstablishmentResultV1
+            | DevelopmentAuthorEffectEstablishmentConflictV1
+            | None
+        ) = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is not _WriterIssuanceMatch.MATCH:
+                    planned_exception = _mutation_failed()
+                else:
+                    resolution = (
+                        _resolve_development_author_effect_establishment_apply_after_fencing(
+                            capability=self._capability,
+                            command=command,
+                        )
+                    )
+                    if type(resolution) is _FreshDevelopmentAuthorEffectEstablishment:
+                        planned_result = (
+                            self._commit_fresh_development_author_effect_establishment(
+                                resolution
+                            )
+                        )
+                    elif type(resolution) in (
+                        DevelopmentAuthorEffectEstablishmentResultV1,
+                        DevelopmentAuthorEffectEstablishmentConflictV1,
+                    ):
+                        planned_result = resolution
+                        cleanup_exception = self._resolve_rollback_before_commit()
+                    else:
+                        planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _run_development_author_effect_establishment_recovery_transaction(
+        self,
+        *,
+        command: DevelopmentAuthorEffectEstablishmentCommandV1,
+    ) -> DevelopmentAuthorEffectEstablishmentRecoveryResultV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result = DevelopmentAuthorEffectEstablishmentRecoveryResultV1(
+            disposition=(
+                DevelopmentAuthorEffectEstablishmentRecoveryDispositionV1.UNRESOLVED
+            )
+        )
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is _WriterIssuanceMatch.MATCH:
+                    result = (
+                        _recover_development_author_effect_establishment_after_fencing(
+                            capability=self._capability,
+                            command=command,
+                        )
+                    )
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                try:
+                    self._resolve_rollback_before_commit()
+                except BaseException:
+                    pass
+                raise
+            except Exception:
+                result = DevelopmentAuthorEffectEstablishmentRecoveryResultV1(
+                    disposition=(
+                        DevelopmentAuthorEffectEstablishmentRecoveryDispositionV1.UNRESOLVED
+                    )
+                )
+            cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+        if cleanup_exception is not None:
+            return DevelopmentAuthorEffectEstablishmentRecoveryResultV1(
+                disposition=(
+                    DevelopmentAuthorEffectEstablishmentRecoveryDispositionV1.UNRESOLVED
+                )
             )
         return result
 
@@ -1437,6 +1608,39 @@ class _CoordinatorMutationTransactionController:
             force_cleanup_on_uncertainty=True,
         )
         if type(committed) is not DevelopmentProgramInitializationResultV1:
+            raise _database_integrity_failure()
+        return committed
+
+    def _commit_fresh_development_author_effect_establishment(
+        self,
+        fresh: _FreshDevelopmentAuthorEffectEstablishment,
+    ) -> DevelopmentAuthorEffectEstablishmentResultV1:
+        if type(fresh) is not _FreshDevelopmentAuthorEffectEstablishment:
+            raise _database_integrity_failure()
+        connection = self._connection
+        if type(connection) is not sqlite3.Connection:
+            raise _mutation_failed()
+        if (
+            self._resolution_state
+            is not _MutationCommitResolutionState.CAPABILITY_ACTIVE
+        ):
+            raise _mutation_failed()
+        timestamp = _capture_transaction_timestamp()
+        plan = _development_author_effect_establishment_write_plan(
+            fresh.command,
+            timestamp,
+        )
+        if type(plan.planned_result) is not DevelopmentAuthorEffectEstablishmentResultV1:
+            raise _database_integrity_failure()
+        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+        _execute_development_author_effect_establishment_writes(connection, plan)
+        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+        del connection
+        committed = self._commit_after_fresh_writes(
+            plan.planned_result,
+            force_cleanup_on_uncertainty=True,
+        )
+        if type(committed) is not DevelopmentAuthorEffectEstablishmentResultV1:
             raise _database_integrity_failure()
         return committed
 
@@ -1906,6 +2110,85 @@ def _run_development_program_initialization_recovery(
             operation_lease=operation_lease,
         )
         result = controller.run_development_program_initialization_recovery(
+            command=checked
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        checked = None
+        command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    checked = None
+    command = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_atomic_development_author_effect_establishment(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    command: DevelopmentAuthorEffectEstablishmentCommandV1,
+) -> (
+    DevelopmentAuthorEffectEstablishmentResultV1
+    | DevelopmentAuthorEffectEstablishmentConflictV1
+    | _SafeMutationFailureDisposition
+):
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        checked = _require_exact_development_author_effect_establishment_command(
+            command
+        )
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_atomic_development_author_effect_establishment(
+            command=checked
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        checked = None
+        command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    checked = None
+    command = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_development_author_effect_establishment_recovery(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    command: DevelopmentAuthorEffectEstablishmentCommandV1,
+) -> (
+    DevelopmentAuthorEffectEstablishmentRecoveryResultV1
+    | _SafeMutationFailureDisposition
+):
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        checked = _require_exact_development_author_effect_establishment_command(
+            command
+        )
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_development_author_effect_establishment_recovery(
             command=checked
         )
     except SQLiteMutationStoreError as error:

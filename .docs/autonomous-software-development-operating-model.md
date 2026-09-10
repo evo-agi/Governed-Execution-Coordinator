@@ -473,8 +473,9 @@ Bridge change, or ES change.
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration,
 private pure no-I/O row/value validation, private reader behavior, and the
-bounded private C2B3 route-neutral genesis family. C2B0 remains the historical
-contract-freeze tranche for the target composition above.
+bounded private C2B3 route-neutral genesis and author-effect families. C2B0
+remains the historical contract-freeze tranche for the target composition
+above.
 
 C2B1 implements exact-current ordinary SQLite open, explicit supported-prefix
 migration, terminal-only application-generation compatibility, cumulative
@@ -498,11 +499,13 @@ execution, capsule
 storage, Git effect, direct-local route, ES route, service, scheduler, queue,
 publication, or autonomous loop. C2B2 Slice 3 separately implements exactly
 twelve private reader roles and twenty-four literal SELECT specifications
-through the existing nominal capability seam. Only its mutation-receipt reader
-has the bounded private C2B3 caller; it adds no public API or external effect.
-C2B3 now implements only route-neutral program genesis, exact replay, and
-readback-only uncertainty recovery. C2B4-C2B6 and every non-genesis C2B3
-behavior remain target-only.
+through the existing nominal capability seam. All twelve roles have the
+bounded private C2B3D author-effect caller; the mutation-receipt role also
+retains the VS1B caller. This adds no public API or external effect. C2B3 now
+implements route-neutral program genesis and private author-effect
+establishment, with exact replay and readback-only uncertainty recovery for
+both families. Bound effect, observation ingest, progression decisions, and
+C2B4-C2B6 remain target-only.
 
 <!-- C2B3_NARROWED_OPERATING_MODEL_BEGIN -->
 ## Narrowed first vertical-slice operating order
@@ -519,17 +522,21 @@ This is not a mandatory program or tranche count. Future prompts may divide or
 combine internal checkpoints while preserving authority, validation, and
 provenance boundaries.
 
-Each phase must resolve only the questions it needs. VS1B has resolved the
-pre-I/O route-neutral initialization, minimum durable graph, migration-0002
-sufficiency, and replay/recovery questions without external I/O. Remote contact owns minimum
-custody/retrieval, verifier, invocation, capsule, evidence, and executable-path
-migration questions. Local Git owns command/delivery/observation,
+Each phase must resolve only the questions it needs. VS1B resolved the pre-I/O
+route-neutral initialization, minimum durable graph, migration-0002 sufficiency,
+and replay/recovery questions without external I/O. C2B3D now resolves only the
+private author-effect command, ten-row/nine-entry durable family, replay,
+recovery, and bounded current-head questions. Its planned delivery remains
+inert. Remote contact owns minimum custody/retrieval, fresh verifier,
+invocation, capsule, evidence, and executable-path migration questions. Local
+Git owns command/delivery/observation,
 reconciliation, authority, outcome evidence, and no-blind-retry questions. ES
 migration owns reliable keyed submit, response-loss and Nomad ambiguity,
 retained results/capsules, conformance, and bootstrap disablement.
 
 These are required questions, not selected future schemas. Current capability
 remains generation 2, migration 0002, C2A1, C2B2 private values/readers,
-existing bounded writer/transaction authority, and the private VS1B genesis
-family. All target execution remains absent.
+existing bounded writer/transaction authority, the private VS1B genesis family,
+and the private C2B3D author-effect family. All worker, dispatch, Git, Bridge,
+ES, and other external execution remains absent.
 <!-- C2B3_NARROWED_OPERATING_MODEL_END -->

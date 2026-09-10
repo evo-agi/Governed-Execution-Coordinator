@@ -21,11 +21,13 @@ from c2a_contract_support import (
 
 EXPECTED_PRODUCTION_FILES = (
     "__init__.py",
+    "_development_author_effect_establishment_contracts.py",
     "_development_program_initialization_contracts.py",
     "_development_decision_row_values.py",
     "_development_effect_row_values.py",
     "_development_program_row_values.py",
     "_development_row_value_support.py",
+    "_sqlite_development_author_effect_establishment.py",
     "_sqlite_development_reader_contracts.py",
     "_sqlite_development_readers.py",
     "_sqlite_development_program_initialization.py",
@@ -167,32 +169,34 @@ CURRENT_SCHEMA_STATUS_CONTRADICTIONS = (
 
 CURRENT_ABSENCE_WORDING = (
     "Migration 0003 remains absent.",
-    "C2B2 Slice 2 now provides one pure private row/value reconstruction "
-    "consumer of the unchanged C2A1 values.",
-    "C2B2 private readers are implemented, and VS1B now consumes the unchanged "
-    "C2A/C2B2 semantics for one private route-neutral program-genesis mutation, "
-    "exact replay, and readback-only recovery.",
-    "C2A itself remains unchanged and confers no durable authority.",
+    "C2B2 Slice 2 provides pure private row/value reconstruction over the "
+    "unchanged C2A1 values.",
+    "C2B2 private readers are implemented; VS1B consumes unchanged C2A/C2B2 "
+    "semantics for private route-neutral genesis, and C2B3D consumes unchanged "
+    "authoring, effect, delivery, and redelivery relations for private "
+    "author-effect persistence and verification.",
+    "C2A itself remains unchanged and confers no durable or executable authority.",
     "Worker, process, or model execution, Git effects, direct-local execution, "
     "ES routing, Bridge integration, publication, service, API, and IPC also "
     "remain absent.",
 )
 
 AGENTS_CURRENT_SCHEMA_WORDING = (
-    "C2B2 Slice 1 now implements the generation-2 physical schema, and "
+    "C2B2 Slice 1 implements the generation-2 physical schema, and "
     "`0002_development_program_and_effect_state` is the implemented current "
     "physical terminal migration.",
     "Migration 0003 remains unimplemented and deferred.",
     "C2B2 pure row/value source is now implemented only as the private no-I/O "
     "Slice-2 layer.",
-    "Slice 3 private database readers and bounded SQL/capability use are now "
-    "implemented. VS1B gives only the mutation-receipt reader a private "
-    "production caller and implements one private route-neutral program-genesis "
-    "mutation, complete family verification, receipt-first exact replay, and "
-    "read-only three-way recovery. Other C2B mutation families, observation "
-    "ingest, progression decisions, latch behavior, authority verification, worker/process "
-    "execution, Git effects, direct-local behavior, and ES routing remain "
-    "unimplemented.",
+    "Slice 3 private database readers and bounded SQL/capability use are "
+    "implemented. All twelve readers have the private C2B3D caller; the receipt "
+    "reader also has the VS1B caller. VS1B implements route-neutral program "
+    "genesis, and C2B3D implements private author-effect establishment with "
+    "complete family and bounded current-head verification, receipt-first exact "
+    "replay, and read-only three-way recovery. Bound effects, observation ingest, "
+    "progression decisions, latch behavior, external authority verification, "
+    "worker/process execution, Git effects, direct-local execution, and ES "
+    "routing remain unimplemented.",
 )
 
 
@@ -275,6 +279,13 @@ C2B2_C2A_ROW_RECONSTRUCTION_MODELS = frozenset(
         "DeliveryEnvelopeV1",
         "EffectFenceV1",
         "WorkerCommandV1",
+    }
+)
+
+C2B3D_CANDIDATE_CAPSULE_SCHEMA_CONSUMER_FILES = frozenset(
+    {
+        "_development_author_effect_establishment_contracts.py",
+        "_sqlite_development_author_effect_establishment.py",
     }
 )
 
@@ -472,6 +483,11 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
         expected_sources = {semantic_path}
         if model in C2B2_C2A_ROW_RECONSTRUCTION_MODELS:
             expected_sources.add(effect_row_path)
+        if model == "CandidateCapsuleManifestV1":
+            expected_sources.update(
+                package_dir / filename
+                for filename in C2B3D_CANDIDATE_CAPSULE_SCHEMA_CONSUMER_FILES
+            )
         assert {
             path for path, text in source_text_by_path.items() if schema_id in text
         } == expected_sources

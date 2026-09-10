@@ -1605,7 +1605,7 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         )
     )
     for phrase in (
-        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral genesis family",
+        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral genesis and author-effect families",
         "C2B0 remains the historical contract-freeze tranche",
         "exact-current ordinary SQLite open",
         "explicit supported-prefix migration",
@@ -1622,9 +1622,10 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         "five receipt result projections",
         "no SQL, reader capability, database reader, or independent product writer",
         "C2B2 Slice 3 separately implements exactly twelve private reader roles and twenty-four literal SELECT specifications",
-        "Only its mutation-receipt reader has the bounded private C2B3 caller",
-        "C2B3 now implements only route-neutral program genesis, exact replay, and readback-only uncertainty recovery",
-        "C2B4-C2B6 and every non-genesis C2B3 behavior remain target-only",
+        "All twelve roles have the bounded private C2B3D author-effect caller",
+        "mutation-receipt role also retains the VS1B caller",
+        "C2B3 now implements route-neutral program genesis and private author-effect establishment",
+        "Bound effect, observation ingest, progression decisions, and C2B4-C2B6 remain target-only",
     ):
         assert phrase in section
 
@@ -1694,14 +1695,15 @@ def test_narrowed_vertical_slice_order_and_jit_ledger_are_exact() -> None:
     assert positions == tuple(sorted(positions))
     for expected in (
         "This is not a mandatory program or tranche count.",
-        "VS1B has resolved the pre-I/O route-neutral initialization, minimum durable graph, migration-0002 sufficiency",
-        "minimum custody/retrieval, verifier, invocation, capsule, evidence",
+        "VS1B resolved the pre-I/O route-neutral initialization, minimum durable graph, migration-0002 sufficiency",
+        "C2B3D now resolves only the private author-effect command, ten-row/nine-entry durable family",
+        "minimum custody/retrieval, fresh verifier, invocation, capsule, evidence",
         "command/delivery/observation",
         "reliable keyed submit, response-loss and Nomad ambiguity",
         "These are required questions, not selected future schemas.",
         "Current capability remains generation 2, migration 0002, C2A1, C2B2",
         "private VS1B genesis family",
-        "All target execution remains absent.",
+        "All worker, dispatch, Git, Bridge, ES, and other external execution remains absent.",
     ):
         assert expected in document_compact
     for forbidden in (

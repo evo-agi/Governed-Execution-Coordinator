@@ -824,6 +824,22 @@ two exact private global-stop preflight reasons, and delegate exactly once to
 the B4b atomic entry with the operation lease, caller command, and caller typed
 operator decision.
 
+## C2B3D Private Delegation
+
+The concrete `_SQLiteWriterSession` now has private-only author-effect apply
+and recovery helpers; the abstract/public `WriterSession` protocol and package
+exports are unchanged. Raw `WorkSpecV1` and typed requirement/authority
+evidence are reduced to one safe command before operation-guard entry. The
+private apply helper then reuses the existing operation guard, mutation slot,
+resource-bound database authority, single transaction controller, writer
+fence, nominal capability, and cleanup state machine. Recovery accepts only
+the already-safe command and requires a fresh valid writer session.
+
+These helpers do not mint or verify external executable authority, expose a
+credential, add another writer/connection/controller/lock, or authorize a
+worker, route, dispatch, Git, Bridge, ES, or network effect. A pending authority
+evaluation and planned delivery are durable bounded intent only.
+
 ## Non-Goals
 
 B2c implements durable writer acquisition and an internal concrete session

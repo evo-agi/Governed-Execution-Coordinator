@@ -1,8 +1,8 @@
 """Private C2B2 development-state SELECT readers.
 
-VS1B gives only the mutation-receipt reader a private program-initialization
-caller.  The 24-query C2B2 contract and every other reader remain unchanged;
-family-local initialization reads live in the initialization module.
+VS1B and C2B3D give the exact readers bounded private mutation-family callers.
+The 24-query C2B2 contract remains unchanged; family-local locators stay with
+their owning private mutation implementations.
 """
 
 from __future__ import annotations

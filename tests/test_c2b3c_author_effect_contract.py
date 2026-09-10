@@ -20,6 +20,15 @@ INITIALIZATION_STATUS_PATH = ROOT / ".docs" / "c2b3-program-initialization.md"
 SECTION_HEADING = "## 39. Coordinator C2B3C Author-Effect Contract Freeze"
 BEGIN_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_BEGIN -->"
 END_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_END -->"
+SECTION_40_HEADING = (
+    "## 40. Coordinator C2B3D Private Author-Effect Implementation Clarification"
+)
+SECTION_40_BEGIN = (
+    "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->"
+)
+SECTION_40_END = (
+    "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
+)
 INITIALIZATION_STATUS_BEGIN = (
     "<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_BEGIN -->"
 )
@@ -57,6 +66,10 @@ prompt.
 EXPECTED_SECTION_39_PAYLOAD_UTF8_LENGTH = 332446
 EXPECTED_SECTION_39_PAYLOAD_SHA256 = (
     "a0689ec37b3e764e463cedbb5d38ece0c57f6ed2fba1db570c667a55c52b571d"
+)
+EXPECTED_SECTION_40_UTF8_LENGTH = 4273
+EXPECTED_SECTION_40_SHA256 = (
+    "7f215a2efa8822d6e53978f7e201d3f6f0c75ef37feeeec82971a36fa3051a6a"
 )
 
 EXPECTED_FAMILY_GOLDEN_VECTOR = {'vector_id': 'c2b3c-author-effect-family-v1',
@@ -2696,7 +2709,7 @@ EXPECTED_COMMAND_SOURCES = {
     "computed C2A semantic value or digest",
     "fixed C2B3C contract constant",
 }
-EXPECTED_STATUS_PHRASES = (
+EXPECTED_HISTORICAL_STATUS_PHRASES = (
     "VS1B is the current committed private implementation at",
     "327aa4ef6f043a94f700374546fedc456027ae83",
     "is pushed to the directly verified `origin/trunk_dev` ref",
@@ -2706,6 +2719,15 @@ EXPECTED_STATUS_PHRASES = (
     "external evidence rather than Coordinator durable authority",
     "C2B3C is currently an uncommitted contract-freeze candidate awaiting fresh independent re-audit",
     "C2B3D source, worker execution, and production or external effects remain unauthorized",
+)
+EXPECTED_CURRENT_STATUS_PHRASES = (
+    "C2B3C contract freeze",
+    "5945a53685e7a5cb4edd7419bea712007fcdfcd1",
+    "C2B3D",
+    "implementation candidate",
+    "public API",
+    "worker",
+    "external",
 )
 CAPSULE_PROFILE_REF = "capsule-profile.regular-replace-v1"
 REDACTION_PROFILE_REF = "redaction.source-private-v1"
@@ -2974,6 +2996,9 @@ def _section_39_contract(source_bytes: bytes | None = None) -> dict[str, object]
     expected_trailing_prose_bytes = EXPECTED_TRAILING_PROSE.encode(
         "utf-8", errors="strict"
     )
+    section_40_heading_bytes = SECTION_40_HEADING.encode("utf-8", errors="strict")
+    section_40_begin_bytes = SECTION_40_BEGIN.encode("utf-8", errors="strict")
+    section_40_end_bytes = SECTION_40_END.encode("utf-8", errors="strict")
     assert expected_prologue_bytes.endswith(opening_fence_bytes), (
         "C2B3C_PROLOGUE_INVALID"
     )
@@ -2989,7 +3014,26 @@ def _section_39_contract(source_bytes: bytes | None = None) -> dict[str, object]
     closing_boundary = closing_fence_bytes + end_marker_bytes
     assert remainder.count(closing_boundary) == 1, "C2B3C_BOUNDARY_INVALID"
     payload_bytes, after = remainder.split(closing_boundary, 1)
-    assert after == expected_trailing_prose_bytes, "C2B3C_BOUNDARY_INVALID"
+    section_40_offset = len(expected_trailing_prose_bytes) + 1
+    assert after[:section_40_offset] == (
+        expected_trailing_prose_bytes + b"\n"
+    ), "C2B3C_BOUNDARY_INVALID"
+    section_40_bytes = after[section_40_offset:]
+    assert source.count(section_40_heading_bytes) == 1, "C2B3C_BOUNDARY_INVALID"
+    assert source.count(section_40_begin_bytes) == 1, "C2B3C_BOUNDARY_INVALID"
+    assert source.count(section_40_end_bytes) == 1, "C2B3C_BOUNDARY_INVALID"
+    assert section_40_bytes[: len(section_40_heading_bytes)] == (
+        section_40_heading_bytes
+    ), "C2B3C_BOUNDARY_INVALID"
+    assert section_40_bytes.endswith(section_40_end_bytes + b"\n"), (
+        "C2B3C_BOUNDARY_INVALID"
+    )
+    assert len(section_40_bytes) == EXPECTED_SECTION_40_UTF8_LENGTH, (
+        "C2B3C_BOUNDARY_INVALID"
+    )
+    assert hashlib.sha256(section_40_bytes).hexdigest() == (
+        EXPECTED_SECTION_40_SHA256
+    ), "C2B3C_BOUNDARY_INVALID"
     assert source.endswith(b"\n"), "C2B3C_BOUNDARY_INVALID"
     assert len(payload_bytes) == EXPECTED_SECTION_39_PAYLOAD_UTF8_LENGTH, (
         "C2B3C_PAYLOAD_BYTES_INVALID"
@@ -3460,8 +3504,21 @@ def _assert_current_status(text: object) -> None:
     assert "C2B3C independent audit accepted" not in current, (
         "C2B3C_STATUS_INVALID"
     )
-    for phrase in EXPECTED_STATUS_PHRASES:
+    assert "C2B3C is currently an uncommitted contract-freeze candidate" not in current
+    for phrase in EXPECTED_CURRENT_STATUS_PHRASES:
         assert phrase in current, "C2B3C_STATUS_INVALID"
+    assert (
+        "independent acceptance remains pending" in current
+        or "awaits fresh independent audit" in current
+        or "a fresh independent audit remains required" in current
+    ), "C2B3C_STATUS_INVALID"
+
+
+def _assert_historical_c2b3c_status(text: object) -> None:
+    assert type(text) is str, "C2B3C_STATUS_INVALID"
+    historical = " ".join(text.split())
+    for phrase in EXPECTED_HISTORICAL_STATUS_PHRASES:
+        assert phrase in historical, "C2B3C_STATUS_INVALID"
 
 
 def test_section_39_direct_literal_matches_independent_expected_contract() -> None:
@@ -3626,12 +3683,25 @@ def test_current_status_regions_are_reconciled_without_historical_rewrite() -> N
         "## Status And Authority", 1
     )[1].split("## Exact Private Source", 1)[0]
     reader_status = " ".join(reader_status.split())
-    assert "Only the mutation-receipt reader has the bounded private VS1B" in reader_status
-    assert "the other eleven roles remain production-unintegrated" in reader_status
+    assert (
+        "All twelve roles now have the bounded private C2B3D author-effect "
+        "establishment, replay, and recovery caller"
+    ) in reader_status
+    assert (
+        "the mutation-receipt reader also retains its bounded private VS1B"
+    ) in reader_status
 
     initialization = _read_owned_path(INITIALIZATION_STATUS_PATH)
-    _historical, current = initialization.split(INITIALIZATION_STATUS_BEGIN, 1)
-    current, after = current.split(INITIALIZATION_STATUS_END, 1)
+    assert initialization.count(INITIALIZATION_STATUS_BEGIN) == 1
+    assert initialization.count(INITIALIZATION_STATUS_END) == 1
+    assert initialization.count(SECTION_40_BEGIN) == 1
+    assert initialization.count(SECTION_40_END) == 1
+    _prefix, historical = initialization.split(INITIALIZATION_STATUS_BEGIN, 1)
+    historical, remainder = historical.split(INITIALIZATION_STATUS_END, 1)
+    _assert_historical_c2b3c_status(historical)
+    between, current = remainder.split(SECTION_40_BEGIN, 1)
+    assert between == "\n"
+    current, after = current.split(SECTION_40_END, 1)
     assert after == "\n"
     _assert_current_status(current)
     normalized = " ".join(current.split())

@@ -501,6 +501,12 @@ EXPECTED_APPROVED_READER_REEXPORTS = (
 )
 EXPECTED_PRODUCTION_READER_IMPORTS = (
     (
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        1,
+        "sqlite_transition_read_scope",
+        ("_read_global_stop_current",),
+    ),
+    (
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         1,
         "sqlite_transition_read_scope",
@@ -521,6 +527,12 @@ EXPECTED_PRODUCTION_READER_IMPORTS = (
     ),
 )
 EXPECTED_PRODUCTION_READER_EDGES = (
+    (
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "_resolve_development_author_effect_establishment_apply_after_fencing",
+        "_read_global_stop_current",
+        1,
+    ),
     (
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "_resolve_development_program_initialization_apply_after_fencing",
@@ -571,6 +583,12 @@ EXPECTED_PRODUCTION_READER_EDGES = (
     ),
 )
 
+_AUTHOR_EFFECT_CONSUMER_PATH = (
+    "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py"
+)
+_AUTHOR_EFFECT_OWNER_NAME = (
+    "_resolve_development_author_effect_establishment_apply_after_fencing"
+)
 _INITIALIZER_CONSUMER_PATH = (
     "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py"
 )
@@ -601,6 +619,19 @@ _EXPECTED_INITIALIZER_OWNER_HEADER_SHAPE = (
     "ctx=Load()), op=BitOr(), "
     "right=Name(id='DevelopmentProgramInitializationConflictV1', ctx=Load())), "
     "op=BitOr(), right=Name(id='_FreshDevelopmentProgramInitialization', "
+    "ctx=Load()))",
+    None,
+)
+_EXPECTED_AUTHOR_EFFECT_OWNER_HEADER_SHAPE = (
+    (),
+    (),
+    "arguments(kwonlyargs=[arg(arg='capability', annotation=Name(id='object', "
+    "ctx=Load())), arg(arg='command', annotation=Name(id='object', "
+    "ctx=Load()))], kw_defaults=[None, None])",
+    "BinOp(left=BinOp(left=Name(id='DevelopmentAuthorEffectEstablishmentResultV1', "
+    "ctx=Load()), op=BitOr(), "
+    "right=Name(id='DevelopmentAuthorEffectEstablishmentConflictV1', ctx=Load())), "
+    "op=BitOr(), right=Name(id='_FreshDevelopmentAuthorEffectEstablishment', "
     "ctx=Load()))",
     None,
 )
@@ -783,6 +814,7 @@ def _require_exact_live_authorized_reader_owners(
     parents: dict[ast.AST, ast.AST],
 ) -> dict[str, ast.AST]:
     if relative_path not in {
+        _AUTHOR_EFFECT_CONSUMER_PATH,
         _INITIALIZER_CONSUMER_PATH,
         _TRANSACTION_CONSUMER_PATH,
     }:
@@ -793,6 +825,25 @@ def _require_exact_live_authorized_reader_owners(
         raise AssertionError(_PRIVATE_READER_OWNER_NOT_LIVE) from None
     if type(module_code) is not CodeType:
         raise AssertionError(_PRIVATE_READER_OWNER_NOT_LIVE)
+
+    if relative_path == _AUTHOR_EFFECT_CONSUMER_PATH:
+        selected_owner = _require_direct_definition(
+            tree.body,
+            name=_AUTHOR_EFFECT_OWNER_NAME,
+            expected_type=ast.FunctionDef,
+        )
+        if (
+            type(selected_owner) is not ast.FunctionDef
+            or _function_owner_header_shape(selected_owner)
+            != _EXPECTED_AUTHOR_EFFECT_OWNER_HEADER_SHAPE
+        ):
+            raise AssertionError(_PRIVATE_READER_OWNER_NOT_LIVE)
+        _require_selected_code_object(module_code, selected_owner)
+        _require_single_namespace_definition_binding(
+            module_code,
+            _AUTHOR_EFFECT_OWNER_NAME,
+        )
+        return {_AUTHOR_EFFECT_OWNER_NAME: selected_owner}
 
     if relative_path == _INITIALIZER_CONSUMER_PATH:
         selected_owner = _require_direct_definition(

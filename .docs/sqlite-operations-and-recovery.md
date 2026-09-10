@@ -514,3 +514,24 @@ canonical command digest. B3c4a itself performs no transaction, no insert, no
 CAS, no rollback, no commit, no hidden retry, and no artifact recovery. B3c4b
 adds no hidden retry, no public recovery report, and no B4 global-stop recovery
 behavior.
+
+## C2B3D Private Author-Effect Recovery Boundary
+
+C2B3D reduces raw `WorkSpecV1` and typed requirement/authority evidence to one
+safe closed command before the writer operation guard. The private writer
+helper then enters the existing operation guard, shared mutation slot,
+resource-bound connection, `BEGIN IMMEDIATE`, writer fence, and nominal
+capability. A fresh operation reads the receipt first, applies global-stop and
+genesis-basis precedence, checks bounded identity collisions, captures one
+whole-second UTC transaction timestamp, inserts exactly ten rows in the
+Section-39 order, and attempts COMMIT exactly once. It has no hidden retry.
+
+Same-command replay verifies the receipt, all nine original graph members, the
+graph digest and result, and the bounded current effect/delivery-head predicate.
+Readback recovery under a freshly acquired and fenced writer returns exactly
+`committed_exact`, `definitely_not_committed`, or `unresolved`.
+`definitely_not_committed` requires both receipt absence and absence of every
+selected family identity. Partial, malformed, duplicated, foreign, or
+contradictory evidence is unresolved. A commit-attempt exception is never
+automatically retried; the affected resource follows the existing uncertainty
+cleanup/custody quarantine rules before explicit recovery.

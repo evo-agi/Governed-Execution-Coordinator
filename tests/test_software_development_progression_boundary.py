@@ -851,7 +851,8 @@ def test_narrowed_vertical_slice_progression_ceiling_and_prerequisites_are_exact
         "Chat or model reports cannot substitute for either intrinsic gate.",
         "now owns the exact route-neutral initialization, nine-row/eight-entry graph",
         "remain just-in-time questions",
-        "No next source tranche is authorized.",
+        "planned `direct_local_bootstrap` delivery is not dispatch",
+        "Those external-effect questions remain unauthorized.",
     ):
         assert expected in document_compact
     for forbidden in (

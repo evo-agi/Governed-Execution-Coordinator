@@ -166,18 +166,22 @@ five receipt result projections, bounded C2A reconstruction, WorkSpec safe
 projection, and the common supplied-entry graph digest primitive. It adds no
 SQL, private database reader, read capability, mutation API, family graph
 locator or completeness proof, exact family replay, commit-outcome recovery,
-or public surface within Slice 2 itself. VS1B now consumes its safe values for
-only the private route-neutral genesis family. The historical B3/B4
+or public surface within Slice 2 itself. VS1B consumes its safe values for the
+private route-neutral genesis family, and C2B3D consumes the safe program,
+effect, decision, receipt, and graph values for one private author-effect
+family. The historical B3/B4
 coherent fixture retains schema-0001 graph meanings inside a current physical
 generation-2 temporary database and leaves all nineteen C2B tables empty.
 
 C2B2 Slice 3 adds exactly two private reader source modules, seven private
 aggregate/page values, twenty-four literal query specifications, twelve exact
 private reader roles, and bounded 2/257 SELECT support. It uses only the
-existing nominal mutation read capability. Only the mutation-receipt reader now
-has the bounded private VS1B caller; the other eleven remain
-production-unintegrated. Slice 3 adds no public/package/StateStore/public-WriterSession
-reader surface, migration 0003, or external effect.
+existing nominal mutation read capability. All twelve roles now have the
+bounded private C2B3D caller; the mutation-receipt reader also retains the
+private VS1B caller. The frozen twenty-four-query inventory is unchanged;
+C2B3D's exact family-row locators and collision probes are private family-local
+queries outside that inventory. Slice 3 adds no public/package/StateStore/
+public-WriterSession reader surface, migration 0003, or external effect.
 
 C2B1 adds no durable development record, reader, writer, mutation, observation
 ingest, decision runtime, authority verifier, WorkSpec custody, worker/process
@@ -546,22 +550,24 @@ SQLite database, writer issuance/fencing authority, operation guard, mutation
 slot, and transaction controller; it adds no second authority system and no
 public `StateStore` or `WriterSession` surface. The closed first-slice decision
 kinds are `initialize`, `accept`, `repair`, `replan`, `terminal_reject`,
-`block`, `redeliver`, and `cancel`. Author-effect establishment and bound
-validation/review/cancellation-effect establishment are separate future private
-transaction roles. Private WorkSpec custody and restart-safe retrieval remain
-deferred. C2B0 added documentation and direct contract tests only. C2B1 now
+`block`, `redeliver`, and `cancel`. Author-effect establishment is now one
+private C2B3D transaction role; bound validation/review/cancellation-effect
+establishment remains future. Private WorkSpec custody and restart-safe
+retrieval remain deferred. C2B0 added documentation and direct contract tests
+only. C2B1 now
 implements only the administrative migration framework described above. C2B2
-Slice 1 now implements the generation-2 physical schema, and
+Slice 1 implements the generation-2 physical schema, and
 `0002_development_program_and_effect_state` is the implemented current physical
 terminal migration. Migration 0003 remains unimplemented and deferred. C2B2
 pure row/value source is now implemented only as the private no-I/O Slice-2
-layer. Slice 3 private database readers and bounded SQL/capability use are now
-implemented. VS1B gives only the mutation-receipt reader a private production
-caller and implements one private route-neutral program-genesis mutation,
-complete family verification, receipt-first exact replay, and read-only
-three-way recovery. Other C2B mutation families, observation ingest,
-progression decisions, latch behavior, authority verification, worker/process
-execution, Git effects, direct-local behavior, and ES routing remain
+layer. Slice 3 private database readers and bounded SQL/capability use are
+implemented. All twelve readers have the private C2B3D caller; the receipt
+reader also has the VS1B caller. VS1B implements route-neutral program genesis,
+and C2B3D implements private author-effect establishment with complete family
+and bounded current-head verification, receipt-first exact replay, and
+read-only three-way recovery. Bound effects, observation ingest, progression
+decisions, latch behavior, external authority verification, worker/process
+execution, Git effects, direct-local execution, and ES routing remain
 unimplemented.
 
 C2B3A froze the single-work-item program-initialization contract;
@@ -571,9 +577,9 @@ sole semantic authority is Section 35 of
 `.docs/c2b3-program-initialization.md` is implementation-status and planning
 only. Section 38 of the durable-state owner now governs the private VS1B
 implementation on the committed C2B3A and VS1A foundation.
-Author-effect establishment remains contract-incomplete and unimplemented.
-No C2B3 public/API/package surface, schema, migration, authority, route,
-worker, Bridge, or ES widening is allowed by this freeze.
+Sections 39 and 40 govern the private C2B3D author-effect implementation
+candidate. It adds no C2B3 public/API/package surface, schema, migration,
+external authority, route execution, worker, Bridge, or ES widening.
 
 ## P1 Prohibitions
 
@@ -625,10 +631,13 @@ branch commit are permitted; all publication effects remain zero and Git
 ambiguity forbids blind retry.
 
 VS1B now implements exact route-neutral initialization, the
-nine-row/eight-entry genesis family, verification, replay, and readback-only recovery. Custody,
-invocation, later evidence, Git, migration, latch, reliable-submit, and
-conformance designs remain deferred to the phase that first needs them. Do not
-infer source authorization.
+nine-row/eight-entry genesis family, verification, replay, and readback-only
+recovery. C2B3D now privately establishes the ten-row/nine-entry author-effect
+family and verifies its original graph plus bounded current effect/delivery
+heads. Its pending authority and planned delivery are not execution permission.
+Custody, fresh external verification, invocation, later evidence, Git,
+migration, latch, reliable-submit, and conformance designs remain deferred to
+the phase that first needs them. Do not infer external-effect authorization.
 
 ## Pre-I/O VS1A cleanup invariant
 
@@ -854,9 +863,10 @@ verified `origin/trunk_dev` ref. The exact VS1B pre-commit candidate received
 externally classified, provenance-bound independent acceptance and its
 post-acceptance commit gate passed. Git owns the commit/ref fact; the audit and
 validation reports remain external evidence rather than Coordinator durable
-authority. C2B3C is currently an uncommitted contract-freeze candidate awaiting
-fresh independent re-audit. C2B3D source, worker execution, and production or
-external effects remain unauthorized. VS1B uses migration 0002
-and adds no public API/package export, route or external I/O, automatic
-semantic retry, old-resource lookup, terminal witness, or restart-safe command
-custody.
+authority. The C2B3C contract freeze is committed at
+`5945a53685e7a5cb4edd7419bea712007fcdfcd1`. The current working tree contains
+the private C2B3D author-effect implementation candidate; it awaits fresh
+independent audit and adds no worker, dispatch, credential, capsule, Git,
+Bridge, ES, network, or other external effect. VS1B and C2B3D use migration
+0002 and add no public API/package export, automatic retry after uncertainty,
+old-resource lookup, terminal witness, or restart-safe raw-input custody.

@@ -2,9 +2,10 @@
 
 ## Status And Authority
 
-Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. Only
-the mutation-receipt reader has the bounded private VS1B program-initialization
-and recovery caller; the other eleven roles remain production-unintegrated.
+Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. All
+twelve roles now have the bounded private C2B3D author-effect establishment,
+replay, and recovery caller; the mutation-receipt reader also retains its
+bounded private VS1B program-initialization and recovery caller.
 
 This is an implementation-status and private-API record. The semantic owner
 remains `.docs/c2b-durable-development-state.md`; migration 0002 and cumulative
@@ -13,9 +14,9 @@ controller remains capability authority. This document is not semantic,
 schema, migration, capability, or runtime authority, and it defines no public
 API.
 
-Slice 3 adds no schema or migration, creates no durable record, and adds no
-production caller. It does not widen the package root, `StateStore`, or
-`WriterSession`.
+Slice 3 itself added no schema or migration, created no durable record, and
+introduced no production caller. Later VS1B and C2B3D callers do not widen the
+package root, `StateStore`, or public `WriterSession` protocol.
 
 ## Exact Private Source
 
@@ -48,8 +49,9 @@ _read_development_effect_head
 _read_development_delivery_head
 ```
 
-There is no registry, dispatcher, dynamic SQL, generic table lookup, public
-reader, or production importer.
+There is no registry, dispatcher, dynamic SQL, generic table lookup, or public
+reader. The only production importers are the bounded private VS1B and C2B3D
+family runtimes.
 
 ## Seven Private Aggregate And Page Values
 
@@ -165,12 +167,16 @@ algebra. A receipt has no row self-digest. The reader neither defaults graph
 entries to empty nor locates referenced rows, and it claims no complete family
 graph, replay, or recovery proof.
 
-## Remaining Nonimplementation
+## Current Integration And Remaining Nonimplementation
 
-The mutation-receipt reader now has only the bounded private VS1B
-program-initialization and recovery caller. The other eleven roles remain
-production-unintegrated. Still absent are a public reader API, package-root export,
-`StateStore`/public `WriterSession` reader method, every non-genesis C2B
-mutation, migration 0003, and every worker, model, process, capsule, Git,
-direct-local, Execution Substrate, Bridge, publication, or other external
-effect.
+C2B3D consumes all twelve roles to verify the genesis basis, complete original
+author-effect family, and bounded current effect/delivery heads. The receipt
+role is shared with VS1B. The exact twenty-four query specifications and their
+behavior are unchanged. C2B3D's three exact family-row locators and bounded
+identity-collision probes are private family-local queries and do not enlarge
+this Slice-3 inventory.
+
+Still absent are a public reader API, package-root export, `StateStore`/public
+`WriterSession` reader method, every later C2B mutation family, migration 0003,
+and every worker, model, process, capsule, Git, direct-local execution,
+Execution Substrate, Bridge, publication, or other external effect.

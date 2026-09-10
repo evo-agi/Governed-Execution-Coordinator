@@ -70,17 +70,20 @@ C2B2 Slice 2 now implements the pure private row/value source recorded in
 generation-2 physical schema, migration history, catalog, schema manifest, or
 any Slice-1 behavior. C2B2 Slice 3 now implements the private readers recorded
 in `.docs/c2b2-private-readers.md`; it likewise makes no schema or migration
-change. The later VS1B tranche uses this unchanged schema for one private
-route-neutral program-genesis mutation, exact replay, and readback-only recovery.
+change. VS1B uses this unchanged schema for one private route-neutral
+program-genesis mutation, exact replay, and readback-only recovery. C2B3D uses
+the same unchanged schema for one private ten-row/nine-graph-entry
+author-effect establishment family, exact replay, and readback-only recovery.
 
 ## Explicit Nonimplementation
 
 C2B2 Slice 1 adds no pure C2B row/value source and no private nominal reader.
 Slice 1 itself adds no program-initialization, author-effect, bound-effect,
-decision, receipt, observation-ingest, or other C2B mutation. The later VS1B
-source implements only route-neutral program genesis and its exact family
-replay/readback recovery without changing this migration. Author/bound effects,
-observation ingest, and all later families remain absent.
+decision, receipt, observation-ingest, or other C2B mutation. VS1B implements
+route-neutral program genesis and its exact family replay/readback recovery
+without changing this migration. C2B3D implements the private author-effect
+establishment family without changing it. Bound effects, observation ingest,
+and all later families remain absent.
 
 The slice adds no public DTO, package-root export, `StateStore` method,
 `WriterSession` method, API, CLI, service, IPC surface, dependency, second

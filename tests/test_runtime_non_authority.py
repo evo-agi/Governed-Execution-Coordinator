@@ -23,11 +23,13 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
     {
         "schemas/sqlite/coordinator-state-v1.sql",
         "src/ge_nwp_coordinator/__init__.py",
+        "src/ge_nwp_coordinator/_development_author_effect_establishment_contracts.py",
         "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
         "src/ge_nwp_coordinator/_development_decision_row_values.py",
         "src/ge_nwp_coordinator/_development_effect_row_values.py",
         "src/ge_nwp_coordinator/_development_program_row_values.py",
         "src/ge_nwp_coordinator/_development_row_value_support.py",
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
         "src/ge_nwp_coordinator/_sqlite_development_readers.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
@@ -820,6 +822,7 @@ def test_sqlite_import_surface_is_exact() -> None:
         if "import sqlite3" in path.read_text(encoding="utf-8")
     }
     assert sqlite_importers == {
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
@@ -843,7 +846,8 @@ def test_c2b2_private_readers_have_no_public_or_production_caller_surface() -> N
         and "_sqlite_development_readers" in path.read_text(encoding="utf-8")
     }
     assert importers == {
-        "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py"
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
     }
     for source in (package_source, state_source, writer_source):
         assert "read_development" not in source

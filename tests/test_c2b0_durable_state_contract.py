@@ -427,6 +427,48 @@ C2B3D source, worker execution, and production or external effects remain
 unauthorized.
 <!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->
 """
+C2B3D_STATUS_BEGIN_MARKER = (
+    "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->"
+)
+C2B3D_STATUS_END_MARKER = (
+    "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
+)
+C2B3D_CURRENT_STATUS_APPROVED_TEXT = """<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->
+## C2B3D implemented-candidate current status
+
+The preceding VS1B block is retained byte-for-byte as historical status
+evidence. Its concluding C2B3C pending/uncommitted wording and C2B3D
+source-absence statement are not current implementation claims after this
+separately bounded block. The C2B3C contract freeze is a Git fact at commit
+`5945a53685e7a5cb4edd7419bea712007fcdfcd1`, tree
+`ce7a85c612a76dfb1f0ff1e463b3b624bdce69e3`, with parent
+`327aa4ef6f043a94f700374546fedc456027ae83`.
+
+The current working tree contains a private C2B3D author-effect establishment
+implementation candidate governed by Sections 39 and 40 of
+`.docs/c2b-durable-development-state.md`. It reduces transient exact
+`WorkSpecV1` and typed requirement/authority evidence to a closed safe command
+before entering the existing writer operation guard, shared mutation slot, and
+single transaction controller. A fresh establishment persists exactly ten rows
+whose receipt graph has nine entries, makes exactly one COMMIT attempt, and
+supports receipt-first exact replay plus explicit three-way readback recovery.
+Apply and recovery verify the complete immutable original family and bounded
+current effect/delivery-head coherence. The complete set of twelve existing
+C2B2 private reader roles now has this bounded private caller; the receipt
+reader also retains its VS1B caller. The frozen twenty-four-query reader
+inventory is unchanged. C2B3D's exact family-row locators and collision probes
+are family-local private queries outside that inventory.
+
+This candidate adds no public API or package export, schema or migration,
+worker or dispatcher, external-authority issuer or verifier, route execution,
+credential use, capsule custody, Git effect, Execution Substrate or Bridge
+call, network or other external I/O, automatic retry after uncertainty, or
+restart-safe raw-input custody. Pending authority and planned delivery remain
+durable intent and bounds only, never execution permission. The candidate is
+not staged, committed, pushed, published, or independently accepted; a fresh
+independent audit remains required.
+<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->
+"""
 C2B3A_SOURCE_ACCEPTANCE_EVIDENCE_LEDGER = (
     "an accepted fresh independent read-only source-acceptance audit;",
     "the exact committed C2B3A contract baseline;",
@@ -3470,6 +3512,7 @@ SECTION_HEADINGS = (
     "37. C2B Pre-I/O VS1A Shared Cleanup Foundation",
     "38. Coordinator VS1B Route-Neutral Program Genesis",
     "39. Coordinator C2B3C Author-Effect Contract Freeze",
+    "40. Coordinator C2B3D Private Author-Effect Implementation Clarification",
 )
 
 DECISION_KINDS = (
@@ -4200,7 +4243,7 @@ def _c2b3a_planning_evidence_ledger(
     return tuple(entries)
 
 
-def _c2b3a_planning_regions(text: str) -> tuple[str, str]:
+def _c2b3a_planning_regions(text: str) -> tuple[str, str, str]:
     diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
     historical_begin = "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->"
     historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->"
@@ -4211,6 +4254,8 @@ def _c2b3a_planning_regions(text: str) -> tuple[str, str]:
         historical_end,
         C2B3A_VS1B_STATUS_BEGIN_MARKER,
         C2B3A_VS1B_STATUS_END_MARKER,
+        C2B3D_STATUS_BEGIN_MARKER,
+        C2B3D_STATUS_END_MARKER,
     ):
         if text.count(marker) != 1:
             raise AssertionError(diagnostic)
@@ -4221,25 +4266,34 @@ def _c2b3a_planning_regions(text: str) -> tuple[str, str]:
             historical_end,
             C2B3A_VS1B_STATUS_BEGIN_MARKER,
             C2B3A_VS1B_STATUS_END_MARKER,
+            C2B3D_STATUS_BEGIN_MARKER,
+            C2B3D_STATUS_END_MARKER,
         )
     )
     if positions != tuple(sorted(positions)):
         raise AssertionError(diagnostic)
-    historical, current_remainder = text.split(
+    historical, status_remainder = text.split(
         C2B3A_VS1B_STATUS_BEGIN_MARKER,
         1,
     )
-    current = C2B3A_VS1B_STATUS_BEGIN_MARKER + current_remainder
+    vs1b_remainder, c2b3d_remainder = status_remainder.split(
+        C2B3D_STATUS_BEGIN_MARKER,
+        1,
+    )
+    vs1b = C2B3A_VS1B_STATUS_BEGIN_MARKER + vs1b_remainder
+    c2b3d = C2B3D_STATUS_BEGIN_MARKER + c2b3d_remainder
     if historical != C2B3A_PLANNING_PROJECTION_APPROVED_TEXT:
         raise AssertionError(diagnostic)
-    if current != C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT:
+    if vs1b != C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT:
         raise AssertionError(diagnostic)
-    return historical, current
+    if c2b3d != C2B3D_CURRENT_STATUS_APPROVED_TEXT:
+        raise AssertionError(diagnostic)
+    return historical, vs1b, c2b3d
 
 
 def _assert_c2b3a_planning_status(text: str) -> None:
     diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
-    historical, _current = _c2b3a_planning_regions(text)
+    historical, _vs1b, _c2b3d = _c2b3a_planning_regions(text)
     markers = (
         "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->",
         "<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->",
@@ -10936,11 +10990,20 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
         ROOT / "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
         ROOT / "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
     }
+    c2b3d_sources = {
+        ROOT
+        / "src/ge_nwp_coordinator/_development_author_effect_establishment_contracts.py",
+        ROOT
+        / "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
-    } == slice2_sources | slice3_sources | vs1b_sources
-    assert all(path.is_file() and not path.is_symlink() for path in vs1b_sources)
+    } == slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources
+    assert all(
+        path.is_file() and not path.is_symlink()
+        for path in vs1b_sources | c2b3d_sources
+    )
 
     production_sources = {
         path: path.read_text(encoding="utf-8")
@@ -10951,7 +11014,8 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
     non_c2b_source = "\n".join(
         value
         for path, value in production_sources.items()
-        if path not in slice2_sources | slice3_sources | vs1b_sources
+        if path
+        not in slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(
@@ -10980,6 +11044,10 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
         "DevelopmentProgramInitializationResultV1",
         "DevelopmentProgramInitializationConflictV1",
         "DevelopmentProgramInitializationRecoveryResultV1",
+        "DevelopmentAuthorEffectEstablishmentCommandV1",
+        "DevelopmentAuthorEffectEstablishmentResultV1",
+        "DevelopmentAuthorEffectEstablishmentConflictV1",
+        "DevelopmentAuthorEffectEstablishmentRecoveryResultV1",
     ):
         assert token not in package_root
     assert not re.search(
@@ -12400,14 +12468,18 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     _assert_c2b3a_owner_addendum_prose(owner)
     _assert_c2b3a_planning_status(planning)
-    historical_planning, current_status = _c2b3a_planning_regions(planning)
+    historical_planning, vs1b_status, c2b3d_status = _c2b3a_planning_regions(
+        planning
+    )
+    current_status = vs1b_status + c2b3d_status
     assert (
         owner[owner.index("## 35. C2B3A Program-Initialization Contract Freeze\n")
               : owner.index("    # C2B3A_OWNER_ADDENDUM_BEGIN")]
         == C2B3A_OWNER_PRE_ADDENDUM_SECTION_35_PREFIX
     )
     assert historical_planning == C2B3A_PLANNING_PROJECTION_APPROVED_TEXT
-    assert current_status == C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
+    assert vs1b_status == C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
+    assert c2b3d_status == C2B3D_CURRENT_STATUS_APPROVED_TEXT
     for required in (
         '"structured_owner": "commit_close_outcome_addendum"',
         '"planning_is_semantic_authority": False',
@@ -12489,6 +12561,16 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
         "no schema or\nmigration",
     ):
         assert required in current_status
+    for required in (
+        "preceding VS1B block is retained byte-for-byte as historical status",
+        "private C2B3D author-effect establishment\nimplementation candidate",
+        "persists exactly ten rows\nwhose receipt graph has nine entries",
+        "complete set of twelve existing\nC2B2 private reader roles",
+        "frozen twenty-four-query reader\ninventory is unchanged",
+        "Pending authority and planned delivery remain\ndurable intent and bounds only",
+        "fresh\nindependent audit remains required",
+    ):
+        assert required in c2b3d_status
 
     def physical_copy(name: str, value: str) -> str:
         path = tmp_path / (name + ".md")
@@ -12845,7 +12927,10 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
             )
             assert historical_projection_mutant != historical_planning
             assert mutant_current_status == current_status
-            assert mutant_current_status == C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
+            assert mutant_current_status == (
+                C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
+                + C2B3D_CURRENT_STATUS_APPROVED_TEXT
+            )
             _c2b3a_physically_reject_planning_counterfactual(
                 physical_oracle_root,
                 "planning-physical-" + mutant_id,
@@ -16731,7 +16816,8 @@ def _c2b3a_planning_mutant_at_position(
 def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     _assert_c2b3a_planning_status(planning)
-    historical, current = _c2b3a_planning_regions(planning)
+    historical, vs1b_status, c2b3d_status = _c2b3a_planning_regions(planning)
+    current = vs1b_status + c2b3d_status
     c2b3c_current_status = (
         "Section 39 of\n"
         "`.docs/c2b-durable-development-state.md` supersedes current status only and\n"
@@ -16741,7 +16827,12 @@ def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
         "unauthorized.\n"
     )
     assert c2b3c_current_status not in historical
-    assert current.count(c2b3c_current_status) == 1
+    assert vs1b_status.count(c2b3c_current_status) == 1
+    assert c2b3c_current_status not in c2b3d_status
+    assert c2b3d_status.count(
+        "The current working tree contains a private C2B3D author-effect "
+        "establishment\nimplementation candidate"
+    ) == 1
 
     historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->\n"
     mutants = (
@@ -16757,6 +16848,13 @@ def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
             "C2B3D source, worker execution, and production or external effects remain\n"
             "unauthorized.",
             "C2B3D and author-effect source are present and authorized.",
+            1,
+        ),
+        planning.replace(C2B3D_CURRENT_STATUS_APPROVED_TEXT, "", 1),
+        planning.replace(
+            "Pending authority and planned delivery remain\ndurable intent and "
+            "bounds only, never execution permission.",
+            "Pending authority and planned delivery are execution permission.",
             1,
         ),
         planning + "Arbitrary appended current-status material.\n",

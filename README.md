@@ -160,9 +160,15 @@ pushed to the directly verified `origin/trunk_dev` ref. The exact VS1B
 pre-commit candidate received externally classified, provenance-bound
 independent acceptance and its post-acceptance commit gate passed. Git owns the
 commit/ref fact; the audit and validation reports remain external evidence rather than
-Coordinator durable authority. C2B3C is currently an uncommitted
-contract-freeze candidate awaiting fresh independent re-audit. C2B3D source,
-worker execution, and production or external effects remain unauthorized.
+Coordinator durable authority. The C2B3C contract freeze is committed at
+`5945a53685e7a5cb4edd7419bea712007fcdfcd1`. The current working tree contains
+the private C2B3D author-effect implementation candidate: exactly ten rows, a
+nine-entry receipt graph, receipt-first replay, readback-only recovery, and
+bounded current effect/delivery-head verification through the existing writer
+and transaction authority. It adds no public API, schema, migration, worker,
+dispatch, credential, capsule, Git, Bridge, ES, network, or external effect.
+Pending authority and planned delivery remain inert intent, and independent
+acceptance remains pending.
 
 Strategic target direction is recorded separately from current behavior. The
 accepted C1 staged target is model-guided Coordinator durable progression,
@@ -558,9 +564,11 @@ and ordinary product open never migrates. C2B2 pure row/value source is now
 implemented only as four private pure no-I/O modules for exact
 tuple decoding, immutable validation, row and result-projection digests,
 bounded C2A reconstruction, WorkSpec safe projection, and supplied-entry graph
-hashing. VS1B now uses a bounded subset for its private route-neutral
-program-genesis mutation. Migration 0003, non-genesis C2B reader integration and
-mutation/replay/recovery, observation ingest, later decision runtime, authority verification, WorkSpec custody,
+hashing. VS1B uses a bounded subset for its private route-neutral
+program-genesis mutation, and C2B3D uses the safe program/effect/decision values
+for private author-effect persistence and verification. Migration 0003,
+bound-effect and later C2B mutation/replay/recovery, observation ingest, later
+decision runtime, external authority verification, WorkSpec custody,
 worker/process execution, capsule storage, Git effects, direct-local execution,
 ES routing, and any service, scheduler, queue, publication, or autonomous loop
 remain absent.
@@ -568,10 +576,12 @@ remain absent.
 C2B2 Slice 3 now implements the previously frozen private reader contract:
 seven private aggregate/page values, twenty-four literal query specifications,
 and twelve reader roles through the real nominal transaction capability seam.
-The readers have synthetic execution proofs. Only the mutation-receipt reader
-has the bounded private VS1B caller; the other eleven have no production caller.
-There is no public or package-root API, `StateStore`/public `WriterSession`
-method, migration 0003, or external effect.
+The readers have synthetic execution proofs. All twelve roles now have the
+bounded private C2B3D caller; the mutation-receipt reader also retains its VS1B
+caller. Their twenty-four-query inventory is unchanged; C2B3D's exact family
+locators and collision probes are private family-local queries. There is no
+public or package-root API, `StateStore`/public `WriterSession` method,
+migration 0003, or external effect.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.
@@ -592,6 +602,10 @@ remote-ref mutation, PR, merge, deployment, or publication.
 
 VS1B now implements route-neutral initialization, exact nine-row/eight-entry
 genesis persistence and verification, receipt-first replay, and readback-only
-recovery. Custody, verifier, invocation, later evidence, Git, migration-0003,
+recovery. C2B3D now privately establishes the corresponding author-effect
+intent as exactly ten rows and a nine-entry receipt graph, with exact replay,
+readback-only recovery, and bounded current-head verification. The initial
+`direct_local_bootstrap` delivery is persisted but not dispatched. Custody,
+fresh external verification, invocation, later evidence, Git, migration-0003,
 reliable-submit, and conformance details remain explicit just-in-time design
 questions. Current implementation remains generation 2 at migration 0002.

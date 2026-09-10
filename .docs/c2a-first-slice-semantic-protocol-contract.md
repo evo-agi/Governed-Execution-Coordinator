@@ -42,6 +42,11 @@ exact replay, commit uncertainty, and explicit retry. `FiniteBacklog`,
 standing-lease identity, disabled-stage behavior, and coding `global_stop`
 remain unchanged compatibility or current contracts.
 
+C2B3D now privately consumes the unchanged C2A authoring, effect, delivery,
+and redelivery value/relation contracts while establishing and verifying one
+durable author-effect family. This is a C2B implementation fact: it changes no
+C2A schema, identity, digest, vector, relation, package export, or authority.
+
 When the C2A contract was originally frozen, the current physical application
 generation was 1 and the terminal migration was `0001_initial`. That is the
 historical C2A freeze baseline, not the current physical repository state. The
@@ -1452,14 +1457,15 @@ source do not themselves create durable C2A tables or durable C2A runtime rows.
 The generation-2 physical schema is a C2B2 Slice-1 implementation fact, distinct
 from C2A/C2A1 semantic authority.
 
-Migration 0003 remains absent. C2B2 Slice 2 now provides one pure private
-row/value reconstruction consumer of the unchanged C2A1 values. C2B2 private
-readers are implemented, and VS1B now consumes the unchanged C2A/C2B2 semantics
-for one private route-neutral program-genesis mutation, exact replay, and
-readback-only recovery. C2A itself remains unchanged and confers no durable
-authority. Worker, process, or model execution, Git effects, direct-local
-execution, ES routing, Bridge integration, publication, service, API, and IPC
-also remain absent.
+Migration 0003 remains absent. C2B2 Slice 2 provides pure private row/value
+reconstruction over the unchanged C2A1 values. C2B2 private readers are
+implemented; VS1B consumes unchanged C2A/C2B2 semantics for private
+route-neutral genesis, and C2B3D consumes unchanged authoring, effect,
+delivery, and redelivery relations for private author-effect persistence and
+verification. C2A itself remains unchanged and confers no durable or
+executable authority. Worker, process, or model execution, Git effects,
+direct-local execution, ES routing, Bridge integration, publication, service,
+API, and IPC also remain absent.
 
 Still deferred are raw JSON decoding and full-record wire encoding, executable
 authorization verification, revocation source and freshness, observation

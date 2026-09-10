@@ -499,3 +499,22 @@ authority. B4b adds private global-stop persistence through the same neutral
 mutation authority, verifies only already-persisted receipts, and adds no
 receipt provisioner, public global-stop method, schema migration, or
 related-repository authority.
+
+## C2B3D Author-Effect Threat Boundary
+
+C2B3D reuses the same writer, lock, mutation slot, controller, nominal
+capability, connection custody, and uncertainty-cleanup authority. It creates
+no second connection owner or recovery authority. Raw WorkSpec content and
+typed pre-reduction evidence are cleared before transaction delegation; safe
+commands, refs, digests, and persisted pending authority are correlation
+evidence only. Supported ordinary errors are reduced to content-free store
+errors after sensitive bindings clear, while `KeyboardInterrupt`, `SystemExit`,
+and `GeneratorExit` preserve identity and use the existing process-control
+stabilization boundary.
+
+Replay and recovery reject incomplete or contradictory original families and
+bounded current-head evidence. SQLite foreign keys alone are insufficient:
+cancellation target/fence and immediate redelivery predecessor relations are
+read and verified explicitly. The implementation performs no credential,
+network, worker, Git, Bridge, ES, route-execution, capsule, logging, or other
+external effect, and pending authority is never treated as permission.

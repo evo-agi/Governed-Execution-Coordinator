@@ -39,10 +39,13 @@ transition delegation, B4b adds private global-stop persistence, and B4c adds
 guarded public global-stop delegation. The public `StateStore` remains
 unwidened; internal `WriterSession` mutation is not a general public
 `StateStore` backend or service. C2B3 adds one private route-neutral
-program-genesis mutation over migration 0002 plus private readback-only commit-outcome
-resolution. The code still has no dispatch, semantic
-attempt, runtime-observation, result-ingest, outbox/inbox, worker, scheduler,
-queue, Codex, ES handoff, or runtime lifecycle storage.
+program-genesis mutation and one private author-effect establishment mutation
+over migration 0002, each with private readback-only commit-outcome resolution.
+The author-effect family durably represents one semantic attempt, fences,
+author command, pending authority evaluation, effect/delivery heads, planned
+delivery, and receipt; none is dispatch or executable permission. The code
+still has no runtime observation, result ingest, outbox/inbox, worker,
+scheduler, queue, Codex, ES handoff, or runtime lifecycle storage.
 
 Strategic target direction is separate from current behavior. C0 and C1 now
 provide accepted target contracts for software-development progression and the
@@ -62,16 +65,17 @@ mechanics, and C2B2 Slice 1 adds only the frozen physical nineteen-table core.
 Slice 2 adds private pure no-I/O row/value contracts for those nineteen tables,
 including bounded C2A reconstruction and digest verification. Slice 3 adds
 exactly twelve private reader roles over those values, with bounded literal
-SELECTs through the existing nominal capability seam. The mutation-receipt
-reader now has only the private C2B3 initialization caller; eleven roles remain
-production-unintegrated.
+SELECTs through the existing nominal capability seam. All twelve now have the
+private C2B3D author-effect caller; the mutation-receipt reader also retains the
+private VS1B initialization caller.
 The accepted C2B0 target contract also reserves
 `0003_development_observation_and_progression_state` and freezes its exact
 target responsibilities and inventory. No migration-0003 SQL, public C2B
-reader, author/bound-effect mutation, observation ingest, later progression
-runtime, authority verifier, WorkSpec custody, worker/runtime behavior, or
-effect is currently implemented. C2B3's private initialization mutation is the
-only implemented C2B durable family behavior.
+reader, bound-effect mutation, observation ingest, later progression runtime,
+external authority verifier, WorkSpec custody, worker/runtime behavior, or
+external effect is currently implemented. C2B3's private initialization and
+author-effect establishment mutations are the implemented C2B durable family
+behaviors.
 
 Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
 `auditing`, repair, commit, and cleanup names do not transfer runtime authority
@@ -430,13 +434,15 @@ evaluator, sequence, write, rollback, COMMIT, or uncertainty ownership into
 ## C2B0 Accepted Durable-Development Target
 
 Status: `ACCEPTED TARGET CONTRACT` for remaining C2B behavior and `CURRENT
-IMPLEMENTED CONTRACT` for the bounded private VS1B genesis family. C2B2 Slice 1 has
+IMPLEMENTED CONTRACT` for the bounded private VS1B genesis and C2B3D
+author-effect families. C2B2 Slice 1 has
 implemented the migration-0002 physical core at application generation 2, and
 Slice 2 can purely validate already-fetched tuples as private row values. Slice
-3 implements twelve private reader roles; only the mutation-receipt role has
-the bounded private VS1B caller. Outside the exact nine-row genesis family, the
-target product records below are not populated or accessible through a C2B
-product runtime. Migration 0003 remains a reserved target identity.
+3 implements twelve private reader roles; all have the bounded C2B3D caller,
+and the mutation-receipt role also has the private VS1B caller. Outside the
+exact nine-row genesis and ten-row author-effect families, the target product
+records below are not populated or accessible through a C2B product runtime.
+Migration 0003 remains a reserved target identity.
 C2B1 owns `sqlite_migration.py` administrative transactions;
 those transactions are not a second product writer, a C2B product mutation
 transaction, or durable progression truth.
@@ -464,11 +470,10 @@ The accepted complete target comprises implemented migration
 `0003_development_observation_and_progression_state`, twenty-eight new tables,
 forty-six new triggers, and two explicit indexes across both migrations.
 Migration 0002 currently contributes nineteen tables, thirty triggers, and one
-explicit index. Migration 0003 and all C2B reader production integration except
-the one bounded mutation-receipt caller, all non-genesis C2B writer/mutation
-and replay/recovery, ingest, later decision runtime,
-authority-verifier, and latch behavior remain absent; the current private
-readers do not populate durable state or confer product authority.
+explicit index. Migration 0003, bound-effect and later C2B writer/mutation and
+replay/recovery, ingest, later decision runtime, external authority verifier,
+and latch behavior remain absent. The current private readers confer no product
+or executable authority.
 
 <!-- C2B3_NARROWED_DURABLE_STATE_BEGIN -->
 ## Vertical-slice durable-state narrowing
@@ -479,14 +484,20 @@ shape remain reopened and non-operative. Section 38 of
 initialization values, exact nine-row/eight-entry graph, and replay/recovery
 contract; migration 0002 remains unchanged.
 
+Sections 39 and 40 own the private C2B3D author-effect candidate: exactly ten
+rows, a nine-entry receipt graph, receipt-first replay, readback-only three-way
+recovery, and bounded current effect/delivery-head verification. Its pending
+authority evaluation and planned delivery remain durable intent and bounds,
+not execution permission.
+
 The governing durable facts are only that initialization is route-neutral,
 durable intent precedes external I/O, the bootstrap route has a one-productive-
 acceptance ceiling, local Git is a separate post-acceptance effect with one
 commit maximum and zero publication, and ambiguous Git outcome forbids blind
 retry. Raw WorkSpec and retrieval bearer authority never enter SQLite.
 
-Custody, verifier result, invocation, evidence, Git reconciliation, and ES
-conformance remain assigned to the just-in-time phase that first needs them.
-Current state remains generation 2 at migration 0002; VS1B creates no target
-runtime or migration-0003 source.
+Custody, fresh external verification, invocation, evidence, Git
+reconciliation, and ES conformance remain assigned to the just-in-time phase
+that first needs them. Current state remains generation 2 at migration 0002;
+VS1B and C2B3D create no worker/runtime or migration-0003 source.
 <!-- C2B3_NARROWED_DURABLE_STATE_END -->

@@ -22222,3 +22222,72 @@ and planned delivery are durable intent and bounds only. They are not execution
 permission. No C2B3D source may begin until this exact contract receives fresh
 independent acceptance and a separately authorized source-implementation
 prompt.
+
+## 40. Coordinator C2B3D Private Author-Effect Implementation Clarification
+
+<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->
+
+The C2B3C contract freeze is a Git fact at commit
+`5945a53685e7a5cb4edd7419bea712007fcdfcd1`, tree
+`ce7a85c612a76dfb1f0ff1e463b3b624bdce69e3`, with parent
+`327aa4ef6f043a94f700374546fedc456027ae83`. Git owns those object and ref
+facts. Independent acceptance records, audit reports, test output, manifests,
+and model responses are external evidence rather than Git facts.
+
+This section selects the bounded historical-head coherence predicate for the
+C2B3D private implementation candidate. It is subordinate to Section 39 for
+the family, inputs, identities, digests, rows, receipt graph, result, authority,
+privacy, and effect ceilings. The candidate awaits independent audit and adds
+no worker execution, dispatch, external effect, or publication authority.
+
+Historical-head coherence is relational readback only. The complete original
+receipt-owned family and original graph postimages must verify first. Current
+heads are additional integrity gates; they do not replace those postimages or
+prove intervening transition legality, execution, dispatch authorization,
+current external authority, or complete later history. Verification is bounded
+and must not traverse an unbounded lineage or reconstruct a state-machine
+history.
+
+For each current head, the verifier must use the existing nominal capability,
+cursor ownership, and exact row adapter. It must require exact program and
+effect identity. Revision zero must equal the original head postimage exactly,
+including state, references, timestamp, and digest. Any other accepted head
+must have a revision strictly greater than the original revision and an
+`updated_at` not earlier than the receipt timestamp. Existing enum, digest,
+and nullable-field algebra remains exact. Referenced rows must be read and
+verified explicitly; foreign keys and SQLite integrity checks are insufficient
+semantic evidence. Missing, malformed, duplicated, foreign, or contradictory
+evidence is `database_integrity_failure` during apply and `unresolved` during
+recovery. No relationship between `head_revision` and `delivery_number` is
+implied.
+
+The current effect head must retain the exact established author fence. When
+the reference matches, the verifier reuses that already verified fence and
+must not substitute another same-program fence. Existing cancellation-state
+and nullable-reference algebra remains exact. A present cancellation reference
+is resolved to exactly one validated cancellation intent and its corresponding
+fence. Both must be `cancel_effect`, target the original author effect, agree
+on their shared fields, and retain the established
+program/attempt/command/candidate lineage. The cancellation fence target
+reference and digest are checked against the original author fence with the
+existing C2A effect-relation validator. The expected target-head revision must
+precede the current head revision, and the cancellation record timestamp must
+fall between family establishment and the current head update. This verifies
+already-persisted cancellation evidence only; it adds no cancellation writer,
+delivery, or execution path.
+
+The current delivery reference must resolve to exactly one validated delivery
+row. The original reference must equal the already verified original delivery.
+A later reference must have redelivery posture under the existing row adapter
+and must pass the existing delivery and redelivery relation validators against
+the established author command, AttemptFence, author EffectFence, and original
+delivery. Its `recorded_at` must fall between family establishment and the
+current delivery-head update. The verifier resolves only the immediate
+predecessor, validates that row and its family relation, requires predecessor
+number to equal current number minus one, and rejects self, foreign-family,
+wrong-fence, or reversed-time correspondence. Persisted basis-decision
+ownership constraints remain in force. It neither recursively verifies the
+entire chain nor provides a redelivery writer or dispatcher. A changed route,
+effect, or fence is not a redelivery of this family.
+
+<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->

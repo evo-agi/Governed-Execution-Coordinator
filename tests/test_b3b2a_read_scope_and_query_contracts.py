@@ -582,6 +582,7 @@ def test_b3b2a_runtime_import_is_the_only_new_sqlite_importer() -> None:
         for path in source_files
     }
     expected_sqlite_importers = {
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",

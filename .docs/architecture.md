@@ -19,9 +19,9 @@ GOVERNANCE`. The authoritative C1 composition record is
 The Coordinator now owns bounded internal durable SQLite mutation authority for
 coding-work state, one separate pure no-I/O C2A1 semantic-value layer, and the
 private pure no-I/O C2B2 row/value layer for the nineteen migration-0002 row
-families, plus twelve private C2B2 reader roles. Eleven roles remain
-production-unintegrated; the mutation-receipt reader now has only the bounded
-private C2B3 program-initialization caller. The reader layer is bounded to
+families, plus twelve private C2B2 reader roles. All twelve now have the
+bounded private C2B3D author-effect caller; the mutation-receipt role also has
+the private VS1B program-initialization caller. The reader layer is bounded to
 literal SELECTs through an already-valid nominal transaction capability. The
 current implementation includes internal durable writer
 issuance, private atomic transition persistence, guarded public transition
@@ -29,8 +29,9 @@ delegation, private atomic global-stop persistence, guarded public global-stop
 delegation, verification of already-persisted operator-decision receipts,
 writer fencing, idempotency, exact replay, accepted-current CAS, rollback, one
 COMMIT attempt, commit uncertainty, and explicit retry. C2B3 now also implements
-one private route-neutral program-genesis mutation and private readback-only
-commit-outcome resolution for that exact family.
+one private route-neutral program-genesis mutation and one private author-effect
+establishment mutation, with exact replay and private readback-only
+commit-outcome resolution for each family.
 
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
@@ -579,10 +580,12 @@ ordering, exact replay/conflict handling, context assembly, timestamp capture,
 ## C2B0 Accepted Durable-State Target Topology
 
 Status: `CURRENT IMPLEMENTED CONTRACT` for the narrow C2B3 route-neutral
-program-genesis family; the broader C2B0 topology remains an accepted target.
+program-genesis and author-effect families; the broader C2B0 topology remains
+an accepted target.
 C2B2 Slice 1 physically represents the nineteen-table core, Slice 2 implements
 its private pure row/value layer, and Slice 3 implements the private database
-readers. Only the mutation-receipt reader has the bounded C2B3 production caller.
+readers. All twelve roles have the bounded private C2B3D production caller;
+the mutation-receipt role also retains the VS1B production caller.
 C2B1/C2B2-Slice-1 administrative migration source and C2B2-Slice-2 pure
 row/value source are current but confer no product authority.
 
@@ -600,12 +603,14 @@ establishment, source-observation ingest, and progression decisions. Durable
 intent must precede future external I/O. C2B2 Slice 1 provides the
 migration-0002 physical schema at current generation 2, and Slice 2 provides
 private pure row/value source for its nineteen tables. Slice 3 provides exactly
-twelve private reader roles with no public surface; eleven remain
-production-unintegrated. C2B3 privately persists and exactly verifies only the
-route-neutral nine-row/eight-entry program-genesis family, including same-command
-replay and readback-only commit-outcome resolution. No author/bound effect,
-observation, later progression-decision runtime, worker, Bridge dependency, ES
-dependency, service, queue, scheduler, or autonomous loop exists.
+twelve private reader roles with no public surface; all twelve have the bounded
+C2B3D caller, while the receipt role also retains the VS1B caller. C2B3
+privately persists and exactly verifies the route-neutral nine-row/eight-entry
+program-genesis family and the ten-row/nine-entry author-effect family,
+including same-command replay and readback-only commit-outcome resolution. No
+bound effect, observation, later progression-decision runtime, worker, Bridge
+dependency, ES dependency, service, queue, scheduler, or autonomous loop
+exists.
 
 <!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->
 ## C2B3 vertical-slice governing narrowing
@@ -632,5 +637,10 @@ The implemented VS1B family uses migration 0002 unchanged, one receipt-first
 transaction, exactly nine state rows and eight supplied graph entries, exact
 same-command replay, and private readback-only uncertainty resolution. It adds
 no route, dispatch, worker, capsule, external I/O, or executable authority.
-Exact later-phase values and evidence layouts remain deferred.
+The private C2B3D candidate reuses that same mutation authority for exactly ten
+author-effect rows and nine supplied graph entries. It persists a planned
+`direct_local_bootstrap` delivery as inert intent, verifies bounded current
+effect/delivery heads, and performs no dispatch, worker, capsule, credential,
+network, Git, Bridge, or ES effect. Exact later-phase values and evidence
+layouts remain deferred.
 <!-- C2B3_NARROWED_ARCHITECTURE_END -->

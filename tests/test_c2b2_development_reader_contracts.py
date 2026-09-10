@@ -24,6 +24,7 @@ READERS_PATH = ROOT / "src/ge_nwp_coordinator/_sqlite_development_readers.py"
 SELECT_SUPPORT_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_transition_select_support.py"
 OWNER_PATH = ROOT / ".docs/c2b-durable-development-state.md"
 EXPECTED_PRODUCTION_READER_IMPORTERS = (
+    "_sqlite_development_author_effect_establishment.py",
     "_sqlite_development_program_initialization.py",
 )
 
@@ -938,7 +939,10 @@ def test_no_production_caller_public_store_writer_or_c2b3_surface() -> None:
     }
     assert importers == set(EXPECTED_PRODUCTION_READER_IMPORTERS)
     for path in production:
-        if path.name == "_sqlite_development_readers.py":
+        if path.name in {
+            "_sqlite_development_author_effect_establishment.py",
+            "_sqlite_development_readers.py",
+        }:
             continue
         source = path.read_text(encoding="utf-8")
         assert "_read_development_program_head_and_current_version" not in source

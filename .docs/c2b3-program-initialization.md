@@ -399,3 +399,38 @@ an uncommitted contract-freeze candidate awaiting fresh independent re-audit.
 C2B3D source, worker execution, and production or external effects remain
 unauthorized.
 <!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->
+<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->
+## C2B3D implemented-candidate current status
+
+The preceding VS1B block is retained byte-for-byte as historical status
+evidence. Its concluding C2B3C pending/uncommitted wording and C2B3D
+source-absence statement are not current implementation claims after this
+separately bounded block. The C2B3C contract freeze is a Git fact at commit
+`5945a53685e7a5cb4edd7419bea712007fcdfcd1`, tree
+`ce7a85c612a76dfb1f0ff1e463b3b624bdce69e3`, with parent
+`327aa4ef6f043a94f700374546fedc456027ae83`.
+
+The current working tree contains a private C2B3D author-effect establishment
+implementation candidate governed by Sections 39 and 40 of
+`.docs/c2b-durable-development-state.md`. It reduces transient exact
+`WorkSpecV1` and typed requirement/authority evidence to a closed safe command
+before entering the existing writer operation guard, shared mutation slot, and
+single transaction controller. A fresh establishment persists exactly ten rows
+whose receipt graph has nine entries, makes exactly one COMMIT attempt, and
+supports receipt-first exact replay plus explicit three-way readback recovery.
+Apply and recovery verify the complete immutable original family and bounded
+current effect/delivery-head coherence. The complete set of twelve existing
+C2B2 private reader roles now has this bounded private caller; the receipt
+reader also retains its VS1B caller. The frozen twenty-four-query reader
+inventory is unchanged. C2B3D's exact family-row locators and collision probes
+are family-local private queries outside that inventory.
+
+This candidate adds no public API or package export, schema or migration,
+worker or dispatcher, external-authority issuer or verifier, route execution,
+credential use, capsule custody, Git effect, Execution Substrate or Bridge
+call, network or other external I/O, automatic retry after uncertainty, or
+restart-safe raw-input custody. Pending authority and planned delivery remain
+durable intent and bounds only, never execution permission. The candidate is
+not staged, committed, pushed, published, or independently accepted; a fresh
+independent audit remains required.
+<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->

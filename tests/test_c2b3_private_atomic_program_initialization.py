@@ -39,6 +39,12 @@ VS1B_STATUS_BEGIN_MARKER = (
     "<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_BEGIN -->"
 )
 VS1B_STATUS_END_MARKER = "<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_END -->"
+C2B3D_STATUS_BEGIN_MARKER = (
+    "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->"
+)
+C2B3D_STATUS_END_MARKER = (
+    "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
+)
 EXPECTED_VS1B_OWNER_PREFIX = """## 38. Coordinator VS1B Route-Neutral Program Genesis
 
 This section is the finite owner for the VS1B private implementation. It
@@ -135,10 +141,15 @@ def _vs1b_current_status_text() -> str:
     assert source.count(HISTORICAL_PLANNING_END_MARKER) == 1
     assert source.count(VS1B_STATUS_BEGIN_MARKER) == 1
     assert source.count(VS1B_STATUS_END_MARKER) == 1
+    assert source.count(C2B3D_STATUS_BEGIN_MARKER) == 1
+    assert source.count(C2B3D_STATUS_END_MARKER) == 1
     historical, current = source.split(VS1B_STATUS_BEGIN_MARKER, 1)
     assert historical.endswith(HISTORICAL_PLANNING_END_MARKER + "\n")
     status, after = current.split(VS1B_STATUS_END_MARKER, 1)
-    assert after == "\n"
+    between, c2b3d = after.split(C2B3D_STATUS_BEGIN_MARKER, 1)
+    assert between == "\n"
+    _c2b3d_status, tail = c2b3d.split(C2B3D_STATUS_END_MARKER, 1)
+    assert tail == "\n"
     return " ".join(status.split())
 
 

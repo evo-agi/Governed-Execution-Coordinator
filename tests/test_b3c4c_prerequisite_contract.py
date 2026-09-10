@@ -40,7 +40,7 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "f0ccae80ef3c805802425b1b7716890e8a17eae1194540573470d8356bb892b8"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py": (
-        "60882d03581811dbb3a0523e6070fd45b4b067630805336dc3c6359d51b0e902"
+        "7515fe8a7ff6f4d14bb95a4e56e42407f22b7381025ec21d448f22ea51a53023"
     ),
     "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py": (
         "5512294de5030b94936dc43caec659a16c5617633dcafac28cbffed6dc878760"

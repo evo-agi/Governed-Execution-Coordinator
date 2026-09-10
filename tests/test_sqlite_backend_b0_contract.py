@@ -529,6 +529,7 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
         assert fragment in lock_source
 
     expected_sqlite_importers = {
+        "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",

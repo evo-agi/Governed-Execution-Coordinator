@@ -159,11 +159,12 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         "C2B2 Slice 1 adds only the frozen physical nineteen-table core",
         "Slice 2 adds private pure no-I/O row/value contracts for those nineteen tables",
         "Slice 3 adds exactly twelve private reader roles over those values",
-        "mutation-receipt reader now has only the private C2B3 initialization caller",
+        "All twelve now have the private C2B3D author-effect caller",
+        "mutation-receipt reader also retains the private VS1B initialization caller",
         "accepted C2B0 target contract also reserves",
         "`0003_development_observation_and_progression_state`",
-        "No migration-0003 SQL, public C2B reader, author/bound-effect mutation, observation ingest, later progression runtime",
-        "C2B3's private initialization mutation is the only implemented C2B durable family behavior",
+        "No migration-0003 SQL, public C2B reader, bound-effect mutation, observation ingest, later progression runtime",
+        "C2B3's private initialization and author-effect establishment mutations are the implemented C2B durable family behaviors",
     ):
         _require(
             phrase in current,
@@ -172,10 +173,11 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
     for phrase in (
         "C2B2 Slice 1 has implemented the migration-0002 physical core at application generation 2",
         "Slice 2 can purely validate already-fetched tuples as private row values",
-        "Slice 3 implements twelve private reader roles; only the mutation-receipt role has the bounded private VS1B caller",
+        "Slice 3 implements twelve private reader roles; all have the bounded C2B3D caller",
+        "mutation-receipt role also has the private VS1B caller",
         "Migration 0003 remains a reserved target identity",
         "accepted complete target comprises implemented migration",
-        "Migration 0003 and all C2B reader production integration except the one bounded mutation-receipt caller",
+        "Migration 0003, bound-effect and later C2B writer/mutation",
     ):
         _require(
             phrase in target,
@@ -951,7 +953,8 @@ def test_current_status_drift_corrections_are_documented() -> None:
     _assert_candidate_capsule_durable_state_contract(durable_text)
     assert "B3c4b adds private atomic transition persistence, B3c4c adds guarded public transition delegation, B4b adds private global-stop persistence, and B4c adds guarded public global-stop delegation." in durable
     assert "The public `StateStore` remains unwidened; internal `WriterSession` mutation is not a general public `StateStore` backend or service." in durable
-    assert "The code still has no dispatch, semantic attempt, runtime-observation, result-ingest, outbox/inbox, worker, scheduler, queue, Codex, ES handoff, or runtime lifecycle storage." in durable
+    assert "The author-effect family durably represents one semantic attempt, fences, author command, pending authority evaluation, effect/delivery heads, planned delivery, and receipt; none is dispatch or executable permission." in durable
+    assert "The code still has no runtime observation, result ingest, outbox/inbox, worker, scheduler, queue, Codex, ES handoff, or runtime lifecycle storage." in durable
     assert "Public global-stop mutation now delegates through the guarded B4c public wrapper to B4b private atomic global-stop persistence." in operations
     assert "The public wrappers own no SQL, receipt verification, evaluator, sequence allocation, write, rollback, COMMIT, or uncertainty handling" in operations
 
@@ -1022,7 +1025,8 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
 
     for phrase in (
         "broader C2B0 topology remains an accepted target",
-        "Only the mutation-receipt reader has the bounded C2B3 production caller",
+        "All twelve roles have the bounded private C2B3D production caller",
+        "mutation-receipt role also retains the VS1B production caller",
         "existing Coordinator SQLite database",
         "existing concrete writer issuance/fencing authority",
         "operation guard",
@@ -1032,8 +1036,9 @@ def test_c2b0_target_topology_reuses_current_private_authority_without_implement
         "public `StateStore` widening",
         "public `WriterSession` widening",
         "Slice 2 provides private pure row/value source for its nineteen tables",
-        "Slice 3 provides exactly twelve private reader roles with no public surface; eleven remain production-unintegrated",
+        "Slice 3 provides exactly twelve private reader roles with no public surface; all twelve have the bounded C2B3D caller",
         "route-neutral nine-row/eight-entry program-genesis family",
+        "ten-row/nine-entry author-effect family",
         "same-command replay and readback-only commit-outcome resolution",
     ):
         assert phrase in architecture

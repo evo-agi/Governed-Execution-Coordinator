@@ -484,5 +484,10 @@ Section 38 of `.docs/c2b-durable-development-state.md` now owns the exact
 route-neutral initialization, nine-row/eight-entry graph, verification, and
 replay/recovery representation implemented by VS1B. Custody, source invocation,
 later evidence, Git, ES migration, and latch representations remain
-just-in-time questions. No next source tranche is authorized.
+just-in-time questions. Sections 39 and 40 now govern the private C2B3D
+candidate that durably establishes the pending author-effect intent in exactly
+ten rows with a nine-entry receipt graph, exact replay/recovery, and bounded
+current-head verification. Its planned `direct_local_bootstrap` delivery is
+not dispatch, external verification, worker invocation, credential use, or
+execution permission. Those external-effect questions remain unauthorized.
 <!-- C2B3_NARROWED_PROGRESSION_END -->
