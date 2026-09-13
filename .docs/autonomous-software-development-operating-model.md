@@ -540,3 +540,14 @@ existing bounded writer/transaction authority, the private VS1B genesis family,
 and the private C2B3D author-effect family. All worker, dispatch, Git, Bridge,
 ES, and other external execution remains absent.
 <!-- C2B3_NARROWED_OPERATING_MODEL_END -->
+
+<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
+## Cognitive proposal and selection candidate
+
+Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
+for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
+uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
+The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
+it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
+The full remote-worker phase is not reduced to that first source tranche.
+<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

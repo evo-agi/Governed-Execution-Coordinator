@@ -1511,3 +1511,31 @@ authority.
 Implementation and accepting audit must remain different roles. This
 implementation may become ready for an independent audit; it cannot claim to
 have performed or accepted that audit.
+
+<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
+## Cognitive proposal and selection candidate
+
+Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
+for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
+uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
+The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
+it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
+The full remote-worker phase is not reduced to that first source tranche.
+
+The finite candidate placement amendment, with its exact closed inventory owned
+only by Section 41, permits Coordinator SQLite to hold model-contract and
+redacted-configuration refs/digests; source-invocation, context, proposal,
+private-artifact, and safe-projection schema IDs/refs/digests; bounded counts;
+closed phase, recommendation, status, and reason codes; closed role-specific
+evidence bindings; and Coordinator disposition, current-selection, graph,
+receipt, and safe-result facts. It changes no established C2A schema, golden
+vector, field order, or digest identity.
+
+Raw prompts, hidden reasoning, provider sessions or history, raw request or
+response payloads, arbitrary model text, private WorkSpec content, private plan
+text, credentials, headers, endpoints, account or organization IDs, bearer
+material, database material, and unrestricted logs remain prohibited in SQLite
+and reports. The normalized typed private artifact remains outside SQLite under
+separately governed custody, and its safe ref or digest grants no retrieval
+authority.
+<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

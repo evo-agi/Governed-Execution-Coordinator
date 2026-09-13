@@ -3513,6 +3513,7 @@ SECTION_HEADINGS = (
     "38. Coordinator VS1B Route-Neutral Program Genesis",
     "39. Coordinator C2B3C Author-Effect Contract Freeze",
     "40. Coordinator C2B3D Private Author-Effect Implementation Clarification",
+    "41. Coordinator Cognitive Proposal And Pre-Execution Selection Contract Freeze",
 )
 
 DECISION_KINDS = (

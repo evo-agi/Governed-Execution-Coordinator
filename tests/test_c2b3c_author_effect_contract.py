@@ -29,6 +29,9 @@ SECTION_40_BEGIN = (
 SECTION_40_END = (
     "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
 )
+SECTION_41_HEADING = (
+    "## 41. Coordinator Cognitive Proposal And Pre-Execution Selection Contract Freeze"
+)
 INITIALIZATION_STATUS_BEGIN = (
     "<!-- COORDINATOR_VS1B_IMPLEMENTED_CURRENT_STATUS_BEGIN -->"
 )
@@ -3018,7 +3021,17 @@ def _section_39_contract(source_bytes: bytes | None = None) -> dict[str, object]
     assert after[:section_40_offset] == (
         expected_trailing_prose_bytes + b"\n"
     ), "C2B3C_BOUNDARY_INVALID"
-    section_40_bytes = after[section_40_offset:]
+    section_40_and_later = after[section_40_offset:]
+    section_41_boundary = b"\n" + SECTION_41_HEADING.encode(
+        "utf-8", errors="strict"
+    )
+    assert section_40_and_later.count(section_41_boundary) == 1, (
+        "C2B3C_BOUNDARY_INVALID"
+    )
+    section_40_bytes, section_41_bytes = section_40_and_later.split(
+        section_41_boundary, 1
+    )
+    assert section_41_bytes, "C2B3C_BOUNDARY_INVALID"
     assert source.count(section_40_heading_bytes) == 1, "C2B3C_BOUNDARY_INVALID"
     assert source.count(section_40_begin_bytes) == 1, "C2B3C_BOUNDARY_INVALID"
     assert source.count(section_40_end_bytes) == 1, "C2B3C_BOUNDARY_INVALID"

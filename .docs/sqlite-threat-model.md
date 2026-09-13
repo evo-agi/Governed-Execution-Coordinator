@@ -518,3 +518,14 @@ cancellation target/fence and immediate redelivery predecessor relations are
 read and verified explicitly. The implementation performs no credential,
 network, worker, Git, Bridge, ES, route-execution, capsule, logging, or other
 external effect, and pending authority is never treated as permission.
+
+<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
+## Cognitive proposal and selection candidate
+
+Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
+for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
+uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
+The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
+it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
+The full remote-worker phase is not reduced to that first source tranche.
+<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->
