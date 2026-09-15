@@ -2,9 +2,9 @@
 
 Status: C2B1 is the current owner of the bounded operator-local migration
 framework. C2B2 Slice 1 uses it at current application generation 2 with exact
-production catalog tip `0002_development_program_and_effect_state` and exactly
-the `0001_initial.sql` and
-`0002_development_program_and_effect_state.sql` production SQL resources.
+production catalog tip `0003_cognitive_proposal_and_selection_state` and exactly
+the `0001_initial.sql`, `0002_development_program_and_effect_state.sql`, and
+`0003_cognitive_proposal_and_selection_state.sql` production SQL resources.
 B1/B1.1 and B2b remain historical tranche names for bootstrap, observational
 validation, and common-lock integration. B2c implements durable writer issuance
 and internal SQLite `WriterSession` acquisition for managed databases.
@@ -597,12 +597,17 @@ mutation is implemented or authorized here.
 <!-- C2B3_NARROWED_MIGRATION_END -->
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
+The earlier C2B0/C2B3 migration-0003 name, inventory, and current-tip statements
+are historical target/tranche snapshots superseded by Sections 41 and 42.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

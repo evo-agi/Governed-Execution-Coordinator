@@ -106,9 +106,12 @@ are uncalled by production source.
 
 B3 tests-only coherent fixtures live under `tests/` only. They initialize a
 temporary current-generation-2 database at terminal migration
-`0002_development_program_and_effect_state`, while seeding only the historical
-schema-0001 B3/B4 graph. All nineteen C2B tables remain empty. Direct seeding is
-not admission or product mutation, and the fixtures prove no accepted
+`0003_cognitive_proposal_and_selection_state`, while seeding only the historical
+schema-0001 B3/B4 graph. All nineteen C2B tables and all nine cognitive
+proposal-selection tables remain empty. Migration 0002 is the unchanged
+historical prefix introduced by C2B2, and neither B3 nor C2B2 implemented or
+acquired ownership of migration 0003. Direct seeding is not admission or
+product mutation, and the fixtures prove no accepted
 operator-policy authority, executable transition, production runtime authority,
 or C2B row/value, reader, mutation, or replay behavior. The exact distinction is
 owned by `.docs/b3-tests-only-coherent-fixtures.md`.
@@ -540,9 +543,11 @@ Schema 0001 remains sufficient for the historical row meanings used by the
 bounded B3b reader slice and B3c3 rollback-only dry-run runtime. Those
 prerequisite tranches neither add nor consume C2B2 runtime behavior. Their
 tests-only coherent graph is now hosted in the current physical generation-2,
-terminal-0002 database as specified by
+terminal-0003 database as specified by
 `.docs/b3-tests-only-coherent-fixtures.md`; that physical container does not
-change the historical B3 semantics. Future multidimensional dynamic budget
+change the historical B3 semantics. Migration 0002 remains its unchanged
+historical prefix, and B3 did not implement migration 0003. Future
+multidimensional dynamic budget
 consumption accounting requires a separately audited versioned contract and
 may require schema/model evolution, but it must not modify migration 0001.
 

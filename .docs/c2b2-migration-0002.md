@@ -1,7 +1,9 @@
 # C2B2 Migration 0002
 
 Status: `CURRENT IMPLEMENTED CONTRACT` for C2B2 Slice 1 physical schema
-representability and migration administration only.
+representability and migration administration only. This document preserves
+the status at that tranche's completion and separately records the current
+repository status after Section 42.
 
 This document is implementation/status evidence. The semantic owner remains
 `.docs/c2b-durable-development-state.md`; cumulative packaged SQL remains the
@@ -10,9 +12,17 @@ authority, a cumulative schema snapshot, or a new durable tranche identity.
 
 ## Implemented Boundary
 
-The current application generation is 2 and the terminal catalog entry is
-`0002_development_program_and_effect_state`. Its complete literal UTF-8 SQL
-resource is
+At C2B2 Slice 1 tranche completion, application generation 2 terminated at
+`0002_development_program_and_effect_state` and the package contained exactly
+two production SQL migration resources. That is historical tranche status, not
+the current repository tip. The current repository remains at application
+generation 2, now contains exactly three production SQL migration resources in
+the complete catalog
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state]`,
+and terminates at `0003_cognitive_proposal_and_selection_state`. The current
+production SQL resource count is `3`. Migration 0002 is an unchanged historical
+prefix. C2B2 did not implement or acquire ownership of migration 0003 or the
+Section 41 runtime. Migration 0002's complete literal UTF-8 SQL resource is
 `src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql`:
 
 ```text
@@ -32,13 +42,16 @@ schema prefix includes migration 0002. An older or malformed runtime fails as
 `sqlite_posture_unavailable` before state-root creation, common-lock
 acquisition, writable open, transaction start, or target mutation.
 
-Fresh initialization selects `[0001, 0002]` and applies both resources and
-both migration-history rows in one `BEGIN IMMEDIATE` transaction with one
-planned timestamp and one commit attempt. Explicit migration from an exact
-supported 0001 prefix selects only `[0002]` and uses one administrative
-transaction. Ordinary product or writer open never migrates: exact 0001 is
-public `UNKNOWN` until explicit migration, while exact generation-2 tip 0002 is
-managed current state.
+At Slice 1 tranche completion, fresh initialization selected `[0001, 0002]`
+and explicit migration from an exact supported 0001 prefix selected `[0002]`.
+Those are explicitly historical tranche paths. Current generation-2 fresh
+initialization applies the complete catalog `[0001, 0002, 0003]` in one
+`BEGIN IMMEDIATE` transaction with one planned timestamp and one commit attempt.
+Current explicit migration applies `[0002, 0003]` from exact 0001 or `[0003]`
+from exact 0002 in one administrative transaction. Ordinary product or writer
+open never migrates: exact 0001 and exact 0002 are public `UNKNOWN` until
+explicit migration, while only exact generation-2 tip 0003 is managed current
+state.
 
 Migration completion performs sequence-scoped zero-seed verification. After
 0001 on a fresh installation it verifies the original nine ordinary bootstrap
@@ -58,22 +71,24 @@ authority exists.
 The shared tests-only B3/B4 coherent fixture preserves its historical
 schema-0001 coding-work graph, transition, fencing, replay, and global-stop
 meanings. Its temporary physical database is now exact generation 2 / terminal
-migration 0002. The retained tests-only writer session is generation 2, and
-legacy fixture seeding leaves all nineteen C2B tables empty. The fixture imports
-no C2B row/value adapter, invokes no C2B private reader, and invokes no C2B
-mutation API.
+migration 0003. The retained tests-only writer session is generation 2, and
+legacy fixture seeding leaves all nineteen C2B tables and all nine cognitive
+proposal-selection tables empty. The fixture imports no C2B or cognitive
+row/value adapter, invokes no C2B private reader, and invokes no C2B mutation
+API.
 
 ## Slice-2 Cross-Reference
 
 C2B2 Slice 2 now implements the pure private row/value source recorded in
-`.docs/c2b2-pure-durable-row-values.md`. It does not change migration 0002, the
-generation-2 physical schema, migration history, catalog, schema manifest, or
-any Slice-1 behavior. C2B2 Slice 3 now implements the private readers recorded
-in `.docs/c2b2-private-readers.md`; it likewise makes no schema or migration
-change. VS1B uses this unchanged schema for one private route-neutral
-program-genesis mutation, exact replay, and readback-only recovery. C2B3D uses
-the same unchanged schema for one private ten-row/nine-graph-entry
-author-effect establishment family, exact replay, and readback-only recovery.
+`.docs/c2b2-pure-durable-row-values.md`. It did not change migration 0002,
+migration history, or any Slice-1 behavior when that tranche closed. C2B2 Slice
+3 likewise introduced no schema or migration. Later migration 0003 does not
+belong to either C2B2 slice and does not reinterpret the migration-0002 core.
+VS1B uses that unchanged core for one private route-neutral program-genesis
+mutation, exact replay, and readback-only recovery. C2B3D uses the same core for
+one private ten-row/nine-graph-entry author-effect establishment family, exact
+replay, and readback-only recovery. Section 41 separately owns the later private
+pre-execution selection family carried by migration 0003.
 
 ## Explicit Nonimplementation
 

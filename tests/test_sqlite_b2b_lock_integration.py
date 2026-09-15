@@ -20,6 +20,7 @@ from ge_nwp_coordinator.sqlite_migration import (
     _initialize_database_with_catalog,
     initialize_database,
     inspect_database,
+    load_migration_catalog,
     migrate_database,
     validate_database,
 )
@@ -45,8 +46,11 @@ def _digest(path: Path) -> str | None:
 
 
 def _count(location: CoordinatorStateLocation, table_name: str) -> int:
-    with sqlite3.connect(location.database_path) as connection:
+    connection = sqlite3.connect(location.database_path)
+    try:
         return connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+    finally:
+        connection.close()
 
 
 def _hold_lock(root: str, ready_sender, release_receiver) -> None:
@@ -222,6 +226,7 @@ def test_migrate_while_lock_held_fails_safely_without_migration_change(tmp_path:
     location = _location(tmp_path)
     initialize_database(location)
     before = _digest(location.database_path)
+    before_history_count = _count(location, "schema_migrations")
     holder, release_sender = _start_holder(location)
     try:
         with pytest.raises(StateAuthorityLockError) as exc_info:
@@ -231,7 +236,7 @@ def test_migrate_while_lock_held_fails_safely_without_migration_change(tmp_path:
 
     assert exc_info.value.reason is StateAuthorityLockErrorReason.STATE_AUTHORITY_LOCK_BUSY
     assert _digest(location.database_path) == before
-    assert _count(location, "schema_migrations") == 2
+    assert _count(location, "schema_migrations") == before_history_count
     assert _count(location, "writer_ownership") == 0
 
 
@@ -344,7 +349,9 @@ def test_two_simultaneous_initialize_calls_do_not_partially_initialize(
 
     assert sorted(results) == ["managed", "state_authority_lock_busy"]
     assert validate_database(location).classification is DatabaseClassification.MANAGED
-    assert _count(location, "schema_migrations") == 2
+    assert _count(location, "schema_migrations") == len(
+        load_migration_catalog().migrations
+    )
     assert _count(location, "writer_ownership") == 0
 
 
@@ -355,6 +362,7 @@ def test_two_simultaneous_migrate_calls_do_not_partially_migrate(
     location = _location(tmp_path)
     initialize_database(location)
     before = _digest(location.database_path)
+    before_history_count = _count(location, "schema_migrations")
     entered = threading.Event()
     release = threading.Event()
     original_open = sqlite_migration.open_existing_sqlite_connection
@@ -399,5 +407,5 @@ def test_two_simultaneous_migrate_calls_do_not_partially_migrate(
     assert sorted(results) == ["managed", "state_authority_lock_busy"]
     assert _digest(location.database_path) == before
     assert validate_database(location).classification is DatabaseClassification.MANAGED
-    assert _count(location, "schema_migrations") == 2
+    assert _count(location, "schema_migrations") == before_history_count
     assert _count(location, "writer_ownership") == 0

@@ -477,6 +477,7 @@ def test_b3b_prerequisite_boundary_has_no_reader_fixture_export_or_schema_change
     assert sorted(path.name for path in (package_dir / "sqlite_migrations").glob("*.sql")) == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
+        "0003_cognitive_proposal_and_selection_state.sql",
     ]
     migration_bytes = (package_dir / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

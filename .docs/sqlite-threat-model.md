@@ -209,17 +209,19 @@ cannot publish the parent resource terminal. A cross-process writer may acquire
 after the kernel unlock before old-process H2 or X; neither that acquisition nor
 X is retroactive unlock proof.
 
-C2B2 Slice 1 advances only the managed physical schema to application
-generation 2 / terminal migration 0002. Its nineteen empty-at-install tables do
-not add C2B row/value code, readers, mutations, runtime authority, or new
-filesystem or process authority.
+C2B2 Slice 1 advanced the managed physical schema to application generation 2
+and migration 0002. The current terminal is migration 0003 at the same
+generation. Its nineteen C2B core tables and nine cognitive proposal-selection
+tables are empty at installation and add no filesystem, process, or executable
+authority.
 
 C2B2 Slice 2 adds pure private row/value validation, and Slice 3 adds twelve
 production-unintegrated private reader roles plus a shared bounded `{2, 257}`
 SELECT core. Slice 3 requires exact nominal capability type before borrow or
-SQL, retains the existing capability error boundary, and adds no transaction,
-writer, mutation, public API, production caller, filesystem/process authority,
-replay, recovery, C2B3 behavior, migration 0003, or external effect.
+SQL, retains the existing capability error boundary, and by itself adds no
+transaction, writer, mutation, public API, production caller,
+filesystem/process authority, replay, recovery, C2B3 behavior, migration, or
+external effect.
 
 This threat model applies to the first SQLite backend architecture. B2b
 implements bootstrap, migrations, observational validation, and the shared
@@ -520,12 +522,41 @@ network, worker, Git, Bridge, ES, route-execution, capsule, logging, or other
 external effect, and pending authority is never treated as permission.
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
+
+The Section 41 hostile-value repair treats every frozen private value as untrusted after
+construction. Fresh-bundle and recovery-probe ingress recursively reconstruct exact
+registered concrete values from exact built-in scalars and tuples, reject cycles and
+subclasses, and recheck nested self-digests before equality, hashing, indexing,
+canonicalization, current-state reads, the clock, DML, or COMMIT. Equality and hashing
+therefore operate only on reconstructed built-ins; attacker-controlled equality, hash,
+iteration, attribute, class-name, or module-spoof behavior is not an admission path.
+
+Malformed Unicode, canonicalization, semantic reconstruction, and pre-guard failures
+are converted only after raw inputs and caught exceptions have been cleared from the
+outward frame. The final safe error has no cause, context, notes, raw-value dictionary,
+or retained sensitive traceback graph. Genuine `KeyboardInterrupt`, `SystemExit`, and
+`GeneratorExit` objects preserve identity and use the existing operation-exit
+stabilization boundary.
+
+Recovery treats caller locators as claims, never truth: the probe rederives all locator
+predicates from its exact command, lineage, evidence inventory, and root-or-predecessor
+preimage and verifies its own digest before database use. Total-absence proof covers
+both routes of every one of fourteen or fifteen evidence members and every selection-head
+route. Successful replay and committed recovery execute all thirty exact persisted
+PK/UNIQUE routes before disclosing a result. A lone non-first evidence row, alternate
+head route, malformed inventory, or collision in any physical identity family fails
+closed with no result. The retained safe probe enables only a fresh-writer SELECT-only
+resolution after uncertainty; it does not enable same-writer readback, automatic retry,
+or authority transfer.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

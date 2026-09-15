@@ -227,9 +227,10 @@ cross-process writer may acquire after the kernel applies unlock before H2,
 T1, X, or public close return; these facts are not atomic.
 
 The current migration application generation is 2, the terminal catalog is
-exactly `0002_development_program_and_effect_state`, and production migration
-resources are exactly `0001_initial.sql` and
-`0002_development_program_and_effect_state.sql`. Migration 0003 remains absent.
+exactly `0003_cognitive_proposal_and_selection_state`, and production migration
+resources are exactly `0001_initial.sql`,
+`0002_development_program_and_effect_state.sql`, and
+`0003_cognitive_proposal_and_selection_state.sql`.
 Migration 0002 requires SQLite 3.37.0 or newer before any selected-suffix
 administrative effect. Its physical core schema adds no C2B mutation, reader,
 runtime, or execution authority.
@@ -321,7 +322,8 @@ C2B1 exposes split offline operations:
   posture, migration-history/catalog equality, live-schema manifest equality,
   and managed current-state invariants;
 - initialize an absent or empty local database with the complete current
-  catalog (currently `[0001_initial, 0002_development_program_and_effect_state]`);
+  catalog (currently `[0001_initial, 0002_development_program_and_effect_state,
+  0003_cognitive_proposal_and_selection_state]`);
 - migrate an exact supported non-empty older prefix through the complete
   contiguous packaged suffix.
 
@@ -537,12 +539,32 @@ automatically retried; the affected resource follows the existing uncertainty
 cleanup/custody quarantine rules before explicit recovery.
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
+
+Before a private Section 41 write, the caller obtains and retains one exact safe,
+self-digested recovery probe from the no-I/O preparation boundary and passes that same
+probe with the apply call. Apply reconstructs and binds it before operation admission.
+If the one COMMIT attempt reports `commit_outcome_unknown`, the affected writer performs
+no readback and admits no semantic retry; after its uncertainty cleanup, a newly issued
+and durably fenced writer may use the retained probe for the SELECT-only three-way
+classifier. The probe contains only the safe command, safe planning context, all safe
+evidence bindings, exact preimage, and deterministic identity predicates. It contains no
+private artifact narrative or asserted writer-freshness bit.
+
+Receipt-absent recovery proves all fourteen or fifteen evidence members through both
+declared routes, every selection-head route, and every one of the thirty declared table
+identities before returning `definitely_not_committed`. Receipt-present replay and
+recovery execute all thirty exact full-row route queries plus both routes per evidence
+member before disclosing the original receipt-owned result. Any partial, alternate,
+malformed, contradictory, or colliding observation returns no result.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

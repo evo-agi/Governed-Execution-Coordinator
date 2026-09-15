@@ -315,10 +315,10 @@ def test_docs_pin_sqlite_selection_and_b1_bootstrap_scope() -> None:
             "one private local SQLite database",
             "C2B1 implements the current bounded administrative migration framework",
             "current application generation 2",
-            "exact production catalog tip `0002_development_program_and_effect_state`",
-            "`0002_development_program_and_effect_state.sql` production SQL resources",
-        "Migration 0002 is now the current generation-2 physical C2B2 extension",
-        "leaves migration 0001 and those historical row meanings unchanged",
+                "exact production catalog tip `0003_cognitive_proposal_and_selection_state`",
+                "`0003_cognitive_proposal_and_selection_state.sql` production SQL resources",
+            "Migration 0002 is now the generation-2 physical C2B2 extension, while migration 0003 is the current terminal cognitive proposal-selection extension",
+            "both leave migration 0001 and those historical row meanings unchanged",
         "filesystem-backed regular non-symlink resource",
         "Non-filesystem or zip-backed migration resources are currently unsupported",
         "reject any selected destructive definition before expected-manifest SQLite activity",
@@ -530,6 +530,7 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
 
     expected_sqlite_importers = {
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",

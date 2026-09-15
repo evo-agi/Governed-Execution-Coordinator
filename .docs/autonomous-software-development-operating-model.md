@@ -44,12 +44,18 @@ Classification: `CURRENT IMPLEMENTED CONTRACT`. Coordinator currently provides
 bounded durable SQLite mutation authority for the existing coding-work
 transition and `global_stop` contracts, plus a separate internal C2A1 pure
 semantic-value and coherence layer and private pure C2B2 row/value source for
-all nineteen migration-0002 tables. It also has twelve private C2B2 reader
-roles with no public API; only the mutation-receipt role has the bounded private
-C2B3 route-neutral program-initialization caller. C2B3 implements that one
-receipt-first nine-row/eight-entry genesis family and readback-only uncertainty
-resolution. It has no
-software-development program runtime, semantic-attempt runtime, dispatcher,
+all nineteen migration-0002 tables. The C2B2 reader layer remains exactly
+twelve private roles and twenty-four bounded query contracts with no public API
+or reader-created durable authority. All twelve roles have the bounded private
+C2B3D author-effect caller, the mutation-receipt role also retains the private
+VS1B route-neutral program-initialization caller, and the later Section 41
+runtime composes with a bounded seven-role subset without widening that query
+contract. C2B2 did not implement or acquire ownership of migration 0003 or
+Section 41; reader reports and projections remain neither durable program truth nor
+effect authority. C2B3 implements the receipt-first route-neutral genesis and
+author-effect families with readback-only uncertainty resolution, and Section
+41 implements private pre-execution proposal selection. Coordinator still has
+no bound-effect or post-execution progression-decision runtime, dispatcher,
 scheduler, queue consumer,
 worker, worker supervisor, subprocess launcher, model/provider client, ES
 client, capsule builder or store, observation-ingest loop, validation executor,
@@ -60,8 +66,11 @@ Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and
 `control-plane-normal-shell/v1` compatibility remain unchanged within their
-owning contracts. The physical Coordinator schema now has generation-2
-migration 0002 in addition to the preserved migration-0001 identity.
+owning contracts. The physical Coordinator schema remains at application
+generation 2 and now applies the complete three-entry catalog
+`[0001, 0002, 0003]`, whose current packaged tip is migration 0003. Migration
+0002 remains the unchanged historical prefix introduced by C2B2 Slice 1, and
+migration 0001 retains its preserved identity.
 
 Classification: `ACCEPTED STRATEGIC TARGET`. This record is authoritative for
 the selected staged model, first exact scenario, first effect ceiling, ten
@@ -365,7 +374,7 @@ C1 preserves `FiniteBacklog`, current standing-lease behavior, current zero-only
 budget behavior, current READY-only dependency behavior, current disabled-stage
 behavior, current coding `global_stop`, current `WriterSession` authority, the
 schema-0001 compatibility meanings and unchanged `0001_initial.sql` identity,
-the current generation-2 migration-0002 physical tip, and
+the current generation-2 migration-0003 physical tip, and
 `control-plane-normal-shell/v1` as an ES/CP compatibility edge. Coding and
 operational progression remain separately versioned domains; operational
 progression is excluded from the first software-development slice.
@@ -473,7 +482,8 @@ Bridge change, or ES change.
 
 Classification: `CURRENT IMPLEMENTED CONTRACT` for migration administration,
 private pure no-I/O row/value validation, private reader behavior, and the
-bounded private C2B3 route-neutral genesis and author-effect families. C2B0
+bounded private C2B3 route-neutral genesis and author-effect families plus the
+Section 41 pre-execution proposal-selection family. C2B0
 remains the historical contract-freeze tranche for the target composition
 above.
 
@@ -482,8 +492,10 @@ migration, terminal-only application-generation compatibility, cumulative
 packaged-SQL schema authority, complete-catalog initialization, complete-suffix
 single-transaction migration, and three-way migration commit readback while
 retaining the common state-authority lock and filesystem binding. C2B2 Slice 1
-uses those mechanics at application generation 2, catalog tip
-`0002_development_program_and_effect_state`, and two production SQL resources.
+introduced application generation 2 and catalog entry
+`0002_development_program_and_effect_state`. The current generation-2 catalog
+tip is `0003_cognitive_proposal_and_selection_state`, with three production SQL
+resources.
 Slice 1 adds physical schema representability only. This administrative
 evidence is not program, progression, decision, effect, acceptance,
 publication, or runtime truth.
@@ -493,7 +505,7 @@ tuple boundaries for the nineteen tables, immutable validated values, eighteen
 row self-digest checks, five receipt result projections, bounded C2A
 reconstruction, WorkSpec safe projection, and the common supplied-entry graph
 digest primitive. It adds no SQL, reader capability, database reader, or
-independent product writer. It adds no migration 0003, observation ingest,
+independent product writer. By itself it adds no migration, observation ingest,
 semantic decision, authority verification, WorkSpec custody, worker/process
 execution, capsule
 storage, Git effect, direct-local route, ES route, service, scheduler, queue,
@@ -504,8 +516,10 @@ bounded private C2B3D author-effect caller; the mutation-receipt role also
 retains the VS1B caller. This adds no public API or external effect. C2B3 now
 implements route-neutral program genesis and private author-effect
 establishment, with exact replay and readback-only uncertainty recovery for
-both families. Bound effect, observation ingest, progression decisions, and
-C2B4-C2B6 remain target-only.
+both families. Section 41 separately implements private non-executable
+pre-execution selection with receipt-first replay and fresh-writer read-only
+recovery. Bound effect, observation ingest, post-execution progression
+decisions, and remaining C2B4-C2B6 behavior remain target-only.
 
 <!-- C2B3_NARROWED_OPERATING_MODEL_BEGIN -->
 ## Narrowed first vertical-slice operating order
@@ -535,19 +549,23 @@ migration owns reliable keyed submit, response-loss and Nomad ambiguity,
 retained results/capsules, conformance, and bootstrap disablement.
 
 These are required questions, not selected future schemas. Current capability
-remains generation 2, migration 0002, C2A1, C2B2 private values/readers,
-existing bounded writer/transaction authority, the private VS1B genesis family,
-and the private C2B3D author-effect family. All worker, dispatch, Git, Bridge,
-ES, and other external execution remains absent.
+remains generation 2 and now terminates at migration 0003. It comprises C2A1,
+C2B2 private values/readers, existing bounded writer/transaction authority, the
+private VS1B genesis family, the private C2B3D author-effect family, and the
+private non-executable pre-execution proposal-selection family. All worker,
+dispatch, Git, Bridge, ES, and other external execution remains absent.
 <!-- C2B3_NARROWED_OPERATING_MODEL_END -->
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

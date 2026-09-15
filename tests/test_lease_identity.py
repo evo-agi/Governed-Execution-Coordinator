@@ -321,7 +321,8 @@ def test_no_duplicate_set_like_values_and_immutable_contracts() -> None:
 
 
 def test_no_production_authorization_bypass_tokens() -> None:
-    text = open("src/ge_nwp_coordinator/lease.py", encoding="utf-8").read()
+    with open("src/ge_nwp_coordinator/lease.py", mode="r", encoding="utf-8") as source:
+        text = source.read()
     forbidden = ("allow_all", "trusted local", "TRUSTED_LOCAL", "os.environ", "unsigned_fixture")
     for token in forbidden:
         assert token not in text

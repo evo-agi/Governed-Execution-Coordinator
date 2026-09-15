@@ -25,7 +25,17 @@ SELECT_SUPPORT_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_transition_select_su
 OWNER_PATH = ROOT / ".docs/c2b-durable-development-state.md"
 EXPECTED_PRODUCTION_READER_IMPORTERS = (
     "_sqlite_development_author_effect_establishment.py",
+    "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_program_initialization.py",
+)
+EXPECTED_SECTION41_READER_CALLS = (
+    "_read_development_attempt_fence_command_effect_aggregate",
+    "_read_development_authority_evaluation_by_exact_ref",
+    "_read_development_delivery_head",
+    "_read_development_effect_head",
+    "_read_development_program_head_and_current_version",
+    "_read_development_work_item_head_and_revision_by_exact_ref",
+    "_read_development_work_spec_safe_binding",
 )
 
 EXPECTED_QUERY_SPECIFICATION_NAMES = (
@@ -685,7 +695,7 @@ def test_query_specification_factory_rejects_invalid_limit_matrix(
 
 @pytest.mark.parametrize(
     "invalid_limit",
-    (True, False, _IntSubclass(2), _IntSubclass(257), 1, 3, 256, 258, 0, -1),
+    (True, False, _IntSubclass(2), _IntSubclass(257), 1, 3, 256, 259, 0, -1),
 )
 def test_shared_bounded_helper_rejects_invalid_limit_before_borrow_or_sql(
     invalid_limit: object,
@@ -941,6 +951,7 @@ def test_no_production_caller_public_store_writer_or_c2b3_surface() -> None:
     for path in production:
         if path.name in {
             "_sqlite_development_author_effect_establishment.py",
+            "_sqlite_development_pre_execution_plan_disposition.py",
             "_sqlite_development_readers.py",
         }:
             continue
@@ -968,6 +979,245 @@ def test_scope_counterfactuals_fail_one_fixed_diagnostic(scope_case: str) -> Non
         c2b3_paths = ("src/ge_nwp_coordinator/c2b3_development_mutation.py",)
     with pytest.raises(AssertionError, match="^C2B2_READER_SCOPE_CONTRACT$"):
         _scope_candidate_contract(package_source, importers, c2b3_paths)
+
+
+def _assert_current_migration_0003_documentation(source: object) -> None:
+    if type(source) is not str:
+        raise AssertionError("C2B2_CURRENT_MIGRATION_STATUS_CONTRACT")
+    compacted = " ".join(source.split())
+    required = (
+        "Slice 3 itself added no schema or migration",
+        "Migration 0003 now exists in the current repository and is the current "
+        "packaged migration tip.",
+        "The C2B2 private-reader Slice 3 itself did not implement or own migration "
+        "0003",
+        "that migration does not retroactively widen this contract or its exact "
+        "twenty-four-query inventory.",
+        "Sections 41 and 42 own the newer cognitive proposal-selection runtime.",
+        "Generated reports and reader projections remain non-authoritative; neither "
+        "becomes durable program state or effect authority.",
+    )
+    forbidden = (
+        "migration 0003 is still absent",
+        "migration 0003 remains absent",
+        "reader method, every later C2B mutation family, migration 0003,",
+    )
+    if any(phrase not in compacted for phrase in required) or any(
+        phrase in compacted.lower() for phrase in forbidden
+    ):
+        raise AssertionError("C2B2_CURRENT_MIGRATION_STATUS_CONTRACT")
+
+
+def test_current_migration_0003_status_preserves_historical_reader_ownership() -> None:
+    path = ROOT / ".docs/c2b2-private-readers.md"
+    source = path.read_text(encoding="utf-8")
+    _assert_current_migration_0003_documentation(source)
+
+    counterfactual = source.replace(
+        "Migration 0003 now exists in the current repository and is the current "
+        "packaged\nmigration tip.",
+        "Migration 0003 is still absent from the current repository.",
+        1,
+    )
+    assert counterfactual != source
+    with pytest.raises(
+        AssertionError,
+        match="^C2B2_CURRENT_MIGRATION_STATUS_CONTRACT$",
+    ):
+        _assert_current_migration_0003_documentation(counterfactual)
+
+
+def _assert_current_private_reader_composition_documentation(
+    source: object,
+    production_usage: dict[str, set[str]],
+) -> None:
+    diagnostic = "C2B2_CURRENT_READER_COMPOSITION_CONTRACT"
+    if type(source) is not str:
+        raise AssertionError(diagnostic)
+    status_heading = "## Status And Authority"
+    source_heading = "## Exact Private Source"
+    integration_heading = "## Current Integration And Remaining Nonimplementation"
+    composition_begin = "<!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_BEGIN -->"
+    composition_end = "<!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_END -->"
+    if any(source.count(marker) != 1 for marker in (composition_begin, composition_end)):
+        raise AssertionError(diagnostic)
+    try:
+        status = source.split(status_heading, 1)[1].split(source_heading, 1)[0]
+        integration = source.split(integration_heading, 1)[1]
+        payload = integration.split(composition_begin, 1)[1].split(composition_end, 1)[0].strip()
+    except (IndexError, ValueError):
+        raise AssertionError(diagnostic) from None
+    if not payload.startswith("```json\n") or not payload.endswith("\n```"):
+        raise AssertionError(diagnostic)
+    try:
+        documented_usage = json.loads(payload.removeprefix("```json\n").removesuffix("\n```"))
+    except (TypeError, ValueError):
+        raise AssertionError(diagnostic) from None
+    expected_usage = {
+        module_name: sorted(calls)
+        for module_name, calls in production_usage.items()
+    }
+    if (
+        type(documented_usage) is not dict
+        or any(type(key) is not str for key in documented_usage)
+        or any(
+            type(calls) is not list or any(type(call) is not str for call in calls)
+            for calls in documented_usage.values()
+        )
+        or documented_usage != expected_usage
+    ):
+        raise AssertionError(diagnostic)
+
+    compact_status = " ".join(status.split())
+    compact_integration = " ".join(integration.split())
+    required_status = (
+        "bounded reader layer remains exactly twelve private roles and twenty-four "
+        "bounded query contracts",
+        "Present production composition is source-derived and has exactly three "
+        "private importer modules",
+        "_sqlite_development_author_effect_establishment.py",
+        "_sqlite_development_program_initialization.py",
+        "_sqlite_development_pre_execution_plan_disposition.py",
+        "All twelve roles now have the bounded private C2B3D author-effect "
+        "establishment, replay, and recovery caller",
+        "the mutation-receipt reader also retains its bounded private VS1B",
+        "the later Section 41 runtime composes with an exact seven-role subset",
+    )
+    required_integration = (
+        "Present production composition is source-derived and has exactly three "
+        "private importer modules",
+        "All twelve roles have the bounded private C2B3D author-effect caller",
+        "mutation-receipt role also retains the private VS1B",
+        "later Section 41 selection runtime composes with the bounded seven-role subset",
+        "C2B3D, VS1B, and Section 41 are later consumers",
+        "Their composition does not retroactively make C2B2 the owner of those runtimes",
+        "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+        "does not widen the twenty-four-query reader contract",
+        "creates no public package or protocol surface",
+        "grants no durable program truth, executable permission, effect authority, or "
+        "other durable authority",
+        "does not turn reports or reader projections into authoritative state",
+        "reader reports and projections remain neither durable program truth nor effect "
+        "authority",
+    )
+    forbidden = (
+        "the only production importers are the bounded private vs1b and c2b3d family runtimes",
+        "current integration consists only of c2b3d plus vs1b",
+        "section 41 owns a later runtime but does not directly compose with these readers",
+    )
+    if (
+        any(phrase not in compact_status for phrase in required_status)
+        or any(phrase not in compact_integration for phrase in required_integration)
+        or any(phrase in " ".join(source.lower().split()) for phrase in forbidden)
+    ):
+        raise AssertionError(diagnostic)
+
+
+def test_current_living_documents_match_source_derived_private_reader_composition() -> None:
+    reader_tree = ast.parse(READERS_PATH.read_text(encoding="utf-8"))
+    reader_names = {
+        node.name
+        for node in reader_tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("_read_development_")
+    }
+    contract_tree = ast.parse(CONTRACTS_PATH.read_text(encoding="utf-8"))
+    query_names: set[str] = set()
+    for node in contract_tree.body:
+        targets: tuple[ast.expr, ...]
+        if isinstance(node, ast.Assign):
+            targets = tuple(node.targets)
+        elif isinstance(node, ast.AnnAssign):
+            targets = (node.target,)
+        else:
+            continue
+        query_names.update(
+            target.id
+            for target in targets
+            if isinstance(target, ast.Name) and target.id.endswith("_SELECT")
+        )
+
+    production_usage: dict[str, set[str]] = {}
+    for path in sorted((ROOT / "src/ge_nwp_coordinator").glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        aliases: dict[str, str] = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.module != "_sqlite_development_readers":
+                continue
+            for alias in node.names:
+                if alias.name in reader_names:
+                    aliases[alias.asname or alias.name] = alias.name
+        if not aliases:
+            continue
+        calls = {
+            aliases[node.func.id]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in aliases
+        }
+        assert calls == set(aliases.values())
+        production_usage[path.name] = calls
+
+    assert len(reader_names) == 12
+    assert len(query_names) == 24
+    assert tuple(sorted(production_usage)) == EXPECTED_PRODUCTION_READER_IMPORTERS
+    expected_production_usage = {
+        "_sqlite_development_author_effect_establishment.py": reader_names,
+        "_sqlite_development_pre_execution_plan_disposition.py": set(
+            EXPECTED_SECTION41_READER_CALLS
+        ),
+        "_sqlite_development_program_initialization.py": {
+            "_read_development_mutation_receipt_by_mutation_ref"
+        },
+    }
+    assert len(EXPECTED_SECTION41_READER_CALLS) == 7
+    assert production_usage == expected_production_usage
+
+    reader_status_path = ROOT / ".docs/c2b2-private-readers.md"
+    reader_status_source = reader_status_path.read_text(encoding="utf-8")
+    _assert_current_private_reader_composition_documentation(
+        reader_status_source,
+        production_usage,
+    )
+    stale_two_importer_source = reader_status_source.replace(
+        "Present production composition is source-derived and\n"
+        "has exactly three private importer modules:",
+        "The only production importers are the bounded private VS1B and C2B3D family "
+        "runtimes.",
+        1,
+    )
+    assert stale_two_importer_source != reader_status_source
+    with pytest.raises(
+        AssertionError,
+        match="^C2B2_CURRENT_READER_COMPOSITION_CONTRACT$",
+    ):
+        _assert_current_private_reader_composition_documentation(
+            stale_two_importer_source,
+            production_usage,
+        )
+
+    document_paths = (
+        ROOT / ".docs/autonomous-software-development-operating-model.md",
+        ROOT / ".docs/architecture.md",
+        reader_status_path,
+        ROOT / ".docs/durable-state-model.md",
+    )
+    for path in document_paths:
+        current = " ".join(path.read_text(encoding="utf-8").split())
+        for phrase in (
+            "exactly twelve private roles and twenty-four bounded query contracts",
+            "All twelve roles have the bounded private C2B3D author-effect caller",
+            "mutation-receipt role also retains the private VS1B",
+            "bounded seven-role subset",
+            "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+            "reader reports and projections remain neither durable program truth nor effect authority",
+        ):
+            assert phrase in current
+        assert "only the mutation-receipt reader has the bounded private C2B3 caller" not in current
+        assert "only the mutation-receipt role has the bounded private C2B3" not in current
+        assert "no public" in current.lower()
+        assert "durable authority" in current.lower()
 
 
 def test_exact_twenty_three_path_implementation_record_is_independently_owned() -> None:

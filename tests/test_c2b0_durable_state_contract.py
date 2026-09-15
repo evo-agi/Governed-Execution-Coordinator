@@ -3514,6 +3514,7 @@ SECTION_HEADINGS = (
     "39. Coordinator C2B3C Author-Effect Contract Freeze",
     "40. Coordinator C2B3D Private Author-Effect Implementation Clarification",
     "41. Coordinator Cognitive Proposal And Pre-Execution Selection Contract Freeze",
+    "42. Section 41 Private Pre-Execution Selection Runtime Implementation",
 )
 
 DECISION_KINDS = (
@@ -10221,10 +10222,10 @@ def test_c2b0_owner_sections_are_fence_aware_unique_and_ordered() -> None:
 def test_c2b0_summary_sections_ignore_fenced_target_claims() -> None:
     summaries = (
         (
-            _text(".docs/durable-state-model.md"),
-            "c2b0.summary.durable_state",
-            "C2B0 Accepted Durable-Development Target",
-            "The accepted complete target comprises implemented migration",
+                _text(".docs/durable-state-model.md"),
+                "c2b0.summary.durable_state",
+                "C2B0 Accepted Durable-Development Target",
+                "The implemented cumulative generation-2 schema comprises",
         ),
         (
                 _text(".docs/architecture.md"),
@@ -10961,7 +10962,7 @@ def test_c2b0_full_audit_counterfactual_matrix() -> None:
         )
 
 
-def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
+def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct() -> None:
     nonimplementation = _compact(_section(_owner(), SECTION_HEADINGS[26]))
     for phrase in (
         "creates no source module, SQL, schema object, migration, database row",
@@ -10997,13 +10998,19 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
         ROOT
         / "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
     }
+    section41_sources = {
+        ROOT
+        / "src/ge_nwp_coordinator/_development_pre_execution_plan_disposition_contracts.py",
+        ROOT
+        / "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
-    } == slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources
+    } == slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources | section41_sources
     assert all(
         path.is_file() and not path.is_symlink()
-        for path in vs1b_sources | c2b3d_sources
+        for path in vs1b_sources | c2b3d_sources | section41_sources
     )
 
     production_sources = {
@@ -11016,7 +11023,7 @@ def test_c2b0_history_and_current_c2b2_source_boundary_are_distinct() -> None:
         value
         for path, value in production_sources.items()
         if path
-        not in slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources
+        not in slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources | section41_sources
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(

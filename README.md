@@ -386,9 +386,10 @@ described above. The historical sequence includes:
   ownership, `StateStore` widening, schema-ID bump, migration 0002, worker,
   service, scheduler, publication, or cross-repository authority.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
-  temporary current-generation-2 database at terminal migration 0002 while
+  temporary current-generation-2 database at terminal migration 0003 while
   directly seeding only the historical schema-0001 B3/B4 graph. All nineteen
-  C2B tables remain empty. The exact physical-versus-semantic and writer
+  C2B core tables and all nine cognitive proposal-selection tables remain
+  empty. The exact physical-versus-semantic and writer
   lifecycle contract is owned by `.docs/b3-tests-only-coherent-fixtures.md`;
   the fixture adds no production module, admission, authorization verifier,
   C2B row/value source, reader, mutation, replay, or runtime authority.
@@ -555,20 +556,23 @@ in `.docs/c2b-durable-development-state.md`: one existing Coordinator database
 and writer authority, eight decision kinds, distinct author and bound effect
 roles, privacy-safe persistence, and staged migrations 0002/0003. C2B1
 migration-framework source is implemented. C2B2 Slice 1 advances the current
-application generation to 2 and the terminal catalog to
+application generation to 2 and introduces
 `0002_development_program_and_effect_state`; the literal migration adds the
 nineteen-table physical C2B core schema while preserving migration 0001 and
-cumulative packaged SQL as schema authority. Fresh initialization applies
-`[0001, 0002]`, explicit migration applies `[0002]` to an exact older prefix,
-and ordinary product open never migrates. C2B2 pure row/value source is now
+cumulative packaged SQL as schema authority. Current fresh initialization
+applies `[0001, 0002, 0003]`; explicit migration applies the complete suffix to
+an exact supported older prefix, and ordinary product open never migrates. C2B2
+pure row/value source is now
 implemented only as four private pure no-I/O modules for exact
 tuple decoding, immutable validation, row and result-projection digests,
 bounded C2A reconstruction, WorkSpec safe projection, and supplied-entry graph
 hashing. VS1B uses a bounded subset for its private route-neutral
 program-genesis mutation, and C2B3D uses the safe program/effect/decision values
-for private author-effect persistence and verification. Migration 0003,
-bound-effect and later C2B mutation/replay/recovery, observation ingest, later
-decision runtime, external authority verification, WorkSpec custody,
+for private author-effect persistence and verification. Migration
+`0003_cognitive_proposal_and_selection_state` now supplies the nine-table
+private pre-execution selection family while retaining application generation
+2. Bound-effect and post-execution C2B mutation/replay/recovery, observation ingest,
+later decision runtime, external authority verification, WorkSpec custody,
 worker/process execution, capsule storage, Git effects, direct-local execution,
 ES routing, and any service, scheduler, queue, publication, or autonomous loop
 remain absent.
@@ -580,8 +584,8 @@ The readers have synthetic execution proofs. All twelve roles now have the
 bounded private C2B3D caller; the mutation-receipt reader also retains its VS1B
 caller. Their twenty-four-query inventory is unchanged; C2B3D's exact family
 locators and collision probes are private family-local queries. There is no
-public or package-root API, `StateStore`/public `WriterSession` method,
-migration 0003, or external effect.
+public or package-root API, `StateStore`/public `WriterSession` method, or
+external effect in that reader slice.
 
 See `.docs/` for the current architecture, authority boundary, and historical
 A2-P1 contract.
@@ -606,17 +610,21 @@ recovery. C2B3D now privately establishes the corresponding author-effect
 intent as exactly ten rows and a nine-entry receipt graph, with exact replay,
 readback-only recovery, and bounded current-head verification. The initial
 `direct_local_bootstrap` delivery is persisted but not dispatched. Custody,
-fresh external verification, invocation, later evidence, Git, migration-0003,
+fresh external verification, invocation, later evidence, Git,
 reliable-submit, and conformance details remain explicit just-in-time design
-questions. Current implementation remains generation 2 at migration 0002.
+questions. Current implementation remains generation 2 and now terminates at
+migration 0003 with the private non-executable pre-execution selection runtime.
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

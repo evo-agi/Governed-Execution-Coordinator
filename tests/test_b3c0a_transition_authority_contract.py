@@ -136,8 +136,10 @@ def test_b3c0a_document_status_scope_and_future_staging_are_static_only() -> Non
         "B3c1 has since frozen the prerequisite contract",
         "B3 tests-only coherent fixtures are implemented under `tests/` only",
         "historical schema-0001 B3/B4 graphs hosted in temporary current-generation-2 databases",
-        "terminal migration `0002_development_program_and_effect_state`",
-        "All nineteen C2B tables remain empty",
+        "terminal migration `0003_cognitive_proposal_and_selection_state`",
+        "All nineteen C2B tables and all nine cognitive proposal-selection tables remain empty",
+        "Migration 0002 remains the unchanged historical C2B2 prefix",
+        "neither B3c0a nor C2B2 implemented or acquired ownership of migration 0003",
         "`.docs/b3-tests-only-coherent-fixtures.md`",
         "B3c1a implements the runtime mutation slot",
         "B3c1b has since implemented private rollback-only writer fencing and nominal capability mechanics",
@@ -559,6 +561,7 @@ def test_historical_b3c0a_tranche_preserves_migration_0001_without_c2b_runtime()
     assert migrations == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
+        "0003_cognitive_proposal_and_selection_state.sql",
     ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

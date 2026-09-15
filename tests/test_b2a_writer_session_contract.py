@@ -527,6 +527,7 @@ def test_schema_fit_preserves_0001_and_allows_later_migrations() -> None:
     assert migrations == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
+        "0003_cognitive_proposal_and_selection_state.sql",
     ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

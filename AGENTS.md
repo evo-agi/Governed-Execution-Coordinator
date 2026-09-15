@@ -531,8 +531,9 @@ publication, or related-repository authority.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary current-generation-2 SQLite databases at terminal migration
-0002 through production initialization, but directly seed only the historical
-schema-0001 B3/B4 graph and leave all nineteen C2B tables empty. The exact
+0003 through production initialization, but directly seed only the historical
+schema-0001 B3/B4 graph and leave all nineteen C2B core tables and all nine
+cognitive proposal-selection tables empty. The exact
 physical-versus-semantic and writer-lifecycle contract is owned by
 `.docs/b3-tests-only-coherent-fixtures.md`. They are not production admission,
 authorization, runtime authority, product state initialization, accepted
@@ -556,17 +557,19 @@ establishment remains future. Private WorkSpec custody and restart-safe
 retrieval remain deferred. C2B0 added documentation and direct contract tests
 only. C2B1 now
 implements only the administrative migration framework described above. C2B2
-Slice 1 implements the generation-2 physical schema, and
-`0002_development_program_and_effect_state` is the implemented current physical
-terminal migration. Migration 0003 remains unimplemented and deferred. C2B2
+Slice 1 introduced the generation-2 physical schema and
+`0002_development_program_and_effect_state`. The current physical terminal is
+`0003_cognitive_proposal_and_selection_state`, still at application generation
+2. It implements only the private Section 41 pre-execution proposal-selection
+family described in Section 42 of the durable-state owner. C2B2
 pure row/value source is now implemented only as the private no-I/O Slice-2
 layer. Slice 3 private database readers and bounded SQL/capability use are
 implemented. All twelve readers have the private C2B3D caller; the receipt
 reader also has the VS1B caller. VS1B implements route-neutral program genesis,
 and C2B3D implements private author-effect establishment with complete family
 and bounded current-head verification, receipt-first exact replay, and
-read-only three-way recovery. Bound effects, observation ingest, progression
-decisions, latch behavior, external authority verification, worker/process
+read-only three-way recovery. Bound effects, observation ingest, post-execution
+progression decisions, latch behavior, external authority verification, worker/process
 execution, Git effects, direct-local execution, and ES routing remain
 unimplemented.
 
@@ -872,12 +875,15 @@ Bridge, ES, network, or other external effect. VS1B and C2B3D use migration
 old-resource lookup, terminal witness, or restart-safe raw-input custody.
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

@@ -377,7 +377,8 @@ Git/CI, or runtime execution work.
 
 Status: `CURRENT IMPLEMENTED CONTRACT` for explicit SQLite administration and
 private pure no-I/O row/value validation, private reader behavior, and the
-bounded private C2B3 route-neutral program-genesis family. C2B0 remains the
+bounded private C2B3 route-neutral program-genesis and author-effect families
+plus the Section 41 pre-execution proposal-selection family. C2B0 remains the
 historical accepted-target contract tranche.
 
 C2B1 implements exact-current ordinary open and explicit supported-prefix
@@ -388,8 +389,9 @@ history, schema evidence, and recovery evidence are administrative facts only;
 they are not development-program admission, selection, attempt, observation,
 decision, acceptance, effect, publication, or completion truth.
 
-C2B2 Slice 1 uses this administrative boundary at application generation 2 and
-terminal migration `0002_development_program_and_effect_state`. It implements
+C2B2 Slice 1 introduced this administrative boundary at application generation
+2 and migration `0002_development_program_and_effect_state`. The current
+generation-2 terminal is `0003_cognitive_proposal_and_selection_state`. Slice 1 implements
 only physical representability for the frozen nineteen-table core. Slice 2
 adds private pure row/value source for those nineteen tables, with no SQLite or
 SQL in that pure layer. C2B3 now consumes the values for only its exact
@@ -398,12 +400,15 @@ and readback-only commit-outcome recovery.
 
 C2B2 Slice 3 implements exactly twelve private reader roles over the Slice-2
 values through twenty-four literal SELECT specifications and the existing
-nominal transaction capability. Only the mutation-receipt reader has the
-bounded private C2B3 caller. It adds no package export, public reader,
-`StateStore`/public `WriterSession` method, migration 0003, or external effect.
+nominal transaction capability. All twelve have the bounded private C2B3D
+author-effect caller, and the mutation-receipt reader also retains its VS1B
+caller. It adds no package export, public reader, `StateStore`/public
+`WriterSession` method, or external effect by itself. Section 41 separately
+implements the private non-executable pre-execution selection family.
 
-Durable development progression beyond the exact initialization decision,
-source-observation ingest, later semantic decisions,
+Durable development progression beyond the exact initialization,
+author-effect, and pre-execution selection decisions, source-observation ingest,
+post-execution semantic decisions,
 effect establishment or execution, WorkSpec custody, worker/process behavior,
 capsule storage, Git effects, direct-local execution, ES routing, and autonomous
 runtime remain unimplemented. C2B1 adds no product progression transaction,
@@ -493,12 +498,15 @@ execution permission. Those external-effect questions remain unauthorized.
 <!-- C2B3_NARROWED_PROGRESSION_END -->
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

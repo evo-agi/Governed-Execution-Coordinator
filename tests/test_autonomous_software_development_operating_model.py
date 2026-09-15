@@ -844,10 +844,21 @@ def test_classification_ledger_and_authoritative_composition_are_pinned() -> Non
     authority = _compact(_clause("C1-AOM-006", "C1-AOM-007"))
     target_topology = _compact(_clause("C1-AOM-002", "C1-AOM-003"))
     nonimplementation = _compact(_clause("C1-AOM-013"))
-    assert "It also has twelve private C2B2 reader roles with no public API" in current
-    assert "only the mutation-receipt role has the bounded private C2B3 route-neutral program-initialization caller" in current
-    assert "receipt-first nine-row/eight-entry genesis family" in current
-    assert "It has no software-development program runtime, semantic-attempt runtime" in current
+    for phrase in (
+        "exactly twelve private roles and twenty-four bounded query contracts",
+        "All twelve roles have the bounded private C2B3D author-effect caller",
+        "mutation-receipt role also retains the private VS1B route-neutral program-initialization caller",
+        "later Section 41 runtime composes with a bounded seven-role subset without widening that query contract",
+        "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+        "reader reports and projections remain neither durable program truth nor effect authority",
+        "Section 41 implements private pre-execution proposal selection",
+        "complete three-entry catalog `[0001, 0002, 0003]`",
+        "current packaged tip is migration 0003",
+        "Migration 0002 remains the unchanged historical prefix introduced by C2B2 Slice 1",
+    ):
+        assert phrase in current
+    assert "only the mutation-receipt role has the bounded private C2B3" not in current
+    assert "It has no software-development program runtime" not in current
     assert "Current executable authorization remains unsupported and fail-closed." in authority
     assert "This subordinate-authorization behavior is not currently implemented." in authority
     assert "Neither route is implemented by this tranche." in target_topology
@@ -1077,7 +1088,7 @@ def test_compatibility_component_exclusions_and_cross_repository_drift_are_pinne
         "current coding `global_stop`",
         "current `WriterSession` authority",
         "schema-0001 compatibility meanings and unchanged `0001_initial.sql` identity",
-        "current generation-2 migration-0002 physical tip",
+        "current generation-2 migration-0003 physical tip",
         "`control-plane-normal-shell/v1` as an ES/CP compatibility edge",
         "Coding and operational progression remain separately versioned domains",
         "operational progression is excluded from the first software-development slice",
@@ -1115,6 +1126,7 @@ def test_c1_adds_no_source_schema_packaging_or_runtime_enablement() -> None:
     assert sorted(path.name for path in migrations.glob("*.sql")) == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
+        "0003_cognitive_proposal_and_selection_state.sql",
     ]
 
 
@@ -1605,7 +1617,7 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         )
     )
     for phrase in (
-        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral genesis and author-effect families",
+        "`CURRENT IMPLEMENTED CONTRACT` for migration administration, private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral genesis and author-effect families plus the Section 41 pre-execution proposal-selection family",
         "C2B0 remains the historical contract-freeze tranche",
         "exact-current ordinary SQLite open",
         "explicit supported-prefix migration",
@@ -1614,7 +1626,8 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         "complete-suffix single-transaction migration",
         "three-way migration commit readback",
         "application generation 2",
-        "catalog tip `0002_development_program_and_effect_state`",
+        "current generation-2 catalog tip is `0003_cognitive_proposal_and_selection_state`",
+        "three production SQL resources",
         "physical schema representability only",
         "administrative evidence is not program, progression, decision, effect, acceptance, publication, or runtime truth",
         "four private pure row/value modules",
@@ -1625,7 +1638,8 @@ def test_c2b2_current_administrative_pure_value_and_reader_composition_does_not_
         "All twelve roles have the bounded private C2B3D author-effect caller",
         "mutation-receipt role also retains the VS1B caller",
         "C2B3 now implements route-neutral program genesis and private author-effect establishment",
-        "Bound effect, observation ingest, progression decisions, and C2B4-C2B6 remain target-only",
+        "Section 41 separately implements private non-executable pre-execution selection with receipt-first replay and fresh-writer read-only recovery",
+        "Bound effect, observation ingest, post-execution progression decisions, and remaining C2B4-C2B6 behavior remain target-only",
     ):
         assert phrase in section
 
@@ -1701,8 +1715,9 @@ def test_narrowed_vertical_slice_order_and_jit_ledger_are_exact() -> None:
         "command/delivery/observation",
         "reliable keyed submit, response-loss and Nomad ambiguity",
         "These are required questions, not selected future schemas.",
-        "Current capability remains generation 2, migration 0002, C2A1, C2B2",
+        "Current capability remains generation 2 and now terminates at migration 0003. It comprises C2A1, C2B2",
         "private VS1B genesis family",
+        "private non-executable pre-execution proposal-selection family",
         "All worker, dispatch, Git, Bridge, ES, and other external execution remains absent.",
     ):
         assert expected in document_compact

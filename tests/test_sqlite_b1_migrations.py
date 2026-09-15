@@ -58,6 +58,15 @@ EXPECTED_TABLES = {
     "development_delivery_heads",
     "development_decisions",
     "development_mutation_receipts",
+    "development_model_source_invocations",
+    "development_pre_execution_planning_contexts",
+    "development_private_proposal_artifact_bindings",
+    "development_model_proposals",
+    "development_pre_execution_plan_projections",
+    "development_model_proposal_evidence_bindings",
+    "development_pre_execution_dispositions",
+    "development_pre_execution_selection_heads",
+    "development_cognitive_mutation_receipts",
 }
 
 EXPECTED_LITERAL_MIGRATION_CATALOG = (
@@ -75,6 +84,15 @@ EXPECTED_LITERAL_MIGRATION_CATALOG = (
         "0002_development_program_and_effect_state",
         "0002_development_program_and_effect_state.sql",
         "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c",
+        2,
+        2,
+        False,
+    ),
+    (
+        3,
+        "0003_cognitive_proposal_and_selection_state",
+        "0003_cognitive_proposal_and_selection_state.sql",
+        "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579",
         2,
         2,
         False,
@@ -315,6 +333,26 @@ def _catalog_row_0002(
     )
 
 
+def _catalog_row_0003(
+    *,
+    migration_id: str | None = None,
+    sequence: int = 3,
+    checksum: str | None = None,
+    applied_at: str = "2026-07-16T00:00:00Z",
+    min_app_schema: int = 2,
+    max_app_schema: int = 2,
+) -> tuple[str, int, str, str, int, int]:
+    expected = EXPECTED_LITERAL_MIGRATION_CATALOG[2]
+    return (
+        migration_id or expected[1],
+        sequence,
+        checksum or expected[3],
+        applied_at,
+        min_app_schema,
+        max_app_schema,
+    )
+
+
 def _migration_catalog_projection(
     catalog: MigrationCatalog,
 ) -> tuple[tuple[int, str, str, str, int, int, bool], ...]:
@@ -499,9 +537,9 @@ def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 2
-    assert inspection.latest_sequence == 2
-    assert inspection.current_migration_id == "0002_development_program_and_effect_state"
+    assert inspection.current_sequence == 3
+    assert inspection.latest_sequence == 3
+    assert inspection.current_migration_id == "0003_cognitive_proposal_and_selection_state"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
@@ -574,7 +612,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 2
+    assert _count(location, "schema_migrations") == 3
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -585,7 +623,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 2
+    assert inspection.current_sequence == inspection.latest_sequence == 3
     assert _file_digest(location.database_path) == before
 
 
@@ -593,7 +631,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=3) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=4) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
         ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
@@ -618,7 +656,12 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
 
     unknown = _minimal_history_database(
         tmp_path / "unknown",
-        [_catalog_row(), _catalog_row_0002(), _catalog_row_0002(migration_id="0003_future", sequence=3)],
+        [
+            _catalog_row(),
+            _catalog_row_0002(),
+            _catalog_row_0003(),
+            _catalog_row_0003(migration_id="0004_future", sequence=4),
+        ],
     )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")
 

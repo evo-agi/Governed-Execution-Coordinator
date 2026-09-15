@@ -1,4 +1,4 @@
-"""Finite C1/C2A1/C2B2 source and runtime non-authority evidence boundaries.
+"""Finite C1/C2A1/C2B2/Section-41 source and non-authority evidence boundaries.
 C2A1 adds one internal pure semantic-value module without changing schema,
 migration, packaging, package-root bindings, or executable entry surfaces.
 Future runtime behavior still requires a separately accepted source contract,
@@ -23,13 +23,18 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
     {
         "schemas/sqlite/coordinator-state-v1.sql",
         "src/ge_nwp_coordinator/__init__.py",
+        "src/ge_nwp_coordinator/_cognitive_proposal_row_values.py",
+        "src/ge_nwp_coordinator/_cognitive_proposal_semantic_values.py",
+        "src/ge_nwp_coordinator/_cognitive_proposal_value_support.py",
         "src/ge_nwp_coordinator/_development_author_effect_establishment_contracts.py",
+        "src/ge_nwp_coordinator/_development_pre_execution_plan_disposition_contracts.py",
         "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
         "src/ge_nwp_coordinator/_development_decision_row_values.py",
         "src/ge_nwp_coordinator/_development_effect_row_values.py",
         "src/ge_nwp_coordinator/_development_program_row_values.py",
         "src/ge_nwp_coordinator/_development_row_value_support.py",
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
         "src/ge_nwp_coordinator/_sqlite_development_readers.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
@@ -51,6 +56,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/sqlite_migration.py",
         "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql",
+        "src/ge_nwp_coordinator/sqlite_migrations/0003_cognitive_proposal_and_selection_state.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/__init__.py",
         "src/ge_nwp_coordinator/sqlite_mutation_transaction_contracts.py",
         "src/ge_nwp_coordinator/sqlite_security.py",
@@ -823,6 +829,7 @@ def test_sqlite_import_surface_is_exact() -> None:
     }
     assert sqlite_importers == {
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
@@ -847,6 +854,7 @@ def test_c2b2_private_readers_have_no_public_or_production_caller_surface() -> N
     }
     assert importers == {
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
     }
     for source in (package_source, state_source, writer_source):

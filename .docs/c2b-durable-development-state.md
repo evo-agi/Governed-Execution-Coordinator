@@ -24279,3 +24279,518 @@ owners. Every other Section 41 relation remains unchanged.
 
 This revised A2 closure remains documentation and direct contract tests only. It grants no model,
 provider, dispatch, worker, transport, Git, service, publication, or external-effect authority.
+
+## 42. Section 41 Private Pre-Execution Selection Runtime Implementation
+
+Status: `CURRENT IMPLEMENTED CONTRACT` in the uncommitted working-tree
+candidate described here, pending fresh independent audit. This section records
+implementation status for the byte-frozen Section 41 contract. It does not
+redefine any Section 41 field, identity, digest, algorithm, authority rule,
+recovery rule, or non-claim.
+
+### 42.1 Physical schema and catalog
+
+The packaged catalog now contains the immutable migration
+`0003_cognitive_proposal_and_selection_state` at sequence 3 with compatibility
+bounds `[2, 2]`, `destructive = false`, and application generation still 2.
+The SQL resource is 161,472 bytes with SHA-256
+`b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579`.
+It contains exactly 27 top-level statements: nine `CREATE TABLE` statements
+and eighteen `CREATE TRIGGER` statements. It adds 301 columns, 45 immediate
+restrictive foreign keys, no explicit index, and no seed row. The cumulative
+managed schema through migration 0003 is exactly 39 user tables, 786 columns,
+140 foreign keys, 64 triggers, and one explicit index. Migration 0001 and
+migration 0002 remain byte-exact and are not rebuilt or reinterpreted.
+
+The nine new STRICT tables are:
+
+1. `development_model_source_invocations`;
+2. `development_pre_execution_planning_contexts`;
+3. `development_private_proposal_artifact_bindings`;
+4. `development_model_proposals`;
+5. `development_pre_execution_plan_projections`;
+6. `development_model_proposal_evidence_bindings`;
+7. `development_pre_execution_dispositions`;
+8. `development_pre_execution_selection_heads`;
+9. `development_cognitive_mutation_receipts`.
+
+All columns use `ANY` in STRICT tables with explicit type/value constraints.
+Every foreign key is `ON UPDATE RESTRICT ON DELETE RESTRICT NOT DEFERRABLE
+INITIALLY IMMEDIATE`. Eight tables are immutable through exact no-update and
+no-delete triggers. Selection heads are non-deletable; their lineage is
+immutable and only the six Section 41 CAS-owned current-postimage fields may
+change. The common post-execution envelope remains representable without an
+unconditional common-proposal-to-pre-execution-context foreign key.
+
+### 42.2 Private value and row boundaries
+
+The implementation adds the following private, non-exported source owners;
+each declares `__all__ = ()`:
+
+- `_cognitive_proposal_value_support.py` owns hostile-safe exact scalar,
+  container, UTF-8, NFC, signed-SQLite-integer, safe-ref, digest,
+  whole-second-UTC, canonicalization, recursive-equality validation, exact
+  class-object identity selection, and the one canonical C2A effect-class JSON
+  validator shared by semantic and physical-row reconstruction;
+- `_cognitive_proposal_semantic_values.py` owns the typed proposal, planning,
+  authority-observation, safe-projection, evidence-set, and private-artifact
+  binding values named by Section 41;
+- `_cognitive_proposal_row_values.py` owns exact physical values for all nine
+  migration-0003 tables and `CanonicalCognitivePhysicalRow`;
+- `_development_pre_execution_plan_disposition_contracts.py` owns the safe
+  command, exact C2B3D lineage, mutation graph, selection-head preimage,
+  result/conflict/recovery values, and private write plan;
+- `_sqlite_development_pre_execution_plan_disposition.py` owns the one private
+  atomic apply and recovery runtime.
+
+Hostile mappings are inspected through exact built-in mapping keys and values,
+not attacker-controlled iteration, hashing, equality, representation, or
+attribute lookup. Every attacker-derived class object is compared to the
+closed trusted class registries only by an iterative `is` check: it is never a
+set or dictionary key and never participates in membership, equality, name,
+module, or hash dispatch. No candidate conversion method or field is touched
+until that exact identity check succeeds. Cycles, hostile subclasses, Boolean integer aliases,
+surrogates, malformed UTF-8/NFC, unhashable or unsupported containers, missing,
+extra, or reordered fields, malformed null shapes, and out-of-range values
+fail with finite content-free contract errors. `KeyboardInterrupt`,
+`SystemExit`, and `GeneratorExit` preserve identity through the existing
+process-control stabilization boundary.
+
+Every fresh-bundle and recovery-probe ingress now recursively reconstructs a
+new value graph from exact built-in scalars and exact built-in tuples before
+any semantic equality, hashing, membership, indexing, sorting,
+canonicalization, current-state read, clock call, row construction, DML, or
+COMMIT. Reconstruction requires exact registered class objects, rejects cycles
+and container subclasses, independently revalidates every nested self-digest,
+and retains only newly constructed genuine semantic values, row values,
+physical-row carriers, commands, graphs, results, probes, and write plans.
+Concrete semantic, row, command, result, graph, preimage, and recovery types
+reject subclass creation unconditionally; class names and `__module__` strings
+are not dispatch authority. Structural comparison after reconstruction uses
+only exact built-in values and direct built-in scalar comparison.
+
+Standalone values enforce the same field-specific grammar as bundle admission:
+program-version, attempt, and authority-observation version values are
+positive; the planning-context and authority-observation schema IDs and the
+`sha1` base-object vocabulary are exact; safe-projection counters use their
+individual Section 41 maxima; and equal proposal/disposition scalar identities
+fail with `proposal_disposition_identity_collapse`. Both planning-context
+effect-class JSON fields use the same hostile-safe validator as their physical
+rows: the value is an exact bounded canonical string encoding a nonempty array
+of unique exact strings drawn in canonical order from `author_candidate`,
+`cancel_effect`, `local_git_commit`, `review_candidate`, and
+`validate_candidate`. Parser failures, unknown or duplicate members, alternate
+order, wrong types, empty arrays, and noncanonical textual encodings fail
+without retaining parser context. Post-construction changes
+therefore fail their exact type, grammar, relation, or independently recomputed
+digest check rather than inheriting trust from the original constructor call.
+
+The typed private proposal artifact is validated before a fresh transaction.
+Its safe projection is deterministically rederived and compared exactly. The
+private narrative, authorized paths, validation commands and raw targets,
+provider material, credentials, endpoints, workspace bytes, capsule bytes, and
+absolute paths are neither persisted nor returned. Safe refs and digests are
+identity evidence only and convey no retrieval or execution authority.
+
+### 42.3 Private apply path
+
+`_SQLiteWriterSession._prepare_pre_execution_plan_disposition_recovery_probe(...)`
+is a private, pure, no-I/O preparation boundary. It reconstructs the exact
+bundle and command and returns one self-digested safe recovery probe before the
+write call or COMMIT uncertainty can begin. The caller retains that probe.
+`_SQLiteWriterSession._record_pre_execution_plan_disposition(...)` remains the
+sole private write ingress and now requires the paired preconstructed probe.
+Before operation admission it reconstructs the probe, verifies its own digest
+and every nested digest, and binds its command to the supplied safe replay
+address and command digest. A malformed, post-mutated, subclassed, hostile, or
+forged probe, including an unrelated same-name or same-module class with a
+hostile metaclass, fails without invoking metaclass hash/equality or conversion
+callbacks and before the operation guard or database access. The write
+path then uses the existing operation guard,
+`_WriterSessionOperationLease`, sole `_CoordinatorMutationTransactionController`,
+single mutation slot, resource-bound managed connection, `BEGIN IMMEDIATE`,
+durable writer fence, and nominal capability/epoch. It creates no second
+writer, controller, connection owner, lock, capability system, or mutation
+slot.
+
+The transaction reads the cognitive mutation receipt first. A receipt hit does
+not inspect the supplied fresh bundle or disposition mapping. It validates the
+complete immutable family, all DB-owned evidence, every member's two evidence
+identities, all thirty exact persisted primary/unique identities, and the
+original selection-head postimage or one unique exact descendant chain before
+command-digest comparison. It also reconstructs the persisted safe recovery
+basis and requires it to equal the preconstructed probe. An equal digest
+returns the exact original receipt-owned result; a different digest returns
+`mutation_ref_reuse_conflict`. Either path performs no fresh private-bundle
+traversal, policy reinterpretation, clock call, write, COMMIT, semantic retry,
+or external effect. Corrupt, colliding, or unverifiable persisted state is
+`database_integrity_failure` without digest-match or result disclosure.
+
+On receipt absence, the private runtime reconstructs the complete fresh bundle,
+rederives the exact command and safe probe, and compares only their safe
+built-in projections before the first current-state read. It then reconstructs
+the exact current C2B3D program/work/attempt/effect/command/fence/delivery
+lineage before reading global stop, verifies current policy, risk,
+requirements, authority observation, expected current state, and the K8 head,
+and executes all thirty route-specific collision probes plus both declared
+routes for each of the fourteen or fifteen evidence members. It captures
+exactly one whole-second UTC transaction time. It then builds immutable rows
+and writes in this exact order: source invocation, planning context, private
+artifact binding, model proposal, plan projection, fourteen or fifteen
+canonically ranked evidence bindings, disposition, selection-head root insert
+or exact six-field successor CAS, and receipt last. A zero-row CAS returns
+`selection_head_version_conflict`; an impossible multi-row change is
+`database_integrity_failure`. Earlier writes roll back.
+
+The capability is invalidated before the existing transaction helper attempts
+exactly one fresh COMMIT. Only a successful COMMIT and cleanup exposes the
+fresh result. Commit-attempt failure or unprovable commit truth returns only
+`commit_outcome_unknown`, performs no retry or same-writer readback, and leaves
+the affected writer subject to existing non-admission and quarantine cleanup.
+
+### 42.4 Fresh-writer read-only recovery
+
+`_SQLiteWriterSession._resolve_pre_execution_plan_disposition_commit_outcome(...)`
+accepts the caller-retained exact safe recovery probe only under a newly
+issued, durably fenced writer. Recovery ingress recursively reconstructs the
+probe and validates its exact command, safe planning context, fourteen-or-
+fifteen safe evidence bindings, K8 selection key, root-or-predecessor preimage,
+thirty route-specific locator predicates, two locators per evidence member,
+and self-digest before operation admission. The probe contains no private
+artifact narrative, prompt, response, provider session, endpoint, credential,
+absolute path, workspace or capsule bytes, retrieval authority, or asserted
+writer-freshness Boolean. Writer freshness comes only from the newly issued
+and durably fenced session.
+
+Recovery reuses the same governed transaction authority but executes only
+bounded `SELECT` statements and always terminates by capability invalidation,
+rollback, and close. It performs no clock call, write, COMMIT, semantic retry,
+policy reinterpretation, model call, worker contact, transport, Git, Bridge,
+ES, or other external effect. The two identities containing a post-clock
+postimage digest use their exact maximal pre-clock route predicates for
+receipt-absent proof; proving those broader predicates absent proves the
+eventual exact identity absent. Receipt-present replay and recovery reconstruct
+the committed timestamp-bound rows and execute the complete exact identities.
+
+Recovery proves the receipt, complete immutable family, complete result, all
+thirty declared identities, the exact root or predecessor preimage, and the
+current head. Every successful replay or `committed_exact` path actually
+executes all thirty full-row identity queries and both full-row queries for
+every evidence member before result disclosure. The evidence reader selects
+the exact twelve Section 41 columns by `proposal_ref`, uses the canonical
+twelve-field order, `LIMIT 16`, and `fetchmany(16)`, and accepts exactly
+fourteen mandatory rows or fifteen with qualified-host readiness. A lone
+non-first row, or any extra, missing, duplicate, foreign, malformed,
+wrong-rank, wrong-ordinal, wrong-required-flag, wrong-digest, or overflow row,
+prevents a total-absence or committed proof. The head is located by exact K8
+with `LIMIT 2` and then compared against exact L34; every root head identity
+must be absent, while a successor's preimage routes must resolve to the exact
+unchanged predecessor and its new-postimage route must be absent. K8 inventory
+cannot hide a contradictory L34 or alternate unique-route row. Disposition
+inventory is bounded at 258. Exact ancestry depths 0, 1, and 256 are accepted;
+transition 257 is the overflow sentinel and is never exposed as a verified
+result.
+
+The only recovery classifications are
+`committed_exact(depth, original_receipt_owned_result)`,
+`definitely_not_committed(0, None)`, and
+`unresolved(observed_depth, None)`. Only `committed_exact` exposes a result.
+Partial, foreign, duplicate, branched, disconnected, colliding, malformed,
+extra, or contradictory evidence is unresolved or an integrity failure at the
+owning boundary; it is never reinterpreted as authorization.
+
+Ordinary validation and pre-guard failures are reduced to a newly created
+content-free safe store error only after supplied values and caught exceptions
+are out of the outward frame. Cause, context, notes, dictionaries, and retained
+tracebacks are cleared at the existing boundary, so malformed Unicode and raw
+mutation inputs are not reachable through the outward exception graph or its
+traceback locals. Genuine process-control exceptions retain object identity and
+follow the existing stabilization path.
+
+### 42.5 Preserved authority and non-claims
+
+This tranche records planning selection only. A model-authored proposal and a
+Coordinator-authored disposition remain distinct identities and roles.
+Structural validation verifies supplied engineering judgment; it does not
+manufacture that judgment. This repository invokes no model or provider and
+persists no prompt, hidden reasoning, raw response, session, or conversation
+history. The model adapter and worker receive no Coordinator database path,
+lock, transaction capability, SQLite authority, or `WriterSession` authority.
+
+Pending or verified external authority may support non-executing planning
+selection, but neither state authorizes dispatch or execution. Coordinator
+does not author, infer, mint, renew, widen, or reinterpret external authority.
+No public package export, public `StateStore` method, public `WriterSession`
+protocol method, executable authorization, model/provider client, worker,
+transport, direct-local adapter, Git effect, Bridge or ES integration,
+post-execution semantic-decision family, service, scheduler, queue, publication,
+or deployment is added. `direct_local_bootstrap` still means a later bounded
+route to one qualified remote Linux host, never the user's Mac or Coordinator
+host, and a transport-only checkpoint is not remote-worker phase completion.
+
+### Current exact column-order successor closure
+
+This section is the current successor closure for the bounded Section 41
+private runtime. It does not rewrite or reinterpret the byte-pinned historical
+Section 41 body. It supersedes Section 42 only where the more exact mechanics
+below conflict with the earlier implementation-status description.
+
+#### Exact ancestry postimages and receipt-relative depth
+
+Every disposition visited from the current selection head toward a receipt is
+reconstructed as its own exact selection-head postimage. Reconstruction binds
+all L34 coordinates, proposal and disposition refs and value, resulting/head
+revision, Coordinator decision/updated timestamp, and the recomputed exact head
+digest. Each successor must name the exact predecessor ref, revision, and
+recomputed predecessor postimage digest. Stored postimage digest text alone is
+never ancestry proof.
+
+Recovery depth is the number of exact predecessor edges from the current head
+to the receipt disposition. The bounded query reads only that receipt-relative
+window, in descending resulting-revision order, and reads at most 258
+disposition rows. Depths 0 through 256 inclusive may be `committed_exact`;
+depth 257 is only the existing unresolved overflow sentinel. Absolute head
+revision, prior rows below the receipt, and total lifetime history impose no
+additional cap.
+
+#### One cross-layer reconstruction budget
+
+One finite cumulative reconstruction budget is created for each top-level
+exact contract or recovery-probe reconstruction. The same object is consumed
+per occurrence through contract objects and tuples, semantic objects, fence
+mappings, ceilings, and nested worker values. Crossing a contract/semantic
+boundary never resets it. Shared aliases consume once per occurrence, while
+active-path cycle rejection remains separate. Contract-boundary exhaustion is
+`recovery_unresolved` and reaches callers only through the existing safe store
+boundary. The closed derivation covers the maximum command, planning context,
+fifteen evidence bindings, K8 key and preimage, thirty identity locators, both
+locators for every evidence member, and the maximum valid semantic bundle.
+
+#### Receipt-hit ordering
+
+A receipt hit first reconstructs the complete persisted family, recomputed
+ancestry, current head, and all persisted identity routes solely from receipt-
+owned and database-owned values. Only after that corruption-first proof does
+the runtime compare the incoming command digest. A healthy different digest is
+exactly `mutation_ref_reuse_conflict` and does not compare the incoming probe,
+traverse a fresh bundle, call a clock, write, commit, or disclose a result. An
+equal digest must additionally match the independently reconstructed persisted
+command and probe before returning the original receipt-owned result.
+
+#### Current exact disposition and selection-head column-order owner
+
+The historical Section 41 `complete_table_column_orders` entries for
+`development_pre_execution_dispositions` and
+`development_pre_execution_selection_heads` are preserved verbatim as the
+pre-L34 physical prefixes that existed when that literal was frozen. They are
+not the current complete orders. All other tuples in that historical inventory
+retain their historical meaning. The following closed literal is the sole
+current completeness closure for these two tables and supersedes the older
+completeness label only for them. Its full tuples are exact projections of the
+live `_TABLE_COLUMNS` row-order source.
+
+<!-- COORDINATOR_SECTION41_CURRENT_COLUMN_ORDER_CLOSURE_BEGIN -->
+
+```python
+{'coordinator_section41_current_column_order_closure': {
+    'contract_identity': {
+        'status': 'current successor closure',
+        'supersedes_older_completeness_label_only_for': (
+            'development_pre_execution_dispositions',
+            'development_pre_execution_selection_heads',
+        ),
+        'historical_section41_bytes_rewritten': False,
+        'current_exact_order_owner': (
+            'src/ge_nwp_coordinator/_cognitive_proposal_row_values.py',
+            '_TABLE_COLUMNS',
+        ),
+    },
+    'historical_pre_l34_prefixes': (
+        ('development_pre_execution_dispositions', (
+            'schema_id',
+            'disposition_ref',
+            'program_ref',
+            'program_version_ref',
+            'accepted_intent_revision_ref',
+            'work_item_ref',
+            'work_item_revision_ref',
+            'proposal_ref',
+            'proposal_phase',
+            'proposal_digest',
+            'planning_context_ref',
+            'planning_context_digest',
+            'evidence_set_ref',
+            'evidence_set_digest',
+            'semantic_attempt_ref',
+            'candidate_ref',
+            'effect_intent_ref',
+            'author_command_ref',
+            'author_command_digest',
+            'attempt_fence_ref',
+            'attempt_fence_digest',
+            'effect_fence_ref',
+            'effect_fence_digest',
+            'delivery_attempt_ref',
+            'delivery_envelope_digest',
+            'disposition',
+            'reason_code',
+            'supersedes_disposition_ref',
+            'expected_selection_head_revision',
+            'expected_selection_head_digest',
+            'prior_selection_head_revision',
+            'prior_selection_head_digest',
+            'resulting_selection_head_revision',
+            'selection_head_postimage_digest',
+            'authority_selection_observation_ref',
+            'authority_selection_observation_digest',
+            'coordinator_disposition_decided_at',
+            'disposition_digest',
+        )),
+        ('development_pre_execution_selection_heads', (
+            'schema_id',
+            'program_ref',
+            'program_version_ref',
+            'accepted_intent_revision_ref',
+            'work_item_ref',
+            'work_item_revision_ref',
+            'semantic_attempt_ref',
+            'candidate_ref',
+            'effect_intent_ref',
+            'author_command_ref',
+            'author_command_digest',
+            'attempt_fence_ref',
+            'attempt_fence_digest',
+            'effect_fence_ref',
+            'effect_fence_digest',
+            'delivery_attempt_ref',
+            'delivery_envelope_digest',
+            'current_proposal_ref',
+            'current_disposition_ref',
+            'current_disposition',
+            'head_revision',
+            'updated_at',
+            'head_digest',
+        )),
+    ),
+    'current_complete_table_column_orders': (
+        ('development_pre_execution_dispositions', (
+            'schema_id',
+            'disposition_ref',
+            'program_ref',
+            'program_version_ref',
+            'accepted_intent_revision_ref',
+            'work_item_ref',
+            'work_item_revision_ref',
+            'proposal_ref',
+            'proposal_phase',
+            'proposal_digest',
+            'planning_context_ref',
+            'planning_context_digest',
+            'evidence_set_ref',
+            'evidence_set_digest',
+            'semantic_attempt_ref',
+            'candidate_ref',
+            'effect_intent_ref',
+            'author_command_ref',
+            'author_command_digest',
+            'attempt_fence_ref',
+            'attempt_fence_digest',
+            'effect_fence_ref',
+            'effect_fence_digest',
+            'delivery_attempt_ref',
+            'delivery_envelope_digest',
+            'disposition',
+            'reason_code',
+            'supersedes_disposition_ref',
+            'expected_selection_head_revision',
+            'expected_selection_head_digest',
+            'prior_selection_head_revision',
+            'prior_selection_head_digest',
+            'resulting_selection_head_revision',
+            'selection_head_postimage_digest',
+            'authority_selection_observation_ref',
+            'authority_selection_observation_digest',
+            'coordinator_disposition_decided_at',
+            'program_version_number',
+            'semantic_attempt_digest',
+            'attempt_number',
+            'basis_decision_ref',
+            'basis_decision_digest',
+            'work_spec_ref',
+            'work_spec_digest',
+            'work_spec_safe_projection_digest',
+            'effect_intent_digest',
+            'standing_grant_ref',
+            'standing_grant_digest',
+            'attempt_authorization_ref',
+            'attempt_authorization_digest',
+            'effect_authorization_ref',
+            'effect_authorization_digest',
+            'delivery_attempt_digest',
+            'authority_evaluation_ref',
+            'authority_evaluation_digest',
+            'disposition_digest',
+        )),
+        ('development_pre_execution_selection_heads', (
+            'schema_id',
+            'program_ref',
+            'program_version_ref',
+            'accepted_intent_revision_ref',
+            'work_item_ref',
+            'work_item_revision_ref',
+            'semantic_attempt_ref',
+            'candidate_ref',
+            'effect_intent_ref',
+            'author_command_ref',
+            'author_command_digest',
+            'attempt_fence_ref',
+            'attempt_fence_digest',
+            'effect_fence_ref',
+            'effect_fence_digest',
+            'delivery_attempt_ref',
+            'delivery_envelope_digest',
+            'current_proposal_ref',
+            'current_disposition_ref',
+            'current_disposition',
+            'head_revision',
+            'updated_at',
+            'program_version_number',
+            'semantic_attempt_digest',
+            'attempt_number',
+            'basis_decision_ref',
+            'basis_decision_digest',
+            'work_spec_ref',
+            'work_spec_digest',
+            'work_spec_safe_projection_digest',
+            'effect_intent_digest',
+            'standing_grant_ref',
+            'standing_grant_digest',
+            'attempt_authorization_ref',
+            'attempt_authorization_digest',
+            'effect_authorization_ref',
+            'effect_authorization_digest',
+            'delivery_attempt_digest',
+            'authority_evaluation_ref',
+            'authority_evaluation_digest',
+            'head_digest',
+        )),
+    ),
+    'all_other_historical_table_orders_retain_meaning': True,
+    'receipt_relative_recovery_depth': {
+        'definition': 'exact predecessor edges from current head to receipt disposition',
+        'committed_exact_depths': (0, 256),
+        'overflow_sentinel_depth': 257,
+        'absolute_revision_or_total_lifetime_cap': False,
+        'maximum_disposition_rows_read': 258,
+    },
+}}
+```
+
+<!-- COORDINATOR_SECTION41_CURRENT_COLUMN_ORDER_CLOSURE_END -->
+
+#### Preserved boundary
+
+This repair adds no schema, migration, reader role, public API, writer surface,
+new transaction authority, executable authorization, worker, provider, Bridge,
+Execution Substrate, Git, publication, or external effect. Migration 0003 and
+application generation 2 remain unchanged.

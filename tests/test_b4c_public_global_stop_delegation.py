@@ -1459,8 +1459,8 @@ def test_docs_current_boundary_assertions() -> None:
     assert "caller decision remains comparison material only" in normalized_b4c
     assert "Receipt provisioning remains a separately governed reopened seam" in normalized_b4c
     assert "no generic delegate catch-all" in normalized_b4c
-    assert "historical schema-0001 B3/B4 graph hosted in a temporary current-generation-2, terminal-0002 fixture" in normalized_b4c
-    assert "Migration `0002` is the current physical C2B2 Slice-1 extension" in normalized_b4c
+    assert "historical schema-0001 B3/B4 graph hosted in a temporary current-generation-2, terminal-0003 fixture" in normalized_b4c
+    assert "Migration `0002` remains the physical C2B2 Slice-1 extension and migration `0003` is the current terminal" in normalized_b4c
     assert "B4c itself neither adds nor consumes C2B runtime behavior" in normalized_b4c
     assert "Tests may seed receipt rows only in temporary schema-0001 fixtures" not in b4c
     assert "There is still no migration `0002`." not in b4c

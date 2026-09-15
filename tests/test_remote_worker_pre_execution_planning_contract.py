@@ -38,6 +38,22 @@ A2_REVISED_REPAIR_BEGIN_MARKER = (
 A2_REVISED_REPAIR_END_MARKER = (
     "<!-- COORDINATOR_SECTION41_A2_REVISED_REPAIR_CLOSURE_END -->"
 )
+CURRENT_COLUMN_ORDER_BEGIN_MARKER = (
+    "<!-- COORDINATOR_SECTION41_CURRENT_COLUMN_ORDER_CLOSURE_BEGIN -->"
+)
+CURRENT_COLUMN_ORDER_END_MARKER = (
+    "<!-- COORDINATOR_SECTION41_CURRENT_COLUMN_ORDER_CLOSURE_END -->"
+)
+CURRENT_COLUMN_ORDER_OWNER_H2 = (
+    "42. Section 41 Private Pre-Execution Selection Runtime Implementation"
+)
+CURRENT_COLUMN_ORDER_OWNER_H3 = "Current exact column-order successor closure"
+CURRENT_COLUMN_ORDER_OWNER_H4 = (
+    "Current exact disposition and selection-head column-order owner"
+)
+CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC = (
+    "CURRENT_COLUMN_ORDER_OWNER_BOUNDARY_INVALID"
+)
 C2B3D_SECTION_HEADING = "## 39. Coordinator C2B3C Author-Effect Contract Freeze"
 C2B3D_BEGIN_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_BEGIN -->"
 C2B3D_END_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_END -->"
@@ -2388,7 +2404,11 @@ def _section_41_bytes(
     boundary = ("\n" + SECTION_HEADING).encode("utf-8")
     assert owner.count(boundary) == 1, "COGNITIVE_SECTION_BOUNDARY_INVALID"
     prefix, section_without_leading_newline = owner.split(boundary, 1)
-    section = SECTION_HEADING.encode("utf-8") + section_without_leading_newline
+    section_and_later = SECTION_HEADING.encode("utf-8") + section_without_leading_newline
+    section_42_boundary = b"\n## 42."
+    if source is None:
+        assert section_and_later.count(section_42_boundary) == 1
+    section = section_and_later.partition(section_42_boundary)[0]
     assert len(prefix) == EXPECTED_SECTIONS_1_40_UTF8_LENGTH
     assert hashlib.sha256(prefix).hexdigest() == EXPECTED_SECTIONS_1_40_SHA256
     if enforce_frozen_bytes:
@@ -3047,7 +3067,7 @@ def test_section_41_is_exact_and_sections_1_40_are_byte_identical() -> None:
     assert prefix.endswith(b"-->\n")
     assert section.count(BEGIN_MARKER.encode()) == 1
     assert section.count(END_MARKER.encode()) == 1
-    assert _read_owner_bytes() == prefix + b"\n" + section
+    assert _read_owner_bytes().partition(b"\n## 42.")[0] == prefix + b"\n" + section
     _parse_owner_literal()
 
 
@@ -3951,14 +3971,17 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
         assert not path.is_symlink() and path.resolve(strict=True) == path
         text = path.read_text(encoding="utf-8")
         assert text.count(owner_claim) == 1
-        bounded = text.split(owner_claim, 1)[1]
+        bounded = " ".join(text.split(owner_claim, 1)[1].split())
         for phrase in (
+            "Section 42 records implementation status without redefining it",
             "C2B3D remains current and unchanged",
-            "uncommitted contract candidate pending independent audit",
-            "Migration 0003 and all source/runtime remain absent",
+            "Migration 0003 and the private pre-execution",
+            "proposal-selection runtime are now implemented in the uncommitted candidate pending",
+            "fresh independent audit",
             "proposal admission plus Coordinator selection or non-selection",
-            "model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked",
-            "full remote-worker phase is not reduced to that first source tranche",
+            "Model invocation, dispatch, worker contact, post-execution review",
+            "post-execution semantic decision, Git, and publication remain blocked",
+            "full remote-worker phase is not reduced to this private source tranche",
         ):
             assert phrase in bounded
 
@@ -4402,6 +4425,383 @@ def _parse_a2_revised_repair_owner(
     value = _s41_parse_literal(payload)
     assert tuple(value) == ("coordinator_section41_a2_revised_repair",)
     return value["coordinator_section41_a2_revised_repair"]
+
+
+def _current_column_order_fence_candidate(
+    content: str,
+) -> tuple[str, int, str] | None:
+    stripped = content.lstrip(" ")
+    indent = len(content) - len(stripped)
+    if indent > 3 or not stripped or stripped[0] not in "`~":
+        return None
+    marker = stripped[0]
+    run_length = len(stripped) - len(stripped.lstrip(marker))
+    if run_length < 3:
+        return None
+    remainder = stripped[run_length:]
+    if marker == "`" and "`" in remainder:
+        return None
+    return marker, run_length, remainder
+
+
+def _current_column_order_fence_closes(
+    candidate: tuple[str, int, str] | None,
+    *,
+    marker: str,
+    opener_length: int,
+) -> bool:
+    return (
+        candidate is not None
+        and candidate[0] == marker
+        and candidate[1] >= opener_length
+        and all(character in {" ", "\t"} for character in candidate[2])
+    )
+
+
+class _CurrentColumnOrderVisibleLine(NamedTuple):
+    content: str
+    start: int
+    end: int
+
+
+class _CurrentColumnOrderVisibleHeading(NamedTuple):
+    level: int
+    title: str
+    start: int
+    end: int
+
+
+class _CurrentColumnOrderFenceOpener(NamedTuple):
+    marker: str
+    run_length: int
+    content: str
+    start: int
+    end: int
+
+
+class _CurrentColumnOrderFenceBlock(NamedTuple):
+    opener: _CurrentColumnOrderFenceOpener
+    closer_content: str
+    closer_start: int
+    closer_end: int
+
+
+class _CurrentColumnOrderHiddenFenceCandidate(NamedTuple):
+    content: str
+    start: int
+    end: int
+
+
+class _CurrentColumnOrderMarkdownStructure(NamedTuple):
+    headings: tuple[_CurrentColumnOrderVisibleHeading, ...]
+    ordinary_lines: tuple[_CurrentColumnOrderVisibleLine, ...]
+    fences: tuple[_CurrentColumnOrderFenceBlock, ...]
+    hidden_fence_candidates: tuple[_CurrentColumnOrderHiddenFenceCandidate, ...]
+    unclosed_fence: _CurrentColumnOrderFenceOpener | None
+
+
+class _CurrentColumnOrderOwnerWrapper(NamedTuple):
+    begin_line: _CurrentColumnOrderVisibleLine
+    literal_fence: _CurrentColumnOrderFenceBlock
+    end_line: _CurrentColumnOrderVisibleLine
+    payload_start: int
+    payload_end: int
+
+
+def _current_column_order_atx_heading(
+    content: str,
+    *,
+    start: int,
+    end: int,
+) -> _CurrentColumnOrderVisibleHeading | None:
+    indent = 0
+    while indent < len(content) and content[indent] == " ":
+        indent += 1
+    if indent > 3:
+        return None
+
+    marker_end = indent
+    while marker_end < len(content) and content[marker_end] == "#":
+        marker_end += 1
+    level = marker_end - indent
+    if not 1 <= level <= 6:
+        return None
+    if marker_end < len(content) and content[marker_end] not in {" ", "\t"}:
+        return None
+
+    title_start = marker_end
+    while title_start < len(content) and content[title_start] in {" ", "\t"}:
+        title_start += 1
+    title_end = len(content)
+    while title_end > marker_end and content[title_end - 1] in {" ", "\t"}:
+        title_end -= 1
+
+    closing_start = title_end
+    while closing_start > marker_end and content[closing_start - 1] == "#":
+        closing_start -= 1
+    if (
+        closing_start < title_end
+        and closing_start > marker_end
+        and content[closing_start - 1] in {" ", "\t"}
+    ):
+        title_end = closing_start
+        while title_end > title_start and content[title_end - 1] in {" ", "\t"}:
+            title_end -= 1
+
+    return _CurrentColumnOrderVisibleHeading(
+        level=level,
+        title=content[title_start:title_end],
+        start=start,
+        end=end,
+    )
+
+
+def _current_column_order_markdown_structure(
+    owner: bytes,
+) -> _CurrentColumnOrderMarkdownStructure:
+    if type(owner) is not bytes:
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    headings: list[_CurrentColumnOrderVisibleHeading] = []
+    ordinary_lines: list[_CurrentColumnOrderVisibleLine] = []
+    fences: list[_CurrentColumnOrderFenceBlock] = []
+    hidden_fence_candidates: list[_CurrentColumnOrderHiddenFenceCandidate] = []
+    active_fence: _CurrentColumnOrderFenceOpener | None = None
+    offset = 0
+    try:
+        for raw_line in owner.splitlines(keepends=True):
+            line = raw_line.decode("utf-8", errors="strict").rstrip("\r\n")
+            line_end = offset + len(raw_line)
+            fence = _current_column_order_fence_candidate(line)
+            if active_fence is not None:
+                if _current_column_order_fence_closes(
+                    fence,
+                    marker=active_fence.marker,
+                    opener_length=active_fence.run_length,
+                ):
+                    fences.append(
+                        _CurrentColumnOrderFenceBlock(
+                            opener=active_fence,
+                            closer_content=line,
+                            closer_start=offset,
+                            closer_end=line_end,
+                        )
+                    )
+                    active_fence = None
+                elif fence is not None:
+                    hidden_fence_candidates.append(
+                        _CurrentColumnOrderHiddenFenceCandidate(
+                            content=line,
+                            start=offset,
+                            end=line_end,
+                        )
+                    )
+                offset = line_end
+                continue
+            if fence is not None:
+                active_fence = _CurrentColumnOrderFenceOpener(
+                    marker=fence[0],
+                    run_length=fence[1],
+                    content=line,
+                    start=offset,
+                    end=line_end,
+                )
+                offset = line_end
+                continue
+            heading = _current_column_order_atx_heading(
+                line,
+                start=offset,
+                end=line_end,
+            )
+            if heading is None:
+                ordinary_lines.append(
+                    _CurrentColumnOrderVisibleLine(
+                        content=line,
+                        start=offset,
+                        end=line_end,
+                    )
+                )
+            else:
+                headings.append(heading)
+            offset = line_end
+    except UnicodeDecodeError:
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC) from None
+    return _CurrentColumnOrderMarkdownStructure(
+        headings=tuple(headings),
+        ordinary_lines=tuple(ordinary_lines),
+        fences=tuple(fences),
+        hidden_fence_candidates=tuple(hidden_fence_candidates),
+        unclosed_fence=active_fence,
+    )
+
+
+def _current_column_order_visible_headings(
+    owner: bytes,
+) -> tuple[tuple[int, str, int, int], ...]:
+    structure = _current_column_order_markdown_structure(owner)
+    if structure.unclosed_fence is not None:
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    return tuple(
+        (heading.level, heading.title, heading.start, heading.end)
+        for heading in structure.headings
+    )
+
+
+def _current_column_order_visible_owner_wrappers(
+    owner: bytes,
+    structure: _CurrentColumnOrderMarkdownStructure,
+) -> tuple[_CurrentColumnOrderOwnerWrapper, ...]:
+    begin_lines = tuple(
+        line
+        for line in structure.ordinary_lines
+        if line.content == CURRENT_COLUMN_ORDER_BEGIN_MARKER
+    )
+    end_lines = tuple(
+        line
+        for line in structure.ordinary_lines
+        if line.content == CURRENT_COLUMN_ORDER_END_MARKER
+    )
+    wrappers: list[_CurrentColumnOrderOwnerWrapper] = []
+    for begin_line in begin_lines:
+        for literal_fence in structure.fences:
+            opener = literal_fence.opener
+            if not (
+                begin_line.start < opener.start < literal_fence.closer_start
+                and opener.marker == "`"
+                and opener.run_length == 3
+                and opener.content == "```python"
+                and literal_fence.closer_content == "```"
+                and owner[begin_line.end : opener.start] == b"\n"
+                and owner[opener.start : opener.end] == b"```python\n"
+                and owner[
+                    literal_fence.closer_start : literal_fence.closer_end
+                ]
+                == b"```\n"
+            ):
+                continue
+            literal_content = owner[opener.end : literal_fence.closer_start]
+            if not literal_content.endswith(b"\n"):
+                continue
+            for end_line in end_lines:
+                if not (
+                    literal_fence.closer_end < end_line.start
+                    and owner[literal_fence.closer_end : end_line.start] == b"\n"
+                ):
+                    continue
+                wrappers.append(
+                    _CurrentColumnOrderOwnerWrapper(
+                        begin_line=begin_line,
+                        literal_fence=literal_fence,
+                        end_line=end_line,
+                        payload_start=opener.end,
+                        payload_end=literal_fence.closer_start - 1,
+                    )
+                )
+    return tuple(wrappers)
+
+
+def _current_column_order_owner_payload(owner: bytes) -> bytes:
+    if type(owner) is not bytes:
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    structure = _current_column_order_markdown_structure(owner)
+    if structure.unclosed_fence is not None:
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    headings = structure.headings
+
+    level_two = tuple(item for item in headings if item.level == 2)
+    if (
+        not level_two
+        or level_two[-1].title != CURRENT_COLUMN_ORDER_OWNER_H2
+        or sum(item.title == CURRENT_COLUMN_ORDER_OWNER_H2 for item in level_two) != 1
+        or any(re.match(r"^43(?:\.|\s|$)", item.title) for item in level_two)
+    ):
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    section_42 = level_two[-1]
+    section_42_end = len(owner)
+    for heading in headings:
+        if heading.start > section_42.start and heading.level <= 2:
+            section_42_end = heading.start
+            break
+    designated = tuple(
+        item
+        for item in headings
+        if item.level == 3 and item.title == CURRENT_COLUMN_ORDER_OWNER_H3
+    )
+    if not (
+        len(designated) == 1
+        and section_42.end <= designated[0].start < section_42_end
+    ):
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    owner_heading = designated[0]
+    owner_end = section_42_end
+    for heading in headings:
+        if heading.start > owner_heading.start and heading.level <= 3:
+            owner_end = heading.start
+            break
+
+    owner_h4 = tuple(
+        heading
+        for heading in headings
+        if heading.level == 4 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H4
+    )
+    if not (
+        len(owner_h4) == 1
+        and owner_heading.end <= owner_h4[0].start < owner_end
+    ):
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    owner_h4_heading = owner_h4[0]
+    owner_h4_end = owner_end
+    for heading in headings:
+        if heading.start > owner_h4_heading.start and heading.level <= 4:
+            owner_h4_end = heading.start
+            break
+
+    begin_lines = tuple(
+        line
+        for line in structure.ordinary_lines
+        if line.content == CURRENT_COLUMN_ORDER_BEGIN_MARKER
+    )
+    end_lines = tuple(
+        line
+        for line in structure.ordinary_lines
+        if line.content == CURRENT_COLUMN_ORDER_END_MARKER
+    )
+    wrappers = _current_column_order_visible_owner_wrappers(owner, structure)
+    if not (
+        len(begin_lines) == 1
+        and len(end_lines) == 1
+        and len(wrappers) == 1
+    ):
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    wrapper = wrappers[0]
+    if not (
+        owner_h4_heading.end <= wrapper.begin_line.start
+        and wrapper.payload_start <= wrapper.payload_end
+        and wrapper.end_line.end <= owner_h4_end
+    ):
+        raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+    return owner[wrapper.payload_start : wrapper.payload_end]
+
+
+def _parse_current_column_order_owner(
+    source: bytes | None = None,
+) -> dict[str, object]:
+    owner = _read_owner_bytes() if source is None else source
+    payload = _current_column_order_owner_payload(owner)
+    value = _s41_parse_literal(payload)
+    assert tuple(value) == ("coordinator_section41_current_column_order_closure",)
+    return value["coordinator_section41_current_column_order_closure"]
+
+
+def _require_exact_current_disposition_and_head_orders(
+    owner: dict[str, object],
+) -> None:
+    orders = dict(owner["current_complete_table_column_orders"])
+    targets = (REPAIRED_TABLE_ORDER[6], REPAIRED_TABLE_ORDER[7])
+    assert tuple(orders) == targets
+    for table in targets:
+        assert orders[table] == tuple(
+            name for name, _kind in REPAIRED_TABLE_COLUMNS[table]
+        )
 
 
 def test_a2_revised_repair_owner_is_exact_and_finitely_scoped() -> None:
@@ -10490,12 +10890,42 @@ def test_one_canonical_physical_collection_derives_entire_family(
     owner = _parse_repaired_owner()["canonical_physical_family"]
     assert owner["member_field_order"] == REPAIRED_ROW_FIELDS
     incorporated_orders = dict(owner["complete_table_column_orders"])
+    current_owner = _parse_current_column_order_owner()
+    assert tuple(current_owner) == (
+        "contract_identity",
+        "historical_pre_l34_prefixes",
+        "current_complete_table_column_orders",
+        "all_other_historical_table_orders_retain_meaning",
+        "receipt_relative_recovery_depth",
+    )
+    identity = current_owner["contract_identity"]
+    assert identity == {
+        "status": "current successor closure",
+        "supersedes_older_completeness_label_only_for": (
+            "development_pre_execution_dispositions",
+            "development_pre_execution_selection_heads",
+        ),
+        "historical_section41_bytes_rewritten": False,
+        "current_exact_order_owner": (
+            "src/ge_nwp_coordinator/_cognitive_proposal_row_values.py",
+            "_TABLE_COLUMNS",
+        ),
+    }
+    historical_prefixes = dict(current_owner["historical_pre_l34_prefixes"])
+    current_orders = dict(current_owner["current_complete_table_column_orders"])
+    target_tables = (REPAIRED_TABLE_ORDER[6], REPAIRED_TABLE_ORDER[7])
+    assert tuple(historical_prefixes) == target_tables
+    assert tuple(current_orders) == target_tables
+    _require_exact_current_disposition_and_head_orders(current_owner)
+    assert current_owner["all_other_historical_table_orders_retain_meaning"] is True
     for table in REPAIRED_TABLE_ORDER:
         current_fields = tuple(
             name for name, _kind in REPAIRED_TABLE_COLUMNS[table]
         )
         incorporated_fields = incorporated_orders[table]
-        if table in (REPAIRED_TABLE_ORDER[6], REPAIRED_TABLE_ORDER[7]):
+        if table in target_tables:
+            assert historical_prefixes[table] == incorporated_fields
+            assert current_orders[table] == current_fields
             assert tuple(
                 field for field in current_fields if field in incorporated_fields
             ) == incorporated_fields
@@ -10508,6 +10938,29 @@ def test_one_canonical_physical_collection_derives_entire_family(
             )
         else:
             assert current_fields == incorporated_fields
+    for table in target_tables:
+        counterfactual = deepcopy(current_owner)
+        counterfactual_orders = list(
+            counterfactual["current_complete_table_column_orders"]
+        )
+        table_index = target_tables.index(table)
+        counterfactual_orders[table_index] = (
+            table,
+            historical_prefixes[table],
+        )
+        counterfactual["current_complete_table_column_orders"] = tuple(
+            counterfactual_orders
+        )
+        with pytest.raises(AssertionError):
+            _require_exact_current_disposition_and_head_orders(counterfactual)
+    depth = current_owner["receipt_relative_recovery_depth"]
+    assert depth == {
+        "definition": "exact predecessor edges from current head to receipt disposition",
+        "committed_exact_depths": (0, 256),
+        "overflow_sentinel_depth": 257,
+        "absolute_revision_or_total_lifetime_cap": False,
+        "maximum_disposition_rows_read": 258,
+    }
     assert owner["graph_entry_field_order"] == (
         "role", "rank", "ordinal", "table", "locator", "member_digest"
     )
@@ -10547,6 +11000,596 @@ def test_one_canonical_physical_collection_derives_entire_family(
     assert all(entry["role"] != "receipt" for entry in family["graph"]["entries"])
     assert family["fresh_result"] == family["replay_result"]
     assert family["fresh_result"] is not family["replay_result"]
+
+
+def test_current_column_order_owner_rejects_relocated_successor_literal() -> None:
+    owner = _read_owner_bytes()
+    block_opening = (CURRENT_COLUMN_ORDER_BEGIN_MARKER + "\n\n```python\n").encode(
+        "utf-8"
+    )
+    block_closing = (
+        "\n```\n\n" + CURRENT_COLUMN_ORDER_END_MARKER
+    ).encode("utf-8")
+    block_start = owner.index(block_opening)
+    block_end = owner.index(block_closing, block_start) + len(block_closing)
+    unchanged_block = owner[block_start:block_end]
+    without_block = owner[:block_start] + owner[block_end:]
+    preserved_boundary = b"\n#### Preserved boundary"
+    insertion = without_block.index(preserved_boundary, block_start)
+    relocated = (
+        without_block[:insertion]
+        + b"\n### Relocated exact column-order owner\n\n"
+        + unchanged_block
+        + without_block[insertion:]
+    )
+    assert relocated.count(
+        ("### " + CURRENT_COLUMN_ORDER_OWNER_H3).encode("utf-8")
+    ) == 1
+    assert relocated.count(unchanged_block) == 1
+    with pytest.raises(AssertionError) as caught:
+        _parse_current_column_order_owner(relocated)
+    assert str(caught.value) == CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC
+    assert caught.value.args == (CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,)
+
+
+def test_current_column_order_owner_rejects_text_bearing_pseudo_closer_shadow() -> None:
+    owner = _read_owner_bytes()
+    designated_heading = (
+        "### " + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
+    ).encode("utf-8")
+    assert owner.count(designated_heading) == 1
+    block_opening = (
+        CURRENT_COLUMN_ORDER_BEGIN_MARKER + "\n\n```python\n"
+    ).encode("utf-8")
+    block_closing = (
+        "\n```\n\n" + CURRENT_COLUMN_ORDER_END_MARKER
+    ).encode("utf-8")
+    block_start = owner.index(block_opening)
+    block_end = owner.index(block_closing, block_start) + len(block_closing)
+    unchanged_owner_literal = owner[block_start:block_end]
+    assert owner.index(designated_heading) < block_start
+
+    for invalid_suffix in ("not-a-closer", "\u00a0", "\u2003"):
+        pseudo_closer = ("```" + invalid_suffix + "\n").encode("utf-8")
+        shadow_prefix = b"```text\n" + pseudo_closer
+        mutant = owner.replace(
+            designated_heading,
+            shadow_prefix + designated_heading,
+            1,
+        )
+        shadow_start = mutant.index(shadow_prefix)
+        real_closer = mutant.index(b"\n```\n", shadow_start)
+        assert shadow_start < mutant.index(designated_heading) < real_closer
+        assert mutant.count(unchanged_owner_literal) == 1
+        assert mutant.index(unchanged_owner_literal) < real_closer
+        visible_headings = _current_column_order_visible_headings(mutant)
+        assert not any(
+            level == 3 and title == CURRENT_COLUMN_ORDER_OWNER_H3
+            for level, title, _start, _end in visible_headings
+        )
+        with pytest.raises(AssertionError) as caught:
+            _parse_current_column_order_owner(mutant)
+        assert str(caught.value) == CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC
+        assert caught.value.args == (CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,)
+
+
+def test_current_column_order_owner_rejects_complete_wrapper_hidden_inside_outer_fence() -> None:
+    def visible_structure_summary(source: bytes) -> tuple[int, int, int, bool]:
+        structure = _current_column_order_markdown_structure(source)
+        designated_count = sum(
+            heading.level == 3
+            and heading.title == CURRENT_COLUMN_ORDER_OWNER_H3
+            for heading in structure.headings
+        )
+        owner_h4_count = sum(
+            heading.level == 4
+            and heading.title == CURRENT_COLUMN_ORDER_OWNER_H4
+            for heading in structure.headings
+        )
+        wrapper_count = len(
+            _current_column_order_visible_owner_wrappers(source, structure)
+        )
+        return (
+            designated_count,
+            owner_h4_count,
+            wrapper_count,
+            structure.unclosed_fence is not None,
+        )
+
+    def deliberately_broken_global_wrapper_mutant(source: bytes) -> dict[str, object]:
+        structure = _current_column_order_markdown_structure(source)
+        if structure.unclosed_fence is not None:
+            raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        headings = structure.headings
+        level_two = tuple(heading for heading in headings if heading.level == 2)
+        if (
+            not level_two
+            or level_two[-1].title != CURRENT_COLUMN_ORDER_OWNER_H2
+            or sum(
+                heading.title == CURRENT_COLUMN_ORDER_OWNER_H2
+                for heading in level_two
+            )
+            != 1
+            or any(
+                re.match(r"^43(?:\.|\s|$)", heading.title)
+                for heading in level_two
+            )
+        ):
+            raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        section_42 = level_two[-1]
+        section_42_end = len(source)
+        for heading in headings:
+            if heading.start > section_42.start and heading.level <= 2:
+                section_42_end = heading.start
+                break
+
+        designated = tuple(
+            heading
+            for heading in headings
+            if heading.level == 3
+            and heading.title == CURRENT_COLUMN_ORDER_OWNER_H3
+        )
+        if not (
+            len(designated) == 1
+            and section_42.end <= designated[0].start < section_42_end
+        ):
+            raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        designated_heading = designated[0]
+        designated_end = section_42_end
+        for heading in headings:
+            if heading.start > designated_heading.start and heading.level <= 3:
+                designated_end = heading.start
+                break
+
+        owner_h4 = tuple(
+            heading
+            for heading in headings
+            if heading.level == 4 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H4
+        )
+        if not (
+            len(owner_h4) == 1
+            and designated_heading.end <= owner_h4[0].start < designated_end
+        ):
+            raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        owner_h4_heading = owner_h4[0]
+        owner_h4_end = designated_end
+        for heading in headings:
+            if heading.start > owner_h4_heading.start and heading.level <= 4:
+                owner_h4_end = heading.start
+                break
+
+        opening = (
+            CURRENT_COLUMN_ORDER_BEGIN_MARKER + "\n\n```python\n"
+        ).encode("utf-8")
+        closing = (
+            "\n```\n\n" + CURRENT_COLUMN_ORDER_END_MARKER
+        ).encode("utf-8")
+        owner_h4_bytes = source[owner_h4_heading.end : owner_h4_end]
+        if owner_h4_bytes.count(opening) != 1 or owner_h4_bytes.count(closing) != 1:
+            raise AssertionError(CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        payload = owner_h4_bytes.split(opening, 1)[1].split(closing, 1)[0]
+        value = _s41_parse_literal(payload)
+        assert tuple(value) == (
+            "coordinator_section41_current_column_order_closure",
+        )
+        return value["coordinator_section41_current_column_order_closure"]
+
+    owner = _read_owner_bytes()
+    designated_heading = (
+        "### " + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
+    ).encode("utf-8")
+    owner_h4 = ("#### " + CURRENT_COLUMN_ORDER_OWNER_H4 + "\n").encode("utf-8")
+    owner_h4_start = owner.index(owner_h4)
+    begin_marker = CURRENT_COLUMN_ORDER_BEGIN_MARKER.encode("utf-8")
+    begin_marker_start = owner.index(begin_marker, owner_h4_start)
+    end_marker = CURRENT_COLUMN_ORDER_END_MARKER.encode("utf-8")
+    end_marker_end = owner.index(end_marker, owner_h4_start) + len(end_marker)
+    assert owner[end_marker_end : end_marker_end + 1] == b"\n"
+    hidden_owner_wrapper = owner[begin_marker_start:end_marker_end]
+    assert owner.index(designated_heading) < owner_h4_start < begin_marker_start
+    assert hidden_owner_wrapper.startswith(begin_marker)
+    assert b"```python\n" in hidden_owner_wrapper
+    assert b"\n```\n" in hidden_owner_wrapper
+    assert hidden_owner_wrapper.endswith(end_marker)
+
+    cases = (
+        ("longer_same_marker", b"````text\n", b"````\n", False),
+        ("opposite_marker", b"~~~~text\n", b"~~~~\n", False),
+        ("unclosed_outer", b"~~~~~text\n", b"", True),
+    )
+    outcomes: list[tuple[str, str]] = []
+    hybrid_outcomes: list[tuple[str, str]] = []
+    for name, outer_opener, outer_closer, expect_unclosed in cases:
+        mutant = (
+            owner[:begin_marker_start]
+            + outer_opener
+            + hidden_owner_wrapper
+            + b"\n"
+            + outer_closer
+            + owner[end_marker_end + 1 :]
+        )
+        assert mutant.count(designated_heading) == 1
+        assert mutant.count(owner_h4) == 1
+        assert mutant.count(hidden_owner_wrapper) == 1
+        assert begin_marker in hidden_owner_wrapper
+        assert b"```python\n" in hidden_owner_wrapper
+        assert b"\n```\n" in hidden_owner_wrapper
+        assert end_marker in hidden_owner_wrapper
+        (
+            designated_count,
+            owner_h4_count,
+            visible_wrapper_count,
+            unclosed,
+        ) = visible_structure_summary(mutant)
+        assert designated_count == 1
+        assert owner_h4_count == 1
+        assert visible_wrapper_count == 0
+        assert unclosed is expect_unclosed
+        literal_closer = _current_column_order_fence_candidate("```")
+        if name == "longer_same_marker":
+            assert not _current_column_order_fence_closes(
+                literal_closer,
+                marker="`",
+                opener_length=4,
+            )
+        if name == "opposite_marker":
+            assert not _current_column_order_fence_closes(
+                literal_closer,
+                marker="~",
+                opener_length=4,
+            )
+        try:
+            current_owner = _parse_current_column_order_owner(mutant)
+            _require_exact_current_disposition_and_head_orders(current_owner)
+        except AssertionError as caught:
+            outcomes.append((name, str(caught)))
+            assert caught.args == (CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,)
+        else:
+            outcomes.append((name, "accepted_exact_current_orders"))
+        if not expect_unclosed:
+            mutant_owner = deliberately_broken_global_wrapper_mutant(mutant)
+            _require_exact_current_disposition_and_head_orders(mutant_owner)
+            hybrid_outcomes.append((name, "accepted_exact_current_orders"))
+
+    assert outcomes == [
+        (name, CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        for name, _outer_opener, _outer_closer, _expect_unclosed in cases
+    ]
+    assert hybrid_outcomes == [
+        ("longer_same_marker", "accepted_exact_current_orders"),
+        ("opposite_marker", "accepted_exact_current_orders"),
+    ]
+
+    visible_plus_hidden_duplicate = (
+        owner
+        + b"\n````text\n"
+        + hidden_owner_wrapper
+        + b"\n````\n"
+    )
+    duplicate_structure = _current_column_order_markdown_structure(
+        visible_plus_hidden_duplicate
+    )
+    assert visible_plus_hidden_duplicate.count(begin_marker) == 2
+    assert visible_plus_hidden_duplicate.count(end_marker) == 2
+    assert len(
+        _current_column_order_visible_owner_wrappers(
+            visible_plus_hidden_duplicate,
+            duplicate_structure,
+        )
+    ) == 1
+    current_owner = _parse_current_column_order_owner(visible_plus_hidden_duplicate)
+    _require_exact_current_disposition_and_head_orders(current_owner)
+
+
+def test_current_column_order_owner_respects_indented_atx_boundaries_and_closing_hash_grammar() -> None:
+    def parse_outcome(source: bytes) -> str:
+        try:
+            current_owner = _parse_current_column_order_owner(source)
+            _require_exact_current_disposition_and_head_orders(current_owner)
+        except AssertionError as caught:
+            assert caught.args == (CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,)
+            return CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC
+        return "accepted_exact_current_orders"
+
+    def heading_count(
+        structure: _CurrentColumnOrderMarkdownStructure,
+        level: int,
+        title: str,
+    ) -> int:
+        return sum(
+            heading.level == level and heading.title == title
+            for heading in structure.headings
+        )
+
+    owner = _read_owner_bytes()
+    designated_line = (
+        "### " + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
+    ).encode("utf-8")
+    owner_h4_line = (
+        "#### " + CURRENT_COLUMN_ORDER_OWNER_H4 + "\n"
+    ).encode("utf-8")
+    begin_line = (CURRENT_COLUMN_ORDER_BEGIN_MARKER + "\n").encode("utf-8")
+    assert owner.count(designated_line) == 1
+    assert owner.count(owner_h4_line) == 1
+    assert owner.count(begin_line) == 1
+    designated_start = owner.index(designated_line)
+    owner_h4_start = owner.index(owner_h4_line, designated_start)
+    begin_start = owner.index(begin_line, owner_h4_start)
+    assert designated_start < owner_h4_start < begin_start
+
+    indented_h3_title = "Indented sibling current-owner boundary"
+    indented_h3_line = ("   ### " + indented_h3_title + "\n\n").encode(
+        "utf-8"
+    )
+    indented_h3_mutant = (
+        owner[:owner_h4_start] + indented_h3_line + owner[owner_h4_start:]
+    )
+    indented_h3_structure = _current_column_order_markdown_structure(
+        indented_h3_mutant
+    )
+    designated = tuple(
+        heading
+        for heading in indented_h3_structure.headings
+        if heading.level == 3 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H3
+    )
+    sibling_h3 = tuple(
+        heading
+        for heading in indented_h3_structure.headings
+        if heading.level == 3 and heading.title == indented_h3_title
+    )
+    owner_h4 = tuple(
+        heading
+        for heading in indented_h3_structure.headings
+        if heading.level == 4 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H4
+    )
+    indented_h3_observed = (
+        len(designated),
+        len(sibling_h3),
+        len(owner_h4),
+        bool(
+            designated
+            and sibling_h3
+            and owner_h4
+            and designated[0].start < sibling_h3[0].start < owner_h4[0].start
+        ),
+        parse_outcome(indented_h3_mutant),
+    )
+
+    indented_h4_title = "Indented sibling owner-wrapper boundary"
+    indented_h4_line = ("   #### " + indented_h4_title + "\n\n").encode(
+        "utf-8"
+    )
+    indented_h4_mutant = owner[:begin_start] + indented_h4_line + owner[begin_start:]
+    indented_h4_structure = _current_column_order_markdown_structure(
+        indented_h4_mutant
+    )
+    expected_h4 = tuple(
+        heading
+        for heading in indented_h4_structure.headings
+        if heading.level == 4 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H4
+    )
+    sibling_h4 = tuple(
+        heading
+        for heading in indented_h4_structure.headings
+        if heading.level == 4 and heading.title == indented_h4_title
+    )
+    visible_begin = tuple(
+        line
+        for line in indented_h4_structure.ordinary_lines
+        if line.content == CURRENT_COLUMN_ORDER_BEGIN_MARKER
+    )
+    indented_h4_observed = (
+        len(expected_h4),
+        len(sibling_h4),
+        len(visible_begin),
+        bool(
+            expected_h4
+            and sibling_h4
+            and visible_begin
+            and expected_h4[0].start < sibling_h4[0].start < visible_begin[0].start
+        ),
+        parse_outcome(indented_h4_mutant),
+    )
+
+    section_43_title = "43. Indented later section"
+    section_43_mutant = owner + ("\n   ## " + section_43_title + "\n").encode(
+        "utf-8"
+    )
+    section_43_structure = _current_column_order_markdown_structure(
+        section_43_mutant
+    )
+    level_two = tuple(
+        heading for heading in section_43_structure.headings if heading.level == 2
+    )
+    section_43_observed = (
+        heading_count(section_43_structure, 2, section_43_title),
+        level_two[-1].title,
+        parse_outcome(section_43_mutant),
+    )
+
+    no_space_hash_title = CURRENT_COLUMN_ORDER_OWNER_H4 + "#"
+    no_space_hash_mutant = owner.replace(
+        owner_h4_line,
+        ("#### " + no_space_hash_title + "\n").encode("utf-8"),
+        1,
+    )
+    no_space_hash_structure = _current_column_order_markdown_structure(
+        no_space_hash_mutant
+    )
+    no_space_hash_observed = (
+        heading_count(
+            no_space_hash_structure,
+            4,
+            CURRENT_COLUMN_ORDER_OWNER_H4,
+        ),
+        heading_count(no_space_hash_structure, 4, no_space_hash_title),
+        parse_outcome(no_space_hash_mutant),
+    )
+
+    valid_closing_hash_mutant = owner.replace(
+        owner_h4_line,
+        ("#### " + CURRENT_COLUMN_ORDER_OWNER_H4 + " \t### \t\n").encode(
+            "utf-8"
+        ),
+        1,
+    )
+    valid_closing_hash_structure = _current_column_order_markdown_structure(
+        valid_closing_hash_mutant
+    )
+    valid_closing_hash_observed = (
+        heading_count(
+            valid_closing_hash_structure,
+            4,
+            CURRENT_COLUMN_ORDER_OWNER_H4,
+        ),
+        parse_outcome(valid_closing_hash_mutant),
+    )
+
+    indented_owner_observed: list[tuple[int, int, int, bool, str]] = []
+    for indent in (1, 2, 3):
+        prefix = b" " * indent
+        mutant = owner.replace(
+            designated_line,
+            prefix + designated_line,
+            1,
+        ).replace(
+            owner_h4_line,
+            prefix + owner_h4_line,
+            1,
+        )
+        structure = _current_column_order_markdown_structure(mutant)
+        matching_h3 = tuple(
+            heading
+            for heading in structure.headings
+            if heading.level == 3 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H3
+        )
+        matching_h4 = tuple(
+            heading
+            for heading in structure.headings
+            if heading.level == 4 and heading.title == CURRENT_COLUMN_ORDER_OWNER_H4
+        )
+        visible_wrapper = _current_column_order_visible_owner_wrappers(
+            mutant,
+            structure,
+        )
+        indented_owner_observed.append(
+            (
+                indent,
+                len(matching_h3),
+                len(matching_h4),
+                bool(
+                    matching_h3
+                    and matching_h4
+                    and visible_wrapper
+                    and matching_h3[0].start
+                    < matching_h4[0].start
+                    < visible_wrapper[0].begin_line.start
+                ),
+                parse_outcome(mutant),
+            )
+        )
+
+    four_space_line = b"    " + owner_h4_line
+    four_space_mutant = owner.replace(owner_h4_line, four_space_line, 1)
+    four_space_structure = _current_column_order_markdown_structure(
+        four_space_mutant
+    )
+    four_space_observed = (
+        heading_count(
+            four_space_structure,
+            4,
+            CURRENT_COLUMN_ORDER_OWNER_H4,
+        ),
+        sum(line.content == four_space_line[:-1].decode("utf-8") for line in four_space_structure.ordinary_lines),
+        parse_outcome(four_space_mutant),
+    )
+
+    no_delimiter_line = (
+        "###" + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
+    ).encode("utf-8")
+    no_delimiter_mutant = owner.replace(designated_line, no_delimiter_line, 1)
+    no_delimiter_structure = _current_column_order_markdown_structure(
+        no_delimiter_mutant
+    )
+    no_delimiter_observed = (
+        heading_count(
+            no_delimiter_structure,
+            3,
+            CURRENT_COLUMN_ORDER_OWNER_H3,
+        ),
+        sum(
+            line.content == no_delimiter_line[:-1].decode("utf-8")
+            for line in no_delimiter_structure.ordinary_lines
+        ),
+        parse_outcome(no_delimiter_mutant),
+    )
+
+    unicode_delimiter_observed: list[tuple[str, int, int, str]] = []
+    for name, delimiter in (("nbsp", "\u00a0"), ("em_space", "\u2003")):
+        invalid_line = (
+            "###" + delimiter + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
+        ).encode("utf-8")
+        mutant = owner.replace(designated_line, invalid_line, 1)
+        structure = _current_column_order_markdown_structure(mutant)
+        unicode_delimiter_observed.append(
+            (
+                name,
+                heading_count(
+                    structure,
+                    3,
+                    CURRENT_COLUMN_ORDER_OWNER_H3,
+                ),
+                sum(
+                    line.content == invalid_line[:-1].decode("utf-8")
+                    for line in structure.ordinary_lines
+                ),
+                parse_outcome(mutant),
+            )
+        )
+
+    assert indented_h3_observed == (
+        1,
+        1,
+        1,
+        True,
+        CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,
+    )
+    assert indented_h4_observed == (
+        1,
+        1,
+        1,
+        True,
+        CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,
+    )
+    assert section_43_observed == (
+        1,
+        section_43_title,
+        CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,
+    )
+    assert no_space_hash_observed == (
+        0,
+        1,
+        CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,
+    )
+    assert valid_closing_hash_observed == (1, "accepted_exact_current_orders")
+    assert indented_owner_observed == [
+        (indent, 1, 1, True, "accepted_exact_current_orders")
+        for indent in (1, 2, 3)
+    ]
+    assert four_space_observed == (
+        0,
+        1,
+        CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,
+    )
+    assert no_delimiter_observed == (
+        0,
+        1,
+        CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC,
+    )
+    assert unicode_delimiter_observed == [
+        (name, 0, 1, CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC)
+        for name in ("nbsp", "em_space")
+    ]
 
 
 def test_reaudit_fully_redigested_proposal_disposition_identity_collapse_is_causal() -> None:

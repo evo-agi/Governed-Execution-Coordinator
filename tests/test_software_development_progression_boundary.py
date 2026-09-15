@@ -720,15 +720,18 @@ def test_c2b2_current_private_reader_boundary_preserves_progression_nonimplement
         )
     )
     for phrase in (
-        "private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral program-genesis family",
-        "Slice 1 uses this administrative boundary at application generation 2",
+        "private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral program-genesis and author-effect families plus the Section 41 pre-execution proposal-selection family",
+        "Slice 1 introduced this administrative boundary at application generation 2",
+        "current generation-2 terminal is `0003_cognitive_proposal_and_selection_state`",
         "Slice 2 adds private pure row/value source for those nineteen tables",
         "no SQLite or SQL in that pure layer",
         "Slice 3 implements exactly twelve private reader roles",
-        "Only the mutation-receipt reader has the bounded private C2B3 caller",
+        "All twelve have the bounded private C2B3D author-effect caller",
+        "mutation-receipt reader also retains its VS1B caller",
         "no package export, public reader, `StateStore`/public `WriterSession` method",
         "exact nine-row/eight-entry genesis family",
-        "Durable development progression beyond the exact initialization decision, source-observation ingest, later semantic decisions",
+        "Section 41 separately implements the private non-executable pre-execution selection family",
+        "Durable development progression beyond the exact initialization, author-effect, and pre-execution selection decisions, source-observation ingest, post-execution semantic decisions",
     ):
         assert phrase in section
 

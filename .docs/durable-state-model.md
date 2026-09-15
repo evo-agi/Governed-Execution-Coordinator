@@ -59,23 +59,23 @@ creates no durable state. C2A1 implements only internal immutable no-I/O values
 and the six named pure coherence validators; those values neither read nor
 write SQLite and confer no durable or executable authority. The current
 implemented database is application generation 2 with terminal catalog entry
-`0002_development_program_and_effect_state`; migration 0001 bytes, history, and
-table meanings remain unchanged. C2B1 supplies bounded administrative migration
-mechanics, and C2B2 Slice 1 adds only the frozen physical nineteen-table core.
+`0003_cognitive_proposal_and_selection_state`; migration 0001 and 0002 bytes,
+history, and table meanings remain unchanged. C2B1 supplies bounded
+administrative migration mechanics, and C2B2 Slice 1 adds only the frozen
+physical nineteen-table core.
 Slice 2 adds private pure no-I/O row/value contracts for those nineteen tables,
 including bounded C2A reconstruction and digest verification. Slice 3 adds
 exactly twelve private reader roles over those values, with bounded literal
 SELECTs through the existing nominal capability seam. All twelve now have the
 private C2B3D author-effect caller; the mutation-receipt reader also retains the
-private VS1B initialization caller.
-The accepted C2B0 target contract also reserves
-`0003_development_observation_and_progression_state` and freezes its exact
-target responsibilities and inventory. No migration-0003 SQL, public C2B
-reader, bound-effect mutation, observation ingest, later progression runtime,
-external authority verifier, WorkSpec custody, worker/runtime behavior, or
-external effect is currently implemented. C2B3's private initialization and
-author-effect establishment mutations are the implemented C2B durable family
-behaviors.
+private VS1B initialization caller. Sections 41 and 42 govern the exact
+migration-0003 physical schema and the private pre-execution proposal-selection
+runtime. No public C2B reader, bound-effect mutation, observation ingest,
+post-execution progression runtime, external authority verifier, WorkSpec
+custody, worker/runtime behavior, or external effect is currently implemented.
+C2B3's private initialization and author-effect establishment mutations plus
+the Section 41 pre-execution selection mutation are the implemented C2B durable
+family behaviors.
 
 Lifecycle state names such as `cycle_starting`, `worker_running`, `validating`,
 `auditing`, repair, commit, and cleanup names do not transfer runtime authority
@@ -86,19 +86,24 @@ dependency, and disabled-stage contracts remain current v1 compatibility
 behavior but are not frozen as the target model. Schema-0001 meanings,
 migration-0001 identity, `WriterSession`, transition/global-stop persistence,
 evaluator behavior, state names, and disabled-stage behavior remain unchanged;
-the cumulative physical tip is now migration 0002.
+the cumulative physical tip is now migration 0003 at unchanged application
+generation 2. Migration 0002 remains an unchanged historical catalog prefix.
 
 Direct-local worker execution, capsule construction or custody, review,
 validation, repair, Git effects, ES routing, publication, and autonomous
 progression are deferred or blocked effects. C2B physical core representability
-and private pure row/value validation are current; private readers are also
-current. Only their mutation-receipt role has the bounded private C2B3 genesis
-caller. Non-genesis C2B reader integration, mutation, replay/recovery, and
-progression behavior remain target-only. The
-reserved target migration inventories are fixed by
-`.docs/c2b-durable-development-state.md`; later SQL encoding, safe-reference
-representation, observation-storage mechanics, and runtime integration remain
-future implementation details.
+and private pure row/value validation are current. The private-reader layer
+remains exactly twelve private roles and twenty-four bounded query contracts;
+all are non-public and create no durable authority. All twelve roles have the
+bounded private C2B3D author-effect caller, the mutation-receipt role also
+retains the private VS1B initialization caller, and the later Section 41 runtime
+composes with a bounded seven-role subset. Those later callers do not widen the
+reader query contract. C2B2 did not implement or acquire ownership of migration
+0003 or Section 41, and reader reports and projections remain neither durable
+program truth nor effect authority. Bound-effect mutation, observation ingest,
+post-execution progression, and their later SQL and runtime integration remain
+target-only implementation details governed by
+`.docs/c2b-durable-development-state.md`.
 
 The work-item state schema id is:
 
@@ -292,8 +297,9 @@ allocation through the pure allocator only after fresh evaluation.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They use a
 temporary current-generation-2 database at terminal migration
-`0002_development_program_and_effect_state`, but directly seed only the
-historical schema-0001 B3/B4 graph and leave all nineteen C2B tables empty.
+`0003_cognitive_proposal_and_selection_state`, but directly seed only the
+historical schema-0001 B3/B4 graph and leave all nineteen C2B core tables and
+all nine cognitive proposal-selection tables empty.
 Unsupported authorization remains production/default, optional persisted events
 are domain-rejected, and no accepted executable transition is proved. The
 fixtures add no production admission, authorization, product state
@@ -434,15 +440,15 @@ evaluator, sequence, write, rollback, COMMIT, or uncertainty ownership into
 ## C2B0 Accepted Durable-Development Target
 
 Status: `ACCEPTED TARGET CONTRACT` for remaining C2B behavior and `CURRENT
-IMPLEMENTED CONTRACT` for the bounded private VS1B genesis and C2B3D
-author-effect families. C2B2 Slice 1 has
+IMPLEMENTED CONTRACT` for the bounded private VS1B genesis, C2B3D
+author-effect, and Section 41 pre-execution proposal-selection families. C2B2 Slice 1 has
 implemented the migration-0002 physical core at application generation 2, and
 Slice 2 can purely validate already-fetched tuples as private row values. Slice
 3 implements twelve private reader roles; all have the bounded C2B3D caller,
 and the mutation-receipt role also has the private VS1B caller. Outside the
-exact nine-row genesis and ten-row author-effect families, the target product
-records below are not populated or accessible through a C2B product runtime.
-Migration 0003 remains a reserved target identity.
+exact nine-row genesis, ten-row author-effect, and migration-0003 cognitive
+proposal-selection families, the target product records below are not
+populated or accessible through a C2B product runtime.
 C2B1 owns `sqlite_migration.py` administrative transactions;
 those transactions are not a second product writer, a C2B product mutation
 transaction, or durable progression truth.
@@ -465,15 +471,16 @@ entries, candidate/capsule bytes, paths, modes, file digests, lengths,
 credentials, endpoints, prompts, transcripts, and workspace material remain
 outside SQLite.
 
-The accepted complete target comprises implemented migration
-`0002_development_program_and_effect_state` plus target migration
-`0003_development_observation_and_progression_state`, twenty-eight new tables,
-forty-six new triggers, and two explicit indexes across both migrations.
-Migration 0002 currently contributes nineteen tables, thirty triggers, and one
-explicit index. Migration 0003, bound-effect and later C2B writer/mutation and
-replay/recovery, ingest, later decision runtime, external authority verifier,
-and latch behavior remain absent. The current private readers confer no product
-or executable authority.
+The implemented cumulative generation-2 schema comprises
+`0002_development_program_and_effect_state` plus
+`0003_cognitive_proposal_and_selection_state`: twenty-eight tables, forty-eight
+triggers, and one explicit index across those migrations. Migration 0002
+contributes nineteen tables, thirty triggers, and the index; migration 0003
+contributes nine tables and eighteen triggers. Bound-effect and post-execution
+C2B mutation/replay/recovery, observation ingest, later decision runtime,
+external authority verification, and latch behavior remain absent. The current
+private readers and pre-execution disposition runtime confer no executable
+authority.
 
 <!-- C2B3_NARROWED_DURABLE_STATE_BEGIN -->
 ## Vertical-slice durable-state narrowing
@@ -498,17 +505,20 @@ retry. Raw WorkSpec and retrieval bearer authority never enter SQLite.
 
 Custody, fresh external verification, invocation, evidence, Git
 reconciliation, and ES conformance remain assigned to the just-in-time phase
-that first needs them. Current state remains generation 2 at migration 0002;
-VS1B and C2B3D create no worker/runtime or migration-0003 source.
+that first needs them. Current state remains generation 2 and terminates at
+migration 0003; its new runtime is private, pre-execution, and non-executable.
 <!-- C2B3_NARROWED_DURABLE_STATE_END -->
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

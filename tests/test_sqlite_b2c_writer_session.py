@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from contextlib import closing
 import gc
 import hashlib
 import inspect
@@ -119,7 +120,7 @@ def _location(tmp_path: Path) -> CoordinatorStateLocation:
 
 
 def _writer_rows(location: CoordinatorStateLocation) -> list[tuple[object, ...]]:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         return connection.execute(
             """
             SELECT singleton_id, writer_ref, generation, issued_ref, issuance_nonce_digest, acquired_at
@@ -166,7 +167,7 @@ def _insert_writer_row(
     digest: str = "a" * 64,
     acquired_at: str = "2026-07-16T00:00:00Z",
 ) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute(
             """
             INSERT INTO writer_ownership
@@ -179,7 +180,7 @@ def _insert_writer_row(
 
 
 def _insert_malformed_writer_row_ignoring_checks(location: CoordinatorStateLocation, digest: str) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute("PRAGMA ignore_check_constraints = ON")
         connection.execute(
             """
@@ -201,7 +202,7 @@ def _insert_writer_row_ignoring_checks(
     digest: str = "a" * 64,
     acquired_at: str = "2026-07-16T00:00:00Z",
 ) -> None:
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute("PRAGMA ignore_check_constraints = ON")
         connection.execute(
             """
@@ -366,7 +367,7 @@ def test_writer_unknown_state_rejects_without_replacing_production_catalog(
 ) -> None:
     location = _location(tmp_path)
     initialize_database(location)
-    with sqlite3.connect(location.database_path) as connection:
+    with closing(sqlite3.connect(location.database_path)) as connection, connection:
         connection.execute(
             "CREATE TABLE neutral_writer_unknown (value INTEGER NOT NULL)"
         )
@@ -1684,6 +1685,7 @@ def test_runtime_boundaries_exports_schema_and_no_b3_b4_surfaces() -> None:
     assert migrations == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
+        "0003_cognitive_proposal_and_selection_state.sql",
     ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

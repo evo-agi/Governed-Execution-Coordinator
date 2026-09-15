@@ -420,8 +420,11 @@ allocation contracts. It executes no SQL and mutates no state.
 
 B3 tests-only coherent fixtures are implemented under `tests/` only for
 historical schema-0001 B3/B4 graphs hosted in temporary current-generation-2
-databases at terminal migration `0002_development_program_and_effect_state`.
-All nineteen C2B tables remain empty. Fixtures are not production admission,
+databases at terminal migration `0003_cognitive_proposal_and_selection_state`.
+All nineteen C2B tables and all nine cognitive proposal-selection tables remain
+empty. Migration 0002 remains the unchanged historical C2B2 prefix; neither
+B3c0a nor C2B2 implemented or acquired ownership of migration 0003. Fixtures
+are not production admission,
 authorization, runtime authority, accepted operator-policy authority,
 executable transition proof, or proof of C2B row/value, reader, mutation, or
 replay behavior. `.docs/b3-tests-only-coherent-fixtures.md` owns the exact

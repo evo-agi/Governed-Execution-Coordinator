@@ -2,21 +2,32 @@
 
 ## Status And Authority
 
-Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. All
-twelve roles now have the bounded private C2B3D author-effect establishment,
-replay, and recovery caller; the mutation-receipt reader also retains its
-bounded private VS1B program-initialization and recovery caller.
+Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. The
+bounded reader layer remains exactly twelve private roles and twenty-four
+bounded query contracts. Present production composition is source-derived and
+has exactly three private importer modules:
+`_sqlite_development_author_effect_establishment.py`,
+`_sqlite_development_program_initialization.py`, and
+`_sqlite_development_pre_execution_plan_disposition.py`. All twelve roles now
+have the bounded private C2B3D author-effect establishment, replay, and recovery
+caller; the mutation-receipt reader also retains its bounded private VS1B
+program-initialization and recovery caller; and the later Section 41 runtime
+composes with an exact seven-role subset. The exact role mapping is recorded in
+the current-integration section below.
 
 This is an implementation-status and private-API record. The semantic owner
 remains `.docs/c2b-durable-development-state.md`; migration 0002 and cumulative
-packaged SQL remain physical-schema authority; the existing transaction
+packaged SQL through current migration 0003 remain physical-schema authority;
+the existing transaction
 controller remains capability authority. This document is not semantic,
 schema, migration, capability, or runtime authority, and it defines no public
 API.
 
 Slice 3 itself added no schema or migration, created no durable record, and
-introduced no production caller. Later VS1B and C2B3D callers do not widen the
-package root, `StateStore`, or public `WriterSession` protocol.
+introduced no production caller. C2B3D, VS1B, and Section 41 are later
+consumers. Their composition does not retroactively make C2B2 the owner of
+those runtimes and does not widen the package root, `StateStore`, or public
+`WriterSession` protocol.
 
 ## Exact Private Source
 
@@ -50,8 +61,8 @@ _read_development_delivery_head
 ```
 
 There is no registry, dispatcher, dynamic SQL, generic table lookup, or public
-reader. The only production importers are the bounded private VS1B and C2B3D
-family runtimes.
+reader. Present production importing is limited to the exact source-derived
+three-module mapping in the current-integration section below.
 
 ## Seven Private Aggregate And Page Values
 
@@ -169,14 +180,71 @@ graph, replay, or recovery proof.
 
 ## Current Integration And Remaining Nonimplementation
 
-C2B3D consumes all twelve roles to verify the genesis basis, complete original
-author-effect family, and bounded current effect/delivery heads. The receipt
-role is shared with VS1B. The exact twenty-four query specifications and their
-behavior are unchanged. C2B3D's three exact family-row locators and bounded
-identity-collision probes are private family-local queries and do not enlarge
-this Slice-3 inventory.
+Present production composition is source-derived and has exactly three private
+importer modules with this exact role mapping:
 
-Still absent are a public reader API, package-root export, `StateStore`/public
-`WriterSession` reader method, every later C2B mutation family, migration 0003,
-and every worker, model, process, capsule, Git, direct-local execution,
-Execution Substrate, Bridge, publication, or other external effect.
+<!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_BEGIN -->
+```json
+{
+  "_sqlite_development_author_effect_establishment.py": [
+    "_read_development_accepted_intent_revision_by_exact_ref",
+    "_read_development_attempt_fence_command_effect_aggregate",
+    "_read_development_authority_evaluation_by_exact_ref",
+    "_read_development_decision_by_decision_ref",
+    "_read_development_delivery_head",
+    "_read_development_effect_head",
+    "_read_development_initialize_decision_and_resulting_version",
+    "_read_development_mutation_receipt_by_mutation_ref",
+    "_read_development_paged_program_version_membership",
+    "_read_development_program_head_and_current_version",
+    "_read_development_work_item_head_and_revision_by_exact_ref",
+    "_read_development_work_spec_safe_binding"
+  ],
+  "_sqlite_development_program_initialization.py": [
+    "_read_development_mutation_receipt_by_mutation_ref"
+  ],
+  "_sqlite_development_pre_execution_plan_disposition.py": [
+    "_read_development_attempt_fence_command_effect_aggregate",
+    "_read_development_authority_evaluation_by_exact_ref",
+    "_read_development_delivery_head",
+    "_read_development_effect_head",
+    "_read_development_program_head_and_current_version",
+    "_read_development_work_item_head_and_revision_by_exact_ref",
+    "_read_development_work_spec_safe_binding"
+  ]
+}
+```
+<!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_END -->
+
+C2B3D consumes all twelve roles to verify the genesis basis, complete original
+author-effect family, and bounded current effect/delivery heads. All twelve
+roles have the bounded private C2B3D author-effect caller. The mutation-receipt
+role also retains the private VS1B program-initialization and recovery caller,
+and the later Section 41 selection runtime composes with the bounded seven-role
+subset shown above. C2B3D, VS1B, and Section 41 are later consumers. Their
+composition does not retroactively make C2B2 the owner of those runtimes. The
+exact twenty-four query specifications and their behavior are unchanged.
+C2B3D's three exact family-row locators and bounded identity-collision probes
+are private family-local queries and do not enlarge this Slice-3 inventory.
+
+Migration 0003 now exists in the current repository and is the current packaged
+migration tip. The C2B2 private-reader Slice 3 itself did not implement or own
+migration 0003, and that migration does not retroactively widen this contract
+or its exact twenty-four-query inventory. Sections 41 and 42 own the newer
+cognitive proposal-selection runtime. Generated reports and reader projections
+remain non-authoritative; neither becomes durable program state or effect
+authority.
+
+C2B2 did not implement or acquire ownership of migration 0003 or Section 41.
+The added Section 41 composition does not widen the twenty-four-query reader
+contract, creates no public package or protocol surface, grants no durable
+program truth, executable permission, effect authority, or other durable
+authority, and does not turn reports or reader projections into authoritative
+state; reader reports and projections remain neither durable program truth nor
+effect authority.
+
+Still absent from this C2B2 private-reader slice are a public reader API,
+package-root export, `StateStore`/public `WriterSession` reader method,
+ownership of later C2B mutation families, and every worker, model, process,
+capsule, Git, direct-local execution, Execution Substrate, Bridge, publication,
+or other external effect.

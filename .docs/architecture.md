@@ -330,8 +330,9 @@ non-receipt until B3c4 persists and commits it.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
 temporary current-generation-2 database at terminal migration
-`0002_development_program_and_effect_state`, while directly seeding only the
-historical schema-0001 B3/B4 graph. All nineteen C2B tables remain empty. The
+`0003_cognitive_proposal_and_selection_state`, while directly seeding only the
+historical schema-0001 B3/B4 graph. All nineteen C2B core tables and all nine
+cognitive proposal-selection tables remain empty. The
 fixture graph is not production admission, authorization, runtime authority,
 product state initialization, accepted operator-policy authority, an executable
 transition proof, or proof of C2B row/value, reader, mutation, or replay
@@ -402,8 +403,9 @@ in:
 
 B1/B1.1 historically established explicit operator-local SQLite bootstrap and
 observational validation. C2B1 owns the bounded administrative migration
-transaction in `sqlite_migration.py`; C2B2 Slice 1 now uses it at application
-generation 2 and terminal migration 0002:
+transaction in `sqlite_migration.py`; C2B2 Slice 1 introduced application
+generation 2 and migration 0002, and the current catalog now terminates at
+migration 0003 while retaining generation 2:
 
 - fixed per-user local state-location policy using the canonical NWP
   Coordinator component name, not the repository display name;
@@ -456,10 +458,18 @@ only private pure tuple-to-value validation, eighteen self-digest checks, five
 receipt result projections, bounded C2A reconstruction, WorkSpec safe
 projection, and the common supplied-entry graph digest primitive. It performs
 no SQL. Slice 3 separately implements private database readers with synthetic
-execution proofs; only the mutation-receipt reader has the bounded private C2B3
-caller. C2B3 adds only its program-genesis mutation, exact family verification,
-replay, and recovery. Other C2B mutation families, observation ingest, later
-decision runtime, effects, and worker/runtime behavior remain absent.
+execution proofs. The private-reader layer remains exactly twelve private roles
+and twenty-four bounded query contracts with no public surface or reader-created
+durable authority. All twelve roles have the bounded private C2B3D author-effect caller,
+the mutation-receipt role also retains the private VS1B program-initialization
+caller, and the later Section 41 selection runtime composes with a bounded
+seven-role subset. Those later callers do not widen the reader query contract.
+C2B2 did not implement or acquire ownership of migration 0003 or Section 41;
+reader reports and projections remain neither durable program truth nor effect
+authority. C2B3 provides its private program-genesis and author-effect families,
+and Section 41 provides private pre-execution selection. Other C2B mutation
+families, observation ingest, later decision runtime, effects, and
+worker/runtime behavior remain absent.
 
 ## B2a Writer-Session Contract
 
@@ -601,16 +611,18 @@ The target private transaction roles separate program initialization,
 author-effect establishment, bound validation/review/cancellation-effect
 establishment, source-observation ingest, and progression decisions. Durable
 intent must precede future external I/O. C2B2 Slice 1 provides the
-migration-0002 physical schema at current generation 2, and Slice 2 provides
+migration-0002 physical core at current generation 2, and Slice 2 provides
 private pure row/value source for its nineteen tables. Slice 3 provides exactly
 twelve private reader roles with no public surface; all twelve have the bounded
 C2B3D caller, while the receipt role also retains the VS1B caller. C2B3
 privately persists and exactly verifies the route-neutral nine-row/eight-entry
 program-genesis family and the ten-row/nine-entry author-effect family,
-including same-command replay and readback-only commit-outcome resolution. No
-bound effect, observation, later progression-decision runtime, worker, Bridge
-dependency, ES dependency, service, queue, scheduler, or autonomous loop
-exists.
+including same-command replay and readback-only commit-outcome resolution.
+Migration 0003 now adds only the private non-executable pre-execution
+proposal-selection family with receipt-first replay and fresh-writer read-only
+recovery. No bound effect, observation, post-execution progression-decision
+runtime, worker, Bridge dependency, ES dependency, service, queue, scheduler,
+or autonomous loop exists.
 
 <!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->
 ## C2B3 vertical-slice governing narrowing

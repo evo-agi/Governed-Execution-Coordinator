@@ -36,11 +36,29 @@ from ge_nwp_coordinator._development_author_effect_establishment_contracts impor
     _development_author_effect_establishment_write_plan,
     _require_exact_development_author_effect_establishment_command,
 )
+from ge_nwp_coordinator._development_pre_execution_plan_disposition_contracts import (
+    PreExecutionPlanDispositionConflictReasonV1,
+    PreExecutionPlanDispositionConflictV1,
+    PreExecutionPlanDispositionRecoveryClassificationV1,
+    PreExecutionPlanDispositionRecoveryProbeV1,
+    PreExecutionPlanDispositionRecoveryResultV1,
+    PreExecutionPlanDispositionResultV1,
+    _require_exact_recovery_probe,
+)
 from ge_nwp_coordinator._sqlite_development_author_effect_establishment import (
     _FreshDevelopmentAuthorEffectEstablishment,
     _execute_development_author_effect_establishment_writes,
     _recover_development_author_effect_establishment_after_fencing,
     _resolve_development_author_effect_establishment_apply_after_fencing,
+)
+from ge_nwp_coordinator._sqlite_development_pre_execution_plan_disposition import (
+    _FreshPreExecutionPlanDisposition,
+    _PlanningSelectionNotPermitted,
+    _SelectionHeadCASConflict,
+    _build_write_plan as _pre_execution_plan_disposition_write_plan,
+    _execute_pre_execution_plan_disposition_writes,
+    _recover_pre_execution_plan_disposition_after_fencing,
+    _resolve_pre_execution_plan_disposition_after_fencing,
 )
 from ge_nwp_coordinator._sqlite_development_program_initialization import (
     _FreshDevelopmentProgramInitialization,
@@ -884,6 +902,43 @@ class _CoordinatorMutationTransactionController:
             raise _mutation_failed()
         return result
 
+    def run_atomic_pre_execution_plan_disposition(
+        self,
+        *,
+        mutation_ref: object,
+        mutation_command_digest: object,
+        bundle: object,
+        disposition_identity: object,
+        recovery_probe: PreExecutionPlanDispositionRecoveryProbeV1,
+    ) -> PreExecutionPlanDispositionResultV1 | PreExecutionPlanDispositionConflictV1:
+        result = self._run_atomic_pre_execution_plan_disposition_transaction(
+            mutation_ref=mutation_ref,
+            mutation_command_digest=mutation_command_digest,
+            bundle=bundle,
+            disposition_identity=disposition_identity,
+            recovery_probe=recovery_probe,
+        )
+        if type(result) not in (
+            PreExecutionPlanDispositionResultV1,
+            PreExecutionPlanDispositionConflictV1,
+        ):
+            raise _mutation_failed()
+        return result
+
+    def run_pre_execution_plan_disposition_recovery(
+        self,
+        *,
+        probe: PreExecutionPlanDispositionRecoveryProbeV1,
+    ) -> PreExecutionPlanDispositionRecoveryResultV1:
+        if type(probe) is not PreExecutionPlanDispositionRecoveryProbeV1:
+            raise _mutation_failed()
+        result = self._run_pre_execution_plan_disposition_recovery_transaction(
+            probe=probe
+        )
+        if type(result) is not PreExecutionPlanDispositionRecoveryResultV1:
+            raise _mutation_failed()
+        return result
+
     def _run_writer_fencing_transaction(self) -> _WriterIssuanceMatch:
         self._require_new_owner()
         mutation_lease = self._acquire_controller_mutation_lease()
@@ -1294,6 +1349,129 @@ class _CoordinatorMutationTransactionController:
             )
         return result
 
+    def _run_atomic_pre_execution_plan_disposition_transaction(
+        self,
+        *,
+        mutation_ref: object,
+        mutation_command_digest: object,
+        bundle: object,
+        disposition_identity: object,
+        recovery_probe: PreExecutionPlanDispositionRecoveryProbeV1,
+    ) -> PreExecutionPlanDispositionResultV1 | PreExecutionPlanDispositionConflictV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: (
+            PreExecutionPlanDispositionResultV1
+            | PreExecutionPlanDispositionConflictV1
+            | None
+        ) = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is not _WriterIssuanceMatch.MATCH:
+                    planned_exception = _mutation_failed()
+                else:
+                    resolution = _resolve_pre_execution_plan_disposition_after_fencing(
+                        capability=self._capability,
+                        mutation_ref=mutation_ref,
+                        mutation_command_digest=mutation_command_digest,
+                        bundle=bundle,
+                        disposition_identity=disposition_identity,
+                        recovery_probe=recovery_probe,
+                    )
+                    if type(resolution) is _FreshPreExecutionPlanDisposition:
+                        planned_result = self._commit_fresh_pre_execution_plan_disposition(
+                            resolution
+                        )
+                        if type(planned_result) is PreExecutionPlanDispositionConflictV1:
+                            cleanup_exception = self._resolve_rollback_before_commit()
+                    elif type(resolution) in (
+                        PreExecutionPlanDispositionResultV1,
+                        PreExecutionPlanDispositionConflictV1,
+                    ):
+                        planned_result = resolution
+                        cleanup_exception = self._resolve_rollback_before_commit()
+                    else:
+                        planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+            bundle = None
+            disposition_identity = None
+            recovery_probe = None  # type: ignore[assignment]
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _run_pre_execution_plan_disposition_recovery_transaction(
+        self,
+        *,
+        probe: PreExecutionPlanDispositionRecoveryProbeV1,
+    ) -> PreExecutionPlanDispositionRecoveryResultV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result = PreExecutionPlanDispositionRecoveryResultV1(
+            classification=PreExecutionPlanDispositionRecoveryClassificationV1.UNRESOLVED,
+            observed_depth=0,
+            committed_result=None,
+        )
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is _WriterIssuanceMatch.MATCH:
+                    result = _recover_pre_execution_plan_disposition_after_fencing(
+                        capability=self._capability,
+                        probe=probe,
+                    )
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                try:
+                    self._resolve_rollback_before_commit()
+                except BaseException:
+                    pass
+                raise
+            except Exception:
+                result = PreExecutionPlanDispositionRecoveryResultV1(
+                    classification=PreExecutionPlanDispositionRecoveryClassificationV1.UNRESOLVED,
+                    observed_depth=0,
+                    committed_result=None,
+                )
+            cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+            probe = None  # type: ignore[assignment]
+        if cleanup_exception is not None:
+            return PreExecutionPlanDispositionRecoveryResultV1(
+                classification=PreExecutionPlanDispositionRecoveryClassificationV1.UNRESOLVED,
+                observed_depth=0,
+                committed_result=None,
+            )
+        return result
+
     def _acquire_controller_mutation_lease(self) -> Any:
         mutation_lease_failed = False
         mutation_lease_exception: SQLiteMutationStoreError | None = None
@@ -1641,6 +1819,51 @@ class _CoordinatorMutationTransactionController:
             force_cleanup_on_uncertainty=True,
         )
         if type(committed) is not DevelopmentAuthorEffectEstablishmentResultV1:
+            raise _database_integrity_failure()
+        return committed
+
+    def _commit_fresh_pre_execution_plan_disposition(
+        self,
+        fresh: _FreshPreExecutionPlanDisposition,
+    ) -> PreExecutionPlanDispositionResultV1 | PreExecutionPlanDispositionConflictV1:
+        if type(fresh) is not _FreshPreExecutionPlanDisposition:
+            raise _database_integrity_failure()
+        connection = self._connection
+        if type(connection) is not sqlite3.Connection:
+            raise _mutation_failed()
+        if self._resolution_state is not _MutationCommitResolutionState.CAPABILITY_ACTIVE:
+            raise _mutation_failed()
+        timestamp = _capture_transaction_timestamp()
+        try:
+            plan = _pre_execution_plan_disposition_write_plan(fresh, timestamp)
+        except _PlanningSelectionNotPermitted:
+            return PreExecutionPlanDispositionConflictV1(
+                reason=(
+                    PreExecutionPlanDispositionConflictReasonV1.PLANNING_SELECTION_NOT_PERMITTED
+                ),
+                mutation_ref=fresh.command.mutation_ref,
+                command_digest=fresh.command.mutation_command_digest,
+                program_ref=fresh.command.program_ref,
+            )
+        if type(plan.planned_result) is not PreExecutionPlanDispositionResultV1:
+            raise _database_integrity_failure()
+        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+        try:
+            _execute_pre_execution_plan_disposition_writes(connection, plan)
+        except _SelectionHeadCASConflict:
+            return PreExecutionPlanDispositionConflictV1(
+                reason=PreExecutionPlanDispositionConflictReasonV1.SELECTION_HEAD_VERSION_CONFLICT,
+                mutation_ref=plan.command.mutation_ref,
+                command_digest=plan.command.mutation_command_digest,
+                program_ref=plan.command.program_ref,
+            )
+        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+        del connection
+        committed = self._commit_after_fresh_writes(
+            plan.planned_result,
+            force_cleanup_on_uncertainty=True,
+        )
+        if type(committed) is not PreExecutionPlanDispositionResultV1:
             raise _database_integrity_failure()
         return committed
 
@@ -2202,6 +2425,116 @@ def _run_development_author_effect_establishment_recovery(
     controller = None
     checked = None
     command = None  # type: ignore[assignment]
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_atomic_pre_execution_plan_disposition(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    mutation_ref: object,
+    mutation_command_digest: object,
+    bundle: object,
+    disposition_identity: object,
+    recovery_probe: object,
+) -> (
+    PreExecutionPlanDispositionResultV1
+    | PreExecutionPlanDispositionConflictV1
+    | _SafeMutationFailureDisposition
+):
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    checked_probe: PreExecutionPlanDispositionRecoveryProbeV1 | None = None
+    try:
+        checked_probe = _require_exact_recovery_probe(recovery_probe)
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_atomic_pre_execution_plan_disposition(
+            mutation_ref=mutation_ref,
+            mutation_command_digest=mutation_command_digest,
+            bundle=bundle,
+            disposition_identity=disposition_identity,
+            recovery_probe=checked_probe,
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        bundle = None
+        disposition_identity = None
+        recovery_probe = None
+        checked_probe = None
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        disposition = _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+        controller = None
+        bundle = None
+        disposition_identity = None
+        recovery_probe = None
+        checked_probe = None
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    bundle = None
+    disposition_identity = None
+    recovery_probe = None
+    checked_probe = None
+    operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_pre_execution_plan_disposition_recovery(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    probe: PreExecutionPlanDispositionRecoveryProbeV1,
+) -> PreExecutionPlanDispositionRecoveryResultV1 | _SafeMutationFailureDisposition:
+    if type(operation_lease) is not _WriterSessionOperationLease:
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    checked_probe: PreExecutionPlanDispositionRecoveryProbeV1 | None = None
+    try:
+        checked_probe = _require_exact_recovery_probe(probe)
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+        )
+        result = controller.run_pre_execution_plan_disposition_recovery(
+            probe=checked_probe
+        )
+    except SQLiteMutationStoreError as error:
+        disposition = _safe_mutation_failure_disposition(error)
+        error = None
+        controller = None
+        probe = None  # type: ignore[assignment]
+        checked_probe = None
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        disposition = _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+        controller = None
+        probe = None  # type: ignore[assignment]
+        checked_probe = None
+        operation_lease = None  # type: ignore[assignment]
+        return disposition
+    controller = None
+    probe = None  # type: ignore[assignment]
+    checked_probe = None
     operation_lease = None  # type: ignore[assignment]
     return result
 

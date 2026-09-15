@@ -153,31 +153,37 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         )
     )
     for phrase in (
-        "current implemented database is application generation 2 with terminal catalog entry `0002_development_program_and_effect_state`",
-        "migration 0001 bytes, history, and table meanings remain unchanged",
+        "current implemented database is application generation 2 with terminal catalog entry `0003_cognitive_proposal_and_selection_state`",
+        "migration 0001 and 0002 bytes, history, and table meanings remain unchanged",
         "C2B1 supplies bounded administrative migration mechanics",
         "C2B2 Slice 1 adds only the frozen physical nineteen-table core",
         "Slice 2 adds private pure no-I/O row/value contracts for those nineteen tables",
         "Slice 3 adds exactly twelve private reader roles over those values",
         "All twelve now have the private C2B3D author-effect caller",
         "mutation-receipt reader also retains the private VS1B initialization caller",
-        "accepted C2B0 target contract also reserves",
-        "`0003_development_observation_and_progression_state`",
-        "No migration-0003 SQL, public C2B reader, bound-effect mutation, observation ingest, later progression runtime",
-        "C2B3's private initialization and author-effect establishment mutations are the implemented C2B durable family behaviors",
+        "Sections 41 and 42 govern the exact migration-0003 physical schema and the private pre-execution proposal-selection runtime",
+        "No public C2B reader, bound-effect mutation, observation ingest, post-execution progression runtime",
+        "C2B3's private initialization and author-effect establishment mutations plus the Section 41 pre-execution selection mutation are the implemented C2B durable family behaviors",
+        "cumulative physical tip is now migration 0003 at unchanged application generation 2",
+        "private-reader layer remains exactly twelve private roles and twenty-four bounded query contracts",
+        "later Section 41 runtime composes with a bounded seven-role subset",
+        "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+        "reader reports and projections remain neither durable program truth nor effect authority",
     ):
         _require(
             phrase in current,
             "architecture.durable_state|heading=<current-status>|failure=current_target_distinction",
         )
     for phrase in (
+        "CURRENT IMPLEMENTED CONTRACT` for the bounded private VS1B genesis, C2B3D author-effect, and Section 41 pre-execution proposal-selection families",
         "C2B2 Slice 1 has implemented the migration-0002 physical core at application generation 2",
         "Slice 2 can purely validate already-fetched tuples as private row values",
         "Slice 3 implements twelve private reader roles; all have the bounded C2B3D caller",
         "mutation-receipt role also has the private VS1B caller",
-        "Migration 0003 remains a reserved target identity",
-        "accepted complete target comprises implemented migration",
-        "Migration 0003, bound-effect and later C2B writer/mutation",
+        "migration-0003 cognitive proposal-selection families",
+        "implemented cumulative generation-2 schema comprises",
+        "migration 0003 contributes nine tables and eighteen triggers",
+        "Bound-effect and post-execution C2B mutation/replay/recovery",
     ):
         _require(
             phrase in target,
@@ -190,11 +196,15 @@ def _assert_c2b0_durable_current_target_contract(text: str) -> None:
         "Exact future state shape, schema, migrations",
         "Exact C2B schema remains wholly open.",
         "C2B is currently implemented.",
-        "Migrations 0002 and 0003 are installed current schema.",
+        "Migration 0003 remains absent.",
+        "Migration 0004 is installed current schema.",
         "0002 is absent.",
-        "0003 is installed.",
+        "0003 is only a target.",
         "Application generation is currently 3.",
         "No migration number is reserved.",
+        "The cumulative physical tip is now migration 0002.",
+        "Only their mutation-receipt role has the bounded private C2B3 genesis caller.",
+        "Non-genesis C2B reader integration, mutation, replay/recovery, and progression behavior remain target-only.",
     ):
         _require(
             forbidden.lower() not in visible,
@@ -270,16 +280,16 @@ def test_architecture_pins_runtime_floor_and_fixture_physical_semantic_split() -
     for phrase in (
         "administrative runtime-capability preflight is derived from the maximum immutable catalog target",
         "require SQLite `3.37.0` before state-root creation, common-lock acquisition, writable open, `BEGIN`, or mutation",
-        "temporary current-generation-2 database at terminal migration `0002_development_program_and_effect_state`",
+        "temporary current-generation-2 database at terminal migration `0003_cognitive_proposal_and_selection_state`",
         "historical schema-0001 B3/B4 graph",
-        "All nineteen C2B tables remain empty",
+        "All nineteen C2B core tables and all nine cognitive proposal-selection tables remain empty",
         "`.docs/b3-tests-only-coherent-fixtures.md`",
     ):
         assert phrase in architecture
 
-    assert "current-generation-2 database at terminal migration `0002_development_program_and_effect_state`" in durable
+    assert "current-generation-2 database at terminal migration `0003_cognitive_proposal_and_selection_state`" in durable
     assert "maximum immutable catalog capability" in agents
-    assert "current-generation-2 database at terminal migration 0002" in readme
+    assert "current-generation-2 database at terminal migration 0003" in readme
     for stale in (
         "temporary managed schema-0001 database",
         "not an executable transition proof, and not migration 0002",
@@ -408,7 +418,7 @@ def test_c2b0_stale_current_target_forms_are_rejected_in_memory() -> None:
         text + "\nNo migration number is reserved here.\n",
         text + "\nExact future state shape, schema, migrations remain wholly open.\n",
         text + "\nC2B is currently implemented.\n",
-        text + "\nMigrations 0002 and 0003 are installed current schema.\n",
+        text + "\nMigration 0003 remains absent.\n",
     )
     for mutation in mutations:
         with pytest.raises(AssertionError) as rejected:
@@ -417,7 +427,7 @@ def test_c2b0_stale_current_target_forms_are_rejected_in_memory() -> None:
             "architecture.durable_state|heading=<current-status>|failure=stale_or_installed_claim"
         )
 
-    target_claim = "The accepted complete target comprises implemented migration"
+    target_claim = "The implemented cumulative generation-2 schema comprises"
     fenced_target_only = text.replace(
         target_claim,
         f"```text\n{target_claim}\n```",
@@ -435,7 +445,8 @@ def test_c2b0_current_target_status_rejects_all_additive_stale_claims() -> None:
     stale_claims = (
         "Exact C2B schema remains wholly open.",
         "0002 is absent.",
-        "0003 is installed.",
+        "Migration 0003 remains absent.",
+        "Migration 0004 is installed current schema.",
         "Application generation is currently 3.",
         "No migration number is reserved.",
         "C2B is currently implemented.",
@@ -994,6 +1005,28 @@ def test_candidate_capsule_durable_state_section_rejects_structural_drift() -> N
 
 def test_c2b0_target_topology_reuses_current_private_authority_without_implementation() -> None:
     architecture_text = _text(".docs/architecture.md")
+    administration = _compact(
+        _unfenced_markdown(
+            _bounded_markdown_section(
+                architecture_text,
+                "C2B1/C2B2 SQLite Administration And Pure Row Values",
+                2,
+                role="architecture.current_reader_composition",
+            ),
+            role="architecture.current_reader_composition.section",
+        )
+    )
+    for phrase in (
+        "exactly twelve private roles and twenty-four bounded query contracts",
+        "All twelve roles have the bounded private C2B3D author-effect caller",
+        "mutation-receipt role also retains the private VS1B program-initialization caller",
+        "later Section 41 selection runtime composes with a bounded seven-role subset",
+        "Those later callers do not widen the reader query contract",
+        "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+        "reader reports and projections remain neither durable program truth nor effect authority",
+    ):
+        assert phrase in administration
+    assert "only the mutation-receipt reader has the bounded private C2B3 caller" not in administration
     architecture = _compact(
         _unfenced_markdown(
             _bounded_markdown_section(
@@ -1056,6 +1089,7 @@ def test_narrowed_vertical_slice_architecture_is_governing_not_schema_freeze() -
     architecture = _text(".docs/architecture.md")
     architecture_compact = _compact(architecture)
     owner = _text(".docs/c2b-durable-development-state.md")
+    frozen_owner = owner.partition("\n## 42.")[0]
     assert architecture.count("<!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->") == 1
     assert architecture.count("<!-- C2B3_NARROWED_ARCHITECTURE_END -->") == 1
     for expected in (
@@ -1084,7 +1118,7 @@ def test_narrowed_vertical_slice_architecture_is_governing_not_schema_freeze() -
         '"qualified_remote_host_readiness_evidence_gate": (',
         '"accepted_clean_exact_es_oid_and_owning_repository_contract_adoption_evidence_gate": (',
     ):
-        assert expected in owner
+        assert expected in frozen_owner
     for forbidden in (
         "WorkSpecCustodyReceiptV1",
         "VerifiedAuthorityResultV1",
@@ -1094,4 +1128,4 @@ def test_narrowed_vertical_slice_architecture_is_governing_not_schema_freeze() -
         '"prerequisite_00061":',
         '"prerequisite_00054":',
     ):
-        assert forbidden not in owner
+        assert forbidden not in frozen_owner

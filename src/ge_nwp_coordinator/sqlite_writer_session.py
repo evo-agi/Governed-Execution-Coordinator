@@ -4333,7 +4333,7 @@ class _WriterSessionResource:
                     self._lifecycle_state = successor_state
                 self._condition.notify_all()
                 return acknowledgment
-        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
             try:
                 self._mark_operation_cleanup_required(completion_handle)
             except BaseException:
@@ -5988,6 +5988,383 @@ class _SQLiteWriterSession(WriterSession):
                 safe_error
             )
             command = None
+            invocation_correlation = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            if accepted_safe_shape:
+                raise
+            raise
+
+    def _prepare_pre_execution_plan_disposition_recovery_probe(
+        self,
+        mutation_ref: object,
+        mutation_command_digest: object,
+        already_typed_proposal_artifact_projection_bundle: object,
+        coordinator_preassigned_disposition_identity: object,
+    ) -> object:
+        """Construct one private, I/O-free Section 41 recovery probe."""
+
+        command: object = None
+        probe: object = None
+        try:
+            from ge_nwp_coordinator._development_pre_execution_plan_disposition_contracts import (
+                _build_pre_execution_plan_disposition_recovery_probe,
+                _record_command_from_ingress,
+            )
+
+            command = _record_command_from_ingress(
+                mutation_ref,
+                mutation_command_digest,
+                already_typed_proposal_artifact_projection_bundle,
+                coordinator_preassigned_disposition_identity,
+            )
+            probe = _build_pre_execution_plan_disposition_recovery_probe(
+                command,
+                already_typed_proposal_artifact_projection_bundle,
+            )
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            command = None
+            probe = None
+            mutation_ref = None
+            mutation_command_digest = None
+            already_typed_proposal_artifact_projection_bundle = None
+            coordinator_preassigned_disposition_identity = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except Exception:
+            command = None
+            probe = None
+            mutation_ref = None
+            mutation_command_digest = None
+            already_typed_proposal_artifact_projection_bundle = None
+            coordinator_preassigned_disposition_identity = None
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        command = None
+        mutation_ref = None
+        mutation_command_digest = None
+        already_typed_proposal_artifact_projection_bundle = None
+        coordinator_preassigned_disposition_identity = None
+        return probe
+
+    def _record_pre_execution_plan_disposition(
+        self,
+        mutation_ref: object,
+        mutation_command_digest: object,
+        already_typed_proposal_artifact_projection_bundle: object,
+        coordinator_preassigned_disposition_identity: object,
+        preconstructed_recovery_probe: object,
+    ) -> object:
+        """Privately record one non-executable Section 41 selection family."""
+
+        checked_ref: object = None
+        checked_digest: object = None
+        checked_probe: object = None
+        try:
+            from ge_nwp_coordinator._cognitive_proposal_semantic_values import (
+                PreExecutionProposalSelectionBundleV1,
+            )
+            from ge_nwp_coordinator._cognitive_proposal_value_support import (
+                _exact_equal,
+                _require_safe_ref,
+                _require_sha256,
+            )
+            from ge_nwp_coordinator._development_pre_execution_plan_disposition_contracts import (
+                _require_exact_recovery_probe,
+            )
+
+            checked_ref = _require_safe_ref(
+                mutation_ref, "cognitive_mutation_identity_invalid"
+            )
+            checked_digest = _require_sha256(
+                mutation_command_digest, "cognitive_mutation_identity_invalid"
+            )
+            checked_probe = _require_exact_recovery_probe(
+                preconstructed_recovery_probe
+            )
+            if (
+                type(already_typed_proposal_artifact_projection_bundle)
+                is not PreExecutionProposalSelectionBundleV1
+                or type(coordinator_preassigned_disposition_identity) is not dict
+                or not _exact_equal(
+                    checked_probe.command.mutation_ref, checked_ref
+                )
+                or not _exact_equal(
+                    checked_probe.command.mutation_command_digest,
+                    checked_digest,
+                )
+            ):
+                raise TypeError("invalid private ingress carrier")
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            mutation_ref = None
+            mutation_command_digest = None
+            already_typed_proposal_artifact_projection_bundle = None
+            coordinator_preassigned_disposition_identity = None
+            preconstructed_recovery_probe = None
+            checked_ref = None
+            checked_digest = None
+            checked_probe = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except Exception:
+            mutation_ref = None
+            mutation_command_digest = None
+            already_typed_proposal_artifact_projection_bundle = None
+            coordinator_preassigned_disposition_identity = None
+            preconstructed_recovery_probe = None
+            checked_ref = None
+            checked_digest = None
+            checked_probe = None
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        try:
+            result = self._run_pre_execution_plan_disposition_operation(
+                mutation_ref=mutation_ref,
+                mutation_command_digest=mutation_command_digest,
+                bundle=already_typed_proposal_artifact_projection_bundle,
+                disposition_identity=coordinator_preassigned_disposition_identity,
+                recovery=False,
+                probe=checked_probe,
+            )
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            mutation_ref = None
+            mutation_command_digest = None
+            already_typed_proposal_artifact_projection_bundle = None
+            coordinator_preassigned_disposition_identity = None
+            preconstructed_recovery_probe = None
+            checked_probe = None
+            checked_ref = None
+            checked_digest = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            mutation_ref = None
+            mutation_command_digest = None
+            already_typed_proposal_artifact_projection_bundle = None
+            coordinator_preassigned_disposition_identity = None
+            preconstructed_recovery_probe = None
+            checked_probe = None
+            checked_ref = None
+            checked_digest = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        mutation_ref = None
+        mutation_command_digest = None
+        already_typed_proposal_artifact_projection_bundle = None
+        coordinator_preassigned_disposition_identity = None
+        preconstructed_recovery_probe = None
+        checked_probe = None
+        checked_ref = None
+        checked_digest = None
+        return result
+
+    def _resolve_pre_execution_plan_disposition_commit_outcome(
+        self,
+        probe: object,
+    ) -> object:
+        """Resolve one uncertain Section 41 commit under this fresh writer."""
+
+        checked_probe: object = None
+        try:
+            from ge_nwp_coordinator._development_pre_execution_plan_disposition_contracts import (
+                _require_exact_recovery_probe,
+            )
+
+            checked_probe = _require_exact_recovery_probe(probe)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            probe = None
+            checked_probe = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except Exception:
+            probe = None
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        try:
+            result = self._run_pre_execution_plan_disposition_operation(
+                mutation_ref=None,
+                mutation_command_digest=None,
+                bundle=None,
+                disposition_identity=None,
+                recovery=True,
+                probe=checked_probe,
+            )
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            probe = None
+            checked_probe = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            probe = None
+            checked_probe = None
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        probe = None
+        checked_probe = None
+        return result
+
+    def _run_pre_execution_plan_disposition_operation(
+        self,
+        *,
+        mutation_ref: object,
+        mutation_command_digest: object,
+        bundle: object,
+        disposition_identity: object,
+        recovery: bool,
+        probe: object = None,
+    ) -> object:
+        if type(recovery) is not bool:
+            raise SQLiteMutationStoreError(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+            ) from None
+        resource_reference = weakref.ref(self._resource)
+        invocation_correlation: _OperationInvocationCorrelation | None = None
+
+        def _guarded_selection(
+            exact_correlation: _OperationInvocationCorrelation,
+        ) -> object:
+            nonlocal self, mutation_ref, mutation_command_digest
+            nonlocal bundle, disposition_identity, probe
+            bound_operation_guard = self._resource.operation_guard
+            operation_guard_keywords = (
+                {"_invocation_correlation": exact_correlation}
+                if type(bound_operation_guard) is MethodType
+                else {}
+            )
+            with self._resource.operation_guard(
+                self,
+                **operation_guard_keywords,
+            ) as operation_lease:
+                import_failed = False
+                try:
+                    from ge_nwp_coordinator.sqlite_transition_transaction import (
+                        _run_atomic_pre_execution_plan_disposition,
+                        _run_pre_execution_plan_disposition_recovery,
+                    )
+                except Exception:
+                    import_failed = True
+                if import_failed:
+                    mutation_ref = None
+                    mutation_command_digest = None
+                    bundle = None
+                    disposition_identity = None
+                    probe = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                        )
+                    )
+                if recovery:
+                    result = _run_pre_execution_plan_disposition_recovery(
+                        operation_lease=operation_lease,
+                        probe=probe,
+                    )
+                else:
+                    result = _run_atomic_pre_execution_plan_disposition(
+                        operation_lease=operation_lease,
+                        mutation_ref=mutation_ref,
+                        mutation_command_digest=mutation_command_digest,
+                        bundle=bundle,
+                        disposition_identity=disposition_identity,
+                        recovery_probe=probe,
+                    )
+                mutation_ref = None
+                mutation_command_digest = None
+                bundle = None
+                disposition_identity = None
+                probe = None
+                if type(result) is _SafeMutationFailureDisposition:
+                    outward_error = _safe_mutation_error_from_disposition(result)
+                    result = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(outward_error)
+                if result is None:
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                        )
+                    )
+                return result
+
+        try:
+            invocation_correlation = self._resource._new_operation_invocation_correlation()
+            return _guarded_selection(invocation_correlation)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(
+                        invocation_correlation
+                    )
+                except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                    try:
+                        resource._stabilize_operation_exit_for_process_control(
+                            invocation_correlation
+                        )
+                    except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                        pass
+            mutation_ref = None
+            mutation_command_digest = None
+            bundle = None
+            disposition_identity = None
+            probe = None
+            invocation_correlation = None
+            resource = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            accepted_safe_shape = _is_accepted_outward_safe_mutation_store_error(
+                safe_error
+            )
+            mutation_ref = None
+            mutation_command_digest = None
+            bundle = None
+            disposition_identity = None
+            probe = None
             invocation_correlation = None
             resource_reference = None  # type: ignore[assignment]
             self = None  # type: ignore[assignment]

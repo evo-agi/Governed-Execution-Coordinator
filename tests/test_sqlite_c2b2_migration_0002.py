@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import closing
 import hashlib
+import json
 from pathlib import Path
 import sqlite3
 from typing import Any
@@ -30,6 +31,13 @@ MIGRATION_0002_PATH = (
     / "sqlite_migrations"
     / "0002_development_program_and_effect_state.sql"
 )
+MIGRATION_0003_PATH = (
+    REPOSITORY_ROOT
+    / "src"
+    / "ge_nwp_coordinator"
+    / "sqlite_migrations"
+    / "0003_cognitive_proposal_and_selection_state.sql"
+)
 MIGRATION_PACKAGE_PATH = MIGRATION_0002_PATH.parent
 
 EXPECTED_MIGRATION_0001_SHA256 = "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148"
@@ -37,16 +45,45 @@ EXPECTED_MIGRATION_ID = "0002_development_program_and_effect_state"
 EXPECTED_SEQUENCE = 2
 EXPECTED_RESOURCE_NAME = "0002_development_program_and_effect_state.sql"
 EXPECTED_SHA256 = "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c"
+CURRENT_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
+CURRENT_SEQUENCE = 3
+CURRENT_RESOURCE_NAME = "0003_cognitive_proposal_and_selection_state.sql"
+CURRENT_SHA256 = "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579"
+SECTION41_TABLE_NAMES = (
+    "development_model_source_invocations",
+    "development_pre_execution_planning_contexts",
+    "development_private_proposal_artifact_bindings",
+    "development_model_proposals",
+    "development_pre_execution_plan_projections",
+    "development_model_proposal_evidence_bindings",
+    "development_pre_execution_dispositions",
+    "development_pre_execution_selection_heads",
+    "development_cognitive_mutation_receipts",
+)
+SECTION41_TRIGGER_NAMES = tuple(
+    sorted(
+        (
+            *(
+                name
+                for table in SECTION41_TABLE_NAMES
+                if table != "development_pre_execution_selection_heads"
+                for name in (f"{table}_no_delete", f"{table}_no_update")
+            ),
+            "development_pre_execution_selection_heads_lineage_immutable",
+            "development_pre_execution_selection_heads_no_delete",
+        )
+    )
+)
 EXPECTED_SIZE = 154_434
 EXPECTED_COMPATIBILITY = (2, 2)
 EXPECTED_DESTRUCTIVE = False
 EXPECTED_SQLITE_MINIMUM = (3, 37, 0)
 EXPECTED_STATEMENT_COUNT = 50
-EXPECTED_CUMULATIVE_TABLE_COUNT = 30
-EXPECTED_CUMULATIVE_COLUMN_COUNT = 485
-EXPECTED_CUMULATIVE_TRIGGER_COUNT = 46
+EXPECTED_CUMULATIVE_TABLE_COUNT = 39
+EXPECTED_CUMULATIVE_COLUMN_COUNT = 786
+EXPECTED_CUMULATIVE_TRIGGER_COUNT = 64
 EXPECTED_CUMULATIVE_EXPLICIT_INDEX_COUNT = 1
-EXPECTED_CUMULATIVE_FOREIGN_KEY_COUNT = 95
+EXPECTED_CUMULATIVE_FOREIGN_KEY_COUNT = 140
 EXPECTED_NEW_FOREIGN_KEY_COUNT = 87
 EXPECTED_NEW_DEFERRED_FOREIGN_KEY_COUNT = 6
 EXPECTED_NEW_COLUMN_COUNT = 362
@@ -3937,6 +3974,165 @@ def _schema_counts(connection: sqlite3.Connection) -> dict[str, int]:
     }
 
 
+def _user_table_names(connection: sqlite3.Connection) -> tuple[str, ...]:
+    return tuple(
+        row[0]
+        for row in connection.execute(
+            "SELECT name FROM sqlite_schema "
+            "WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        )
+    )
+
+
+def _canonical_table_row_snapshot(
+    connection: sqlite3.Connection,
+    table_names: tuple[str, ...],
+) -> tuple[tuple[str, tuple[str, ...], tuple[tuple[Any, ...], ...]], ...]:
+    snapshot = []
+    for table in table_names:
+        columns = tuple(
+            row[1]
+            for row in connection.execute(f'PRAGMA table_xinfo("{table}")')
+        )
+        rows = tuple(
+            sorted(
+                (
+                    tuple(row)
+                    for row in connection.execute(f'SELECT * FROM "{table}"')
+                ),
+                key=repr,
+            )
+        )
+        snapshot.append((table, columns, rows))
+    return tuple(snapshot)
+
+
+def _canonical_snapshot_bytes(value: object) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _normalized_complete_schema_manifest(
+    connection: sqlite3.Connection,
+) -> tuple[tuple[str, str, str, str | None], ...]:
+    return tuple(
+        (
+            object_type,
+            name,
+            table_name,
+            None if sql is None else " ".join(sql.split()),
+        )
+        for object_type, name, table_name, sql in connection.execute(
+            "SELECT type, name, tbl_name, sql FROM sqlite_schema "
+            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
+        )
+    )
+
+
+def _seed_terminal_0002_genesis_family(connection: sqlite3.Connection) -> None:
+    connection.execute("PRAGMA foreign_keys=ON")
+    connection.execute("BEGIN IMMEDIATE")
+    connection.execute("PRAGMA defer_foreign_keys=ON")
+    connection.execute(
+        """
+        INSERT INTO development_program_heads
+            (schema_id, program_ref, current_program_version_ref,
+             current_program_version_number, head_revision, program_state,
+             updated_at, head_digest)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "governed-execution.nwp-development-program-head.v1",
+            "program-migration-prefix-1",
+            "program-version-migration-prefix-1",
+            1,
+            0,
+            "active",
+            "2026-08-14T00:00:01Z",
+            "1" * 64,
+        ),
+    )
+    connection.execute(
+        """
+        INSERT INTO development_accepted_intent_revisions
+            (schema_id, accepted_intent_revision_ref, program_ref,
+             accepted_intent_revision_number, prior_accepted_intent_revision_ref,
+             source_intent_ref, source_intent_digest, safe_projection_digest,
+             created_at, accepted_intent_revision_digest)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "governed-execution.nwp-development-accepted-intent-revision.v1",
+            "accepted-intent-migration-prefix-1",
+            "program-migration-prefix-1",
+            1,
+            None,
+            "source-intent-migration-prefix-1",
+            "2" * 64,
+            "3" * 64,
+            "2026-08-14T00:00:01Z",
+            "4" * 64,
+        ),
+    )
+    connection.execute(
+        """
+        INSERT INTO development_program_versions
+            (schema_id, program_version_ref, program_ref,
+             program_version_number, program_version_kind,
+             creating_decision_ref, accepted_intent_revision_ref,
+             created_at, program_version_digest)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "governed-execution.nwp-development-program-version.v1",
+            "program-version-migration-prefix-1",
+            "program-migration-prefix-1",
+            1,
+            "initial",
+            "decision-migration-prefix-1",
+            "accepted-intent-migration-prefix-1",
+            "2026-08-14T00:00:01Z",
+            "5" * 64,
+        ),
+    )
+    connection.execute(
+        """
+        INSERT INTO development_decisions
+            (schema_id, mutation_ref, decision_ref, program_ref,
+             decision_kind, decision_variant, expected_program_head_revision,
+             resulting_program_version_ref, resulting_program_version_number,
+             coding_global_stop_ref, coding_global_stop_version,
+             preassigned_semantic_attempt_ref, preassigned_candidate_ref,
+             reason_code, decided_at, decision_digest)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "governed-execution.nwp-development-decision.v1",
+            "mutation-migration-prefix-1",
+            "decision-migration-prefix-1",
+            "program-migration-prefix-1",
+            "initialize",
+            "program_genesis",
+            0,
+            "program-version-migration-prefix-1",
+            1,
+            "coding-global-stop-migration-prefix-1",
+            0,
+            "semantic-attempt-migration-prefix-1",
+            "candidate-migration-prefix-1",
+            "program.genesis",
+            "2026-08-14T00:00:01Z",
+            "6" * 64,
+        ),
+    )
+    assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+    connection.execute("COMMIT")
+
+
 def _create_database_from_literal_sql(
     location: CoordinatorStateLocation,
     *,
@@ -3984,7 +4180,7 @@ def _assert_safe_unknown(location: CoordinatorStateLocation) -> None:
     inspection = migration_module.inspect_database(location)
     assert inspection.classification is migration_module.DatabaseClassification.UNKNOWN
     assert inspection.current_sequence == 0
-    assert inspection.latest_sequence == 2
+    assert inspection.latest_sequence == CURRENT_SEQUENCE
     assert inspection.current_migration_id is None
     assert inspection.reason in {
         "migration_checksum_mismatch",
@@ -4123,6 +4319,68 @@ def test_literal_table_column_key_check_fk_trigger_and_index_inventory() -> None
         connection.close()
 
 
+def test_current_migration_documentation_matches_catalog_and_scopes_historical_0002() -> None:
+    catalog = migration_module.load_migration_catalog()
+    migrations = catalog.migrations
+    current_tip = migrations[-1].migration_id
+    complete_catalog = "[" + ", ".join(item.migration_id for item in migrations) + "]"
+    short_catalog = "[" + ", ".join(f"{item.sequence:04d}" for item in migrations) + "]"
+    resource_count = len(migrations)
+
+    document_paths = (
+        REPOSITORY_ROOT / ".docs/c2b2-migration-0002.md",
+        REPOSITORY_ROOT / ".docs/sqlite-state-backend-adr.md",
+        REPOSITORY_ROOT / ".docs/b3-transition-persistence-contract.md",
+        REPOSITORY_ROOT / ".docs/b3c0a-transition-authority-and-order.md",
+        REPOSITORY_ROOT / ".docs/autonomous-software-development-operating-model.md",
+        REPOSITORY_ROOT / ".docs/architecture.md",
+        REPOSITORY_ROOT / ".docs/durable-state-model.md",
+    )
+    sources = {path: path.read_text(encoding="utf-8") for path in document_paths}
+    migration_status = " ".join(sources[document_paths[0]].split())
+    backend_status = " ".join(sources[document_paths[1]].split())
+
+    assert migration_module.CURRENT_APPLICATION_SCHEMA == 2
+    assert complete_catalog in migration_status
+    assert short_catalog in migration_status
+    assert current_tip in migration_status
+    assert current_tip in backend_status
+    assert f"current production SQL resource count is `{resource_count}`" in migration_status
+    assert f"current production SQL resource count is `{resource_count}`" in backend_status
+    assert "Migration 0002 is an unchanged historical prefix" in migration_status
+    assert "Migration 0002 remains an unchanged historical prefix" in backend_status
+    assert "C2B2 did not implement or acquire ownership of migration 0003" in migration_status
+    assert "C2B2 did not implement or acquire ownership of migration 0003" in backend_status
+
+    historical_claims = []
+    for path in document_paths[:2]:
+        for paragraph in sources[path].split("\n\n"):
+            compacted = " ".join(paragraph.split())
+            lowered = compacted.lower()
+            if (
+                "exactly two production sql" in lowered
+                or "fresh initialization selected `[0001, 0002]`" in lowered
+            ):
+                historical_claims.append(compacted)
+    assert len(historical_claims) == 3
+    for paragraph in historical_claims:
+        assert "tranche completion" in paragraph.lower()
+        assert "historical" in paragraph.lower()
+
+    current_stale_claims = (
+        "the cumulative physical tip is now migration 0002",
+        "migration 0003 remains absent",
+        "migration 0003 and all source/runtime remain absent",
+        "temporary current-generation-2 database at terminal migration `0002_development_program_and_effect_state`",
+        "current physical generation-2, terminal-0002 database",
+        "exact generation-2 tip 0002 is managed current state",
+    )
+    for source in sources.values():
+        current_text = " ".join(source.split()).lower()
+        for stale in current_stale_claims:
+            assert stale not in current_text
+
+
 def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
     catalog = migration_module.load_migration_catalog()
 
@@ -4130,14 +4388,16 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
     assert tuple(migration.migration_id for migration in catalog.migrations) == (
         "0001_initial",
         EXPECTED_MIGRATION_ID,
+        CURRENT_MIGRATION_ID,
     )
-    assert tuple(migration.sequence for migration in catalog.migrations) == (1, 2)
+    assert tuple(migration.sequence for migration in catalog.migrations) == (1, 2, 3)
     assert tuple(migration.resource_name for migration in catalog.migrations) == (
         "0001_initial.sql",
         EXPECTED_RESOURCE_NAME,
+        CURRENT_RESOURCE_NAME,
     )
     assert hashlib.sha256(MIGRATION_0001_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_SHA256
-    first, second = catalog.migrations
+    first, second, third = catalog.migrations
     assert (first.min_app_schema, first.max_app_schema, first.destructive) == (1, 1, False)
     assert (
         second.migration_id,
@@ -4156,13 +4416,32 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         EXPECTED_DESTRUCTIVE,
     )
     assert second.sql_bytes == MIGRATION_0002_PATH.read_bytes()
+    assert (
+        third.migration_id,
+        third.sequence,
+        third.resource_name,
+        third.checksum,
+        third.min_app_schema,
+        third.max_app_schema,
+        third.destructive,
+    ) == (
+        CURRENT_MIGRATION_ID,
+        CURRENT_SEQUENCE,
+        CURRENT_RESOURCE_NAME,
+        CURRENT_SHA256,
+        2,
+        2,
+        False,
+    )
+    assert third.sql_bytes == MIGRATION_0003_PATH.read_bytes()
     assert tuple(sorted(path.name for path in MIGRATION_PACKAGE_PATH.glob("*.sql"))) == (
         "0001_initial.sql",
         EXPECTED_RESOURCE_NAME,
+        CURRENT_RESOURCE_NAME,
     )
 
 
-def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_cumulative_schema(
+def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_current_schema(
     tmp_path: Path,
 ) -> None:
     location = _location(tmp_path, "fresh")
@@ -4171,16 +4450,17 @@ def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_cumulat
 
     assert inspection == migration_module.DatabaseInspection(
         classification=migration_module.DatabaseClassification.MANAGED,
-        current_sequence=2,
-        latest_sequence=2,
-        current_migration_id=EXPECTED_MIGRATION_ID,
+        current_sequence=CURRENT_SEQUENCE,
+        latest_sequence=CURRENT_SEQUENCE,
+        current_migration_id=CURRENT_MIGRATION_ID,
     )
     history = _history_rows(location)
     assert tuple(row[:3] + row[4:] for row in history) == (
         ("0001_initial", 1, EXPECTED_MIGRATION_0001_SHA256, 1, 1),
         (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256, 2, 2),
+        (CURRENT_MIGRATION_ID, 3, CURRENT_SHA256, 2, 2),
     )
-    assert history[0][3] == history[1][3]
+    assert history[0][3] == history[1][3] == history[2][3]
     with closing(sqlite3.connect(location.database_path)) as connection, connection:
         counts = _schema_counts(connection)
         assert counts == {
@@ -4202,7 +4482,7 @@ def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_cumulat
         assert set(EXPECTED_TABLE_NAMES) <= strict_tables
 
 
-def test_exact_0001_is_observationally_unknown_then_explicitly_migrates_only_0002(
+def test_exact_0001_is_observationally_unknown_then_explicitly_migrates_complete_suffix(
     tmp_path: Path,
 ) -> None:
     location = _location(tmp_path, "upgrade")
@@ -4215,30 +4495,190 @@ def test_exact_0001_is_observationally_unknown_then_explicitly_migrates_only_000
     assert ordinary.classification is migration_module.DatabaseClassification.UNKNOWN
     assert ordinary.reason == "database_schema_incompatible"
     assert ordinary.current_sequence == 0
-    assert ordinary.latest_sequence == 2
+    assert ordinary.latest_sequence == CURRENT_SEQUENCE
     assert _file_sha256(location.database_path) == before_digest
 
     migrated = migration_module.migrate_database(location)
     history = _history_rows(location)
     assert migrated.classification is migration_module.DatabaseClassification.MANAGED
-    assert migrated.current_sequence == migrated.latest_sequence == 2
-    assert migrated.current_migration_id == EXPECTED_MIGRATION_ID
+    assert migrated.current_sequence == migrated.latest_sequence == CURRENT_SEQUENCE
+    assert migrated.current_migration_id == CURRENT_MIGRATION_ID
     assert history[0] == before_history[0]
     assert history[1][0:3] == (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256)
     assert history[1][4:] == (2, 2)
+    assert history[2][0:3] == (CURRENT_MIGRATION_ID, 3, CURRENT_SHA256)
+    assert history[2][4:] == (2, 2)
+    assert history[1][3] == history[2][3]
     with closing(sqlite3.connect(location.database_path)) as connection, connection:
         assert _schema_counts(connection) == {
-            "tables": 30,
-            "columns": 485,
-            "triggers": 46,
+            "tables": 39,
+            "columns": 786,
+            "triggers": 64,
             "indexes": 1,
             "views": 0,
-            "foreign_keys": 95,
+            "foreign_keys": 140,
         }
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
-def test_tip_0002_is_newer_unsupported_to_generation_one_catalog(tmp_path: Path) -> None:
+def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_current_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    upgrade = _location(tmp_path, "exact-terminal-0002")
+    fresh = _location(tmp_path, "fresh-current")
+    production_catalog = migration_module.load_migration_catalog()
+    assert tuple(
+        migration.migration_id for migration in production_catalog.migrations
+    ) == ("0001_initial", EXPECTED_MIGRATION_ID, CURRENT_MIGRATION_ID)
+    prefix_catalog = migration_module.MigrationCatalog(
+        migrations=production_catalog.migrations[:2]
+    )
+
+    prefix_inspection = migration_module._initialize_database_with_catalog(
+        upgrade,
+        prefix_catalog,
+        current_app_schema=2,
+        verify_managed_invariants=True,
+    )
+    assert prefix_inspection == migration_module.DatabaseInspection(
+        classification=migration_module.DatabaseClassification.MANAGED,
+        current_sequence=2,
+        latest_sequence=2,
+        current_migration_id=EXPECTED_MIGRATION_ID,
+    )
+    with closing(
+        sqlite3.connect(upgrade.database_path, isolation_level=None)
+    ) as connection, connection:
+        _seed_terminal_0002_genesis_family(connection)
+
+    before_database_bytes = upgrade.database_path.read_bytes()
+    before_history = tuple(_history_rows(upgrade))
+    before_history_bytes = _canonical_snapshot_bytes(before_history)
+    with closing(sqlite3.connect(upgrade.database_path)) as connection:
+        before_tables = _user_table_names(connection)
+        assert not set(SECTION41_TABLE_NAMES) & set(before_tables)
+        retained_tables = tuple(
+            table for table in before_tables if table != "schema_migrations"
+        )
+        before_rows = _canonical_table_row_snapshot(connection, retained_tables)
+        before_rows_bytes = _canonical_snapshot_bytes(before_rows)
+        before_schema = _normalized_complete_schema_manifest(connection)
+        seeded_counts = {
+            table: connection.execute(
+                f'SELECT COUNT(*) FROM "{table}"'
+            ).fetchone()[0]
+            for table in (
+                "development_program_heads",
+                "development_program_versions",
+                "development_accepted_intent_revisions",
+                "development_decisions",
+            )
+        }
+        assert seeded_counts == {
+            "development_program_heads": 1,
+            "development_program_versions": 1,
+            "development_accepted_intent_revisions": 1,
+            "development_decisions": 1,
+        }
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+
+    ordinary = migration_module.inspect_database(upgrade)
+    assert ordinary == migration_module.DatabaseInspection(
+        classification=migration_module.DatabaseClassification.UNKNOWN,
+        current_sequence=0,
+        latest_sequence=CURRENT_SEQUENCE,
+        current_migration_id=None,
+        reason="database_schema_incompatible",
+    )
+    assert upgrade.database_path.read_bytes() == before_database_bytes
+    assert _canonical_snapshot_bytes(tuple(_history_rows(upgrade))) == before_history_bytes
+    with closing(sqlite3.connect(upgrade.database_path)) as connection:
+        assert _canonical_snapshot_bytes(
+            _canonical_table_row_snapshot(connection, retained_tables)
+        ) == before_rows_bytes
+
+    applied_migration_ids: list[str] = []
+    real_apply = migration_module._apply_migration_definition_in_transaction
+
+    def record_real_apply(
+        connection: sqlite3.Connection,
+        migration: migration_module.MigrationDefinition,
+    ) -> None:
+        applied_migration_ids.append(migration.migration_id)
+        real_apply(connection, migration)
+
+    monkeypatch.setattr(
+        migration_module,
+        "_apply_migration_definition_in_transaction",
+        record_real_apply,
+    )
+    migrated = migration_module.migrate_database(upgrade)
+    monkeypatch.setattr(
+        migration_module,
+        "_apply_migration_definition_in_transaction",
+        real_apply,
+    )
+
+    assert applied_migration_ids == [CURRENT_MIGRATION_ID]
+    assert migrated == migration_module.DatabaseInspection(
+        classification=migration_module.DatabaseClassification.MANAGED,
+        current_sequence=CURRENT_SEQUENCE,
+        latest_sequence=CURRENT_SEQUENCE,
+        current_migration_id=CURRENT_MIGRATION_ID,
+    )
+    after_history = tuple(_history_rows(upgrade))
+    assert after_history[:2] == before_history
+    assert _canonical_snapshot_bytes(after_history[:2]) == before_history_bytes
+    assert len(after_history) == 3
+    assert after_history[2][:3] == (
+        CURRENT_MIGRATION_ID,
+        CURRENT_SEQUENCE,
+        CURRENT_SHA256,
+    )
+    assert after_history[2][4:] == (2, 2)
+
+    with closing(sqlite3.connect(upgrade.database_path)) as connection:
+        after_tables = _user_table_names(connection)
+        after_rows = _canonical_table_row_snapshot(connection, retained_tables)
+        after_schema = _normalized_complete_schema_manifest(connection)
+        new_schema_objects = {
+            (object_type, name)
+            for object_type, name, _table_name, _sql in after_schema
+        } - {
+            (object_type, name)
+            for object_type, name, _table_name, _sql in before_schema
+        }
+        assert set(after_tables) - set(before_tables) == set(SECTION41_TABLE_NAMES)
+        assert set(before_tables) <= set(after_tables)
+        assert new_schema_objects == {
+            *(("table", table) for table in SECTION41_TABLE_NAMES),
+            *(("trigger", trigger) for trigger in SECTION41_TRIGGER_NAMES),
+        }
+        assert len(new_schema_objects) == 27
+        assert _canonical_snapshot_bytes(after_rows) == before_rows_bytes
+        assert all(
+            connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
+            == (0,)
+            for table in SECTION41_TABLE_NAMES
+        )
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+
+    fresh_inspection = migration_module.initialize_database(fresh)
+    assert fresh_inspection == migrated
+    with closing(sqlite3.connect(fresh.database_path)) as connection:
+        fresh_schema = _normalized_complete_schema_manifest(connection)
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+    assert after_schema == fresh_schema
+    fresh_history = tuple(_history_rows(fresh))
+    assert tuple(row[:3] + row[4:] for row in after_history) == tuple(
+        row[:3] + row[4:] for row in fresh_history
+    )
+
+
+def test_current_tip_is_newer_unsupported_to_generation_one_catalog(tmp_path: Path) -> None:
     location = _location(tmp_path, "newer")
     migration_module.initialize_database(location)
 
@@ -4390,7 +4830,7 @@ def test_exact_runtime_floor_supports_stable_fresh_and_exact_upgrade(
 
     assert initialized.classification is migration_module.DatabaseClassification.MANAGED
     assert migrated.classification is migration_module.DatabaseClassification.MANAGED
-    assert initialized.current_sequence == migrated.current_sequence == 2
+    assert initialized.current_sequence == migrated.current_sequence == CURRENT_SEQUENCE
 
 
 def test_unsupported_runtime_refuses_fresh_initialization_before_any_effect(
@@ -4466,7 +4906,7 @@ def test_unsupported_runtime_can_still_classify_exact_0001_read_only(
     assert location.database_path.read_bytes() == before
 
 
-def test_installed_0002_validation_on_unsupported_runtime_fails_safely(
+def test_installed_current_tip_validation_on_unsupported_runtime_fails_safely(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -51,11 +51,12 @@ When the C2A contract was originally frozen, the current physical application
 generation was 1 and the terminal migration was `0001_initial`. That is the
 historical C2A freeze baseline, not the current physical repository state. The
 current physical application generation is 2 and the current terminal migration
-is `0002_development_program_and_effect_state`. Migration `0001_initial` remains
-the preserved historical schema-v1 migration; migration 0002 is implemented by
-C2B2 Slice 1.
+is `0003_cognitive_proposal_and_selection_state`. Migration `0001_initial`
+remains the preserved historical schema-v1 migration; migration 0002 is
+implemented by C2B2 Slice 1, and migration 0003 is implemented outside C2A by
+the Section 41 tranche.
 
-C2A did not create or own migration 0002. C2A semantic fields, values,
+C2A did not create or own migration 0002 or migration 0003. C2A semantic fields, values,
 identities, relations, and pure-value source do not themselves create durable
 C2A tables or durable C2A runtime rows. The generation-2 physical schema is a
 C2B2 Slice-1 implementation fact. C2A/C2A1 semantic authority remains distinct
@@ -1443,7 +1444,9 @@ reconciler, or autonomous loop. When C2A was frozen, physical application
 generation 1 and terminal migration `0001_initial` were the current baseline.
 That schema-0001 statement is historical only. The current repository is at
 physical application generation 2 with terminal migration
-`0002_development_program_and_effect_state`, implemented by C2B2 Slice 1.
+`0003_cognitive_proposal_and_selection_state`; C2B2 Slice 1 introduced the
+generation and migration 0002, and Section 41 separately governs migration
+0003.
 Current B4c behavior remains unchanged.
 
 C2A1 implements the exact bounded source contract in
@@ -1451,13 +1454,15 @@ C2A1 implements the exact bounded source contract in
 durable mutation. The historical C2A freeze required separate later acceptance
 for durable schema design and forward migration. C2B2 Slice 1 subsequently
 implemented migration 0002 under its own physical-schema authority. C2A did not
-create or own migration 0002. C2A assigns no migration number and authorizes no
+create or own migration 0002 or migration 0003. C2A assigns no migration number and authorizes no
 schema work. Its semantic fields, values, identities, relations, and pure-value
 source do not themselves create durable C2A tables or durable C2A runtime rows.
 The generation-2 physical schema is a C2B2 Slice-1 implementation fact, distinct
 from C2A/C2A1 semantic authority.
 
-Migration 0003 remains absent. C2B2 Slice 2 provides pure private row/value
+Migration 0003 and its private pre-execution selection runtime are now
+implemented outside C2A under Sections 41 and 42 of the durable-state owner.
+C2B2 Slice 2 provides pure private row/value
 reconstruction over the unchanged C2A1 values. C2B2 private readers are
 implemented; VS1B consumes unchanged C2A/C2B2 semantics for private
 route-neutral genesis, and C2B3D consumes unchanged authoring, effect,
@@ -1513,14 +1518,17 @@ implementation may become ready for an independent audit; it cannot claim to
 have performed or accepted that audit.
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
-## Cognitive proposal and selection candidate
+## Cognitive proposal and selection runtime
 
 Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded freeze. C2B3D remains current and unchanged. Section 41 is an
-uncommitted contract candidate pending independent audit. Migration 0003 and all source/runtime remain absent.
-The first later source tranche ends at typed pre-execution proposal admission plus Coordinator selection or non-selection;
-it performs no model invocation or dispatch. In particular, model invocation, dispatch, worker contact, post-execution review, semantic decision, Git, and publication remain blocked.
-The full remote-worker phase is not reduced to that first source tranche.
+for this bounded contract; Section 42 records implementation status without redefining it.
+C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
+proposal-selection runtime are now implemented in the uncommitted candidate pending
+fresh independent audit. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection; it performs no model invocation
+or dispatch. Model invocation, dispatch, worker contact, post-execution review,
+post-execution semantic decision, Git, and publication remain blocked. The full
+remote-worker phase is not reduced to this private source tranche.
 
 The finite candidate placement amendment, with its exact closed inventory owned
 only by Section 41, permits Coordinator SQLite to hold model-contract and

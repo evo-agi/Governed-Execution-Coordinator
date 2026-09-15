@@ -21,13 +21,18 @@ from c2a_contract_support import (
 
 EXPECTED_PRODUCTION_FILES = (
     "__init__.py",
+    "_cognitive_proposal_row_values.py",
+    "_cognitive_proposal_semantic_values.py",
+    "_cognitive_proposal_value_support.py",
     "_development_author_effect_establishment_contracts.py",
+    "_development_pre_execution_plan_disposition_contracts.py",
     "_development_program_initialization_contracts.py",
     "_development_decision_row_values.py",
     "_development_effect_row_values.py",
     "_development_program_row_values.py",
     "_development_row_value_support.py",
     "_sqlite_development_author_effect_establishment.py",
+    "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_reader_contracts.py",
     "_sqlite_development_readers.py",
     "_sqlite_development_program_initialization.py",
@@ -49,6 +54,7 @@ EXPECTED_PRODUCTION_FILES = (
     "sqlite_migration.py",
     "sqlite_migrations/0001_initial.sql",
     "sqlite_migrations/0002_development_program_and_effect_state.sql",
+    "sqlite_migrations/0003_cognitive_proposal_and_selection_state.sql",
     "sqlite_migrations/__init__.py",
     "sqlite_mutation_transaction_contracts.py",
     "sqlite_security.py",
@@ -131,8 +137,8 @@ CURRENT_C2A1_CONTRADICTIONS = (
 HISTORICAL_C2A_FREEZE_GENERATION = 1
 HISTORICAL_C2A_FREEZE_MIGRATION = "0001_initial"
 CURRENT_PHYSICAL_APPLICATION_GENERATION = 2
-CURRENT_PHYSICAL_TERMINAL_MIGRATION = "0002_development_program_and_effect_state"
-ABSENT_MIGRATION = "0003"
+CURRENT_PHYSICAL_TERMINAL_MIGRATION = "0003_cognitive_proposal_and_selection_state"
+ABSENT_MIGRATION = "0004"
 CURRENT_SCHEMA_STATUS_INVALID = "current_schema_status_invalid"
 
 HISTORICALLY_QUALIFIED_SCHEMA_0001_WORDING = (
@@ -147,10 +153,11 @@ HISTORICALLY_QUALIFIED_SCHEMA_0001_WORDING = (
 
 CURRENT_PHYSICAL_SCHEMA_WORDING = (
     "The current physical application generation is 2 and the current terminal "
-    "migration is `0002_development_program_and_effect_state`.",
+    "migration is `0003_cognitive_proposal_and_selection_state`.",
     "Migration `0001_initial` remains the preserved historical schema-v1 "
-    "migration; migration 0002 is implemented by C2B2 Slice 1.",
-    "C2A did not create or own migration 0002.",
+    "migration; migration 0002 is implemented by C2B2 Slice 1, and migration "
+    "0003 is implemented outside C2A by the Section 41 tranche.",
+    "C2A did not create or own migration 0002 or migration 0003.",
     "The generation-2 physical schema is a C2B2 Slice-1 implementation fact.",
     "C2A/C2A1 semantic authority remains distinct from C2B2 physical-schema "
     "authority.",
@@ -162,13 +169,15 @@ CURRENT_SCHEMA_STATUS_CONTRADICTIONS = (
     "migration 0002 remains unimplemented",
     "migrations 0002 and 0003 remain unimplemented",
     "C2A owns migration 0002",
+    "C2A owns migration 0003",
     "C2A owns current durable C2B rows",
-    "migration 0003 is current",
+    "migration 0003 remains absent",
     "current physical generation remains 1",
 )
 
 CURRENT_ABSENCE_WORDING = (
-    "Migration 0003 remains absent.",
+    "Migration 0003 and its private pre-execution selection runtime are now "
+    "implemented outside C2A under Sections 41 and 42 of the durable-state owner.",
     "C2B2 Slice 2 provides pure private row/value reconstruction over the "
     "unchanged C2A1 values.",
     "C2B2 private readers are implemented; VS1B consumes unchanged C2A/C2B2 "
@@ -182,10 +191,12 @@ CURRENT_ABSENCE_WORDING = (
 )
 
 AGENTS_CURRENT_SCHEMA_WORDING = (
-    "C2B2 Slice 1 implements the generation-2 physical schema, and "
-    "`0002_development_program_and_effect_state` is the implemented current "
-    "physical terminal migration.",
-    "Migration 0003 remains unimplemented and deferred.",
+    "C2B2 Slice 1 introduced the generation-2 physical schema and "
+    "`0002_development_program_and_effect_state`. The current physical terminal "
+    "is `0003_cognitive_proposal_and_selection_state`, still at application "
+    "generation 2.",
+    "It implements only the private Section 41 pre-execution proposal-selection "
+    "family described in Section 42 of the durable-state owner.",
     "C2B2 pure row/value source is now implemented only as the private no-I/O "
     "Slice-2 layer.",
     "Slice 3 private database readers and bounded SQL/capability use are "
@@ -194,7 +205,7 @@ AGENTS_CURRENT_SCHEMA_WORDING = (
     "genesis, and C2B3D implements private author-effect establishment with "
     "complete family and bounded current-head verification, receipt-first exact "
     "replay, and read-only three-way recovery. Bound effects, observation ingest, "
-    "progression decisions, latch behavior, external authority verification, "
+    "post-execution progression decisions, latch behavior, external authority verification, "
     "worker/process execution, Git effects, direct-local execution, and ES "
     "routing remain unimplemented.",
 )
@@ -323,9 +334,9 @@ def test_c2a_schema_0001_wording_is_historical_and_generation_2_is_current() -> 
     assert HISTORICAL_C2A_FREEZE_MIGRATION == "0001_initial"
     assert CURRENT_PHYSICAL_APPLICATION_GENERATION == 2
     assert CURRENT_PHYSICAL_TERMINAL_MIGRATION == (
-        "0002_development_program_and_effect_state"
+        "0003_cognitive_proposal_and_selection_state"
     )
-    assert ABSENT_MIGRATION == "0003"
+    assert ABSENT_MIGRATION == "0004"
     assert CURRENT_SCHEMA_STATUS_INVALID == "current_schema_status_invalid"
     assert CURRENT_SCHEMA_STATUS_CONTRADICTIONS == (
         "Current schema 0001",
@@ -333,8 +344,9 @@ def test_c2a_schema_0001_wording_is_historical_and_generation_2_is_current() -> 
         "migration 0002 remains unimplemented",
         "migrations 0002 and 0003 remain unimplemented",
         "C2A owns migration 0002",
+        "C2A owns migration 0003",
         "C2A owns current durable C2B rows",
-        "migration 0003 is current",
+        "migration 0003 remains absent",
         "current physical generation remains 1",
     )
 
@@ -379,8 +391,9 @@ def test_each_schema_0001_statement_is_explicitly_historical(
         "migration 0002 remains unimplemented",
         "migrations 0002 and 0003 remain unimplemented",
         "C2A owns migration 0002",
+        "C2A owns migration 0003",
         "C2A owns current durable C2B rows",
-        "migration 0003 is current",
+        "migration 0003 remains absent",
         "current physical generation remains 1",
     ),
     ids=(
@@ -389,8 +402,9 @@ def test_each_schema_0001_statement_is_explicitly_historical(
         "migration-0002-unimplemented",
         "migrations-0002-0003-unimplemented",
         "c2a-owns-migration-0002",
+        "c2a-owns-migration-0003",
         "c2a-owns-durable-c2b-rows",
-        "migration-0003-current",
+        "migration-0003-absent",
         "physical-generation-1-current",
     ),
 )
@@ -413,17 +427,19 @@ def test_current_schema_status_contradictions_fail_closed(
         "migration `0001_initial`; this is not the current physical repository state.",
         "The current physical application generation is 2.",
         "The current terminal migration is "
-        "`0002_development_program_and_effect_state`.",
-        "Migration 0003 remains absent and deferred.",
+        "`0003_cognitive_proposal_and_selection_state`.",
+        "Migration 0004 remains absent and deferred.",
         "C2A does not own migration 0002.",
+        "C2A does not own migration 0003.",
         "C2A does not own durable C2B rows.",
     ),
     ids=(
         "historical-generation-1-migration-0001",
         "current-generation-2",
-        "current-migration-0002",
-        "migration-0003-absent",
+        "current-migration-0003",
+        "migration-0004-absent",
         "c2a-does-not-own-migration-0002",
+        "c2a-does-not-own-migration-0003",
         "c2a-does-not-own-durable-c2b-rows",
     ),
 )
@@ -465,6 +481,7 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     assert migration_paths == (
         "sqlite_migrations/0001_initial.sql",
         "sqlite_migrations/0002_development_program_and_effect_state.sql",
+        "sqlite_migrations/0003_cognitive_proposal_and_selection_state.sql",
         "sqlite_migrations/__init__.py",
     )
 
@@ -568,8 +585,8 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     for phrase in (
         "C2A1 is current only for pure internal semantic values and the six named pure coherence validators.",
         "C2A1 adds no SQLite table or column, durable C2A state, migration, package export, dependency, script, entry point, worker, adapter, supervisor, process, filesystem store, Git handler, network client, model client, Bridge or ES integration, scheduler, queue, service, API, IPC, reconciler, or autonomous loop",
-        "C2A did not create or own migration 0002",
-        "Migration 0003 remains absent.",
+        "C2A did not create or own migration 0002 or migration 0003",
+        "Migration 0003 and its private pre-execution selection runtime are now implemented outside C2A",
         "C2A assigns no migration number and authorizes no schema work.",
     ):
         assert phrase in nonimplementation

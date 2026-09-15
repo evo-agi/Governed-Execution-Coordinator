@@ -4,7 +4,7 @@ This module is not admission, not authorization, not production state initializa
 and not runtime authority. It directly seeds a historical schema-0001 B3/B4 graph
 inside a temporary current-generation managed SQLite database, then validates the
 seeded rows through existing Coordinator row contracts. The cumulative physical
-schema is generation 2 / migration 0002; the seeded graph's meanings remain the
+schema is generation 2 / migration 0003; the seeded graph's meanings remain the
 existing schema-0001 meanings.
 """
 
@@ -86,8 +86,9 @@ _LEASE_ID = "lease-b3-fixture"
 _BACKLOG_ID = "backlog-b3-fixture"
 _WORK_ITEM_ID = "wi-b3-fixture"
 _DEPENDENCY_DECISION_REF = "deps-b3-fixture-ready"
-_CURRENT_PHYSICAL_SEQUENCE = 2
-_CURRENT_PHYSICAL_MIGRATION_ID = "0002_development_program_and_effect_state"
+_CURRENT_PHYSICAL_SEQUENCE = 3
+_CURRENT_PHYSICAL_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
+_FIXTURE_WRITER_GENERATION = 2
 _C2B2_PHYSICAL_TABLES = (
     "development_program_heads",
     "development_program_versions",
@@ -109,6 +110,30 @@ _C2B2_PHYSICAL_TABLES = (
     "development_decisions",
     "development_mutation_receipts",
 )
+_SECTION41_PHYSICAL_TABLES = (
+    "development_model_source_invocations",
+    "development_pre_execution_planning_contexts",
+    "development_private_proposal_artifact_bindings",
+    "development_model_proposals",
+    "development_pre_execution_plan_projections",
+    "development_model_proposal_evidence_bindings",
+    "development_pre_execution_dispositions",
+    "development_pre_execution_selection_heads",
+    "development_cognitive_mutation_receipts",
+)
+_FIXTURE_EMPTY_PHYSICAL_TABLES = (
+    *_C2B2_PHYSICAL_TABLES,
+    *_SECTION41_PHYSICAL_TABLES,
+)
+if not (
+    len(_C2B2_PHYSICAL_TABLES) == 19
+    and len(_SECTION41_PHYSICAL_TABLES) == 9
+    and not set(_C2B2_PHYSICAL_TABLES).intersection(_SECTION41_PHYSICAL_TABLES)
+    and len(_FIXTURE_EMPTY_PHYSICAL_TABLES)
+    == len(set(_FIXTURE_EMPTY_PHYSICAL_TABLES))
+    == 28
+):
+    raise RuntimeError("fixture-physical-table-inventory-invalid")
 
 
 class BlockedFixtureAuthorityContract(RuntimeError):
@@ -229,6 +254,7 @@ def make_coherent_transition_fixture_for_test(
     _seed_graph_for_test(location, graph)
     _require_current_physical_schema_for_test(location)
     _require_c2b2_physical_tables_empty_for_test(location)
+    _require_section41_physical_tables_empty_for_test(location)
 
     first_writer_session = acquire_sqlite_writer_session(location)
     try:
@@ -240,10 +266,11 @@ def make_coherent_transition_fixture_for_test(
     writer_session = acquire_sqlite_writer_session(location)
     try:
         metadata = writer_session.metadata
-        if metadata.generation != _CURRENT_PHYSICAL_SEQUENCE:
+        if metadata.generation != _FIXTURE_WRITER_GENERATION:
             raise RuntimeError("fixture-writer-generation-2-required")
         _require_current_physical_schema_for_test(location)
         _require_c2b2_physical_tables_empty_for_test(location)
+        _require_section41_physical_tables_empty_for_test(location)
         return CoherentTransitionFixture(
             location=location,
             writer_session=writer_session,
@@ -821,6 +848,19 @@ def _require_c2b2_physical_tables_empty_for_test(location: CoordinatorStateLocat
             row = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
             if row != (0,):
                 raise RuntimeError("fixture-c2b2-physical-table-not-empty")
+    finally:
+        connection.close()
+
+
+def _require_section41_physical_tables_empty_for_test(
+    location: CoordinatorStateLocation,
+) -> None:
+    connection = open_existing_sqlite_connection(location, read_only=True)
+    try:
+        for table_name in _SECTION41_PHYSICAL_TABLES:
+            row = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+            if row != (0,):
+                raise RuntimeError("fixture-section41-physical-table-not-empty")
     finally:
         connection.close()
 

@@ -35,6 +35,7 @@ ROLLBACK_JOURNAL_FILE_FORMAT_VERSION = 1
 MAX_MIGRATION_RESOURCE_BYTES = 1_048_576
 MIGRATION_RESOURCE_READ_CHUNK_BYTES = 65_536
 _C2B2_MIGRATION_ID = "0002_development_program_and_effect_state"
+_SECTION41_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -97,6 +98,15 @@ EXPECTED_TABLES = frozenset(
         "development_delivery_heads",
         "development_decisions",
         "development_mutation_receipts",
+        "development_model_source_invocations",
+        "development_pre_execution_planning_contexts",
+        "development_private_proposal_artifact_bindings",
+        "development_model_proposals",
+        "development_pre_execution_plan_projections",
+        "development_model_proposal_evidence_bindings",
+        "development_pre_execution_dispositions",
+        "development_pre_execution_selection_heads",
+        "development_cognitive_mutation_receipts",
     }
 )
 
@@ -135,6 +145,20 @@ _EMPTY_AFTER_C2B2_MIGRATION_TABLES = frozenset(
         "development_delivery_heads",
         "development_decisions",
         "development_mutation_receipts",
+    }
+)
+
+_EMPTY_AFTER_SECTION41_MIGRATION_TABLES = frozenset(
+    {
+        "development_model_source_invocations",
+        "development_pre_execution_planning_contexts",
+        "development_private_proposal_artifact_bindings",
+        "development_model_proposals",
+        "development_pre_execution_plan_projections",
+        "development_model_proposal_evidence_bindings",
+        "development_pre_execution_dispositions",
+        "development_pre_execution_selection_heads",
+        "development_cognitive_mutation_receipts",
     }
 )
 
@@ -329,6 +353,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="Durable development program and effect state schema",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_SECTION41_MIGRATION_ID,
+        sequence=3,
+        resource_name="0003_cognitive_proposal_and_selection_state.sql",
+        literal_checksum="b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="Cognitive proposal and pre-execution selection state schema",
     ),
 )
 
@@ -2234,6 +2268,8 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_bootstrap_tables(connection)
     if migration.migration_id == _C2B2_MIGRATION_ID:
         _verify_empty_c2b2_migration_tables(connection)
+    if migration.migration_id == _SECTION41_MIGRATION_ID:
+        _verify_empty_section41_migration_tables(connection)
 
 
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:
@@ -2242,6 +2278,10 @@ def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:
 
 def _verify_empty_c2b2_migration_tables(connection: sqlite3.Connection) -> None:
     _verify_empty_tables(connection, _EMPTY_AFTER_C2B2_MIGRATION_TABLES)
+
+
+def _verify_empty_section41_migration_tables(connection: sqlite3.Connection) -> None:
+    _verify_empty_tables(connection, _EMPTY_AFTER_SECTION41_MIGRATION_TABLES)
 
 
 def _verify_empty_tables(

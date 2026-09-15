@@ -213,6 +213,11 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
             "_development_program_row_values",
             "_development_row_value_support",
         },
+        "_sqlite_development_pre_execution_plan_disposition.py":{
+            "_development_decision_row_values",
+            "_development_effect_row_values",
+            "_development_program_row_values",
+        },
         "_sqlite_development_author_effect_establishment.py":owner_names,
         "_sqlite_development_reader_contracts.py":owner_names,
         "_sqlite_development_readers.py":owner_names,

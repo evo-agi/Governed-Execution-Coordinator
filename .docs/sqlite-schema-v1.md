@@ -384,8 +384,9 @@ schema 0001 as sufficient for the historical meanings used by the bounded
 typed-reader slice: admitted backlog validation, exact limit provenance, zero
 scalar budget posture, READY-only dependency receipts, global-stop-current row
 reconstruction, and internal timestamp envelopes. Migration 0002 is now the
-current generation-2 physical C2B2 extension; it leaves migration 0001 and those
-historical row meanings unchanged. Any later contract needing additional facts
+generation-2 physical C2B2 extension, while migration 0003 is the current
+terminal cognitive proposal-selection extension; both leave migration 0001 and
+those historical row meanings unchanged. Any later contract needing additional facts
 not representable by the cumulative generation-2 schema requires separately
 audited schema/model evolution and must not modify migration 0001.
 
@@ -417,7 +418,7 @@ index, durable fact, event insertion, current-state update, commit, or migration
 
 B3 tests-only coherent fixtures preserve schema-0001 graph meanings without
 changing migration 0001. They live under `tests/` only, initialize temporary
-current generation-2 / migration-0002 physical databases, directly seed only
+current generation-2 / migration-0003 physical databases, directly seed only
 the historical synthetic authoritative rows as test setup, validate through
 existing row contracts, acquire real writer issuance as temporary test evidence,
 and may persist only domain-rejected event/replay rows. Their legacy seeding

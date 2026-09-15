@@ -507,6 +507,12 @@ EXPECTED_PRODUCTION_READER_IMPORTS = (
         ("_read_global_stop_current",),
     ),
     (
+        "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
+        1,
+        "sqlite_transition_read_scope",
+        ("_read_global_stop_current",),
+    ),
+    (
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         1,
         "sqlite_transition_read_scope",
@@ -530,6 +536,12 @@ EXPECTED_PRODUCTION_READER_EDGES = (
     (
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "_resolve_development_author_effect_establishment_apply_after_fencing",
+        "_read_global_stop_current",
+        1,
+    ),
+    (
+        "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
+        "_resolve_pre_execution_plan_disposition_after_fencing",
         "_read_global_stop_current",
         1,
     ),
@@ -589,6 +601,12 @@ _AUTHOR_EFFECT_CONSUMER_PATH = (
 _AUTHOR_EFFECT_OWNER_NAME = (
     "_resolve_development_author_effect_establishment_apply_after_fencing"
 )
+_PRE_EXECUTION_CONSUMER_PATH = (
+    "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py"
+)
+_PRE_EXECUTION_OWNER_NAME = (
+    "_resolve_pre_execution_plan_disposition_after_fencing"
+)
 _INITIALIZER_CONSUMER_PATH = (
     "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py"
 )
@@ -633,6 +651,22 @@ _EXPECTED_AUTHOR_EFFECT_OWNER_HEADER_SHAPE = (
     "right=Name(id='DevelopmentAuthorEffectEstablishmentConflictV1', ctx=Load())), "
     "op=BitOr(), right=Name(id='_FreshDevelopmentAuthorEffectEstablishment', "
     "ctx=Load()))",
+    None,
+)
+_EXPECTED_PRE_EXECUTION_OWNER_HEADER_SHAPE = (
+    (),
+    (),
+    "arguments(kwonlyargs=[arg(arg='capability', annotation=Name(id='object', "
+    "ctx=Load())), arg(arg='mutation_ref', annotation=Name(id='object', "
+    "ctx=Load())), arg(arg='mutation_command_digest', annotation=Name(id='object', "
+    "ctx=Load())), arg(arg='bundle', annotation=Name(id='object', ctx=Load())), "
+    "arg(arg='disposition_identity', annotation=Name(id='object', ctx=Load())), "
+    "arg(arg='recovery_probe', annotation=Name(id='object', ctx=Load()))], "
+    "kw_defaults=[None, None, None, None, None, None])",
+    "BinOp(left=BinOp(left=Name(id='PreExecutionPlanDispositionResultV1', "
+    "ctx=Load()), op=BitOr(), "
+    "right=Name(id='PreExecutionPlanDispositionConflictV1', ctx=Load())), "
+    "op=BitOr(), right=Name(id='_FreshPreExecutionPlanDisposition', ctx=Load()))",
     None,
 )
 _EXPECTED_CONTROLLER_OWNER_HEADER_SHAPE = ((), (), (), ())
@@ -815,6 +849,7 @@ def _require_exact_live_authorized_reader_owners(
 ) -> dict[str, ast.AST]:
     if relative_path not in {
         _AUTHOR_EFFECT_CONSUMER_PATH,
+        _PRE_EXECUTION_CONSUMER_PATH,
         _INITIALIZER_CONSUMER_PATH,
         _TRANSACTION_CONSUMER_PATH,
     }:
@@ -844,6 +879,25 @@ def _require_exact_live_authorized_reader_owners(
             _AUTHOR_EFFECT_OWNER_NAME,
         )
         return {_AUTHOR_EFFECT_OWNER_NAME: selected_owner}
+
+    if relative_path == _PRE_EXECUTION_CONSUMER_PATH:
+        selected_owner = _require_direct_definition(
+            tree.body,
+            name=_PRE_EXECUTION_OWNER_NAME,
+            expected_type=ast.FunctionDef,
+        )
+        if (
+            type(selected_owner) is not ast.FunctionDef
+            or _function_owner_header_shape(selected_owner)
+            != _EXPECTED_PRE_EXECUTION_OWNER_HEADER_SHAPE
+        ):
+            raise AssertionError(_PRIVATE_READER_OWNER_NOT_LIVE)
+        _require_selected_code_object(module_code, selected_owner)
+        _require_single_namespace_definition_binding(
+            module_code,
+            _PRE_EXECUTION_OWNER_NAME,
+        )
+        return {_PRE_EXECUTION_OWNER_NAME: selected_owner}
 
     if relative_path == _INITIALIZER_CONSUMER_PATH:
         selected_owner = _require_direct_definition(
@@ -1925,7 +1979,7 @@ def test_reader_does_not_close_connection() -> None:
         connection.close()
 
 
-def test_private_readers_have_no_production_call_sites_or_public_exports() -> None:
+def test_private_readers_have_only_exact_production_call_sites_and_no_public_exports() -> None:
     assert _PRIVATE_READER_LIVE_OWNER_EXCLUSIONS == (
         "dynamic imports",
         "exec, eval, or generated code",
@@ -2955,6 +3009,7 @@ def test_tests_only_schema_setup_is_not_a_fixture_or_production_capability_progr
     assert sorted(path.name for path in (PACKAGE_DIR / "sqlite_migrations").glob("*.sql")) == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
+        "0003_cognitive_proposal_and_selection_state.sql",
     ]
     assert json.loads(json.dumps({"capability": "tests-only"})) == {"capability": "tests-only"}
 
