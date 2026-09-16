@@ -45,6 +45,12 @@ C2B3D_STATUS_BEGIN_MARKER = (
 C2B3D_STATUS_END_MARKER = (
     "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
 )
+C2B3D_COMMITTED_STATUS_BEGIN_MARKER = (
+    "<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_BEGIN -->"
+)
+C2B3D_COMMITTED_STATUS_END_MARKER = (
+    "<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_END -->"
+)
 EXPECTED_VS1B_OWNER_PREFIX = """## 38. Coordinator VS1B Route-Neutral Program Genesis
 
 This section is the finite owner for the VS1B private implementation. It
@@ -136,21 +142,62 @@ def _vs1b_owner_contract() -> dict[str, object]:
     return contract
 
 
-def _vs1b_current_status_text() -> str:
-    source = _read_current_contract_document(PLANNING_PATH)
+def _vs1b_current_status_text(
+    source: str | None = None,
+) -> tuple[str, str, str]:
+    source = (
+        _read_current_contract_document(PLANNING_PATH) if source is None else source
+    )
+    assert type(source) is str
     assert source.count(HISTORICAL_PLANNING_END_MARKER) == 1
     assert source.count(VS1B_STATUS_BEGIN_MARKER) == 1
     assert source.count(VS1B_STATUS_END_MARKER) == 1
     assert source.count(C2B3D_STATUS_BEGIN_MARKER) == 1
     assert source.count(C2B3D_STATUS_END_MARKER) == 1
+    assert source.count(C2B3D_COMMITTED_STATUS_BEGIN_MARKER) == 1
+    assert source.count(C2B3D_COMMITTED_STATUS_END_MARKER) == 1
     historical, current = source.split(VS1B_STATUS_BEGIN_MARKER, 1)
     assert historical.endswith(HISTORICAL_PLANNING_END_MARKER + "\n")
     status, after = current.split(VS1B_STATUS_END_MARKER, 1)
-    between, c2b3d = after.split(C2B3D_STATUS_BEGIN_MARKER, 1)
+    between, c2b3d_and_committed = after.split(C2B3D_STATUS_BEGIN_MARKER, 1)
     assert between == "\n"
-    _c2b3d_status, tail = c2b3d.split(C2B3D_STATUS_END_MARKER, 1)
+    c2b3d_status, after_c2b3d = c2b3d_and_committed.split(
+        C2B3D_STATUS_END_MARKER,
+        1,
+    )
+    between, committed = after_c2b3d.split(
+        C2B3D_COMMITTED_STATUS_BEGIN_MARKER,
+        1,
+    )
+    assert between == "\n"
+    committed_status, tail = committed.split(
+        C2B3D_COMMITTED_STATUS_END_MARKER,
+        1,
+    )
     assert tail == "\n"
-    return " ".join(status.split())
+    normalized_status = " ".join(status.split())
+    normalized_candidate = " ".join(c2b3d_status.split())
+    normalized_committed = " ".join(committed_status.split())
+    for required in (
+        "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+        "Git owns the committed object and ref fact",
+        "external evidence only rather than Coordinator durable authority or effect permission",
+        "not current repository status after this successor",
+        "C2B3D remains private and non-executing",
+        "adds no public API or package export",
+        "Pending authority and planned delivery remain durable intent and bounds only, never execution permission",
+    ):
+        assert required in normalized_committed
+    for stale in (
+        "current working tree contains",
+        "uncommitted candidate",
+        "awaits fresh independent audit",
+        "pending fresh independent audit",
+        "independent acceptance remains pending",
+        "fresh independent audit remains required",
+    ):
+        assert stale not in normalized_committed
+    return normalized_status, normalized_candidate, normalized_committed
 
 
 @dataclass
@@ -504,7 +551,7 @@ def test_section_38_finitely_corrects_x_gate_without_weakening_old_x() -> None:
 
 
 def test_vs1b_current_status_supersedes_historical_planning_labels() -> None:
-    status = _vs1b_current_status_text()
+    status, candidate, committed = _vs1b_current_status_text()
     for required in (
         "retained as historical contract and planning evidence",
         "not current implementation claims",
@@ -528,3 +575,52 @@ def test_vs1b_current_status_supersedes_historical_planning_labels() -> None:
         "C2B3D source, worker execution, and production or external effects remain unauthorized",
     ):
         assert required in status
+    for historical in (
+        "current working tree contains",
+        "implementation candidate",
+        "not staged, committed, pushed, published, or independently accepted",
+        "fresh independent audit remains required",
+    ):
+        assert historical in candidate
+    for required in (
+        "retained byte-for-byte as historical contract, implementation, and audit-state evidence",
+        "introduced and is committed at `5e544622e5f46ddc78294322471b4fcbd2ad9172`",
+        "Git owns the committed object and ref fact",
+        "external evidence only rather than Coordinator durable authority or effect permission",
+        "C2B3D remains private and non-executing",
+        "adds no public API or package export",
+        "capsule custody, Git effect, Execution Substrate or Bridge call",
+    ):
+        assert required in committed
+
+    source = _read_current_contract_document(PLANNING_PATH)
+    mutants = (
+        source.replace(C2B3D_COMMITTED_STATUS_BEGIN_MARKER, "", 1),
+        source.replace(
+            "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+            "394d625aa63935140eeaf88ecff6f59f0547cb7e",
+            1,
+        ),
+        source.replace(
+            "Git owns the committed object and\nref fact",
+            "Audit reports own the committed object and\nref fact",
+            1,
+        ),
+        source.replace(
+            "C2B3D remains private and non-executing. It adds no public API",
+            "C2B3D is public and executing. It adds a public API",
+            1,
+        ),
+        source.replace(
+            C2B3D_COMMITTED_STATUS_END_MARKER,
+            "The current working tree contains an uncommitted candidate pending "
+            "fresh independent audit.\n"
+            + C2B3D_COMMITTED_STATUS_END_MARKER,
+            1,
+        ),
+        source + C2B3D_COMMITTED_STATUS_BEGIN_MARKER + "\n",
+    )
+    for mutant in mutants:
+        assert mutant != source
+        with pytest.raises(AssertionError):
+            _vs1b_current_status_text(mutant)

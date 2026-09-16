@@ -433,6 +433,12 @@ C2B3D_STATUS_BEGIN_MARKER = (
 C2B3D_STATUS_END_MARKER = (
     "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
 )
+C2B3D_COMMITTED_STATUS_BEGIN_MARKER = (
+    "<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_BEGIN -->"
+)
+C2B3D_COMMITTED_STATUS_END_MARKER = (
+    "<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_END -->"
+)
 C2B3D_CURRENT_STATUS_APPROVED_TEXT = """<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_BEGIN -->
 ## C2B3D implemented-candidate current status
 
@@ -468,6 +474,31 @@ durable intent and bounds only, never execution permission. The candidate is
 not staged, committed, pushed, published, or independently accepted; a fresh
 independent audit remains required.
 <!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->
+"""
+C2B3D_COMMITTED_STATUS_APPROVED_TEXT = """<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_BEGIN -->
+## C2B3D committed current status
+
+The preceding planning, VS1B, and C2B3D implemented-candidate blocks are
+retained byte-for-byte as historical contract, implementation, and audit-state
+evidence. Their former current-working-tree, candidate, uncommitted,
+unpublished, and pending-audit labels are not current repository status after
+this successor.
+
+C2B3D private author-effect establishment was introduced and is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Git owns the committed object and
+ref fact. Independent acceptance, audit, validation, provenance, and report
+records remain external evidence only rather than Coordinator durable authority
+or effect permission.
+
+C2B3D remains private and non-executing. It adds no public API or package
+export, schema or migration, worker or dispatcher, external-authority issuer or
+verifier, route execution, credential use, capsule custody, Git effect,
+Execution Substrate or Bridge call, network or other external I/O, automatic
+retry after uncertainty, or restart-safe raw-input custody. Pending authority
+and planned delivery remain durable intent and bounds only, never execution
+permission.
+
+<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_END -->
 """
 C2B3A_SOURCE_ACCEPTANCE_EVIDENCE_LEDGER = (
     "an accepted fresh independent read-only source-acceptance audit;",
@@ -4245,7 +4276,7 @@ def _c2b3a_planning_evidence_ledger(
     return tuple(entries)
 
 
-def _c2b3a_planning_regions(text: str) -> tuple[str, str, str]:
+def _c2b3a_planning_regions(text: str) -> tuple[str, str, str, str]:
     diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
     historical_begin = "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->"
     historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->"
@@ -4258,6 +4289,8 @@ def _c2b3a_planning_regions(text: str) -> tuple[str, str, str]:
         C2B3A_VS1B_STATUS_END_MARKER,
         C2B3D_STATUS_BEGIN_MARKER,
         C2B3D_STATUS_END_MARKER,
+        C2B3D_COMMITTED_STATUS_BEGIN_MARKER,
+        C2B3D_COMMITTED_STATUS_END_MARKER,
     ):
         if text.count(marker) != 1:
             raise AssertionError(diagnostic)
@@ -4270,6 +4303,8 @@ def _c2b3a_planning_regions(text: str) -> tuple[str, str, str]:
             C2B3A_VS1B_STATUS_END_MARKER,
             C2B3D_STATUS_BEGIN_MARKER,
             C2B3D_STATUS_END_MARKER,
+            C2B3D_COMMITTED_STATUS_BEGIN_MARKER,
+            C2B3D_COMMITTED_STATUS_END_MARKER,
         )
     )
     if positions != tuple(sorted(positions)):
@@ -4278,24 +4313,31 @@ def _c2b3a_planning_regions(text: str) -> tuple[str, str, str]:
         C2B3A_VS1B_STATUS_BEGIN_MARKER,
         1,
     )
-    vs1b_remainder, c2b3d_remainder = status_remainder.split(
+    vs1b_remainder, c2b3d_and_committed_remainder = status_remainder.split(
         C2B3D_STATUS_BEGIN_MARKER,
+        1,
+    )
+    c2b3d_remainder, committed_remainder = c2b3d_and_committed_remainder.split(
+        C2B3D_COMMITTED_STATUS_BEGIN_MARKER,
         1,
     )
     vs1b = C2B3A_VS1B_STATUS_BEGIN_MARKER + vs1b_remainder
     c2b3d = C2B3D_STATUS_BEGIN_MARKER + c2b3d_remainder
+    committed = C2B3D_COMMITTED_STATUS_BEGIN_MARKER + committed_remainder
     if historical != C2B3A_PLANNING_PROJECTION_APPROVED_TEXT:
         raise AssertionError(diagnostic)
     if vs1b != C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT:
         raise AssertionError(diagnostic)
     if c2b3d != C2B3D_CURRENT_STATUS_APPROVED_TEXT:
         raise AssertionError(diagnostic)
-    return historical, vs1b, c2b3d
+    if committed != C2B3D_COMMITTED_STATUS_APPROVED_TEXT:
+        raise AssertionError(diagnostic)
+    return historical, vs1b, c2b3d, committed
 
 
 def _assert_c2b3a_planning_status(text: str) -> None:
     diagnostic = "C2B3A_PLANNING_PROJECTION_INVALID"
-    historical, _vs1b, _c2b3d = _c2b3a_planning_regions(text)
+    historical, _vs1b, _c2b3d, _committed = _c2b3a_planning_regions(text)
     markers = (
         "<!-- C2B3A_PLANNING_PROJECTION_BEGIN -->",
         "<!-- C2B3A_PLANNING_NON_AUTHORITY_BEGIN -->",
@@ -12476,10 +12518,10 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     _assert_c2b3a_owner_addendum_prose(owner)
     _assert_c2b3a_planning_status(planning)
-    historical_planning, vs1b_status, c2b3d_status = _c2b3a_planning_regions(
-        planning
+    historical_planning, vs1b_status, c2b3d_status, committed_status = (
+        _c2b3a_planning_regions(planning)
     )
-    current_status = vs1b_status + c2b3d_status
+    current_status = vs1b_status + c2b3d_status + committed_status
     assert (
         owner[owner.index("## 35. C2B3A Program-Initialization Contract Freeze\n")
               : owner.index("    # C2B3A_OWNER_ADDENDUM_BEGIN")]
@@ -12488,6 +12530,7 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
     assert historical_planning == C2B3A_PLANNING_PROJECTION_APPROVED_TEXT
     assert vs1b_status == C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
     assert c2b3d_status == C2B3D_CURRENT_STATUS_APPROVED_TEXT
+    assert committed_status == C2B3D_COMMITTED_STATUS_APPROVED_TEXT
     for required in (
         '"structured_owner": "commit_close_outcome_addendum"',
         '"planning_is_semantic_authority": False',
@@ -12579,6 +12622,17 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
         "fresh\nindependent audit remains required",
     ):
         assert required in c2b3d_status
+    for required in (
+        "retained byte-for-byte as historical contract, implementation, and audit-state",
+        "not current repository status after\nthis successor",
+        "introduced and is committed at\n`5e544622e5f46ddc78294322471b4fcbd2ad9172`",
+        "Git owns the committed object and\nref fact",
+        "external evidence only rather than Coordinator durable authority\nor effect permission",
+        "C2B3D remains private and non-executing",
+        "adds no public API or package\nexport",
+        "Pending authority\nand planned delivery remain durable intent and bounds only",
+    ):
+        assert required in committed_status
 
     def physical_copy(name: str, value: str) -> str:
         path = tmp_path / (name + ".md")
@@ -12938,6 +12992,7 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
             assert mutant_current_status == (
                 C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
                 + C2B3D_CURRENT_STATUS_APPROVED_TEXT
+                + C2B3D_COMMITTED_STATUS_APPROVED_TEXT
             )
             _c2b3a_physically_reject_planning_counterfactual(
                 physical_oracle_root,
@@ -16824,8 +16879,10 @@ def _c2b3a_planning_mutant_at_position(
 def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
     planning = C2B3A_PLANNING_PATH.read_text(encoding="utf-8")
     _assert_c2b3a_planning_status(planning)
-    historical, vs1b_status, c2b3d_status = _c2b3a_planning_regions(planning)
-    current = vs1b_status + c2b3d_status
+    historical, vs1b_status, c2b3d_status, committed_status = (
+        _c2b3a_planning_regions(planning)
+    )
+    current = vs1b_status + c2b3d_status + committed_status
     c2b3c_current_status = (
         "Section 39 of\n"
         "`.docs/c2b-durable-development-state.md` supersedes current status only and\n"
@@ -16841,6 +16898,14 @@ def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
         "The current working tree contains a private C2B3D author-effect "
         "establishment\nimplementation candidate"
     ) == 1
+    assert "current working tree contains" not in committed_status
+    assert "fresh independent audit remains required" not in committed_status
+    assert committed_status.count(
+        "5e544622e5f46ddc78294322471b4fcbd2ad9172"
+    ) == 1
+    assert "Git owns the committed object and\nref fact" in committed_status
+    assert "Coordinator durable authority\nor effect permission" in committed_status
+    assert "adds no public API or package\nexport" in committed_status
 
     historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->\n"
     mutants = (
@@ -16859,6 +16924,35 @@ def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
             1,
         ),
         planning.replace(C2B3D_CURRENT_STATUS_APPROVED_TEXT, "", 1),
+        planning.replace(C2B3D_COMMITTED_STATUS_APPROVED_TEXT, "", 1),
+        planning.replace(
+            "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+            "394d625aa63935140eeaf88ecff6f59f0547cb7e",
+            1,
+        ),
+        planning.replace(
+            "Git owns the committed object and\nref fact",
+            "Audit reports own the committed object and\nref fact",
+            1,
+        ),
+        planning.replace(
+            "labels are not current repository status after\nthis successor",
+            "labels remain current repository status after\nthis successor",
+            1,
+        ),
+        planning.replace(
+            "C2B3D remains private and non-executing. It adds no public API",
+            "C2B3D is public and executing. It adds a public API",
+            1,
+        ),
+        planning.replace(
+            C2B3D_COMMITTED_STATUS_END_MARKER,
+            "The current working tree contains an uncommitted candidate pending "
+            "fresh independent audit.\n"
+            + C2B3D_COMMITTED_STATUS_END_MARKER,
+            1,
+        ),
+        planning + C2B3D_COMMITTED_STATUS_APPROVED_TEXT,
         planning.replace(
             "Pending authority and planned delivery remain\ndurable intent and "
             "bounds only, never execution permission.",

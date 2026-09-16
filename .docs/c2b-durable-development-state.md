@@ -24794,3 +24794,35 @@ This repair adds no schema, migration, reader role, public API, writer surface,
 new transaction authority, executable authorization, worker, provider, Bridge,
 Execution Substrate, Git, publication, or external effect. Migration 0003 and
 application generation 2 remain unchanged.
+
+<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_BEGIN -->
+### Committed implementation and repository status
+
+C2B3D private author-effect establishment was introduced and is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Migration
+`0003_cognitive_proposal_and_selection_state` and the private, non-executable
+Section 41 pre-execution proposal-selection runtime were introduced and are
+committed at `394d625aa63935140eeaf88ecff6f59f0547cb7e`. Git owns
+committed object and ref truth. The pre-commit independent ACCEPT and all audit,
+validation, provenance, and report records remain external evidence only; none
+is Coordinator durable state, execution permission, acceptance authority, or
+effect authority.
+
+This successor supersedes only the former candidate, uncommitted, and
+pending-or-awaiting-independent-audit repository-publication-status wording in
+Sections 40 and 41, the opening of Section 42, and bounded current-status
+projections. It does not rewrite their bytes or change any semantic field,
+identity, digest, algorithm, authority rule, recovery rule, or non-claim.
+Section 41 remains the sole detailed semantic owner. Section 42 remains the
+detailed current implementation and repository-publication-status owner and
+does not redefine Section 41.
+
+The current capability ends at typed pre-execution proposal admission plus
+Coordinator selection or non-selection. It invokes no model or provider;
+contacts no dispatcher or worker; executes no post-execution validation or
+review; makes no post-execution Coordinator semantic decision; implements no
+capsule custody, Git effect, Bridge or ES handoff, publication executor,
+service, scheduler, queue, or autonomous loop; and adds no public package
+export, public StateStore method, or public WriterSession protocol method.
+
+<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_END -->

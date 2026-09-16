@@ -3951,39 +3951,645 @@ def test_raw_owner_parser_causal_mutants_fail(case_name: str) -> None:
         _parse_owner_literal(mutated, enforce_frozen_bytes=False, compare_expected=False)
 
 
-def test_supporting_documents_are_bounded_cross_references_not_second_owners() -> None:
-    paths = (
-        ".docs/c2a-first-slice-semantic-protocol-contract.md",
-        ".docs/authority-boundaries.md",
-        ".docs/autonomous-software-development-operating-model.md",
-        ".docs/software-development-progression-boundary.md",
-        ".docs/worker-execution-boundary.md",
-        ".docs/durable-state-model.md",
-        ".docs/sqlite-bootstrap-and-migrations.md",
-        ".docs/sqlite-operations-and-recovery.md",
-        ".docs/sqlite-threat-model.md",
+class _CrossReferenceOwnerSpec(NamedTuple):
+    relative_path: str
+    owner_chain: tuple[tuple[int, str], ...]
+    accepted_predecessor: tuple[int, str]
+    accepted_predecessor_chain: tuple[tuple[int, str], ...]
+    begin_marker: str
+    end_marker: str
+    range_terminator: tuple[int, str] | None
+
+
+_CROSS_REFERENCE_BEGIN = (
+    "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->"
+)
+_CROSS_REFERENCE_END = "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
+_CROSS_REFERENCE_HEADING = "Cognitive proposal and selection runtime"
+_CROSS_REFERENCE_EXPECTED = " ".join(
+    """## Cognitive proposal and selection runtime
+
+Section 41 of `.docs/c2b-durable-development-state.md` remains the sole detailed
+semantic owner; Section 42 records current implementation and
+repository-publication status without redefining it. C2B3D private author-effect
+establishment is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Migration
+`0003_cognitive_proposal_and_selection_state` and the private pre-execution
+proposal-selection runtime are committed at
+`394d625aa63935140eeaf88ecff6f59f0547cb7e`. Git owns committed object and ref
+truth; independent acceptance, audit, validation, provenance, and report
+records remain external evidence rather than Coordinator durable authority or
+effect permission. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection. It performs no
+model/provider invocation, dispatch, worker contact, post-execution
+validation/review execution, post-execution Coordinator semantic decision,
+capsule custody, Git effect, Bridge or ES handoff, publication execution,
+service, scheduler, queue, or autonomous loop. The full remote-worker phase is
+not reduced to this private source tranche.""".split()
+)
+_CROSS_REFERENCE_STALE_CURRENT_PHRASES = (
+    "current working tree contains",
+    "uncommitted candidate",
+    "uncommitted working-tree candidate",
+    "awaits fresh independent audit",
+    "pending fresh independent audit",
+    "independent acceptance remains pending",
+    "fresh independent audit remains required",
+    "implementation evidence pending fresh independent audit",
+)
+_CROSS_REFERENCE_OWNER_INVENTORY = (
+    _CrossReferenceOwnerSpec(
         "AGENTS.md",
+        ((1, "NWP Coordinator Agent Rules"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Pre-I/O VS1A cleanup invariant"),
+        (
+            (1, "NWP Coordinator Agent Rules"),
+            (2, "Pre-I/O VS1A cleanup invariant"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
         "README.md",
+        ((1, "NWP Coordinator"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Narrowed first vertical-slice target"),
+        ((1, "NWP Coordinator"), (2, "Narrowed first vertical-slice target")),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/c2a-first-slice-semantic-protocol-contract.md",
+        ((1, "C2A First-Slice Semantic Protocol Contract"), (2, _CROSS_REFERENCE_HEADING)),
+        (3, "Direct pytest contract oracle"),
+        (
+            (1, "C2A First-Slice Semantic Protocol Contract"),
+            (
+                2,
+                "C2A-PROTO-015 — Tranche Gates, No-Schema Posture, And Deferred Mechanics",
+            ),
+            (3, "Direct pytest contract oracle"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/authority-boundaries.md",
+        ((1, "Authority Boundaries"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Vertical-slice governing authority boundary"),
+        (
+            (1, "Authority Boundaries"),
+            (2, "Vertical-slice governing authority boundary"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/autonomous-software-development-operating-model.md",
+        ((1, "C1 Autonomous Software-Development Operating Model"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Narrowed first vertical-slice operating order"),
+        (
+            (1, "C1 Autonomous Software-Development Operating Model"),
+            (2, "Narrowed first vertical-slice operating order"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/durable-state-model.md",
+        ((1, "Durable State Model"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Vertical-slice durable-state narrowing"),
+        (
+            (1, "Durable State Model"),
+            (2, "Vertical-slice durable-state narrowing"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/software-development-progression-boundary.md",
+        ((1, "Software-Development Progression Boundary"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Narrowed first vertical-slice progression boundary"),
+        (
+            (1, "Software-Development Progression Boundary"),
+            (2, "Narrowed first vertical-slice progression boundary"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/sqlite-bootstrap-and-migrations.md",
+        ((1, "SQLite Bootstrap And Migrations"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Vertical-slice migration narrowing"),
+        (
+            (1, "SQLite Bootstrap And Migrations"),
+            (2, "Vertical-slice migration narrowing"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/sqlite-operations-and-recovery.md",
+        ((1, "SQLite Operations And Recovery"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "C2B3D Private Author-Effect Recovery Boundary"),
+        (
+            (1, "SQLite Operations And Recovery"),
+            (2, "C2B3D Private Author-Effect Recovery Boundary"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/sqlite-threat-model.md",
+        ((1, "SQLite Backend Threat Model"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "C2B3D Author-Effect Threat Boundary"),
+        (
+            (1, "SQLite Backend Threat Model"),
+            (2, "C2B3D Author-Effect Threat Boundary"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+    _CrossReferenceOwnerSpec(
+        ".docs/worker-execution-boundary.md",
+        ((1, "Worker Execution Boundary"), (2, _CROSS_REFERENCE_HEADING)),
+        (2, "Narrowed first-route worker boundary"),
+        (
+            (1, "Worker Execution Boundary"),
+            (2, "Narrowed first-route worker boundary"),
+        ),
+        _CROSS_REFERENCE_BEGIN,
+        _CROSS_REFERENCE_END,
+        None,
+    ),
+)
+
+
+def _broken_raw_split_cross_reference_checker(
+    text: str,
+    *,
+    begin: str,
+    end: str,
+    expected: str,
+) -> None:
+    assert text.count(begin) == 1
+    assert text.count(end) == 1
+    bounded = text.split(begin, 1)[1].split(end, 1)[0]
+    assert " ".join(bounded.split()) == expected
+
+
+def _cross_reference_heading_chain(
+    headings: tuple[_CurrentColumnOrderVisibleHeading, ...],
+    selected: _CurrentColumnOrderVisibleHeading,
+) -> tuple[tuple[int, str], ...]:
+    stack: list[_CurrentColumnOrderVisibleHeading] = []
+    for heading in headings:
+        if heading.start > selected.start:
+            break
+        while stack and stack[-1].level >= heading.level:
+            stack.pop()
+        stack.append(heading)
+    return tuple((heading.level, heading.title) for heading in stack)
+
+
+def _resolve_unique_cross_reference_heading_chain(
+    structure: _CurrentColumnOrderMarkdownStructure,
+    chain: tuple[tuple[int, str], ...],
+    *,
+    diagnostic: str,
+    role: str,
+) -> tuple[_CurrentColumnOrderVisibleHeading, ...]:
+    assert chain, diagnostic
+    resolved: list[_CurrentColumnOrderVisibleHeading] = []
+    for length in range(1, len(chain) + 1):
+        prefix = chain[:length]
+        matches = tuple(
+            heading
+            for heading in structure.headings
+            if _cross_reference_heading_chain(structure.headings, heading) == prefix
+        )
+        assert len(matches) == 1, (
+            f"{diagnostic}:{role}_event_count={len(matches)}"
+        )
+        resolved.append(matches[0])
+    return tuple(resolved)
+
+
+def _cross_reference_heading_range_end(
+    headings: tuple[_CurrentColumnOrderVisibleHeading, ...],
+    selected: _CurrentColumnOrderVisibleHeading,
+    *,
+    parent_end: int,
+) -> int:
+    terminator = next(
+        (
+            heading
+            for heading in headings
+            if heading.start > selected.start and heading.level <= selected.level
+        ),
+        None,
     )
-    owner_claim = "Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner"
-    for relative in paths:
-        path = ROOT / relative
+    return parent_end if terminator is None else terminator.start
+
+
+def _visible_cross_reference_marker_lines(
+    structure: _CurrentColumnOrderMarkdownStructure,
+    marker: str,
+) -> tuple[_CurrentColumnOrderVisibleLine, ...]:
+    return tuple(line for line in structure.ordinary_lines if line.content == marker)
+
+
+def _assert_live_cross_reference(
+    owner: bytes,
+    spec: _CrossReferenceOwnerSpec,
+) -> str:
+    diagnostic = f"CROSS_REFERENCE_STRUCTURE_INVALID:{spec.relative_path}"
+    assert type(owner) is bytes, diagnostic
+    structure = _current_column_order_markdown_structure(owner)
+    assert structure.unclosed_fence is None, diagnostic
+    begins = _visible_cross_reference_marker_lines(structure, spec.begin_marker)
+    ends = _visible_cross_reference_marker_lines(structure, spec.end_marker)
+    assert len(begins) == len(ends) == 1, diagnostic
+    begin = begins[0]
+    end = ends[0]
+    assert begin.start < begin.end <= end.start < end.end, diagnostic
+    owner_chain = _resolve_unique_cross_reference_heading_chain(
+        structure,
+        spec.owner_chain,
+        diagnostic=diagnostic,
+        role="owner",
+    )
+    predecessor_chain = _resolve_unique_cross_reference_heading_chain(
+        structure,
+        spec.accepted_predecessor_chain,
+        diagnostic=diagnostic,
+        role="predecessor",
+    )
+    assert owner_chain[0] == predecessor_chain[0], diagnostic
+    owner_heading = owner_chain[-1]
+    predecessor = predecessor_chain[-1]
+    assert (predecessor.level, predecessor.title) == spec.accepted_predecessor, (
+        diagnostic
+    )
+    preceding = tuple(
+        heading for heading in structure.headings if heading.start < begin.start
+    )
+    assert preceding and preceding[-1] == predecessor, diagnostic
+    predecessor_range_end = _cross_reference_heading_range_end(
+        structure.headings,
+        predecessor,
+        parent_end=len(owner),
+    )
+    assert predecessor.end <= begin.start, diagnostic
+    assert predecessor_range_end == begin.end == owner_heading.start, diagnostic
+    owner_headings = tuple(
+        heading
+        for heading in structure.headings
+        if begin.end <= heading.start < end.start
+    )
+    assert owner_headings == (owner_heading,), diagnostic
+    assert (owner_heading.level, owner_heading.title) == (
+        2,
+        _CROSS_REFERENCE_HEADING,
+    ), diagnostic
+    following = tuple(
+        heading for heading in structure.headings if heading.start > owner_heading.start
+    )
+    observed_next = (
+        None if not following else (following[0].level, following[0].title)
+    )
+    assert observed_next == spec.range_terminator, diagnostic
+    owner_range_end = _cross_reference_heading_range_end(
+        structure.headings,
+        owner_heading,
+        parent_end=len(owner),
+    )
+    assert owner_heading.start < end.start < end.end <= owner_range_end, diagnostic
+    assert all(
+        fence.closer_end <= begin.end or fence.opener.start >= end.start
+        for fence in structure.fences
+    ), diagnostic
+    try:
+        body = owner[begin.end : end.start].decode("utf-8", "strict")
+    except UnicodeDecodeError:
+        raise AssertionError(diagnostic) from None
+    normalized = " ".join(body.split())
+    assert normalized == _CROSS_REFERENCE_EXPECTED, diagnostic
+    assert all(
+        phrase not in normalized
+        for phrase in _CROSS_REFERENCE_STALE_CURRENT_PHRASES
+    ), diagnostic
+    return normalized
+
+
+def _broken_title_only_cross_reference_checker(
+    owner: bytes,
+    spec: _CrossReferenceOwnerSpec,
+) -> str:
+    """Deliberately broken control that treats a heading title as identity."""
+    structure = _current_column_order_markdown_structure(owner)
+    assert structure.unclosed_fence is None
+    begins = _visible_cross_reference_marker_lines(structure, spec.begin_marker)
+    ends = _visible_cross_reference_marker_lines(structure, spec.end_marker)
+    assert len(begins) == len(ends) == 1
+    begin = begins[0]
+    end = ends[0]
+    preceding = tuple(
+        heading for heading in structure.headings if heading.start < begin.start
+    )
+    assert (preceding[-1].level, preceding[-1].title) == (
+        spec.accepted_predecessor
+    )
+    owner_headings = tuple(
+        heading
+        for heading in structure.headings
+        if begin.end <= heading.start < end.start
+    )
+    assert len(owner_headings) == 1
+    assert _cross_reference_heading_chain(
+        structure.headings,
+        owner_headings[0],
+    ) == spec.owner_chain
+    body = owner[begin.end : end.start].decode("utf-8", "strict")
+    normalized = " ".join(body.split())
+    assert normalized == _CROSS_REFERENCE_EXPECTED
+    return normalized
+
+
+def _assert_complete_cross_reference_inventory(
+    owners: dict[str, bytes],
+) -> dict[str, str]:
+    expected_paths = tuple(
+        spec.relative_path for spec in _CROSS_REFERENCE_OWNER_INVENTORY
+    )
+    assert tuple(owners) == expected_paths
+    observed: dict[str, str] = {}
+    for spec in _CROSS_REFERENCE_OWNER_INVENTORY:
+        owner = owners[spec.relative_path]
+        observed[spec.relative_path] = _assert_live_cross_reference(owner, spec)
+    assert len(set(observed.values())) == 1
+    return observed
+
+
+def _cross_reference_heading_bytes(heading: tuple[int, str]) -> bytes:
+    return ("#" * heading[0] + " " + heading[1] + "\n\n").encode("utf-8")
+
+
+def _mutate_cross_reference_same_title_structure(
+    owner: bytes,
+    spec: _CrossReferenceOwnerSpec,
+    mutation: str,
+) -> bytes:
+    structure = _current_column_order_markdown_structure(owner)
+    begin = _visible_cross_reference_marker_lines(
+        structure,
+        spec.begin_marker,
+    )[0]
+    historical = b"Historical superseded sibling copy.\n\n"
+    if mutation == "same-title-predecessor-reparenting":
+        inserted = _cross_reference_heading_bytes(spec.accepted_predecessor)
+    elif mutation == "same-title-ancestor-reparenting":
+        inserted = b"".join(
+            _cross_reference_heading_bytes(heading)
+            for heading in (
+                spec.owner_chain[0],
+                *spec.accepted_predecessor_chain[1:],
+            )
+        )
+    elif mutation == "same-title-owner-between-predecessor-and-owner":
+        inserted = _cross_reference_heading_bytes(spec.owner_chain[-1])
+    else:
+        raise AssertionError(mutation)
+    return owner[: begin.start] + inserted + historical + owner[begin.start :]
+
+
+def test_supporting_documents_are_bounded_cross_references_not_second_owners() -> None:
+    assert len(_CROSS_REFERENCE_OWNER_INVENTORY) == 11
+    assert len({spec.relative_path for spec in _CROSS_REFERENCE_OWNER_INVENTORY}) == 11
+    owners: dict[str, bytes] = {}
+    for spec in _CROSS_REFERENCE_OWNER_INVENTORY:
+        path = ROOT / spec.relative_path
         assert not path.is_symlink() and path.resolve(strict=True) == path
-        text = path.read_text(encoding="utf-8")
-        assert text.count(owner_claim) == 1
-        bounded = " ".join(text.split(owner_claim, 1)[1].split())
-        for phrase in (
-            "Section 42 records implementation status without redefining it",
-            "C2B3D remains current and unchanged",
-            "Migration 0003 and the private pre-execution",
-            "proposal-selection runtime are now implemented in the uncommitted candidate pending",
-            "fresh independent audit",
-            "proposal admission plus Coordinator selection or non-selection",
-            "Model invocation, dispatch, worker contact, post-execution review",
-            "post-execution semantic decision, Git, and publication remain blocked",
-            "full remote-worker phase is not reduced to this private source tranche",
+        owners[spec.relative_path] = path.read_bytes()
+    observed = _assert_complete_cross_reference_inventory(owners)
+    assert len(observed) == 11
+
+    for mutant in (
+        _CROSS_REFERENCE_EXPECTED.replace(
+            "5e544622e5f46ddc78294322471b4fcbd2ad9172", "", 1
+        ),
+        _CROSS_REFERENCE_EXPECTED.replace(
+            "394d625aa63935140eeaf88ecff6f59f0547cb7e",
+            "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+            1,
+        ),
+        _CROSS_REFERENCE_EXPECTED.replace(
+            "Git owns committed object and ref truth",
+            "Audit reports own committed object and ref truth",
+            1,
+        ),
+        _CROSS_REFERENCE_EXPECTED.replace(
+            "external evidence rather than Coordinator durable authority or effect permission",
+            "Coordinator durable authority and effect permission",
+            1,
+        ),
+        _CROSS_REFERENCE_EXPECTED.replace(
+            "It performs no model/provider invocation",
+            "It performs model/provider invocation",
+            1,
+        ),
+        _CROSS_REFERENCE_EXPECTED.replace(
+            "are committed at `394d625aa63935140eeaf88ecff6f59f0547cb7e`",
+            "remain absent",
+            1,
+        ),
+    ):
+        assert mutant != _CROSS_REFERENCE_EXPECTED
+        with pytest.raises(AssertionError):
+            assert mutant == _CROSS_REFERENCE_EXPECTED
+
+    control_spec = next(
+        spec
+        for spec in _CROSS_REFERENCE_OWNER_INVENTORY
+        if spec.relative_path == "README.md"
+    )
+    control_owner = (ROOT / control_spec.relative_path).read_bytes()
+    begin = control_spec.begin_marker.encode("utf-8")
+    end = control_spec.end_marker.encode("utf-8")
+    begin_start = control_owner.index(begin)
+    end_finish = control_owner.index(end) + len(end)
+    control_block = control_owner[begin_start:end_finish]
+    control_body = control_owner[begin_start + len(begin) : end_finish - len(end)]
+    structural_mutants = (
+        (
+            "balanced-backtick-fence",
+            control_owner.replace(
+                control_block,
+                b"```text\n" + control_block + b"\n```",
+                1,
+            ),
+            0,
+        ),
+        (
+            "balanced-tilde-fence",
+            control_owner.replace(
+                control_block,
+                b"~~~text\n" + control_block + b"\n~~~",
+                1,
+            ),
+            0,
+        ),
+        (
+            "historical-relocation",
+            control_owner.replace(
+                control_block,
+                b"# Historical and superseded examples\n\n" + control_block,
+                1,
+            ),
+            1,
+        ),
+    )
+    for label, mutant, expected_visible_count in structural_mutants:
+        assert mutant != control_owner, label
+        assert mutant.count(begin) == mutant.count(end) == 1, label
+        assert control_body in mutant, label
+        _broken_raw_split_cross_reference_checker(
+            mutant.decode("utf-8", "strict"),
+            begin=control_spec.begin_marker,
+            end=control_spec.end_marker,
+            expected=_CROSS_REFERENCE_EXPECTED,
+        )
+        structure = _current_column_order_markdown_structure(mutant)
+        visible_begin_count = len(
+            _visible_cross_reference_marker_lines(
+                structure,
+                control_spec.begin_marker,
+            )
+        )
+        assert visible_begin_count == expected_visible_count, label
+        if expected_visible_count == 1:
+            begin_line = _visible_cross_reference_marker_lines(
+                structure,
+                control_spec.begin_marker,
+            )[0]
+            predecessor = tuple(
+                heading
+                for heading in structure.headings
+                if heading.start < begin_line.start
+            )[-1]
+            assert (
+                predecessor.level,
+                predecessor.title,
+            ) != control_spec.accepted_predecessor
+        mutant_owners = dict(owners)
+        mutant_owners[control_spec.relative_path] = mutant
+        with pytest.raises(
+            AssertionError,
+            match=rf"CROSS_REFERENCE_STRUCTURE_INVALID:{re.escape(control_spec.relative_path)}",
         ):
-            assert phrase in bounded
+            _assert_complete_cross_reference_inventory(mutant_owners)
+
+    two_visible_blocks = control_owner + b"\n" + control_block + b"\n"
+    structure = _current_column_order_markdown_structure(two_visible_blocks)
+    assert len(
+        _visible_cross_reference_marker_lines(structure, control_spec.begin_marker)
+    ) == 2
+    with pytest.raises(
+        AssertionError,
+        match=rf"CROSS_REFERENCE_STRUCTURE_INVALID:{re.escape(control_spec.relative_path)}",
+    ):
+        two_visible_owners = dict(owners)
+        two_visible_owners[control_spec.relative_path] = two_visible_blocks
+        _assert_complete_cross_reference_inventory(two_visible_owners)
+
+    for fence in (b"```", b"~~~"):
+        hidden_duplicate = (
+            control_owner
+            + b"\n"
+            + fence
+            + b"text\n"
+            + control_block
+            + b"\n"
+            + fence
+            + b"\n"
+        )
+        assert hidden_duplicate.count(begin) == hidden_duplicate.count(end) == 2
+        hidden_structure = _current_column_order_markdown_structure(hidden_duplicate)
+        assert len(
+            _visible_cross_reference_marker_lines(
+                hidden_structure,
+                control_spec.begin_marker,
+            )
+        ) == 1
+        assert len(
+            _visible_cross_reference_marker_lines(
+                hidden_structure,
+                control_spec.end_marker,
+            )
+        ) == 1
+        hidden_owners = dict(owners)
+        hidden_owners[control_spec.relative_path] = hidden_duplicate
+        hidden_observed = _assert_complete_cross_reference_inventory(hidden_owners)
+        assert hidden_observed[control_spec.relative_path] == (
+            _CROSS_REFERENCE_EXPECTED
+        )
+
+    readme_same_title_relocation = (
+        _mutate_cross_reference_same_title_structure(
+            control_owner,
+            control_spec,
+            "same-title-predecessor-reparenting",
+        )
+    )
+    assert _broken_title_only_cross_reference_checker(
+        readme_same_title_relocation,
+        control_spec,
+    ) == _CROSS_REFERENCE_EXPECTED
+    readme_same_title_owners = dict(owners)
+    readme_same_title_owners[control_spec.relative_path] = (
+        readme_same_title_relocation
+    )
+    with pytest.raises(
+        AssertionError,
+        match=rf"CROSS_REFERENCE_STRUCTURE_INVALID:{re.escape(control_spec.relative_path)}",
+    ):
+        _assert_complete_cross_reference_inventory(readme_same_title_owners)
+
+    for spec in _CROSS_REFERENCE_OWNER_INVENTORY:
+        for mutation in (
+            "same-title-predecessor-reparenting",
+            "same-title-ancestor-reparenting",
+            "same-title-owner-between-predecessor-and-owner",
+        ):
+            mutant = _mutate_cross_reference_same_title_structure(
+                owners[spec.relative_path],
+                spec,
+                mutation,
+            )
+            if (
+                spec.relative_path == "README.md"
+                and mutation == "same-title-predecessor-reparenting"
+            ):
+                assert _broken_title_only_cross_reference_checker(
+                    mutant,
+                    spec,
+                ) == _CROSS_REFERENCE_EXPECTED
+            mutant_owners = dict(owners)
+            mutant_owners[spec.relative_path] = mutant
+            with pytest.raises(
+                AssertionError,
+                match=rf"CROSS_REFERENCE_STRUCTURE_INVALID:{re.escape(spec.relative_path)}",
+            ):
+                _assert_complete_cross_reference_inventory(mutant_owners)
 
 
 # The tests above retain the exact opening audit snapshot as historical

@@ -6,6 +6,7 @@ import json
 import re
 from copy import deepcopy
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
 
@@ -16,6 +17,248 @@ README_PATH = ROOT / "README.md"
 AGENTS_PATH = ROOT / "AGENTS.md"
 READER_STATUS_PATH = ROOT / ".docs" / "c2b2-private-readers.md"
 INITIALIZATION_STATUS_PATH = ROOT / ".docs" / "c2b3-program-initialization.md"
+DURABLE_STATUS_PATH = ROOT / ".docs" / "durable-state-model.md"
+PROGRESSION_STATUS_PATH = (
+    ROOT / ".docs" / "software-development-progression-boundary.md"
+)
+ARCHITECTURE_STATUS_PATH = ROOT / ".docs" / "architecture.md"
+
+C2B3D_IMPLEMENTATION_COMMIT = "5e544622e5f46ddc78294322471b4fcbd2ad9172"
+SECTION_41_IMPLEMENTATION_COMMIT = "394d625aa63935140eeaf88ecff6f59f0547cb7e"
+SUMMARY_GIT_AUTHORITY_SPLIT = "Git owns the committed object and ref fact"
+SUMMARY_EVIDENCE_NON_AUTHORITY = (
+    "independent acceptance, audit, validation, provenance, and report records "
+    "remain external evidence rather than Coordinator durable authority or "
+    "effect permission"
+)
+SUMMARY_CROSS_REFERENCE_BEGIN = (
+    "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->"
+)
+SUMMARY_CROSS_REFERENCE_END = (
+    "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
+)
+
+
+class _SummaryHeadingEventSpec(NamedTuple):
+    level: int
+    title: str
+    accepted_predecessor: tuple[int, str] | None
+    range_terminator: tuple[int, str] | None
+
+
+class _LiveC2B3DSummarySpec(NamedTuple):
+    role: str
+    path: Path
+    owner_chain: tuple[_SummaryHeadingEventSpec, ...]
+    start_boundary: str
+    end_boundary: str
+    cross_reference_count: int
+    implementation_commit: str
+    git_authority_split: str
+    evidence_non_authority: str
+    current_classification: str
+    capability_nonclaims: tuple[str, ...]
+    capability_mutation: tuple[str, str]
+
+    @property
+    def heading_chain(self) -> tuple[tuple[int, str], ...]:
+        return tuple((event.level, event.title) for event in self.owner_chain)
+
+
+LIVE_C2B3D_SUMMARY_INVENTORY = (
+    _LiveC2B3DSummarySpec(
+        role="agents-primary",
+        path=AGENTS_PATH,
+        owner_chain=(
+            _SummaryHeadingEventSpec(
+                1,
+                "NWP Coordinator Agent Rules",
+                None,
+                None,
+            ),
+            _SummaryHeadingEventSpec(
+                2,
+                "Ownership",
+                None,
+                (2, "P1 Prohibitions"),
+            ),
+        ),
+        start_boundary=(
+            "C2B3A froze the single-work-item program-initialization contract;"
+        ),
+        end_boundary="## P1 Prohibitions",
+        cross_reference_count=1,
+        implementation_commit=C2B3D_IMPLEMENTATION_COMMIT,
+        git_authority_split=SUMMARY_GIT_AUTHORITY_SPLIT,
+        evidence_non_authority=SUMMARY_EVIDENCE_NON_AUTHORITY,
+        current_classification="private C2B3D author-effect implementation",
+        capability_nonclaims=(
+            "C2B3D adds no public/API/package surface, schema, migration, external authority, route execution, worker, Bridge, or ES widening.",
+        ),
+        capability_mutation=(
+            "C2B3D adds no public/API/package surface, schema, migration, external authority, route execution, worker, Bridge, or ES widening.",
+            "C2B3D adds public/API/package surface and performs route execution.",
+        ),
+    ),
+    _LiveC2B3DSummarySpec(
+        role="agents-pre-io",
+        path=AGENTS_PATH,
+        owner_chain=(
+            _SummaryHeadingEventSpec(
+                1,
+                "NWP Coordinator Agent Rules",
+                None,
+                None,
+            ),
+            _SummaryHeadingEventSpec(
+                2,
+                "Pre-I/O VS1A cleanup invariant",
+                (2, "Vertical-slice governing narrowing"),
+                (2, "Cognitive proposal and selection runtime"),
+            ),
+        ),
+        start_boundary="VS1B is the current committed private implementation at",
+        end_boundary=SUMMARY_CROSS_REFERENCE_BEGIN,
+        cross_reference_count=1,
+        implementation_commit=C2B3D_IMPLEMENTATION_COMMIT,
+        git_authority_split=SUMMARY_GIT_AUTHORITY_SPLIT,
+        evidence_non_authority=SUMMARY_EVIDENCE_NON_AUTHORITY,
+        current_classification="private C2B3D author-effect implementation",
+        capability_nonclaims=(
+            "C2B3D adds no worker, dispatch, credential, capsule, Git, Bridge, ES, network, or other external effect.",
+            "VS1B and C2B3D use migration 0002 and add no public API/package export, automatic retry after uncertainty, old-resource lookup, terminal witness, or restart-safe raw-input custody.",
+        ),
+        capability_mutation=(
+            "C2B3D adds no worker, dispatch, credential, capsule, Git, Bridge, ES, network, or other external effect.",
+            "C2B3D performs worker, dispatch, credential, capsule, Git, Bridge, ES, network, and external effects.",
+        ),
+    ),
+    _LiveC2B3DSummarySpec(
+        role="readme",
+        path=README_PATH,
+        owner_chain=(
+            _SummaryHeadingEventSpec(1, "NWP Coordinator", None, None),
+        ),
+        start_boundary=(
+            "VS1B implements one private route-neutral single-work-item program-genesis"
+        ),
+        end_boundary=(
+            "Strategic target direction is recorded separately from current behavior."
+        ),
+        cross_reference_count=1,
+        implementation_commit=C2B3D_IMPLEMENTATION_COMMIT,
+        git_authority_split=SUMMARY_GIT_AUTHORITY_SPLIT,
+        evidence_non_authority=SUMMARY_EVIDENCE_NON_AUTHORITY,
+        current_classification="private C2B3D author-effect implementation",
+        capability_nonclaims=(
+            "It adds no public API, schema, migration, worker, dispatch, credential, capsule, Git, Bridge, ES, network, or external effect.",
+            "Pending authority and planned delivery remain inert intent only.",
+        ),
+        capability_mutation=(
+            "It adds no public API, schema, migration, worker, dispatch, credential, capsule, Git, Bridge, ES, network, or external effect.",
+            "It adds a public API and performs worker, dispatch, Git, network, and external effects.",
+        ),
+    ),
+    _LiveC2B3DSummarySpec(
+        role="architecture",
+        path=ARCHITECTURE_STATUS_PATH,
+        owner_chain=(
+            _SummaryHeadingEventSpec(
+                1,
+                "NWP Coordinator Architecture",
+                None,
+                None,
+            ),
+            _SummaryHeadingEventSpec(
+                2,
+                "C2B3 vertical-slice governing narrowing",
+                (2, "C2B0 Accepted Durable-State Target Topology"),
+                None,
+            ),
+        ),
+        start_boundary="Coordinator remains durable-progression authority only.",
+        end_boundary="<!-- C2B3_NARROWED_ARCHITECTURE_END -->",
+        cross_reference_count=0,
+        implementation_commit=C2B3D_IMPLEMENTATION_COMMIT,
+        git_authority_split=SUMMARY_GIT_AUTHORITY_SPLIT,
+        evidence_non_authority=SUMMARY_EVIDENCE_NON_AUTHORITY,
+        current_classification="private C2B3D implementation",
+        capability_nonclaims=(
+            "planned `direct_local_bootstrap` delivery as inert intent",
+            "performs no dispatch, worker, capsule, credential, network, Git, Bridge, or ES effect",
+        ),
+        capability_mutation=(
+            "performs no dispatch, worker, capsule, credential, network, Git, Bridge, or ES effect",
+            "performs dispatch, worker, capsule, credential, network, Git, Bridge, and ES effects",
+        ),
+    ),
+    _LiveC2B3DSummarySpec(
+        role="durable-state",
+        path=DURABLE_STATUS_PATH,
+        owner_chain=(
+            _SummaryHeadingEventSpec(1, "Durable State Model", None, None),
+            _SummaryHeadingEventSpec(
+                2,
+                "Vertical-slice durable-state narrowing",
+                (2, "C2B0 Accepted Durable-Development Target"),
+                (2, "Cognitive proposal and selection runtime"),
+            ),
+        ),
+        start_boundary=(
+            "Earlier migration-0003 inventories, physical totals, and route-specific"
+        ),
+        end_boundary="<!-- C2B3_NARROWED_DURABLE_STATE_END -->",
+        cross_reference_count=1,
+        implementation_commit=C2B3D_IMPLEMENTATION_COMMIT,
+        git_authority_split=SUMMARY_GIT_AUTHORITY_SPLIT,
+        evidence_non_authority=SUMMARY_EVIDENCE_NON_AUTHORITY,
+        current_classification="private C2B3D author-effect implementation",
+        capability_nonclaims=(
+            "The pending authority evaluation and planned delivery remain durable intent and bounds, not execution permission.",
+            "Raw WorkSpec and retrieval bearer authority never enter SQLite.",
+            "Current state remains generation 2 and terminates at migration 0003; its new runtime is private, pre-execution, and non-executable.",
+        ),
+        capability_mutation=(
+            "The pending authority evaluation and planned delivery remain durable intent and bounds, not execution permission.",
+            "The pending authority evaluation and planned delivery are execution permission.",
+        ),
+    ),
+    _LiveC2B3DSummarySpec(
+        role="progression",
+        path=PROGRESSION_STATUS_PATH,
+        owner_chain=(
+            _SummaryHeadingEventSpec(
+                1,
+                "Software-Development Progression Boundary",
+                None,
+                None,
+            ),
+            _SummaryHeadingEventSpec(
+                2,
+                "Narrowed first vertical-slice progression boundary",
+                (2, "C2B0 Accepted Durable Progression Closure"),
+                (2, "Cognitive proposal and selection runtime"),
+            ),
+        ),
+        start_boundary=(
+            "Initialization is route-neutral; author-effect delivery selects the first"
+        ),
+        end_boundary="<!-- C2B3_NARROWED_PROGRESSION_END -->",
+        cross_reference_count=1,
+        implementation_commit=C2B3D_IMPLEMENTATION_COMMIT,
+        git_authority_split=SUMMARY_GIT_AUTHORITY_SPLIT,
+        evidence_non_authority=SUMMARY_EVIDENCE_NON_AUTHORITY,
+        current_classification="private C2B3D implementation",
+        capability_nonclaims=(
+            "Its planned `direct_local_bootstrap` delivery is not dispatch, external verification, worker invocation, credential use, or execution permission.",
+            "Those external-effect questions remain unauthorized.",
+        ),
+        capability_mutation=(
+            "Its planned `direct_local_bootstrap` delivery is not dispatch, external verification, worker invocation, credential use, or execution permission.",
+            "Its planned `direct_local_bootstrap` delivery is dispatch and worker execution permission.",
+        ),
+    ),
+)
 
 SECTION_HEADING = "## 39. Coordinator C2B3C Author-Effect Contract Freeze"
 BEGIN_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_BEGIN -->"
@@ -29,6 +272,55 @@ SECTION_40_BEGIN = (
 SECTION_40_END = (
     "<!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->"
 )
+C2B3D_COMMITTED_STATUS_BEGIN = (
+    "<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_BEGIN -->"
+)
+C2B3D_COMMITTED_STATUS_END = (
+    "<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_END -->"
+)
+SECTION_42_COMMITTED_STATUS_BEGIN = (
+    "<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_BEGIN -->"
+)
+SECTION_42_COMMITTED_STATUS_END = (
+    "<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_END -->"
+)
+EXPECTED_OWNER_OPENING_UTF8_LENGTH = 1_881_520
+EXPECTED_OWNER_OPENING_SHA256 = (
+    "15c969c5cb00ef4e1411c66803b519d93b8320c94e59bd1ed9dfe6bfe02770ae"
+)
+EXPECTED_SECTION_42_COMMITTED_STATUS = """
+<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_BEGIN -->
+### Committed implementation and repository status
+
+C2B3D private author-effect establishment was introduced and is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Migration
+`0003_cognitive_proposal_and_selection_state` and the private, non-executable
+Section 41 pre-execution proposal-selection runtime were introduced and are
+committed at `394d625aa63935140eeaf88ecff6f59f0547cb7e`. Git owns
+committed object and ref truth. The pre-commit independent ACCEPT and all audit,
+validation, provenance, and report records remain external evidence only; none
+is Coordinator durable state, execution permission, acceptance authority, or
+effect authority.
+
+This successor supersedes only the former candidate, uncommitted, and
+pending-or-awaiting-independent-audit repository-publication-status wording in
+Sections 40 and 41, the opening of Section 42, and bounded current-status
+projections. It does not rewrite their bytes or change any semantic field,
+identity, digest, algorithm, authority rule, recovery rule, or non-claim.
+Section 41 remains the sole detailed semantic owner. Section 42 remains the
+detailed current implementation and repository-publication-status owner and
+does not redefine Section 41.
+
+The current capability ends at typed pre-execution proposal admission plus
+Coordinator selection or non-selection. It invokes no model or provider;
+contacts no dispatcher or worker; executes no post-execution validation or
+review; makes no post-execution Coordinator semantic decision; implements no
+capsule custody, Git effect, Bridge or ES handoff, publication executor,
+service, scheduler, queue, or autonomous loop; and adds no public package
+export, public StateStore method, or public WriterSession protocol method.
+
+<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_END -->
+"""
 SECTION_41_HEADING = (
     "## 41. Coordinator Cognitive Proposal And Pre-Execution Selection Contract Freeze"
 )
@@ -2724,13 +3016,24 @@ EXPECTED_HISTORICAL_STATUS_PHRASES = (
     "C2B3D source, worker execution, and production or external effects remain unauthorized",
 )
 EXPECTED_CURRENT_STATUS_PHRASES = (
-    "C2B3C contract freeze",
-    "5945a53685e7a5cb4edd7419bea712007fcdfcd1",
     "C2B3D",
-    "implementation candidate",
+    "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+    "Git owns the committed object and ref fact",
+    "external evidence",
+    "Coordinator durable authority or effect permission",
     "public API",
     "worker",
     "external",
+)
+FORBIDDEN_CURRENT_STATUS_PHRASES = (
+    "current working tree contains",
+    "uncommitted candidate",
+    "uncommitted working-tree candidate",
+    "awaits fresh independent audit",
+    "pending fresh independent audit",
+    "independent acceptance remains pending",
+    "fresh independent audit remains required",
+    "implementation evidence pending fresh independent audit",
 )
 CAPSULE_PROFILE_REF = "capsule-profile.regular-replace-v1"
 REDACTION_PROFILE_REF = "redaction.source-private-v1"
@@ -2874,6 +3177,9 @@ def _assert_owned_path(path: Path) -> None:
         AGENTS_PATH,
         READER_STATUS_PATH,
         INITIALIZATION_STATUS_PATH,
+        DURABLE_STATUS_PATH,
+        PROGRESSION_STATUS_PATH,
+        ARCHITECTURE_STATUS_PATH,
     }
     assert not path.is_symlink()
     assert path.resolve(strict=True) == path
@@ -3511,6 +3817,424 @@ def _assert_family_vector(candidate: object) -> None:
     ] is True, "C2B3C_VECTOR_INVALID"
 
 
+class _SummaryVisibleLine(NamedTuple):
+    content: str
+    start: int
+    end: int
+
+
+class _SummaryVisibleHeading(NamedTuple):
+    level: int
+    title: str
+    start: int
+    end: int
+
+
+class _SummaryFenceSpan(NamedTuple):
+    start: int
+    end: int
+
+
+class _SummaryMarkdownStructure(NamedTuple):
+    visible_lines: tuple[_SummaryVisibleLine, ...]
+    headings: tuple[_SummaryVisibleHeading, ...]
+    fences: tuple[_SummaryFenceSpan, ...]
+
+
+class _ResolvedSummaryHeadingEvent(NamedTuple):
+    heading: _SummaryVisibleHeading
+    range_start: int
+    range_end: int
+
+
+def _summary_fence_candidate(content: str) -> tuple[str, int, str] | None:
+    stripped = content.lstrip(" ")
+    indent = len(content) - len(stripped)
+    if indent > 3 or not stripped or stripped[0] not in "`~":
+        return None
+    marker = stripped[0]
+    run_length = len(stripped) - len(stripped.lstrip(marker))
+    if run_length < 3:
+        return None
+    remainder = stripped[run_length:]
+    if marker == "`" and "`" in remainder:
+        return None
+    return marker, run_length, remainder
+
+
+def _summary_atx_heading(
+    content: str,
+    *,
+    start: int,
+    end: int,
+) -> _SummaryVisibleHeading | None:
+    stripped = content.lstrip(" ")
+    indent = len(content) - len(stripped)
+    if indent > 3:
+        return None
+    match = re.fullmatch(r"(#{1,6})[ \t]+(.+?)[ \t]*", stripped)
+    if match is None:
+        return None
+    title = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
+    assert title, "C2B3C_STATUS_INVALID:markdown:empty_heading"
+    return _SummaryVisibleHeading(len(match.group(1)), title, start, end)
+
+
+def _summary_markdown_structure(text: str) -> _SummaryMarkdownStructure:
+    assert type(text) is str, "C2B3C_STATUS_INVALID:markdown:type"
+    visible_lines: list[_SummaryVisibleLine] = []
+    headings: list[_SummaryVisibleHeading] = []
+    fences: list[_SummaryFenceSpan] = []
+    active_fence: tuple[str, int, int] | None = None
+    offset = 0
+    for raw_line in text.splitlines(keepends=True):
+        content = raw_line.rstrip("\r\n")
+        line_end = offset + len(raw_line)
+        candidate = _summary_fence_candidate(content)
+        if active_fence is not None:
+            marker, run_length, fence_start = active_fence
+            if (
+                candidate is not None
+                and candidate[0] == marker
+                and candidate[1] >= run_length
+                and all(character in {" ", "\t"} for character in candidate[2])
+            ):
+                fences.append(_SummaryFenceSpan(fence_start, line_end))
+                active_fence = None
+            offset = line_end
+            continue
+        if candidate is not None:
+            active_fence = (candidate[0], candidate[1], offset)
+            offset = line_end
+            continue
+        visible_lines.append(_SummaryVisibleLine(content, offset, line_end))
+        heading = _summary_atx_heading(content, start=offset, end=line_end)
+        if heading is not None:
+            headings.append(heading)
+        offset = line_end
+    assert active_fence is None, "C2B3C_STATUS_INVALID:markdown:unbalanced_fence"
+    return _SummaryMarkdownStructure(
+        visible_lines=tuple(visible_lines),
+        headings=tuple(headings),
+        fences=tuple(fences),
+    )
+
+
+def _summary_visible_occurrences(
+    structure: _SummaryMarkdownStructure,
+    needle: str,
+) -> tuple[int, ...]:
+    assert needle and "\n" not in needle and "\r" not in needle
+    offsets: list[int] = []
+    for line in structure.visible_lines:
+        search_from = 0
+        while True:
+            relative = line.content.find(needle, search_from)
+            if relative < 0:
+                break
+            offsets.append(line.start + relative)
+            search_from = relative + 1
+    return tuple(offsets)
+
+
+def _summary_heading_chain(
+    headings: tuple[_SummaryVisibleHeading, ...],
+    offset: int,
+) -> tuple[tuple[int, str], ...]:
+    stack: list[_SummaryVisibleHeading] = []
+    for heading in headings:
+        if heading.start > offset:
+            break
+        while stack and stack[-1].level >= heading.level:
+            stack.pop()
+        stack.append(heading)
+    return tuple((heading.level, heading.title) for heading in stack)
+
+
+def _resolve_unique_summary_owner(
+    structure: _SummaryMarkdownStructure,
+    spec: _LiveC2B3DSummarySpec,
+    *,
+    document_length: int,
+) -> tuple[_ResolvedSummaryHeadingEvent, ...]:
+    parent_content_start = 0
+    parent_range_end = document_length
+    resolved: list[_ResolvedSummaryHeadingEvent] = []
+    for index, expected in enumerate(spec.owner_chain):
+        scoped_headings = tuple(
+            heading
+            for heading in structure.headings
+            if parent_content_start <= heading.start < parent_range_end
+        )
+        matches = tuple(
+            heading
+            for heading in scoped_headings
+            if (heading.level, heading.title) == (expected.level, expected.title)
+        )
+        assert len(matches) == 1, (
+            f"C2B3C_STATUS_INVALID:{spec.role}:"
+            f"owner_event_count:{expected.level}:{expected.title}={len(matches)}"
+        )
+        selected = matches[0]
+        assert _summary_heading_chain(structure.headings, selected.start) == tuple(
+            (event.level, event.title)
+            for event in spec.owner_chain[: index + 1]
+        ), f"C2B3C_STATUS_INVALID:{spec.role}:owner_event_parent"
+        preceding = tuple(
+            heading for heading in scoped_headings if heading.start < selected.start
+        )
+        observed_predecessor = (
+            None
+            if not preceding
+            else (preceding[-1].level, preceding[-1].title)
+        )
+        assert observed_predecessor == expected.accepted_predecessor, (
+            f"C2B3C_STATUS_INVALID:{spec.role}:owner_event_predecessor"
+        )
+        terminating = tuple(
+            heading
+            for heading in scoped_headings
+            if heading.start > selected.start and heading.level <= selected.level
+        )
+        terminator = None if not terminating else terminating[0]
+        observed_terminator = (
+            None if terminator is None else (terminator.level, terminator.title)
+        )
+        assert observed_terminator == expected.range_terminator, (
+            f"C2B3C_STATUS_INVALID:{spec.role}:owner_range_terminator"
+        )
+        range_end = parent_range_end if terminator is None else terminator.start
+        resolved.append(
+            _ResolvedSummaryHeadingEvent(
+                heading=selected,
+                range_start=selected.start,
+                range_end=range_end,
+            )
+        )
+        parent_content_start = selected.end
+        parent_range_end = range_end
+    return tuple(resolved)
+
+
+def _extract_live_c2b3d_summary(
+    document: str,
+    spec: _LiveC2B3DSummarySpec,
+) -> tuple[int, int, str]:
+    structure = _summary_markdown_structure(document)
+    starts = _summary_visible_occurrences(structure, spec.start_boundary)
+    ends = _summary_visible_occurrences(structure, spec.end_boundary)
+    assert len(starts) == 1, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:start_boundary_count={len(starts)}"
+    )
+    assert len(ends) == 1, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:end_boundary_count={len(ends)}"
+    )
+    start = starts[0]
+    end = ends[0]
+    assert start < end, f"C2B3C_STATUS_INVALID:{spec.role}:boundary_order"
+    owner = _resolve_unique_summary_owner(
+        structure,
+        spec,
+        document_length=len(document),
+    )[-1]
+    assert owner.range_start <= start < end <= owner.range_end, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:summary_outside_owner_range"
+    )
+    assert _summary_heading_chain(structure.headings, start) == spec.heading_chain, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:heading_chain"
+    )
+    internal_headings = tuple(
+        heading
+        for heading in structure.headings
+        if start < heading.start < end
+    )
+    assert not internal_headings, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:nested_or_sibling_heading"
+    )
+    assert all(
+        fence.end <= start or fence.start >= end for fence in structure.fences
+    ), f"C2B3C_STATUS_INVALID:{spec.role}:fenced_region"
+
+    cross_begins = _summary_visible_occurrences(
+        structure, SUMMARY_CROSS_REFERENCE_BEGIN
+    )
+    cross_ends = _summary_visible_occurrences(structure, SUMMARY_CROSS_REFERENCE_END)
+    assert len(cross_begins) == len(cross_ends) == spec.cross_reference_count, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:cross_reference_count"
+    )
+    if cross_begins:
+        assert cross_begins[0] < cross_ends[0], (
+            f"C2B3C_STATUS_INVALID:{spec.role}:cross_reference_order"
+        )
+        assert end <= cross_begins[0] or start >= cross_ends[0], (
+            f"C2B3C_STATUS_INVALID:{spec.role}:cross_reference_overlap"
+        )
+    return start, end, document[start:end]
+
+
+def _broken_title_chain_summary_checker(
+    document: str,
+    spec: _LiveC2B3DSummarySpec,
+) -> str:
+    """Deliberately broken control: title chains and broad token presence only."""
+    structure = _summary_markdown_structure(document)
+    starts = _summary_visible_occurrences(structure, spec.start_boundary)
+    ends = _summary_visible_occurrences(structure, spec.end_boundary)
+    assert len(starts) == len(ends) == 1
+    assert starts[0] < ends[0]
+    assert _summary_heading_chain(structure.headings, starts[0]) == (
+        spec.heading_chain
+    )
+    broad_tokens = " ".join(document.split())
+    assert spec.implementation_commit in broad_tokens
+    assert spec.current_classification in broad_tokens
+    return document[starts[0] : ends[0]]
+
+
+def _assert_live_c2b3d_summary_document(
+    document: str,
+    spec: _LiveC2B3DSummarySpec,
+) -> str:
+    _start, _end, region = _extract_live_c2b3d_summary(document, spec)
+    current = " ".join(region.split())
+    assert current.count(spec.implementation_commit) == 1, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:c2b3d_commit"
+    )
+    assert SECTION_41_IMPLEMENTATION_COMMIT not in current, (
+        f"C2B3C_STATUS_INVALID:{spec.role}:section41_commit_substitution"
+    )
+    for phrase in (
+        spec.current_classification,
+        spec.git_authority_split,
+        spec.evidence_non_authority,
+        *spec.capability_nonclaims,
+    ):
+        assert phrase in current, (
+            f"C2B3C_STATUS_INVALID:{spec.role}:required={phrase}"
+        )
+    lowered = current.lower()
+    for phrase in FORBIDDEN_CURRENT_STATUS_PHRASES:
+        assert phrase.lower() not in lowered, (
+            f"C2B3C_STATUS_INVALID:{spec.role}:stale={phrase}"
+        )
+    for contradiction in (
+        "reports own git truth",
+        "audit acceptance is coordinator durable authority",
+        "model output is coordinator durable authority",
+        "model output grants effect permission",
+        "private source tranche performs worker",
+        "c2b3d performs worker",
+    ):
+        assert contradiction not in lowered, (
+            f"C2B3C_STATUS_INVALID:{spec.role}:contradiction={contradiction}"
+        )
+    return region
+
+
+def _replace_compact_summary_phrase(
+    region: str,
+    phrase: str,
+    replacement: str,
+) -> str:
+    pattern = re.compile(r"\s+".join(re.escape(part) for part in phrase.split()))
+    mutated, count = pattern.subn(replacement, region, count=1)
+    assert count == 1, "C2B3C_STATUS_INVALID:mutation_source_count"
+    return mutated
+
+
+def _mutate_live_c2b3d_summary(
+    document: str,
+    spec: _LiveC2B3DSummarySpec,
+    mutation: str,
+) -> str:
+    start, end, region = _extract_live_c2b3d_summary(document, spec)
+    structure = _summary_markdown_structure(document)
+    owner = tuple(
+        heading
+        for heading in structure.headings
+        if heading.start <= start
+        and (heading.level, heading.title) == spec.heading_chain[-1]
+    )[-1]
+    owner_heading = "#" * owner.level + " " + owner.title + "\n\n"
+    historical_copy = "Historical superseded sibling copy.\n\n"
+    if mutation == "commit-omission":
+        mutated_region = region.replace(spec.implementation_commit, "", 1)
+    elif mutation == "commit-swap":
+        mutated_region = region.replace(
+            spec.implementation_commit,
+            SECTION_41_IMPLEMENTATION_COMMIT,
+            1,
+        )
+    elif mutation == "stale-status":
+        mutated_region = (
+            region
+            + "\nThe current working tree contains an uncommitted candidate pending "
+            "fresh independent audit.\n"
+        )
+    elif mutation == "authority-contradiction":
+        mutated_region = (
+            region
+            + "\nAudit reports own Git truth; audit acceptance is Coordinator "
+            "durable authority and effect permission; model output grants effect "
+            "permission.\n"
+        )
+    elif mutation == "capability-contradiction":
+        mutated_region = _replace_compact_summary_phrase(
+            region,
+            spec.capability_mutation[0],
+            spec.capability_mutation[1],
+        )
+    elif mutation == "fenced-region":
+        mutated_region = "````text\n" + region + "\n````\n"
+    elif mutation == "historical-owner":
+        if spec.start_boundary.startswith("## "):
+            first_line_end = region.index("\n") + 1
+            mutated_region = (
+                region[:first_line_end]
+                + "### Historical superseded examples\n\n"
+                + region[first_line_end:]
+            )
+        else:
+            nested_level = spec.heading_chain[-1][0] + 1
+            mutated_region = (
+                "#" * nested_level
+                + " Historical superseded examples\n\n"
+                + region
+            )
+    elif mutation == "duplicate-region":
+        mutated_region = region + "\n" + region
+    elif mutation == "same-title-owner-reparenting":
+        return (
+            document[:start]
+            + owner_heading
+            + historical_copy
+            + document[start:]
+        )
+    elif mutation == "same-title-ancestor-reparenting":
+        assert len(spec.owner_chain) > 1
+        ancestor = spec.owner_chain[-2]
+        ancestor_heading = "#" * ancestor.level + " " + ancestor.title + "\n\n"
+        return (
+            document[: owner.start]
+            + ancestor_heading
+            + historical_copy
+            + document[owner.start :]
+        )
+    elif mutation == "same-title-owner-between-predecessor-and-owner":
+        return (
+            document[: owner.start]
+            + owner_heading
+            + historical_copy
+            + document[owner.start :]
+        )
+    elif mutation == "same-title-historical-sibling":
+        return document + "\n" + owner_heading + historical_copy
+    else:
+        raise AssertionError(mutation)
+    assert mutated_region != region
+    return document[:start] + mutated_region + document[end:]
+
+
 def _assert_current_status(text: object) -> None:
     assert type(text) is str, "C2B3C_STATUS_INVALID"
     current = " ".join(text.split())
@@ -3520,11 +4244,53 @@ def _assert_current_status(text: object) -> None:
     assert "C2B3C is currently an uncommitted contract-freeze candidate" not in current
     for phrase in EXPECTED_CURRENT_STATUS_PHRASES:
         assert phrase in current, "C2B3C_STATUS_INVALID"
-    assert (
-        "independent acceptance remains pending" in current
-        or "awaits fresh independent audit" in current
-        or "a fresh independent audit remains required" in current
-    ), "C2B3C_STATUS_INVALID"
+    for phrase in FORBIDDEN_CURRENT_STATUS_PHRASES:
+        assert phrase not in current, "C2B3C_STATUS_INVALID"
+    assert "Audit reports own the committed object and ref fact" not in current, (
+        "C2B3C_STATUS_INVALID"
+    )
+    assert "Coordinator durable authority and effect permission" not in current, (
+        "C2B3C_STATUS_INVALID"
+    )
+
+
+def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
+    source = _read_owned_bytes(OWNER_PATH) if source_bytes is None else source_bytes
+    assert type(source) is bytes, "C2B3C_STATUS_INVALID"
+    prefix = source[:EXPECTED_OWNER_OPENING_UTF8_LENGTH]
+    suffix = source[EXPECTED_OWNER_OPENING_UTF8_LENGTH:]
+    assert len(prefix) == EXPECTED_OWNER_OPENING_UTF8_LENGTH, (
+        "C2B3C_STATUS_INVALID"
+    )
+    assert hashlib.sha256(prefix).hexdigest() == EXPECTED_OWNER_OPENING_SHA256, (
+        "C2B3C_STATUS_INVALID"
+    )
+    expected = EXPECTED_SECTION_42_COMMITTED_STATUS.encode("utf-8")
+    assert suffix == expected, "C2B3C_STATUS_INVALID"
+    text = source.decode("utf-8", "strict")
+    assert text.count(SECTION_42_COMMITTED_STATUS_BEGIN) == 1
+    assert text.count(SECTION_42_COMMITTED_STATUS_END) == 1
+    assert text.index(SECTION_42_COMMITTED_STATUS_BEGIN) > text.index(
+        "<!-- COORDINATOR_SECTION41_CURRENT_COLUMN_ORDER_CLOSURE_END -->"
+    )
+    assert "\n## 43." not in suffix.decode("utf-8", "strict")
+    normalized = " ".join(suffix.decode("utf-8", "strict").split())
+    for phrase in (
+        "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+        "394d625aa63935140eeaf88ecff6f59f0547cb7e",
+        "Git owns committed object and ref truth",
+        "external evidence only; none is Coordinator durable state, execution permission, acceptance authority, or effect authority",
+        "supersedes only the former candidate, uncommitted, and pending-or-awaiting-independent-audit repository-publication-status wording",
+        "does not rewrite their bytes or change any semantic field",
+        "Section 41 remains the sole detailed semantic owner",
+        "Section 42 remains the detailed current implementation and repository-publication-status owner and does not redefine Section 41",
+        "invokes no model or provider",
+        "adds no public package export, public StateStore method, or public WriterSession protocol method",
+    ):
+        assert phrase in normalized, "C2B3C_STATUS_INVALID"
+    for phrase in FORBIDDEN_CURRENT_STATUS_PHRASES:
+        assert phrase not in normalized, "C2B3C_STATUS_INVALID"
+    return normalized
 
 
 def _assert_historical_c2b3c_status(text: object) -> None:
@@ -3689,8 +4455,16 @@ def test_safe_command_digest_replay_recovery_privacy_and_gate_are_exact() -> Non
 
 
 def test_current_status_regions_are_reconciled_without_historical_rewrite() -> None:
-    for path in (README_PATH, AGENTS_PATH):
-        _assert_current_status(_read_owned_path(path))
+    assert len(LIVE_C2B3D_SUMMARY_INVENTORY) == 6
+    assert len({spec.role for spec in LIVE_C2B3D_SUMMARY_INVENTORY}) == 6
+    assert tuple(
+        spec.role for spec in LIVE_C2B3D_SUMMARY_INVENTORY if spec.path == AGENTS_PATH
+    ) == ("agents-primary", "agents-pre-io")
+    summary_documents: dict[Path, str] = {}
+    for spec in LIVE_C2B3D_SUMMARY_INVENTORY:
+        if spec.path not in summary_documents:
+            summary_documents[spec.path] = _read_owned_path(spec.path)
+        _assert_live_c2b3d_summary_document(summary_documents[spec.path], spec)
 
     reader_status = _read_owned_path(READER_STATUS_PATH).split(
         "## Status And Authority", 1
@@ -3709,17 +4483,127 @@ def test_current_status_regions_are_reconciled_without_historical_rewrite() -> N
     assert initialization.count(INITIALIZATION_STATUS_END) == 1
     assert initialization.count(SECTION_40_BEGIN) == 1
     assert initialization.count(SECTION_40_END) == 1
+    assert initialization.count(C2B3D_COMMITTED_STATUS_BEGIN) == 1
+    assert initialization.count(C2B3D_COMMITTED_STATUS_END) == 1
     _prefix, historical = initialization.split(INITIALIZATION_STATUS_BEGIN, 1)
     historical, remainder = historical.split(INITIALIZATION_STATUS_END, 1)
     _assert_historical_c2b3c_status(historical)
-    between, current = remainder.split(SECTION_40_BEGIN, 1)
+    between, candidate = remainder.split(SECTION_40_BEGIN, 1)
     assert between == "\n"
-    current, after = current.split(SECTION_40_END, 1)
+    candidate, after = candidate.split(SECTION_40_END, 1)
+    between, committed = after.split(C2B3D_COMMITTED_STATUS_BEGIN, 1)
+    assert between == "\n"
+    committed, after = committed.split(C2B3D_COMMITTED_STATUS_END, 1)
     assert after == "\n"
-    _assert_current_status(current)
-    normalized = " ".join(current.split())
+    normalized_candidate = " ".join(candidate.split())
+    for historical_phrase in (
+        "current working tree contains",
+        "implementation candidate",
+        "not staged, committed, pushed, published, or independently accepted",
+        "fresh independent audit remains required",
+    ):
+        assert historical_phrase in normalized_candidate
+    _assert_current_status(committed)
+    normalized = " ".join(committed.split())
+    assert "not current repository status after this successor" in normalized
+    assert "C2B3D remains private and non-executing" in normalized
     assert "VS1B being pending fresh independent audit" not in normalized
     assert "C2B3C independent audit accepted" not in normalized
+
+    section_42_status = _section_42_committed_status()
+    assert "private, non-executable Section 41" in section_42_status
+
+    owner_source = _read_owned_bytes(OWNER_PATH)
+    owner_mutants = (
+        owner_source.replace(
+            b"394d625aa63935140eeaf88ecff6f59f0547cb7e",
+            b"5e544622e5f46ddc78294322471b4fcbd2ad9172",
+            1,
+        ),
+        owner_source.replace(
+            b"Git owns\ncommitted object and ref truth",
+            b"Audit reports own\ncommitted object and ref truth",
+            1,
+        ),
+        owner_source.replace(
+            b"This successor supersedes only",
+            b"This successor supersedes",
+            1,
+        ),
+        owner_source.replace(
+            b"It invokes no model or provider",
+            b"It invokes a model or provider",
+            1,
+        ),
+        owner_source + EXPECTED_SECTION_42_COMMITTED_STATUS.encode("utf-8"),
+    )
+    for mutant in owner_mutants:
+        assert mutant != owner_source
+        with pytest.raises(AssertionError, match="C2B3C_STATUS_INVALID"):
+            _section_42_committed_status(mutant)
+
+    committed_mutants = (
+        committed.replace("5e544622e5f46ddc78294322471b4fcbd2ad9172", "", 1),
+        committed.replace(
+            "Git owns the committed object and\nref fact",
+            "Audit reports own the committed object and\nref fact",
+            1,
+        ),
+        committed
+        + "\nThe current working tree contains an uncommitted candidate pending "
+        "fresh independent audit.\n",
+    )
+    for mutant in committed_mutants:
+        with pytest.raises(AssertionError, match="C2B3C_STATUS_INVALID"):
+            _assert_current_status(mutant)
+
+    for spec in LIVE_C2B3D_SUMMARY_INVENTORY:
+        original = summary_documents[spec.path]
+        for mutation in (
+            "commit-omission",
+            "commit-swap",
+            "stale-status",
+            "authority-contradiction",
+            "capability-contradiction",
+            "fenced-region",
+            "historical-owner",
+            "duplicate-region",
+        ):
+            mutant = _mutate_live_c2b3d_summary(original, spec, mutation)
+            for other in LIVE_C2B3D_SUMMARY_INVENTORY:
+                if other is spec:
+                    continue
+                other_document = (
+                    mutant if other.path == spec.path else summary_documents[other.path]
+                )
+                _assert_live_c2b3d_summary_document(other_document, other)
+            with pytest.raises(
+                AssertionError,
+                match=rf"C2B3C_STATUS_INVALID:{re.escape(spec.role)}:",
+            ):
+                _assert_live_c2b3d_summary_document(mutant, spec)
+
+    for spec in LIVE_C2B3D_SUMMARY_INVENTORY:
+        mutations = [
+            "same-title-owner-reparenting",
+            "same-title-owner-between-predecessor-and-owner",
+            "same-title-historical-sibling",
+        ]
+        if len(spec.owner_chain) > 1:
+            mutations.insert(1, "same-title-ancestor-reparenting")
+        for mutation in mutations:
+            mutant = _mutate_live_c2b3d_summary(
+                summary_documents[spec.path],
+                spec,
+                mutation,
+            )
+            assert "Historical superseded sibling copy." in mutant
+            _broken_title_chain_summary_checker(mutant, spec)
+            with pytest.raises(
+                AssertionError,
+                match=rf"C2B3C_STATUS_INVALID:{re.escape(spec.role)}:",
+            ):
+                _assert_live_c2b3d_summary_document(mutant, spec)
 
 
 def test_family_golden_vector_is_independent_exact_and_self_verifying() -> None:
@@ -4029,11 +4913,24 @@ def test_section_39_semantic_parser_rejects_non_dict_direct_expression() -> None
 
 def test_current_status_rejects_c2b3c_audit_acceptance_preclaim() -> None:
     initialization = _read_owned_path(INITIALIZATION_STATUS_PATH)
-    _historical, current = initialization.split(INITIALIZATION_STATUS_BEGIN, 1)
-    current, _after = current.split(INITIALIZATION_STATUS_END, 1)
+    _historical, current = initialization.split(C2B3D_COMMITTED_STATUS_BEGIN, 1)
+    current, _after = current.split(C2B3D_COMMITTED_STATUS_END, 1)
     mutated = current + "\nC2B3C independent audit accepted\n"
     with pytest.raises(AssertionError, match="C2B3C_STATUS_INVALID"):
         _assert_current_status(mutated)
+
+    for spec in LIVE_C2B3D_SUMMARY_INVENTORY:
+        document = _read_owned_path(spec.path)
+        authority_preclaim = _mutate_live_c2b3d_summary(
+            document,
+            spec,
+            "authority-contradiction",
+        )
+        with pytest.raises(
+            AssertionError,
+            match=rf"C2B3C_STATUS_INVALID:{re.escape(spec.role)}:",
+        ):
+            _assert_live_c2b3d_summary_document(authority_preclaim, spec)
 
 
 @pytest.mark.parametrize(

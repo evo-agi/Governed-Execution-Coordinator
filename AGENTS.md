@@ -580,8 +580,12 @@ sole semantic authority is Section 35 of
 `.docs/c2b3-program-initialization.md` is implementation-status and planning
 only. Section 38 of the durable-state owner now governs the private VS1B
 implementation on the committed C2B3A and VS1A foundation.
-Sections 39 and 40 govern the private C2B3D author-effect implementation
-candidate. It adds no C2B3 public/API/package surface, schema, migration,
+Sections 39 and 40 govern the private C2B3D author-effect implementation,
+introduced and committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Git owns the committed object and
+ref fact; independent acceptance, audit, validation, provenance, and report
+records remain external evidence rather than Coordinator durable authority or
+effect permission. C2B3D adds no public/API/package surface, schema, migration,
 external authority, route execution, worker, Bridge, or ES widening.
 
 ## P1 Prohibitions
@@ -867,9 +871,12 @@ externally classified, provenance-bound independent acceptance and its
 post-acceptance commit gate passed. Git owns the commit/ref fact; the audit and
 validation reports remain external evidence rather than Coordinator durable
 authority. The C2B3C contract freeze is committed at
-`5945a53685e7a5cb4edd7419bea712007fcdfcd1`. The current working tree contains
-the private C2B3D author-effect implementation candidate; it awaits fresh
-independent audit and adds no worker, dispatch, credential, capsule, Git,
+`5945a53685e7a5cb4edd7419bea712007fcdfcd1`. The private C2B3D author-effect
+implementation was introduced and is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Git owns the committed object and
+ref fact; independent acceptance, audit, validation, provenance, and report
+records remain external evidence rather than Coordinator durable authority or
+effect permission. C2B3D adds no worker, dispatch, credential, capsule, Git,
 Bridge, ES, network, or other external effect. VS1B and C2B3D use migration
 0002 and add no public API/package export, automatic retry after uncertainty,
 old-resource lookup, terminal witness, or restart-safe raw-input custody.
@@ -877,13 +884,21 @@ old-resource lookup, terminal witness, or restart-safe raw-input custody.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
 ## Cognitive proposal and selection runtime
 
-Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded contract; Section 42 records implementation status without redefining it.
-C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
-proposal-selection runtime are now implemented in the uncommitted candidate pending
-fresh independent audit. The source tranche ends at typed pre-execution proposal
-admission plus Coordinator selection or non-selection; it performs no model invocation
-or dispatch. Model invocation, dispatch, worker contact, post-execution review,
-post-execution semantic decision, Git, and publication remain blocked. The full
-remote-worker phase is not reduced to this private source tranche.
+Section 41 of `.docs/c2b-durable-development-state.md` remains the sole detailed
+semantic owner; Section 42 records current implementation and
+repository-publication status without redefining it. C2B3D private author-effect
+establishment is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Migration
+`0003_cognitive_proposal_and_selection_state` and the private pre-execution
+proposal-selection runtime are committed at
+`394d625aa63935140eeaf88ecff6f59f0547cb7e`. Git owns committed object and ref
+truth; independent acceptance, audit, validation, provenance, and report
+records remain external evidence rather than Coordinator durable authority or
+effect permission. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection. It performs no
+model/provider invocation, dispatch, worker contact, post-execution
+validation/review execution, post-execution Coordinator semantic decision,
+capsule custody, Git effect, Bridge or ES handoff, publication execution,
+service, scheduler, queue, or autonomous loop. The full remote-worker phase is
+not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->
