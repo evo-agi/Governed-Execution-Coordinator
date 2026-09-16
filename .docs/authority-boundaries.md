@@ -389,13 +389,21 @@ required just-in-time questions rather than selected schemas.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
 ## Cognitive proposal and selection runtime
 
-Section 41 of `.docs/c2b-durable-development-state.md` is the sole detailed semantic owner
-for this bounded contract; Section 42 records implementation status without redefining it.
-C2B3D remains current and unchanged. Migration 0003 and the private pre-execution
-proposal-selection runtime are now implemented in the uncommitted candidate pending
-fresh independent audit. The source tranche ends at typed pre-execution proposal
-admission plus Coordinator selection or non-selection; it performs no model invocation
-or dispatch. Model invocation, dispatch, worker contact, post-execution review,
-post-execution semantic decision, Git, and publication remain blocked. The full
-remote-worker phase is not reduced to this private source tranche.
+Section 41 of `.docs/c2b-durable-development-state.md` remains the sole detailed
+semantic owner; Section 42 records current implementation and
+repository-publication status without redefining it. C2B3D private author-effect
+establishment is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Migration
+`0003_cognitive_proposal_and_selection_state` and the private pre-execution
+proposal-selection runtime are committed at
+`394d625aa63935140eeaf88ecff6f59f0547cb7e`. Git owns committed object and ref
+truth; independent acceptance, audit, validation, provenance, and report
+records remain external evidence rather than Coordinator durable authority or
+effect permission. The source tranche ends at typed pre-execution proposal
+admission plus Coordinator selection or non-selection. It performs no
+model/provider invocation, dispatch, worker contact, post-execution
+validation/review execution, post-execution Coordinator semantic decision,
+capsule custody, Git effect, Bridge or ES handoff, publication execution,
+service, scheduler, queue, or autonomous loop. The full remote-worker phase is
+not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->

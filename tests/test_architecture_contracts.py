@@ -130,6 +130,223 @@ def _bounded_markdown_section(
     return text[selected[3] : end]
 
 
+_C2B3D_ARCHITECTURE_BEGIN = "<!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->"
+_C2B3D_ARCHITECTURE_END = "<!-- C2B3_NARROWED_ARCHITECTURE_END -->"
+_C2B3D_ARCHITECTURE_HEADING = "C2B3 vertical-slice governing narrowing"
+_C2B3D_ARCHITECTURE_SUMMARY_START = (
+    "Coordinator remains durable-progression authority only."
+)
+_C2B3D_IMPLEMENTATION_COMMIT = "5e544622e5f46ddc78294322471b4fcbd2ad9172"
+_SECTION_41_IMPLEMENTATION_COMMIT = "394d625aa63935140eeaf88ecff6f59f0547cb7e"
+
+
+def _architecture_heading_chain(
+    headings: tuple[tuple[int, str, int, int], ...],
+    selected: tuple[int, str, int, int],
+) -> tuple[tuple[int, str], ...]:
+    stack: list[tuple[int, str, int, int]] = []
+    for heading in headings:
+        if heading[2] > selected[2]:
+            break
+        while stack and stack[-1][0] >= heading[0]:
+            stack.pop()
+        stack.append(heading)
+    return tuple((heading[0], heading[1]) for heading in stack)
+
+
+def _extract_c2b3d_architecture_summary(text: str) -> tuple[int, int, str]:
+    role = "architecture.c2b3d_summary"
+    headings = _markdown_atx_headings(text, role=role)
+    selected_matches = tuple(
+        heading for heading in headings if heading[1] == _C2B3D_ARCHITECTURE_HEADING
+    )
+    _require(
+        len(selected_matches) == 1,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=count",
+    )
+    selected = selected_matches[0]
+    _require(
+        selected[0] == 2,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=wrong_level",
+    )
+    _require(
+        _architecture_heading_chain(headings, selected)
+        == (
+            (1, "NWP Coordinator Architecture"),
+            (2, _C2B3D_ARCHITECTURE_HEADING),
+        ),
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=heading_chain",
+    )
+    visible = _unfenced_markdown(text, role=role)
+    for marker in (_C2B3D_ARCHITECTURE_BEGIN, _C2B3D_ARCHITECTURE_END):
+        _require(
+            text.count(marker) == visible.count(marker) == 1,
+            f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=marker_count",
+        )
+    begin = text.index(_C2B3D_ARCHITECTURE_BEGIN)
+    end_marker = text.index(_C2B3D_ARCHITECTURE_END)
+    _require(
+        text[begin + len(_C2B3D_ARCHITECTURE_BEGIN) : selected[2]] == "\n",
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=begin_boundary",
+    )
+    _require(
+        text[end_marker + len(_C2B3D_ARCHITECTURE_END) :] == "\n",
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=end_boundary",
+    )
+    _require(
+        visible.count(_C2B3D_ARCHITECTURE_SUMMARY_START) == 1,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=summary_count",
+    )
+    summary_start = text.index(
+        _C2B3D_ARCHITECTURE_SUMMARY_START,
+        selected[3],
+        end_marker,
+    )
+    _require(
+        text[summary_start - 2 : summary_start] == "\n\n",
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=paragraph_start",
+    )
+    nested_headings = tuple(
+        heading
+        for heading in headings
+        if selected[3] <= heading[2] < end_marker
+    )
+    _require(
+        not nested_headings,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=nested_heading",
+    )
+    summary = text[summary_start:end_marker]
+    _require(
+        summary.endswith("Exact later-phase values and\nevidence layouts remain deferred.\n"),
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=paragraph_end",
+    )
+    _require(
+        "COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE" not in summary,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=cross_reference_overlap",
+    )
+    return summary_start, end_marker, summary
+
+
+def _assert_c2b3d_architecture_summary_text(summary: str) -> None:
+    role = "architecture.c2b3d_summary"
+    normalized = _compact(summary)
+    _require(
+        normalized.count(_C2B3D_IMPLEMENTATION_COMMIT) == 1,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=c2b3d_commit",
+    )
+    _require(
+        _SECTION_41_IMPLEMENTATION_COMMIT not in normalized,
+        f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=section41_commit_substitution",
+    )
+    for required in (
+        _C2B3D_ARCHITECTURE_SUMMARY_START,
+        "The private C2B3D implementation was introduced and is committed at",
+        "Git owns the committed object and ref fact",
+        "independent acceptance, audit, validation, provenance, and report records remain external evidence rather than Coordinator durable authority or effect permission",
+        "exactly ten author-effect rows and nine supplied graph entries",
+        "planned `direct_local_bootstrap` delivery as inert intent",
+        "performs no dispatch, worker, capsule, credential, network, Git, Bridge, or ES effect",
+        "Exact later-phase values and evidence layouts remain deferred.",
+    ):
+        _require(
+            required in normalized,
+            f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=required",
+        )
+    lowered = normalized.lower()
+    for forbidden in (
+        "private c2b3d candidate",
+        "current working tree contains",
+        "uncommitted candidate",
+        "awaits fresh independent audit",
+        "pending fresh independent audit",
+        "independent acceptance remains pending",
+        "reports own git truth",
+        "audit acceptance is coordinator durable authority",
+        "model output grants effect permission",
+        "c2b3d performs worker",
+    ):
+        _require(
+            forbidden not in lowered,
+            f"{role}|heading={_C2B3D_ARCHITECTURE_HEADING}|failure=forbidden",
+        )
+
+
+def _assert_c2b3d_architecture_summary_document(text: str) -> str:
+    _start, _end, summary = _extract_c2b3d_architecture_summary(text)
+    _assert_c2b3d_architecture_summary_text(summary)
+
+    from test_c2b3c_author_effect_contract import (
+        LIVE_C2B3D_SUMMARY_INVENTORY,
+        _assert_live_c2b3d_summary_document,
+    )
+
+    shared_spec = next(
+        spec
+        for spec in LIVE_C2B3D_SUMMARY_INVENTORY
+        if spec.role == "architecture"
+    )
+    shared_summary = _assert_live_c2b3d_summary_document(text, shared_spec)
+    _require(
+        summary == shared_summary,
+        "architecture.c2b3d_summary|failure=shared_inventory_range",
+    )
+    return summary
+
+
+def _mutate_c2b3d_architecture_summary(text: str, mutation: str) -> str:
+    start, end, summary = _extract_c2b3d_architecture_summary(text)
+    closing = "Exact later-phase values and\nevidence layouts remain deferred."
+    if mutation == "same-title-ancestor-reparenting":
+        insertion = text.index(_C2B3D_ARCHITECTURE_BEGIN)
+        return (
+            text[:insertion]
+            + "# NWP Coordinator Architecture\n\n"
+            + "Historical superseded sibling copy.\n\n"
+            + text[insertion:]
+        )
+    if mutation == "commit-omission":
+        mutated = summary.replace(_C2B3D_IMPLEMENTATION_COMMIT, "", 1)
+    elif mutation == "commit-swap":
+        mutated = summary.replace(
+            _C2B3D_IMPLEMENTATION_COMMIT,
+            _SECTION_41_IMPLEMENTATION_COMMIT,
+            1,
+        )
+    elif mutation == "stale-status":
+        mutated = summary.replace(
+            closing,
+            "The current working tree contains an uncommitted candidate pending "
+            "fresh independent audit.\n"
+            + closing,
+            1,
+        )
+    elif mutation == "authority-contradiction":
+        mutated = summary.replace(
+            closing,
+            "Audit reports own Git truth; audit acceptance is Coordinator "
+            "durable authority and effect permission; model output grants effect "
+            "permission.\n"
+            + closing,
+            1,
+        )
+    elif mutation == "capability-contradiction":
+        mutated = summary.replace(
+            "performs no dispatch, worker, capsule,\ncredential,",
+            "performs dispatch, worker, capsule,\ncredential,",
+            1,
+        )
+    elif mutation == "fenced-region":
+        mutated = "````text\n" + summary + "````\n"
+    elif mutation == "historical-owner":
+        mutated = "### Historical superseded examples\n\n" + summary
+    elif mutation == "duplicate-region":
+        mutated = summary + "\n" + summary
+    else:
+        raise AssertionError(mutation)
+    _require(mutated != summary, "architecture.c2b3d_summary|failure=noop_mutant")
+    return text[:start] + mutated + text[end:]
+
+
 def _assert_c2b0_durable_current_target_contract(text: str) -> None:
     role = "architecture.durable_state"
     headings = _markdown_atx_headings(text, role=role)
@@ -965,9 +1182,58 @@ def test_current_status_drift_corrections_are_documented() -> None:
     assert "B3c4b adds private atomic transition persistence, B3c4c adds guarded public transition delegation, B4b adds private global-stop persistence, and B4c adds guarded public global-stop delegation." in durable
     assert "The public `StateStore` remains unwidened; internal `WriterSession` mutation is not a general public `StateStore` backend or service." in durable
     assert "The author-effect family durably represents one semantic attempt, fences, author command, pending authority evaluation, effect/delivery heads, planned delivery, and receipt; none is dispatch or executable permission." in durable
+    assert "introduced and committed at `5e544622e5f46ddc78294322471b4fcbd2ad9172`" in durable
+    assert "Git owns the committed object and ref fact" in durable
+    assert "external evidence rather than Coordinator durable authority or effect permission" in durable
     assert "The code still has no runtime observation, result ingest, outbox/inbox, worker, scheduler, queue, Codex, ES handoff, or runtime lifecycle storage." in durable
     assert "Public global-stop mutation now delegates through the guarded B4c public wrapper to B4b private atomic global-stop persistence." in operations
     assert "The public wrappers own no SQL, receipt verification, evaluator, sequence allocation, write, rollback, COMMIT, or uncertainty handling" in operations
+
+    architecture = _text(".docs/architecture.md")
+    _assert_c2b3d_architecture_summary_document(architecture)
+    for mutation in (
+        "commit-omission",
+        "commit-swap",
+        "stale-status",
+        "authority-contradiction",
+        "capability-contradiction",
+        "fenced-region",
+        "historical-owner",
+        "duplicate-region",
+    ):
+        mutant = _mutate_c2b3d_architecture_summary(architecture, mutation)
+        with pytest.raises(
+            AssertionError,
+            match=r"architecture\.c2b3d_summary\|",
+        ):
+            _assert_c2b3d_architecture_summary_document(mutant)
+
+    from test_c2b3c_author_effect_contract import (
+        LIVE_C2B3D_SUMMARY_INVENTORY,
+        _assert_live_c2b3d_summary_document,
+        _broken_title_chain_summary_checker,
+    )
+
+    shared_spec = next(
+        spec
+        for spec in LIVE_C2B3D_SUMMARY_INVENTORY
+        if spec.role == "architecture"
+    )
+    same_title_ancestor = _mutate_c2b3d_architecture_summary(
+        architecture,
+        "same-title-ancestor-reparenting",
+    )
+    _broken_title_chain_summary_checker(same_title_ancestor, shared_spec)
+    with pytest.raises(
+        AssertionError,
+        match=r"C2B3C_STATUS_INVALID:architecture:",
+    ):
+        _assert_c2b3d_architecture_summary_document(same_title_ancestor)
+    with pytest.raises(
+        AssertionError,
+        match=r"C2B3C_STATUS_INVALID:architecture:",
+    ):
+        _assert_live_c2b3d_summary_document(same_title_ancestor, shared_spec)
 
 
 def test_candidate_capsule_durable_state_section_rejects_structural_drift() -> None:
@@ -1092,6 +1358,41 @@ def test_narrowed_vertical_slice_architecture_is_governing_not_schema_freeze() -
     frozen_owner = owner.partition("\n## 42.")[0]
     assert architecture.count("<!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->") == 1
     assert architecture.count("<!-- C2B3_NARROWED_ARCHITECTURE_END -->") == 1
+    narrowed = architecture.split(
+        "<!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->",
+        1,
+    )[1].split("<!-- C2B3_NARROWED_ARCHITECTURE_END -->", 1)[0]
+
+    def assert_committed_private_narrowing(candidate: str) -> None:
+        _assert_c2b3d_architecture_summary_text(candidate)
+
+    assert_committed_private_narrowing(narrowed)
+    narrowing_mutants = (
+        narrowed.replace("5e544622e5f46ddc78294322471b4fcbd2ad9172", "", 1),
+        narrowed.replace(
+            "5e544622e5f46ddc78294322471b4fcbd2ad9172",
+            "394d625aa63935140eeaf88ecff6f59f0547cb7e",
+            1,
+        ),
+        narrowed.replace(
+            "Git owns the committed object and ref fact",
+            "Audit reports own the committed object and ref fact",
+            1,
+        ),
+        narrowed.replace(
+            "performs no dispatch, worker, capsule,\ncredential,",
+            "performs dispatch, worker, capsule,\ncredential,",
+            1,
+        ),
+        narrowed + "\nThe current working tree contains an uncommitted candidate.\n",
+        narrowed
+        + "\nAudit reports own Git truth; audit acceptance is Coordinator durable "
+        "authority.\n",
+    )
+    for mutant in narrowing_mutants:
+        assert mutant != narrowed
+        with pytest.raises(AssertionError):
+            assert_committed_private_narrowing(mutant)
     for expected in (
         "Initialization is route-neutral.",
         "Route selection occurs only at author-effect delivery",

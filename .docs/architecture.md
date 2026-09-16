@@ -649,10 +649,14 @@ The implemented VS1B family uses migration 0002 unchanged, one receipt-first
 transaction, exactly nine state rows and eight supplied graph entries, exact
 same-command replay, and private readback-only uncertainty resolution. It adds
 no route, dispatch, worker, capsule, external I/O, or executable authority.
-The private C2B3D candidate reuses that same mutation authority for exactly ten
-author-effect rows and nine supplied graph entries. It persists a planned
-`direct_local_bootstrap` delivery as inert intent, verifies bounded current
-effect/delivery heads, and performs no dispatch, worker, capsule, credential,
-network, Git, Bridge, or ES effect. Exact later-phase values and evidence
-layouts remain deferred.
+The private C2B3D implementation was introduced and is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`; it reuses that same mutation
+authority for exactly ten author-effect rows and nine supplied graph entries.
+Git owns the committed object and ref fact; independent acceptance, audit,
+validation, provenance, and report records remain external evidence rather
+than Coordinator durable authority or effect permission. C2B3D persists a
+planned `direct_local_bootstrap` delivery as inert intent, verifies bounded
+current effect/delivery heads, and performs no dispatch, worker, capsule,
+credential, network, Git, Bridge, or ES effect. Exact later-phase values and
+evidence layouts remain deferred.
 <!-- C2B3_NARROWED_ARCHITECTURE_END -->

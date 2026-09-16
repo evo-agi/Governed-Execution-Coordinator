@@ -434,3 +434,27 @@ durable intent and bounds only, never execution permission. The candidate is
 not staged, committed, pushed, published, or independently accepted; a fresh
 independent audit remains required.
 <!-- COORDINATOR_C2B3D_IMPLEMENTED_CANDIDATE_CURRENT_STATUS_END -->
+<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_BEGIN -->
+## C2B3D committed current status
+
+The preceding planning, VS1B, and C2B3D implemented-candidate blocks are
+retained byte-for-byte as historical contract, implementation, and audit-state
+evidence. Their former current-working-tree, candidate, uncommitted,
+unpublished, and pending-audit labels are not current repository status after
+this successor.
+
+C2B3D private author-effect establishment was introduced and is committed at
+`5e544622e5f46ddc78294322471b4fcbd2ad9172`. Git owns the committed object and
+ref fact. Independent acceptance, audit, validation, provenance, and report
+records remain external evidence only rather than Coordinator durable authority
+or effect permission.
+
+C2B3D remains private and non-executing. It adds no public API or package
+export, schema or migration, worker or dispatcher, external-authority issuer or
+verifier, route execution, credential use, capsule custody, Git effect,
+Execution Substrate or Bridge call, network or other external I/O, automatic
+retry after uncertainty, or restart-safe raw-input custody. Pending authority
+and planned delivery remain durable intent and bounds only, never execution
+permission.
+
+<!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_END -->
