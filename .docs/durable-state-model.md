@@ -534,3 +534,26 @@ capsule custody, Git effect, Bridge or ES handoff, publication execution,
 service, scheduler, queue, or autonomous loop. The full remote-worker phase is
 not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->
+
+
+<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->
+### RW0 remote-contact phase-entry target cross-reference
+
+.docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.
+Current implementation stops at private C2B3D planned author delivery plus Section 41 pre-execution selection; executable contact and terminal-outcome runtime remain unsupported and fail-closed.
+RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.
+External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.
+Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests; the future subordinate record binds each corresponding basis pair and both exact fence identities byte-for-byte without replacement.
+A current external verifier proves parent/basis ancestry, joint common-family compatibility, scope, expiry, revocation, global stop, and current heads; incompatibility or ambiguity blocks RW0 before retrieval, contact, delivery, or launch.
+The two per-fence authorization-basis pairs need not equal each other; neither existing fence nor its digest is executable permission.
+Direct-local permits one qualified remote Linux host, exactly the existing author attempt, effect, command, candidate, and initial delivery, with at most one author invocation and actual author delivery; reached validation, review, and cancellation use distinct current effects and deliveries.
+No replacement author attempt, effect, command, candidate, or candidate-authoring invocation occurs; no author relaunch or redelivery, fallback, or third adapter is permitted.
+The existing C2B `cancel` decision commits before the cancellation effect, preassigns its effect, fence, first delivery, and target, and is that effect's exact basis_decision_ref.
+A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run; it is not a development_decision, effect basis, or second C2B cancel or block decision.
+Non-cancel terminal outcomes bind one earlier same-kind C2B decision. The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.
+After exact cancel-decision commit readback and current-head, stop-version, and authority verification, an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.
+A current compatible cancel basis follows distinct request, acknowledgement, signal, exit, teardown, and source reconciliation facts, yielding terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision.
+No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.
+Direct-local route-local process and cancellation ownership does not absorb ES-route authority; no successor, Git, or publication effect follows RW0.
+Exact custodian, transport, framing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.
+<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->

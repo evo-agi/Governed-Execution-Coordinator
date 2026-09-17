@@ -4254,11 +4254,17 @@ def _assert_current_status(text: object) -> None:
     )
 
 
+def _broken_section_42_entire_suffix_checker(source: bytes) -> bool:
+    """Reproduce the former EOF assumption only as a mutation-sensitivity control."""
+    return source[EXPECTED_OWNER_OPENING_UTF8_LENGTH:] == (
+        EXPECTED_SECTION_42_COMMITTED_STATUS.encode("utf-8")
+    )
+
+
 def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
     source = _read_owned_bytes(OWNER_PATH) if source_bytes is None else source_bytes
     assert type(source) is bytes, "C2B3C_STATUS_INVALID"
     prefix = source[:EXPECTED_OWNER_OPENING_UTF8_LENGTH]
-    suffix = source[EXPECTED_OWNER_OPENING_UTF8_LENGTH:]
     assert len(prefix) == EXPECTED_OWNER_OPENING_UTF8_LENGTH, (
         "C2B3C_STATUS_INVALID"
     )
@@ -4266,15 +4272,24 @@ def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
         "C2B3C_STATUS_INVALID"
     )
     expected = EXPECTED_SECTION_42_COMMITTED_STATUS.encode("utf-8")
-    assert suffix == expected, "C2B3C_STATUS_INVALID"
+    committed_end = EXPECTED_OWNER_OPENING_UTF8_LENGTH + len(expected)
+    committed = source[EXPECTED_OWNER_OPENING_UTF8_LENGTH:committed_end]
+    assert committed == expected, "C2B3C_STATUS_INVALID"
+    extension = source[committed_end:].decode("utf-8", "strict")
+    extension_structure = _summary_markdown_structure(extension)
+    assert all(heading.level >= 3 for heading in extension_structure.headings), (
+        "C2B3C_STATUS_INVALID"
+    )
     text = source.decode("utf-8", "strict")
-    assert text.count(SECTION_42_COMMITTED_STATUS_BEGIN) == 1
-    assert text.count(SECTION_42_COMMITTED_STATUS_END) == 1
+    if (
+        text.count(SECTION_42_COMMITTED_STATUS_BEGIN) != 1
+        or text.count(SECTION_42_COMMITTED_STATUS_END) != 1
+    ):
+        raise AssertionError("C2B3C_STATUS_INVALID")
     assert text.index(SECTION_42_COMMITTED_STATUS_BEGIN) > text.index(
         "<!-- COORDINATOR_SECTION41_CURRENT_COLUMN_ORDER_CLOSURE_END -->"
     )
-    assert "\n## 43." not in suffix.decode("utf-8", "strict")
-    normalized = " ".join(suffix.decode("utf-8", "strict").split())
+    normalized = " ".join(committed.decode("utf-8", "strict").split())
     for phrase in (
         "5e544622e5f46ddc78294322471b4fcbd2ad9172",
         "394d625aa63935140eeaf88ecff6f59f0547cb7e",
@@ -4514,6 +4529,33 @@ def test_current_status_regions_are_reconciled_without_historical_rewrite() -> N
     assert "private, non-executable Section 41" in section_42_status
 
     owner_source = _read_owned_bytes(OWNER_PATH)
+    opening = owner_source[:EXPECTED_OWNER_OPENING_UTF8_LENGTH]
+    committed_block = EXPECTED_SECTION_42_COMMITTED_STATUS.encode("utf-8")
+    subordinate_extension = (
+        b"\n### Later Section 42 subordinate extension\n\n"
+        b"This later target note has no current implementation effect.\n"
+    )
+    positive_extension = opening + committed_block + subordinate_extension
+    assert _broken_section_42_entire_suffix_checker(opening + committed_block)
+    assert not _broken_section_42_entire_suffix_checker(positive_extension)
+    assert _section_42_committed_status(positive_extension) == section_42_status
+
+    changed_block = committed_block.replace(
+        b"Git owns\ncommitted object and ref truth",
+        b"Audit reports own\ncommitted object and ref truth",
+        1,
+    )
+    assert changed_block != committed_block
+    region_mutants = (
+        opening + changed_block + subordinate_extension,
+        opening + subordinate_extension + committed_block,
+        positive_extension + committed_block,
+        opening + committed_block + b"\n## 43. Invalid successor\n",
+    )
+    for mutant in region_mutants:
+        with pytest.raises(AssertionError, match="C2B3C_STATUS_INVALID"):
+            _section_42_committed_status(mutant)
+
     owner_mutants = (
         owner_source.replace(
             b"394d625aa63935140eeaf88ecff6f59f0547cb7e",
