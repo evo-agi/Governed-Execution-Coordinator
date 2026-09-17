@@ -24826,3 +24826,27 @@ service, scheduler, queue, or autonomous loop; and adds no public package
 export, public StateStore method, or public WriterSession protocol method.
 
 <!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_END -->
+
+<!-- COORDINATOR_RW0_PHASE_ENTRY_TARGET_CROSS_REFERENCE_BEGIN -->
+### RW0 remote-contact phase-entry target boundary
+
+Classification: accepted strategic target, not current implementation.
+
+.docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner for
+the RW0 remote-contact target operating model. Section 41 remains the sole
+detailed pre-execution selection semantic owner, and Section 42 remains the
+current implementation, exact-column-order, recovery, and repository-status
+owner without semantic redefinition.
+
+K8 plus the exact current L34 and head postimage is necessary but is not launch
+authority. The selected disposition remains planning state. A later bounded
+target begins with a receipt-backed no-contact phase-entry fact and fresh
+authority, host, and custody gates.
+
+No phase-entry, verifier, custody, worker, capsule, validation, review, model
+proposal, decision runtime, latch, Git, or publication capability is
+implemented. No table, row, receipt, graph, migration, application-generation,
+or public API representation is selected by this target cross-reference. The
+pre-existing Section 42 bytes and exact-column-order owner remain unchanged.
+
+<!-- COORDINATOR_RW0_PHASE_ENTRY_TARGET_CROSS_REFERENCE_END -->

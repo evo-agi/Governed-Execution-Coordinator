@@ -54,6 +54,17 @@ CURRENT_COLUMN_ORDER_OWNER_H4 = (
 CURRENT_COLUMN_ORDER_OWNER_DIAGNOSTIC = (
     "CURRENT_COLUMN_ORDER_OWNER_BOUNDARY_INVALID"
 )
+RW0_TARGET_CROSS_REFERENCE_BEGIN_MARKER = (
+    "<!-- COORDINATOR_RW0_PHASE_ENTRY_TARGET_CROSS_REFERENCE_BEGIN -->"
+)
+RW0_TARGET_CROSS_REFERENCE_END_MARKER = (
+    "<!-- COORDINATOR_RW0_PHASE_ENTRY_TARGET_CROSS_REFERENCE_END -->"
+)
+RW0_TARGET_CROSS_REFERENCE_H3 = "RW0 remote-contact phase-entry target boundary"
+RW0_C2B_OPENING_SIZE = 1_883_380
+RW0_C2B_OPENING_SHA256 = (
+    "9401d62a0eb36e0cca1af5b8a6a80b540ddc4c781fee3faaf7318546cb532ccc"
+)
 C2B3D_SECTION_HEADING = "## 39. Coordinator C2B3C Author-Effect Contract Freeze"
 C2B3D_BEGIN_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_BEGIN -->"
 C2B3D_END_MARKER = "<!-- COORDINATOR_C2B3C_AUTHOR_EFFECT_CONTRACT_END -->"
@@ -3966,6 +3977,7 @@ _CROSS_REFERENCE_BEGIN = (
 )
 _CROSS_REFERENCE_END = "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
 _CROSS_REFERENCE_HEADING = "Cognitive proposal and selection runtime"
+_RW0_CROSS_REFERENCE_HEADING = "RW0 remote-contact phase-entry target cross-reference"
 _CROSS_REFERENCE_EXPECTED = " ".join(
     """## Cognitive proposal and selection runtime
 
@@ -4045,7 +4057,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, _RW0_CROSS_REFERENCE_HEADING),
     ),
     _CrossReferenceOwnerSpec(
         ".docs/autonomous-software-development-operating-model.md",
@@ -4057,7 +4069,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, _RW0_CROSS_REFERENCE_HEADING),
     ),
     _CrossReferenceOwnerSpec(
         ".docs/durable-state-model.md",
@@ -4069,7 +4081,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, _RW0_CROSS_REFERENCE_HEADING),
     ),
     _CrossReferenceOwnerSpec(
         ".docs/software-development-progression-boundary.md",
@@ -4129,7 +4141,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, _RW0_CROSS_REFERENCE_HEADING),
     ),
 )
 
@@ -4340,6 +4352,187 @@ def _assert_complete_cross_reference_inventory(
     return observed
 
 
+_RW0_CURRENT_CROSS_REFERENCE_OWNERS = (
+    (".docs/autonomous-software-development-operating-model.md", "C1 Autonomous Software-Development Operating Model"),
+    (".docs/worker-execution-boundary.md", "Worker Execution Boundary"),
+    (".docs/authority-boundaries.md", "Authority Boundaries"),
+    (".docs/durable-state-model.md", "Durable State Model"),
+)
+
+
+def _rw0_visible_events(
+    structure: _CurrentColumnOrderMarkdownStructure, owner: bytes
+) -> tuple[
+    tuple[_CurrentColumnOrderVisibleHeading, ...],
+    tuple[_CurrentColumnOrderVisibleLine, ...],
+]:
+    events: list[tuple[int, str, object]] = [
+        (line.start, line.content, line) for line in structure.ordinary_lines
+    ]
+    events.extend(
+        (heading.start, owner[heading.start:heading.end].decode("utf-8").rstrip("\r\n"), heading)
+        for heading in structure.headings
+    )
+    events.sort(key=lambda item: item[0])
+    ordinary: list[_CurrentColumnOrderVisibleLine] = []
+    headings: list[_CurrentColumnOrderVisibleHeading] = []
+    hidden_comment = False
+    for _position, content, item in events:
+        stripped = content.strip()
+        if hidden_comment:
+            if "-->" in content:
+                hidden_comment = False
+                if content.split("-->", 1)[1].strip() and isinstance(
+                    item, _CurrentColumnOrderVisibleLine
+                ):
+                    ordinary.append(item)
+            continue
+        if stripped.startswith("<!--") and "-->" not in stripped:
+            hidden_comment = True
+            continue
+        if isinstance(item, _CurrentColumnOrderVisibleLine):
+            ordinary.append(item)
+        else:
+            assert isinstance(item, _CurrentColumnOrderVisibleHeading)
+            headings.append(item)
+    assert not hidden_comment, "RW0_CROSS_REFERENCE_STRUCTURE_INVALID:unclosed_comment"
+    return tuple(headings), tuple(ordinary)
+
+
+def _rw0_gap_is_hidden(
+    lines: tuple[_CurrentColumnOrderVisibleLine, ...], start: int, end: int
+) -> bool:
+    return all(
+        not line.content.strip()
+        or re.fullmatch(r"<!--.*?-->", line.content.strip()) is not None
+        for line in lines
+        if start <= line.start < end
+    )
+
+
+def _assert_live_rw0_cross_reference(
+    owner: bytes, *, path: str, root_title: str
+) -> str:
+    diagnostic = f"RW0_CROSS_REFERENCE_STRUCTURE_INVALID:{path}"
+    structure = _current_column_order_markdown_structure(owner)
+    assert structure.unclosed_fence is None, diagnostic
+    headings, ordinary_lines = _rw0_visible_events(structure, owner)
+
+    def marker_lines(marker: str) -> tuple[_CurrentColumnOrderVisibleLine, ...]:
+        return tuple(
+            line
+            for line in ordinary_lines
+            if len(line.content) - len(line.content.lstrip(" ")) <= 3
+            and line.content.lstrip(" ") == marker
+        )
+
+    begins = marker_lines("<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->")
+    ends = marker_lines("<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->")
+    assert len(begins) == len(ends) == 1, diagnostic
+    begin, end = begins[0], ends[0]
+    assert begin.start < begin.end <= end.start < end.end, diagnostic
+    roots = tuple(
+        heading
+        for heading in headings
+        if heading.level == 1 and heading.title == root_title
+    )
+    parents = tuple(
+        heading
+        for heading in headings
+        if heading.level == 2 and heading.title == _CROSS_REFERENCE_HEADING
+    )
+    rw0_heads = tuple(
+        heading
+        for heading in headings
+        if heading.level == 3 and heading.title == _RW0_CROSS_REFERENCE_HEADING
+    )
+    assert len(roots) == len(parents) == len(rw0_heads) == 1, diagnostic
+    root, parent, rw0_head = roots[0], parents[0], rw0_heads[0]
+    assert _cross_reference_heading_chain(headings, rw0_head) == (
+        (1, root_title), (2, _CROSS_REFERENCE_HEADING),
+        (3, _RW0_CROSS_REFERENCE_HEADING),
+    ), diagnostic
+    assert parent == tuple(
+        heading for heading in headings if heading.level == 2
+    )[-1], diagnostic
+    assert rw0_head == headings[-1], diagnostic
+    preceding = tuple(
+        heading for heading in headings if heading.start < begin.start
+    )
+    marker_before_heading = begin.start < rw0_head.start
+    if marker_before_heading:
+        assert preceding and preceding[-1] == parent, diagnostic
+        assert parent.end <= begin.start < rw0_head.start < rw0_head.end <= end.start, diagnostic
+        assert _rw0_gap_is_hidden(ordinary_lines, begin.end, rw0_head.start), diagnostic
+    else:
+        assert preceding and preceding[-1] == rw0_head, diagnostic
+        assert parent.end <= rw0_head.start < rw0_head.end <= begin.start < end.start, diagnostic
+        assert _rw0_gap_is_hidden(ordinary_lines, rw0_head.end, begin.start), diagnostic
+    predecessor_marker = "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
+    predecessor_ends = tuple(
+        line for line in ordinary_lines
+        if line.content.lstrip(" ") == predecessor_marker
+        and len(line.content) - len(line.content.lstrip(" ")) <= 3
+    )
+    owner_start = min(begin.start, rw0_head.start)
+    assert len(predecessor_ends) == 1 and parent.start < predecessor_ends[0].start < owner_start, diagnostic
+    assert _rw0_gap_is_hidden(
+        ordinary_lines, predecessor_ends[0].end, owner_start
+    ), diagnostic
+    assert _rw0_gap_is_hidden(ordinary_lines, end.end, len(owner)), diagnostic
+    assert any(
+        line.content.strip()
+        and re.fullmatch(r"<!--.*?-->", line.content.strip()) is None
+        for line in ordinary_lines
+        if max(rw0_head.end, begin.end) <= line.start < end.start
+    ), diagnostic + ":empty_visible_owner_body"
+    assert all(
+        fence.closer_end <= begin.end or fence.opener.start >= end.start
+        for fence in structure.fences
+    ), diagnostic
+    body = owner[begin.end:end.start].decode("utf-8", "strict")
+    return " ".join(body.split())
+
+
+_RW0_COMPLETE_MAP_SPECS = tuple(
+    (
+        path,
+        root_title,
+        ((1, root_title), (2, _CROSS_REFERENCE_HEADING), (3, _RW0_CROSS_REFERENCE_HEADING)),
+        "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->",
+        "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->",
+        "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->",
+    )
+    for path, root_title in _RW0_CURRENT_CROSS_REFERENCE_OWNERS
+)
+
+
+def _assert_complete_rw0_cross_reference_map(owners: dict[str, bytes]) -> str:
+    assert len(_RW0_COMPLETE_MAP_SPECS) == 4
+    assert tuple(owners) == tuple(spec[0] for spec in _RW0_COMPLETE_MAP_SPECS)
+    bodies: list[str] = []
+    for path, root_title, chain, predecessor, begin, end in _RW0_COMPLETE_MAP_SPECS:
+        assert chain == (
+            (1, root_title), (2, _CROSS_REFERENCE_HEADING), (3, _RW0_CROSS_REFERENCE_HEADING)
+        )
+        assert predecessor == "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
+        assert begin == "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->"
+        assert end == "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+        bodies.append(_assert_live_rw0_cross_reference(owners[path], path=path, root_title=root_title))
+    assert len(set(bodies)) == 1, "RW0_CROSS_REFERENCE_MAP_INVALID:body_mismatch"
+    for phrase in (
+        ".docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.",
+        "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
+        "The existing C2B `cancel` decision commits before the cancellation effect",
+        "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
+        "The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.",
+        "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
+        "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
+    ):
+        assert phrase in bodies[0], "RW0_CROSS_REFERENCE_MAP_INVALID:semantic_requirement"
+    return bodies[0]
+
+
 def _cross_reference_heading_bytes(heading: tuple[int, str]) -> bytes:
     return ("#" * heading[0] + " " + heading[1] + "\n\n").encode("utf-8")
 
@@ -4382,6 +4575,140 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
         owners[spec.relative_path] = path.read_bytes()
     observed = _assert_complete_cross_reference_inventory(owners)
     assert len(observed) == 11
+    live_rw0_map = {
+        path: owners[path] for path, _root in _RW0_CURRENT_CROSS_REFERENCE_OWNERS
+    }
+    live_rw0_body = _assert_complete_rw0_cross_reference_map(live_rw0_map)
+
+    def mapped(path: str, candidate: bytes) -> str:
+        mutant_map = dict(live_rw0_map)
+        mutant_map[path] = candidate
+        return _assert_complete_rw0_cross_reference_map(mutant_map)
+
+    def reject_map(path: str, candidate: bytes, match: str | None = None) -> None:
+        with pytest.raises(AssertionError, match=match):
+            mapped(path, candidate)
+
+    rw0_bodies: list[str] = []
+    unexpected_rw0_acceptances: list[str] = []
+    for path, root_title in _RW0_CURRENT_CROSS_REFERENCE_OWNERS:
+        source = owners[path]
+        body = _assert_live_rw0_cross_reference(
+            source, path=path, root_title=root_title
+        )
+        rw0_bodies.append(body)
+        structure = _current_column_order_markdown_structure(source)
+        begin = next(
+            line
+            for line in structure.ordinary_lines
+            if line.content == "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->"
+        )
+        end = next(
+            line
+            for line in structure.ordinary_lines
+            if line.content == "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+        )
+        block = source[begin.start:end.end]
+        live_prose = b"This region authorizes a second author attempt and immediate worker launch.\n"
+        rw0_begin = b"<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->"
+        rw0_end = b"<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+        for fence in (b"~~~", b"```"):
+            empty_visible_block = (
+                source[:begin.start]
+                + b"### RW0 remote-contact phase-entry target cross-reference\n"
+                + fence + b"\n" + block + b"\n" + fence + b"\n"
+                + rw0_begin + b"\n\n" + rw0_end + source[end.end:]
+            )
+            assert " ".join(
+                empty_visible_block.split(rw0_begin, 1)[1]
+                .split(rw0_end, 1)[0].decode().split()
+            ) == body
+            with pytest.raises(AssertionError, match="empty_visible_owner_body"):
+                _assert_live_rw0_cross_reference(
+                    empty_visible_block, path=path, root_title=root_title
+                )
+            reject_map(path, empty_visible_block, "empty_visible_owner_body")
+        for label, candidate in (
+            ("leading prose", source[:begin.start] + live_prose + source[begin.start:]),
+            ("trailing prose", source + b"\n" + live_prose),
+        ):
+            try:
+                mapped(path, candidate)
+            except AssertionError:
+                pass
+            else:
+                unexpected_rw0_acceptances.append(f"{path}: {label}")
+        hidden_duplicate = source + b"\n~~~\n" + block + b"\n~~~\n"
+        assert _assert_live_rw0_cross_reference(
+            hidden_duplicate, path=path, root_title=root_title
+        ) == body
+        assert mapped(path, hidden_duplicate) == live_rw0_body
+        hidden_real_body = (
+            source[:begin.start]
+            + b"### RW0 remote-contact phase-entry target cross-reference\n~~~\n"
+            + block + b"\n~~~\n"
+            + source[end.end:]
+        )
+        assert body in " ".join(
+            hidden_real_body.decode("utf-8").split(
+                "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->", 1
+            )[1].split(
+                "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->", 1
+            )[0].split()
+        )
+        predecessor_spec = next(
+            spec for spec in _CROSS_REFERENCE_OWNER_INVENTORY
+            if spec.relative_path == path
+        )
+        assert _assert_live_cross_reference(hidden_real_body, predecessor_spec)
+        with pytest.raises(AssertionError, match="RW0_CROSS_REFERENCE_STRUCTURE_INVALID"):
+            _assert_live_rw0_cross_reference(
+                hidden_real_body, path=path, root_title=root_title
+            )
+        reject_map(path, hidden_real_body, "RW0_CROSS_REFERENCE_STRUCTURE_INVALID")
+        for mutant in (
+            source + b"\n" + block,
+            source[:begin.start] + b"# Historical superseded copy\n\n" + source[begin.start:],
+            source[:begin.start] + b"## Cognitive proposal and selection runtime\n\n" + source[begin.start:],
+            source[:begin.start] + ("# " + root_title + "\n\n").encode() + source[begin.start:],
+        ):
+            with pytest.raises(AssertionError, match="RW0_CROSS_REFERENCE_STRUCTURE_INVALID"):
+                _assert_live_rw0_cross_reference(
+                    mutant, path=path, root_title=root_title
+                )
+            reject_map(path, mutant, "RW0_CROSS_REFERENCE_STRUCTURE_INVALID")
+        split = source.replace(rw0_end, b"## Detached owner\n" + rw0_end, 1)
+        reject_map(path, split)
+        reversed_markers = (
+            source.replace(rw0_begin, b"__RW0_BEGIN__", 1)
+            .replace(rw0_end, rw0_begin, 1)
+            .replace(b"__RW0_BEGIN__", rw0_end, 1)
+        )
+        reject_map(path, reversed_markers)
+        body_mismatch = source.replace(
+            b"A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
+            b"A different future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
+            1,
+        )
+        assert body_mismatch != source
+        _assert_live_rw0_cross_reference(body_mismatch, path=path, root_title=root_title)
+        reject_map(path, body_mismatch, "body_mismatch")
+    assert len(set(rw0_bodies)) == 1
+    assert not unexpected_rw0_acceptances, (
+        f"RW0 visible cross-reference prose escaped markers: {unexpected_rw0_acceptances}"
+    )
+    assert (
+        "exactly the existing author attempt, effect, command, candidate, and "
+        "initial delivery, with at most one author invocation and actual author "
+        "delivery; reached validation, review, and cancellation use distinct "
+        "current effects and deliveries"
+    ) in rw0_bodies[0]
+    assert "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests" in rw0_bodies[0]
+    assert "The existing C2B `cancel` decision commits before the cancellation effect" in rw0_bodies[0]
+    assert "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run" in rw0_bodies[0]
+    assert "The accepted direct-local C2B decision alone atomically consumes the one-way latch" in rw0_bodies[0]
+    assert "an unusable pre-effect cancel basis establishes no effect" in rw0_bodies[0]
+    assert "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision" in rw0_bodies[0]
 
     for mutant in (
         _CROSS_REFERENCE_EXPECTED.replace(
@@ -11610,6 +11937,110 @@ def test_one_canonical_physical_collection_derives_entire_family(
 
 def test_current_column_order_owner_rejects_relocated_successor_literal() -> None:
     owner = _read_owner_bytes()
+
+    def assert_rw0_append_boundary(source: bytes) -> None:
+        assert len(source) > RW0_C2B_OPENING_SIZE
+        opening = source[:RW0_C2B_OPENING_SIZE]
+        assert hashlib.sha256(opening).hexdigest() == RW0_C2B_OPENING_SHA256
+        structure = _current_column_order_markdown_structure(source)
+        assert structure.unclosed_fence is None
+        level_two = tuple(
+            heading for heading in structure.headings if heading.level == 2
+        )
+        assert level_two[-1].title == CURRENT_COLUMN_ORDER_OWNER_H2
+        assert not any(
+            re.match(r"^43(?:\.|\s|$)", heading.title)
+            for heading in level_two
+        )
+        rw0_headings = tuple(
+            heading
+            for heading in structure.headings
+            if heading.level == 3
+            and heading.title == RW0_TARGET_CROSS_REFERENCE_H3
+        )
+        assert len(rw0_headings) == 1
+        assert _cross_reference_heading_chain(
+            structure.headings, rw0_headings[0]
+        )[-2:] == (
+            (2, CURRENT_COLUMN_ORDER_OWNER_H2),
+            (3, RW0_TARGET_CROSS_REFERENCE_H3),
+        )
+        begin_lines = tuple(
+            line
+            for line in structure.ordinary_lines
+            if line.content == RW0_TARGET_CROSS_REFERENCE_BEGIN_MARKER
+        )
+        end_lines = tuple(
+            line
+            for line in structure.ordinary_lines
+            if line.content == RW0_TARGET_CROSS_REFERENCE_END_MARKER
+        )
+        assert len(begin_lines) == len(end_lines) == 1
+        committed_status_ends = tuple(
+            line for line in structure.ordinary_lines
+            if line.content == "<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_END -->"
+        )
+        assert len(committed_status_ends) == 1
+        assert (
+            committed_status_ends[0].start
+            < begin_lines[0].start
+            < rw0_headings[0].start
+            < end_lines[0].start
+        )
+        block = source[begin_lines[0].start : end_lines[0].end]
+        for required in (
+            b"accepted strategic target, not current implementation",
+            b"sole detailed owner for\nthe RW0 remote-contact target operating model",
+            b"Section 41 remains the sole\ndetailed pre-execution selection semantic owner",
+            b"K8 plus the exact current L34 and head postimage is necessary but is not launch\nauthority",
+            b"No table, row, receipt, graph, migration, application-generation,\nor public API representation is selected",
+            b"pre-existing Section 42 bytes and exact-column-order owner remain unchanged",
+        ):
+            assert required in block
+        for forbidden in (
+            b"## 43.",
+            b"RW0 redefines Section 41",
+            b"K8 is sufficient launch authority",
+            b"Migration 0004 is implemented",
+        ):
+            assert forbidden not in block
+
+    assert_rw0_append_boundary(owner)
+    rw0_begin = RW0_TARGET_CROSS_REFERENCE_BEGIN_MARKER.encode("utf-8")
+    rw0_end = RW0_TARGET_CROSS_REFERENCE_END_MARKER.encode("utf-8")
+    rw0_start = owner.index(rw0_begin)
+    rw0_finish = owner.index(rw0_end, rw0_start) + len(rw0_end)
+    rw0_block = owner[rw0_start:rw0_finish]
+    committed_status = b"<!-- COORDINATOR_SECTION41_COMMITTED_CURRENT_STATUS_END -->"
+    status_start = owner.index(committed_status)
+    mutants = (
+        owner.replace(
+            ("### " + RW0_TARGET_CROSS_REFERENCE_H3).encode("utf-8"),
+            b"## 43. RW0 remote-contact phase-entry target boundary",
+            1,
+        ),
+        owner[:status_start]
+        + rw0_block
+        + b"\n"
+        + owner[status_start:rw0_start]
+        + owner[rw0_finish:],
+        owner + b"\n" + rw0_block + b"\n",
+        owner.replace(
+            b"Section 41 remains the sole\ndetailed pre-execution selection semantic owner",
+            b"RW0 redefines Section 41",
+            1,
+        ),
+        owner.replace(
+            b"K8 plus the exact current L34 and head postimage is necessary but is not launch\nauthority",
+            b"K8 is sufficient launch authority",
+            1,
+        ),
+    )
+    for mutant in mutants:
+        assert mutant != owner
+        with pytest.raises(AssertionError):
+            assert_rw0_append_boundary(mutant)
+
     block_opening = (CURRENT_COLUMN_ORDER_BEGIN_MARKER + "\n\n```python\n").encode(
         "utf-8"
     )

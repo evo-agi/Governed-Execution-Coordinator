@@ -102,6 +102,246 @@ def _unfenced_markdown(text: str, *, role: str) -> str:
     return "".join(visible)
 
 
+def _rw0_visible_events(
+    text: str,
+) -> tuple[tuple[tuple[int, str, int, int], ...], tuple[tuple[int, str], ...]]:
+    """Bounded scanner for visible headings and marker-bearing ordinary lines."""
+    headings: list[tuple[int, str, int, int]] = []
+    lines: list[tuple[int, str]] = []
+    fence: tuple[str, int] | None = None
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        candidate = _markdown_fence_candidate(content)
+        if fence is not None:
+            if (
+                candidate is not None
+                and candidate[0] == fence[0]
+                and candidate[1] >= fence[1]
+                and _markdown_closer_suffix_is_ascii_space_tab(candidate[2])
+            ):
+                fence = None
+        elif candidate is not None:
+            fence = candidate[:2]
+        else:
+            lines.append((offset, content))
+            stripped = content.lstrip(" ")
+            if len(content) - len(stripped) <= 3:
+                match = re.fullmatch(r"(#{1,6})[ \t]+(.+?)[ \t]*", stripped)
+                if match is not None:
+                    title = re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
+                    _require(bool(title), "rw0.structure: empty heading")
+                    headings.append(
+                        (len(match.group(1)), title, offset, offset + len(line))
+                    )
+        offset += len(line)
+    _require(fence is None, "rw0.structure: unclosed fence")
+    ordinary: list[tuple[int, str]] = []
+    hidden_comment = False
+    for position, line in lines:
+        stripped = line.strip()
+        if hidden_comment:
+            if "-->" in line:
+                hidden_comment = False
+                trailing = line.split("-->", 1)[1]
+                if trailing.strip():
+                    ordinary.append((position, trailing))
+            continue
+        if stripped.startswith("<!--") and "-->" not in stripped:
+            hidden_comment = True
+            continue
+        ordinary.append((position, line))
+    _require(not hidden_comment, "rw0.structure: unclosed HTML comment")
+    kept = {position for position, _line in ordinary}
+    return tuple(h for h in headings if h[2] in kept), tuple(ordinary)
+
+
+def _rw0_gap_is_hidden(
+    lines: tuple[tuple[int, str], ...], start: int, end: int
+) -> bool:
+    return all(
+        not line.strip() or re.fullmatch(r"<!--.*?-->", line.strip()) is not None
+        for position, line in lines
+        if start <= position < end
+    )
+
+
+def _rw0_visible_marker_pair(
+    lines: tuple[tuple[int, str], ...], begin: str, end: str, *, role: str
+) -> tuple[tuple[int, str], tuple[int, str]]:
+    def matches(marker: str) -> tuple[tuple[int, str], ...]:
+        return tuple(
+            item
+            for item in lines
+            if len(item[1]) - len(item[1].lstrip(" ")) <= 3
+            and item[1].lstrip(" ") == marker
+        )
+
+    begins, ends = matches(begin), matches(end)
+    _require(len(begins) == len(ends) == 1, f"{role}: one visible marker pair")
+    _require(begins[0][0] < ends[0][0], f"{role}: marker order")
+    return begins[0], ends[0]
+
+
+def _rw0_heading_chain(
+    headings: tuple[tuple[int, str, int, int], ...],
+    selected: tuple[int, str, int, int],
+) -> tuple[tuple[int, str], ...]:
+    stack: list[tuple[int, str, int, int]] = []
+    for heading in headings:
+        if heading[2] > selected[2]:
+            break
+        while stack and stack[-1][0] >= heading[0]:
+            stack.pop()
+        stack.append(heading)
+    return tuple((level, title) for level, title, _start, _end in stack)
+
+
+def _rw0_live_cross_reference_body(text: str, *, root: str) -> str:
+    begin_marker = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->"
+    end_marker = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+    parent_title = "Cognitive proposal and selection runtime"
+    owner_title = "RW0 remote-contact phase-entry target cross-reference"
+    headings, lines = _rw0_visible_events(text)
+    begin, end = _rw0_visible_marker_pair(
+        lines, begin_marker, end_marker, role="rw0.architecture.cross_reference"
+    )
+    roots = tuple(item for item in headings if item[0] == 1)
+    parents = tuple(item for item in headings if item[0] == 2 and item[1] == parent_title)
+    owners = tuple(item for item in headings if item[0] == 3 and item[1] == owner_title)
+    _require(len(roots) == len(parents) == len(owners) == 1, "rw0.architecture: unique owner chain")
+    _require(roots[0][1] == root, "rw0.architecture: root title")
+    _require(
+        _rw0_heading_chain(headings, owners[0]) ==
+        ((1, root), (2, parent_title), (3, owner_title)),
+        "rw0.architecture: current owner chain",
+    )
+    _require(parents[0] == tuple(x for x in headings if x[0] == 2)[-1], "rw0.architecture: final current parent")
+    _require(owners[0] == headings[-1], "rw0.architecture: final visible owner")
+    preceding = tuple(x for x in headings if x[2] < begin[0])
+    marker_before_heading = begin[0] < owners[0][2]
+    if marker_before_heading:
+        _require(preceding and preceding[-1] == parents[0], "rw0.architecture: adjacent parent")
+        _require(parents[0][3] <= begin[0] < owners[0][2] < end[0], "rw0.architecture: marker range")
+        _require(
+            _rw0_gap_is_hidden(lines, begin[0] + len(begin[1]), owners[0][2]),
+            "rw0.architecture: marker-to-owner gap",
+        )
+    else:
+        _require(preceding and preceding[-1] == owners[0], "rw0.architecture: adjacent owner")
+        _require(parents[0][3] <= owners[0][2] < begin[0] < end[0], "rw0.architecture: owner marker range")
+        _require(
+            _rw0_gap_is_hidden(lines, owners[0][3], begin[0]),
+            "rw0.architecture: owner-to-marker gap",
+        )
+    predecessor_marker = "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
+    predecessor_ends = tuple(
+        item for item in lines
+        if item[1].lstrip(" ") == predecessor_marker
+        and len(item[1]) - len(item[1].lstrip(" ")) <= 3
+    )
+    _require(
+        len(predecessor_ends) == 1
+        and parents[0][2] < predecessor_ends[0][0] < min(begin[0], owners[0][2]),
+        "rw0.architecture: unique adjacent predecessor terminator",
+    )
+    _require(
+        _rw0_gap_is_hidden(lines, predecessor_ends[0][0] + len(predecessor_marker), min(begin[0], owners[0][2])),
+        "rw0.architecture: visible prose before BEGIN",
+    )
+    _require(
+        _rw0_gap_is_hidden(lines, end[0] + len(end[1]), len(text)),
+        "rw0.architecture: visible prose after END",
+    )
+    _require(
+        any(
+            line.strip() and re.fullmatch(r"<!--.*?-->", line.strip()) is None
+            for position, line in lines
+            if max(owners[0][3], begin[0] + len(begin[1])) <= position < end[0]
+        ),
+        "rw0.architecture: empty visible owner body",
+    )
+    return "\n".join(line for position, line in lines if begin[0] < position < end[0]).strip()
+
+
+RW0_ARCHITECTURE_MAP_SPECS = (
+    (".docs/autonomous-software-development-operating-model.md", "C1 Autonomous Software-Development Operating Model"),
+    (".docs/worker-execution-boundary.md", "Worker Execution Boundary"),
+    (".docs/authority-boundaries.md", "Authority Boundaries"),
+    (".docs/durable-state-model.md", "Durable State Model"),
+)
+RW0_ARCHITECTURE_COMPLETE_INVENTORY = tuple(
+    (
+        path,
+        root,
+        ((1, root), (2, "Cognitive proposal and selection runtime"),
+         (3, "RW0 remote-contact phase-entry target cross-reference")),
+        "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->",
+        "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->",
+        "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->",
+    )
+    for path, root in RW0_ARCHITECTURE_MAP_SPECS
+)
+
+
+def _assert_complete_rw0_architecture_map(documents: dict[str, str]) -> str:
+    assert len(RW0_ARCHITECTURE_COMPLETE_INVENTORY) == 4
+    assert tuple(documents) == tuple(spec[0] for spec in RW0_ARCHITECTURE_COMPLETE_INVENTORY)
+    for _path, root, chain, predecessor, begin, end in RW0_ARCHITECTURE_COMPLETE_INVENTORY:
+        assert chain == ((1, root), (2, "Cognitive proposal and selection runtime"),
+                         (3, "RW0 remote-contact phase-entry target cross-reference"))
+        assert predecessor == "<!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->"
+        assert begin == "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->"
+        assert end == "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+    bodies = tuple(
+        _compact(_rw0_live_cross_reference_body(documents[path], root=root))
+        for path, root in RW0_ARCHITECTURE_MAP_SPECS
+    )
+    _require(len(set(bodies)) == 1, "rw0.architecture.map: body mismatch")
+    for phrase in (
+        ".docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.",
+        "External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.",
+        "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
+        "The existing C2B `cancel` decision commits before the cancellation effect",
+        "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
+        "The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.",
+        "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
+        "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
+        "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.",
+    ):
+        _require(phrase in bodies[0], "rw0.architecture.map: semantic requirement")
+    return bodies[0]
+
+
+def _rw0_live_owner_body(text: str) -> str:
+    headings, lines = _rw0_visible_events(text)
+    begin, end = _rw0_visible_marker_pair(
+        lines,
+        "<!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_BEGIN -->",
+        "<!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_END -->",
+        role="rw0.architecture.owner",
+    )
+    roots = tuple(item for item in headings if item[0] == 1)
+    _require(
+        len(roots) == 1 and roots[0][1] == "RW0 Remote-Contact Phase-Entry Operating Model",
+        "rw0.architecture: unique owner root",
+    )
+    _require(roots[0][3] <= begin[0], "rw0.architecture: owner marker after root")
+    _require(
+        _rw0_gap_is_hidden(lines, roots[0][3], begin[0]),
+        "rw0.architecture: visible prose before BEGIN",
+    )
+    _require(
+        all(begin[0] < item[2] < end[0] and item[0] == 2 for item in headings[1:]),
+        "rw0.architecture: complete live owner",
+    )
+    _require(
+        _rw0_gap_is_hidden(lines, end[0] + len(end[1]), len(text)),
+        "rw0.architecture: visible prose after END",
+    )
+    return "\n".join(line for position, line in lines if begin[0] < position < end[0]).strip()
+
+
 def _bounded_markdown_section(
     text: str,
     heading: str,
@@ -554,6 +794,217 @@ def test_docs_pin_authority_boundaries() -> None:
     assert "Maintenance Agent remains maintenance authority" not in combined_current_docs
     assert "Infrastructure Manager remains readiness, provenance, and diagnostics authority" not in combined_current_docs
     assert "Infrastructure Manager remains readiness, provenance, profile, diagnostics, and support-bundle authority" not in combined_current_docs
+
+    owner_path = ".docs/rw0-remote-worker-contact-phase-entry.md"
+    owner = _text(owner_path)
+    owner_begin = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_BEGIN -->"
+    owner_end = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_END -->"
+    owner_body = _rw0_live_owner_body(owner)
+    live_prose = "This region authorizes a second author attempt and immediate worker launch."
+    unexpected_owner_acceptances = []
+    for label, candidate in (
+        ("leading", owner.replace(owner_begin, live_prose + "\n" + owner_begin, 1)),
+        ("trailing", owner + "\n" + live_prose + "\n"),
+    ):
+        try:
+            _rw0_live_owner_body(candidate)
+        except AssertionError:
+            pass
+        else:
+            unexpected_owner_acceptances.append(label)
+    assert not unexpected_owner_acceptances, f"RW0 owner prose outside markers: {unexpected_owner_acceptances}"
+    hidden_owner = owner.replace(owner_begin, f"~~~\n{owner_begin}\n~~~", 1)
+    assert hidden_owner.count(owner_begin) == hidden_owner.count(owner_end) == 1
+    with pytest.raises(AssertionError, match="rw0.architecture.owner: one visible marker pair"):
+        _rw0_live_owner_body(hidden_owner)
+
+    def assert_rw0_target_contract(candidate: str) -> None:
+        compact = _compact(candidate)
+        for required in (
+            "Classification: ACCEPTED STRATEGIC TARGET; not current implementation.",
+            "Current executable authorization remains unsupported and fail-closed.",
+            "Coordinator derives narrower subordinate authorization bound to the exact existing author attempt and effect fences only after fresh parent verification; it does not issue replacement author fences.",
+            "Each persisted author fence retains its exact externally authored authorization-basis reference and digest; those immutable basis bindings are inert lineage and ceiling bounds, not permission.",
+            "The future Coordinator-derived subordinate authorization is a separate record with its own identity and digest; it neither replaces nor rewrites either existing author fence.",
+            "If any basis equality, ancestry, family, scope, freshness, revocation, expiry, repository, base, path, or global-stop relation is false, missing, stale, or ambiguous, no subordinate record is established, no retrieval, contact, author delivery, or launch occurs, no replacement author lineage is minted, and a C2B block decision precedes matching RW0 terminal-outcome block.",
+            "The existing author-candidate delivery identity permits exactly one actual author-candidate delivery in RW0.",
+            "No replacement or second semantic attempt occurs in RW0.",
+            "No replacement or second author effect occurs in RW0.",
+            "No second candidate-authoring worker or source invocation occurs in RW0.",
+            "Validation, independent review, and cancellation each require a distinct current effect intent, current effect fence, and initial delivery under the same originating semantic attempt and author-command lineage.",
+            "The future guarded Coordinator writer commits exactly one durable RW0 terminal-outcome fact per run after outcome-specific evidence and current-head checks; it is not a development_decision, effect basis, executable permission, source observation, report, or projection.",
+            "The existing immutable C2B cancel decision commits before the cancellation effect, preassigns its effect intent, fence, first delivery, and exact target, and is the cancellation effect's exact basis_decision_ref.",
+            "The immutable C2B accept decision consumes the productive-direct-local acceptance latch atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that latch mutation.",
+            "The later terminal-outcome accept binds the exact accepted decision ref and digest and the committed latch postimage from that decision transaction; it never consumes, advances, reopens, repairs, or otherwise mutates the latch.",
+            "The pre_effect_cancel_basis_unusable sub-branch commits one RW0 terminal-outcome block bound to the unusable cancel decision and exact current-head, stop, and verification mismatch evidence, without a C2B block decision, successor, Git effect, or publication.",
+            "If active-cancel reconciliation is incomplete, contradictory, stale, or ambiguous, terminal-outcome block binds the same pre-effect cancel decision and unresolved evidence without a C2B block decision.",
+            "Validator and reviewer evidence, model output, reports, IM evidence, and transport receipts are non-authoritative evidence.",
+            "The direct-local supervisor owns only route-local process control, cancellation-request delivery, route receipts, and source-native reconciliation facts.",
+            "Direct-local never claims ES-route facts or creates a parallel ES lifecycle store.",
+            "Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A.",
+        ):
+            assert required in compact
+        for forbidden in (
+            "External standing-policy authority derives the subordinate authorization",
+            "IM readiness is execution authority",
+            "Direct-local owns ES runtime lifecycle",
+            "RW0 runtime is currently implemented",
+            "public StateStore method is added",
+            "public WriterSession method is added",
+        ):
+            assert forbidden not in compact
+
+    assert_rw0_target_contract(owner_body)
+    rw0_mutants = (
+        owner.replace(
+            "Coordinator derives narrower subordinate authorization bound to the exact existing author attempt and effect fences",
+            "External standing-policy authority derives the subordinate authorization",
+            1,
+        ),
+        owner.replace(
+            "IM evidence, and transport receipts are non-authoritative evidence",
+            "IM readiness is execution authority",
+            1,
+        ),
+        owner.replace(
+            "Direct-local never claims ES-route facts or creates a parallel ES lifecycle store.",
+            "Direct-local owns ES runtime lifecycle",
+            1,
+        ),
+        owner.replace(
+            "Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A.",
+            "RW0 runtime is currently implemented and a public StateStore method is added.",
+            1,
+        ),
+    )
+    for mutant in rw0_mutants:
+        assert mutant != owner
+        with pytest.raises(AssertionError):
+            assert_rw0_target_contract(mutant)
+
+    cross_begin = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->"
+    cross_end = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+    cross_paths = (
+        ".docs/autonomous-software-development-operating-model.md",
+        ".docs/worker-execution-boundary.md",
+        ".docs/authority-boundaries.md",
+        ".docs/durable-state-model.md",
+    )
+    normalized_cross_references = []
+    unexpected_cross_acceptances = []
+    root_titles = (
+        "C1 Autonomous Software-Development Operating Model",
+        "Worker Execution Boundary",
+        "Authority Boundaries",
+        "Durable State Model",
+    )
+    assert tuple(zip(cross_paths, root_titles, strict=True)) == RW0_ARCHITECTURE_MAP_SPECS
+    live_cross_map = {path: _text(path) for path in cross_paths}
+    live_map_body = _assert_complete_rw0_architecture_map(live_cross_map)
+
+    def mapped(path: str, candidate: str) -> str:
+        mutant_map = dict(live_cross_map)
+        mutant_map[path] = candidate
+        return _assert_complete_rw0_architecture_map(mutant_map)
+
+    def reject_map(path: str, candidate: str, match: str | None = None) -> None:
+        with pytest.raises(AssertionError, match=match):
+            mapped(path, candidate)
+
+    for cross_path, root_title in zip(cross_paths, root_titles, strict=True):
+        cross_owner = live_cross_map[cross_path]
+        body = _rw0_live_cross_reference_body(cross_owner, root=root_title)
+        normalized_cross_references.append(_compact(body))
+        _headings, lines = _rw0_visible_events(cross_owner)
+        begin, end = _rw0_visible_marker_pair(
+            lines, cross_begin, cross_end, role=cross_path
+        )
+        block = cross_owner[begin[0] : end[0] + len(end[1])]
+        for fence in ("~~~", "```"):
+            empty_visible_block = (
+                cross_owner[:begin[0]]
+                + "### RW0 remote-contact phase-entry target cross-reference\n"
+                + fence + "\n" + block + "\n" + fence + "\n"
+                + cross_begin + "\n\n" + cross_end
+                + cross_owner[end[0] + len(end[1]) :]
+            )
+            assert _compact(
+                empty_visible_block.split(cross_begin, 1)[1].split(cross_end, 1)[0]
+            ) == _compact(body)
+            with pytest.raises(AssertionError, match="empty visible owner body"):
+                _rw0_live_cross_reference_body(
+                    empty_visible_block, root=root_title
+                )
+            reject_map(cross_path, empty_visible_block, "empty visible owner body")
+        for label, candidate in (
+            ("leading", cross_owner[:begin[0]] + live_prose + "\n" + cross_owner[begin[0]:]),
+            ("trailing", cross_owner + "\n" + live_prose + "\n"),
+        ):
+            try:
+                mapped(cross_path, candidate)
+            except AssertionError:
+                pass
+            else:
+                unexpected_cross_acceptances.append(f"{cross_path}: {label}")
+        fenced = (
+            cross_owner[:begin[0]] + "### RW0 remote-contact phase-entry target cross-reference\n~~~\n"
+            + block + "\n~~~" + cross_owner[end[0] + len(end[1]) :]
+        )
+        assert fenced.count(cross_begin) == fenced.count(cross_end) == 1
+        assert _compact(fenced.split(cross_begin, 1)[1].split(cross_end, 1)[0]) == _compact(body)
+        with pytest.raises(AssertionError, match="one visible marker pair"):
+            _rw0_live_cross_reference_body(fenced, root=root_title)
+        reject_map(cross_path, fenced, "one visible marker pair")
+        hidden_duplicate = cross_owner + "\n~~~\n" + block + "\n~~~\n"
+        assert mapped(cross_path, hidden_duplicate) == live_map_body
+        two_visible = cross_owner + "\n" + block + "\n"
+        reject_map(cross_path, two_visible, "one visible marker pair")
+        historical = cross_owner.replace(block, "", 1).replace(
+            "## Cognitive proposal and selection runtime",
+            block + "\n## Cognitive proposal and selection runtime", 1,
+        )
+        reject_map(cross_path, historical)
+        sibling = cross_owner.replace(
+            "## Cognitive proposal and selection runtime",
+            "## Cognitive proposal and selection runtime\n### RW0 remote-contact phase-entry target cross-reference\n\n## Cognitive proposal and selection runtime", 1,
+        )
+        reject_map(cross_path, sibling)
+        ancestor = cross_owner.replace(
+            "# " + root_title,
+            "# " + root_title + "\n### RW0 remote-contact phase-entry target cross-reference", 1,
+        )
+        reject_map(cross_path, ancestor)
+        split = cross_owner.replace(cross_end, "## Detached owner\n" + cross_end, 1)
+        reject_map(cross_path, split)
+        reversed_markers = (
+            cross_owner.replace(cross_begin, "__RW0_BEGIN__", 1)
+            .replace(cross_end, cross_begin, 1)
+            .replace("__RW0_BEGIN__", cross_end, 1)
+        )
+        reject_map(cross_path, reversed_markers)
+        body_mismatch = cross_owner.replace(
+            "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
+            "A different future Coordinator-owned durable RW0 terminal-outcome fact closes each run", 1,
+        )
+        assert body_mismatch != cross_owner
+        _rw0_live_cross_reference_body(body_mismatch, root=root_title)
+        reject_map(cross_path, body_mismatch, "body mismatch")
+    assert len(set(normalized_cross_references)) == 1
+    assert not unexpected_cross_acceptances, f"RW0 cross-reference prose outside markers: {unexpected_cross_acceptances}"
+    assert f"{owner_path} is the sole detailed owner." in normalized_cross_references[0]
+    assert "External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant." in normalized_cross_references[0]
+    assert "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests" in normalized_cross_references[0]
+    assert "The existing C2B `cancel` decision commits before the cancellation effect" in normalized_cross_references[0]
+    assert "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run" in normalized_cross_references[0]
+    assert "The accepted direct-local C2B decision alone atomically consumes the one-way latch" in normalized_cross_references[0]
+    assert "an unusable pre-effect cancel basis establishes no effect" in normalized_cross_references[0]
+    assert "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision" in normalized_cross_references[0]
+    assert "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists." in normalized_cross_references[0]
+
+    for nonowner_path in (".docs/architecture.md", "AGENTS.md", "README.md"):
+        nonowner = _text(nonowner_path)
+        assert owner_begin not in nonowner and owner_end not in nonowner
+        assert cross_begin not in nonowner and cross_end not in nonowner
 
     target_topology = worker.split("## Target Topology", 1)[1].split(
         "## Desired Development State", 1
