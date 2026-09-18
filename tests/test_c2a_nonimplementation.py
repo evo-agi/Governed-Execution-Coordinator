@@ -36,6 +36,7 @@ EXPECTED_PRODUCTION_FILES = (
     "_sqlite_development_reader_contracts.py",
     "_sqlite_development_readers.py",
     "_sqlite_development_program_initialization.py",
+    "_rw0_phase_entry_semantic_values.py",
     "_worker_execution_semantic_values.py",
     "backlog.py",
     "canonicalization.py",

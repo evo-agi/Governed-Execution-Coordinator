@@ -383,7 +383,7 @@ def _assert_complete_rw0_cross_reference_map(documents: dict[str, str]) -> str:
         bodies[0],
         (
             f"{OWNER_PATH} is the sole detailed owner.",
-            "Current implementation stops at private C2B3D planned author delivery plus Section 41 pre-execution selection; executable contact and terminal-outcome runtime remain unsupported and fail-closed.",
+            "A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
             "RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.",
             "External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.",
             "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.",
@@ -1301,7 +1301,7 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
         bodies[0],
         (
             f"{OWNER_PATH} is the sole detailed owner.",
-            "Current implementation stops at private C2B3D planned author delivery plus Section 41 pre-execution selection; executable contact and terminal-outcome runtime remain unsupported and fail-closed.",
+            "A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
             "RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.",
             "External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.",
             "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.",
@@ -1799,3 +1799,23 @@ def test_causal_owner_mutants_fail(case: str, required: str, mutant: str) -> Non
             assert candidate != owner
             with pytest.raises(AssertionError, match=diagnostic):
                 _validate_terminal_outcome_regions(candidate)
+
+
+def test_rw0_b1_current_status_disambiguates_pure_values_from_durable_boundary() -> None:
+    owner = _owner_text()
+    corrected = (
+        "Current private RW0-B1 pure semantics are implemented. C2B3D and Section 41 "
+        "remain the complete durable and executable implemented boundary relevant to this target."
+    )
+    corrected_raw = corrected.replace("Current private ", "Current private\n", 1)
+    stale = (
+        "Current private\nC2B3D and Section 41 code remains the complete implemented boundary relevant to\nthis target."
+    )
+    def require_current_status(text: str) -> None:
+        assert corrected in _compact(_owner_visible_body(text))
+        assert stale not in text
+    require_current_status(owner)
+    mutant = owner.replace(corrected_raw, stale)
+    assert mutant != owner
+    with pytest.raises(AssertionError):
+        require_current_status(mutant)

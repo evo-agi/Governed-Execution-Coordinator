@@ -221,6 +221,11 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
         "_sqlite_development_author_effect_establishment.py":owner_names,
         "_sqlite_development_reader_contracts.py":owner_names,
         "_sqlite_development_readers.py":owner_names,
+        "_rw0_phase_entry_semantic_values.py":{
+            "_development_decision_row_values",
+            "_development_effect_row_values",
+            "_development_program_row_values",
+        },
     }
     observed_consumers={}
     for path in (ROOT/"src/ge_nwp_coordinator").glob("*.py"):
@@ -248,6 +253,12 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
         if selected:
             observed_consumers[path.name]=selected
     assert observed_consumers==expected_consumers
+    b1_source=(ROOT/"src/ge_nwp_coordinator/_rw0_phase_entry_semantic_values.py").read_text(encoding="utf-8")
+    assert "__all__: tuple[str, ...] = ()" in b1_source
+    for private_boundary in ("__init__.py", "state_store.py", "sqlite_writer_session.py"):
+        assert "_rw0_phase_entry_semantic_values" not in (
+            ROOT/"src/ge_nwp_coordinator"/private_boundary
+        ).read_text(encoding="utf-8")
 
 
 class _TupleSubclass(tuple):

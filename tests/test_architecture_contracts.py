@@ -800,6 +800,8 @@ def test_docs_pin_authority_boundaries() -> None:
     owner_begin = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_BEGIN -->"
     owner_end = "<!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_END -->"
     owner_body = _rw0_live_owner_body(owner)
+    assert "RW0-B1 now implements only the private pure semantic values and relations" in owner_body
+    assert ".docs/rw0-b1-pure-phase-values.md" in owner_body
     live_prose = "This region authorizes a second author attempt and immediate worker launch."
     unexpected_owner_acceptances = []
     for label, candidate in (
