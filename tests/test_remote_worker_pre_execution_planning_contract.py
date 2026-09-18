@@ -4522,6 +4522,8 @@ def _assert_complete_rw0_cross_reference_map(owners: dict[str, bytes]) -> str:
     assert len(set(bodies)) == 1, "RW0_CROSS_REFERENCE_MAP_INVALID:body_mismatch"
     for phrase in (
         ".docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.",
+        "A private no-I/O RW0-B1 semantic value and relation layer is now implemented.",
+        "The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
         "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
         "The existing C2B `cancel` decision commits before the cancellation effect",
         "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",

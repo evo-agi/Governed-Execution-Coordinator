@@ -468,7 +468,7 @@ not reduced to this private source tranche.
 ### RW0 remote-contact phase-entry target cross-reference
 
 .docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.
-Current implementation stops at private C2B3D planned author delivery plus Section 41 pre-execution selection; executable contact and terminal-outcome runtime remain unsupported and fail-closed.
+A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.
 RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.
 External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.
 Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests; the future subordinate record binds each corresponding basis pair and both exact fence identities byte-for-byte without replacement.

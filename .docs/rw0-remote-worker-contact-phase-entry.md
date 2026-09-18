@@ -13,12 +13,13 @@ database representation, transport, process, or external effect.
 
 Current executable authorization remains unsupported and fail-closed.
 
+RW0-B1 now implements only the private pure semantic values and relations governed by `.docs/rw0-b1-pure-phase-values.md`. It adds no phase-entry persistence, verifier authenticity, physical custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop.
+
 No phase-entry, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented.
 
 Reports, model output, topology and readiness profiles, transport receipts, and artifacts remain evidence only. They are not identity, executable authority,
 acceptance, progression, runtime truth, or publication truth. Current private
-C2B3D and Section 41 code remains the complete implemented boundary relevant to
-this target.
+RW0-B1 pure semantics are implemented. C2B3D and Section 41 remain the complete durable and executable implemented boundary relevant to this target.
 
 ## Current entry lineage
 
