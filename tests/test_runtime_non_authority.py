@@ -39,6 +39,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_sqlite_development_readers.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/_rw0_phase_entry_semantic_values.py",
+        "src/ge_nwp_coordinator/_rw0_wire_protocol_values.py",
         "src/ge_nwp_coordinator/_worker_execution_semantic_values.py",
         "src/ge_nwp_coordinator/backlog.py",
         "src/ge_nwp_coordinator/canonicalization.py",

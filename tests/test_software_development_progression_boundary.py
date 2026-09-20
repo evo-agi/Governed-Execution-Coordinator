@@ -600,6 +600,38 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
     ):
         assert phrase in open_decisions
 
+    wire_owner = _compact(_text(".docs/rw0-b2-wire-protocol.md"))
+    composition = _compact(_text(".docs/autonomous-software-development-operating-model.md"))
+
+    def require_wire_non_progression(owner: str) -> None:
+        for phrase in (
+            "RW0-B2-Wire currently implements one private, pure, no-I/O source module",
+            "It adds no caller, package-root export, transport, source authentication",
+            "RW0-B1's pure phase-entry values and C2A's semantic values and six relations are unchanged",
+            "RW0-C owns any future durable facts, evidence membership, recovery, terminal outcome, and acceptance latch",
+            "RW0-D/E own offline process proof and separately authorized live proof",
+            "Execution Substrate owns admission and runtime lifecycle",
+            "Capability remains seam-bounded and unimplemented",
+            "No classification implies teardown, reconciliation, semantic cancellation, terminal outcome, durable fact, permission, or acceptance",
+            "Future physical transport framing, stream/process plumbing, pre-read allocation",
+            "source authentication, host verification, credential custody, provider/session behavior",
+            "process targeting, live process proof, persistence, result ingest, CLI/App Server integration, and acceptance require their owning RW0-C/D/E and ES contracts",
+        ):
+            assert phrase in owner
+        assert "Codex, Git, publication, Bridge, ES call" in owner
+
+    require_wire_non_progression(wire_owner)
+    assert "RW0_B2_WIRE_CURRENT_STATUS_BEGIN" in composition
+    assert "No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented" in composition
+    contradictory = wire_owner.replace(
+        "No classification implies teardown, reconciliation, semantic cancellation, terminal outcome, durable fact, permission, or acceptance",
+        "A classification implements a semantic terminal fact and acceptance",
+        1,
+    )
+    assert contradictory != wire_owner
+    with pytest.raises(AssertionError):
+        require_wire_non_progression(contradictory)
+
 
 def test_c0_does_not_add_public_surfaces_and_slice1_schema_remains_physical_only() -> None:
     init_text = _text("src/ge_nwp_coordinator/__init__.py")

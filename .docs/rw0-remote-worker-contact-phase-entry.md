@@ -21,6 +21,10 @@ Reports, model output, topology and readiness profiles, transport receipts, and 
 acceptance, progression, runtime truth, or publication truth. Current private
 RW0-B1 pure semantics are implemented. C2B3D and Section 41 remain the complete durable and executable implemented boundary relevant to this target.
 
+<!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->
+RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B1 remains unchanged. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability remains seam-bounded and unimplemented. RW0-C retains durable fact and acceptance ownership, RW0-D/E retain process and live-proof gates, and Execution Substrate retains admission and runtime ownership.
+<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->
+
 ## Current entry lineage
 
 VS1B route-neutral genesis commits nine physical rows and eight graph entries.

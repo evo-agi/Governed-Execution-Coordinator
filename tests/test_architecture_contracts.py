@@ -1068,6 +1068,41 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
         _text(".docs/durable-state-model.md")
     )
 
+    wire_owner = _compact(_text(".docs/rw0-b2-wire-protocol.md"))
+    package_root = _text("src/ge_nwp_coordinator/__init__.py")
+    state_store = _text("src/ge_nwp_coordinator/state_store.py")
+    writer_session = _text("src/ge_nwp_coordinator/sqlite_writer_session.py")
+
+    def require_private_wire_boundary(owner: str) -> None:
+        for phrase in (
+            "RW0-B2-Wire currently implements one private, pure, no-I/O source module",
+            "It adds no caller, package-root export, transport, source authentication",
+            "RW0-B1's pure phase-entry values and C2A's semantic values and six relations are unchanged",
+            "RW0-C owns any future durable facts",
+            "RW0-D/E own offline process proof and separately authorized live proof",
+            "Execution Substrate owns admission and runtime lifecycle",
+            "Capability remains seam-bounded and unimplemented",
+            "The profile is absent from frames and proves no authenticity, permission, acceptance, or mechanism choice",
+        ):
+            assert phrase in owner
+        for nonclaim in ("worker", "process", "filesystem", "database", "network", "model", "Codex", "Git"):
+            assert nonclaim in owner
+
+    require_private_wire_boundary(wire_owner)
+    assert "RW0_B2_WIRE_CURRENT_STATUS_BEGIN" in worker
+    assert "470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454" in worker
+    assert "RW0Wire" not in package_root
+    assert "RW0Wire" not in state_store
+    assert "RW0Wire" not in writer_session
+    contradictory = wire_owner.replace(
+        "It adds no caller, package-root export, transport, source authentication",
+        "It adds a public caller, package-root export, and source authentication",
+        1,
+    )
+    assert contradictory != wire_owner
+    with pytest.raises(AssertionError):
+        require_private_wire_boundary(contradictory)
+
 
 def test_c2b0_current_and_target_status_are_consistent() -> None:
     text = _text(".docs/durable-state-model.md")
