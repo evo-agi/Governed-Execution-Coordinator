@@ -395,7 +395,7 @@ def _assert_complete_rw0_cross_reference_map(documents: dict[str, str]) -> str:
             "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
             "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
             "Direct-local route-local process and cancellation ownership does not absorb ES-route authority",
-            "Exact custodian, transport, framing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
+            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
         ),
         role="rw0.cross_reference.map",
     )
@@ -1170,9 +1170,101 @@ def test_one_authoritative_owner_and_unique_markers() -> None:
     assert end_owners == [ROOT / OWNER_PATH]
 
 
+def _wire_status_visible_body(
+    path: str, text: str, root_title: str, owner_heading: str, owner_level: int
+) -> str:
+    begin_marker = "<!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->"
+    end_marker = "<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->"
+    begin, end, headings, visible = _visible_marker_span(
+        text, begin_marker, end_marker, role=f"rw0.wire_status.{path}"
+    )
+    roots = tuple(item for item in headings if item[0] == 1)
+    owners = tuple(
+        item for item in headings
+        if item[0] == owner_level and item[1] == owner_heading
+    )
+    assert len(roots) == len(owners) == 1
+    assert roots[0][1] == root_title
+    expected_chain = (
+        ((1, root_title), (2, owner_heading))
+        if owner_level == 2 else
+        ((1, root_title), (2, CROSS_REFERENCE_PARENT), (3, owner_heading))
+    )
+    assert _heading_chain(headings, owners[0]) == expected_chain
+    assert owners[0][3] <= begin[0] < end[0]
+    assert not any(
+        owner[2] > owners[0][2] and owner[2] < end[0] and owner[0] <= owner_level
+        for owner in headings
+    )
+    prior = tuple(line.strip() for position, line in visible if position < begin[0] and line.strip())
+    later = tuple(line.strip() for position, line in visible if position > end[0] and line.strip())
+    if path == OWNER_PATH:
+        assert prior[-1] == (
+            "RW0-B1 pure semantics are implemented. C2B3D and Section 41 remain the complete durable and executable implemented boundary relevant to this target."
+        )
+        assert later[0] == "## Current entry lineage"
+    else:
+        assert prior[-1] == (
+            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred."
+        )
+        assert later[0] == CROSS_REFERENCE_END
+    body = tuple(
+        line.strip() for position, line in visible
+        if begin[0] < position < end[0] and line.strip()
+    )
+    assert len(body) == 1 and body[0].startswith("RW0-B2-Wire now implements")
+    return _compact(body[0])
+
+
 def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
     live_map = {path: _text(path) for path, _root in CROSS_REFERENCE_OWNERS}
     live_body = _assert_complete_rw0_cross_reference_map(live_map)
+
+    wire_owners = (
+        (OWNER_PATH, "RW0 Remote-Contact Phase-Entry Operating Model", "Status, scope, and nonimplementation", 2),
+        *((path, root, CROSS_REFERENCE_HEADING, 3) for path, root in CROSS_REFERENCE_OWNERS),
+    )
+    wire_bodies: list[str] = []
+    for path, root, heading, level in wire_owners:
+        source = _text(path)
+        assert (
+            "Exact custodian, transport, framing, Codex seam, schema, "
+            "terminal-outcome representation, latch, and physical backends "
+            "remain deferred."
+        ) not in source
+        body = _wire_status_visible_body(path, source, root, heading, level)
+        wire_bodies.append(body)
+        wire_begin = "<!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->"
+        wire_end = "<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->"
+        begin, end, _headings, _visible = _visible_marker_span(
+            source, wire_begin, wire_end, role=f"rw0.wire_status.{path}"
+        )
+        block = source[begin[0] : end[0] + len(end[1])]
+        for fence in ("~~~", "```"):
+            hidden = source + "\n" + fence + "\n" + block + "\n" + fence + "\n"
+            assert _wire_status_visible_body(path, hidden, root, heading, level) == body
+        duplicate = source + "\n" + block + "\n"
+        with pytest.raises(AssertionError):
+            _wire_status_visible_body(path, duplicate, root, heading, level)
+        sibling = source[:begin[0]] + ("#" * level) + " " + heading + "\n" + source[begin[0]:]
+        with pytest.raises(AssertionError):
+            _wire_status_visible_body(path, sibling, root, heading, level)
+        leading = source[:begin[0]] + "Unbounded Wire claim.\n" + source[begin[0]:]
+        with pytest.raises(AssertionError):
+            _wire_status_visible_body(path, leading, root, heading, level)
+        trailing = source[:end[0] + len(end[1])] + "\nUnbounded Wire claim.\n" + source[end[0] + len(end[1]):]
+        with pytest.raises(AssertionError):
+            _wire_status_visible_body(path, trailing, root, heading, level)
+    assert len(set(wire_bodies)) == 1
+    _require_phrases(wire_bodies[0], (
+        "private, pure, no-I/O NWPF v1 representational framing",
+        "Physical transport framing and stream/process plumbing remain deferred",
+        "rw0-wire-nwpf-v1",
+        "470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454",
+        "RW0-B1 remains unchanged", "No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented",
+        "Capability remains seam-bounded and unimplemented",
+        "RW0-C", "RW0-D/E", "Execution Substrate",
+    ), role="rw0.wire_status")
 
     def mapped(path: str, candidate: str) -> str:
         mutated = dict(live_map)
@@ -1313,7 +1405,7 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
             "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
             "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
             "Direct-local route-local process and cancellation ownership does not absorb ES-route authority",
-            "Exact custodian, transport, framing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
+            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
         ),
         role="rw0.cross_reference",
     )
