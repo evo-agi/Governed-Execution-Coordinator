@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+from types import MappingProxyType
+
 import pytest
 
 import ge_nwp_coordinator._rw0_phase_entry_semantic_values as b1
 from ge_nwp_coordinator._worker_execution_semantic_values import (
-    AttemptFenceV1, EffectFenceV1, WorkSpecV1, WorkerCommandV1,
+    AttemptFenceV1, CandidateCapsuleManifestV1, EffectFenceV1, WorkSpecV1,
+    WorkerCommandV1,
 )
 from tests.c2a_contract_support import (
     _effect_fence_for_vector, _full_record, _reseal_single_digest_record,
 )
-from test_rw0_b1_vectors import mapping_for
+from test_rw0_b1_vectors import _digest, mapping_for
 
 NOW = "2029-01-01T00:00:00Z"
 EFFECT_CLASSES = (
@@ -123,9 +128,9 @@ def exact_relation_budget(monkeypatch: pytest.MonkeyPatch, limit: int, action) -
     instances = []
     class Measured(original):
         def __init__(self, given: int) -> None:
-            assert given == limit
             super().__init__(given)
-            instances.append(self)
+            if given == limit:
+                instances.append(self)
     monkeypatch.setattr(b1, "_WorkBudget", Measured)
     try:
         assert action() is None
@@ -133,26 +138,177 @@ def exact_relation_budget(monkeypatch: pytest.MonkeyPatch, limit: int, action) -
         assert instances[0].remaining == 0
         class OneLess(original):
             def __init__(self, given: int) -> None:
-                assert given == limit
-                super().__init__(given - 1)
+                super().__init__(given - 1 if given == limit else given)
         monkeypatch.setattr(b1, "_WorkBudget", OneLess)
         error("cumulative_work_exhausted", action)
     finally:
         monkeypatch.setattr(b1, "_WorkBudget", original)
 
 
-def test_all_thirteen_relations_are_present() -> None:
-    names = (
+SEMANTIC_RELATION_NAMES = (
         "validate_phase_entry_basis", "validate_authority_observation",
         "validate_per_fence_basis", "validate_external_common_family_claim",
         "validate_subordinate_narrowing", "validate_custody_binding",
         "validate_retrieval_event_sequence", "validate_host_qualification",
-        "validate_terminal_outcome_binding", "validate_normal_outcome_shape",
+        "validate_terminal_outcome_binding", "validate_normal_terminal_branch",
+        "validate_active_cancel_reconciled_branch",
+        "validate_active_cancel_unresolved_branch",
+        "validate_pre_effect_cancel_basis_unusable_branch",
+)
+SEMANTIC_TO_PRODUCTION_RELATION = {
+    **{name: name for name in SEMANTIC_RELATION_NAMES[:9]},
+    "validate_normal_terminal_branch": "validate_normal_outcome_shape",
+    "validate_active_cancel_reconciled_branch":
         "validate_reconciled_cancel_outcome_shape",
+    "validate_active_cancel_unresolved_branch":
         "validate_unresolved_cancel_outcome_shape",
+    "validate_pre_effect_cancel_basis_unusable_branch":
         "validate_unusable_cancel_basis_outcome_shape",
-    )
-    assert all(callable(getattr(b1, name)) for name in names)
+}
+RELATION_SELECTED_TARGET = MappingProxyType({
+    "validate_phase_entry_basis": "basis",
+    "validate_authority_observation": "observation",
+    "validate_per_fence_basis": "observation",
+    "validate_external_common_family_claim": "observation",
+    "validate_subordinate_narrowing": "proposal",
+    "validate_custody_binding": "availability",
+    "validate_retrieval_event_sequence": "observation",
+    "validate_host_qualification": "readiness",
+    "validate_terminal_outcome_binding": "outcome",
+    "validate_normal_terminal_branch": "outcome",
+    "validate_active_cancel_reconciled_branch": "outcome",
+    "validate_active_cancel_unresolved_branch": "outcome",
+    "validate_pre_effect_cancel_basis_unusable_branch": "outcome",
+})
+RELATION_EXPECTED_RECONSTRUCTION_CALLS = MappingProxyType({
+    "validate_phase_entry_basis": ("basis",),
+    "validate_authority_observation": ("basis", "observation"),
+    "validate_per_fence_basis": ("observation", "proposal"),
+    "validate_external_common_family_claim": ("observation", "proposal"),
+    "validate_subordinate_narrowing": ("basis", "observation", "proposal"),
+    "validate_custody_binding": ("basis", "availability"),
+    "validate_retrieval_event_sequence": (
+        "basis", "availability", "observation", "proposal", "events[0]",
+    ),
+    "validate_host_qualification": (
+        "basis", "authority", "readiness", "qualification",
+    ),
+    "validate_terminal_outcome_binding": (
+        "basis", "outcome", "outcome#fresh",
+    ),
+    "validate_normal_terminal_branch": ("outcome",),
+    "validate_active_cancel_reconciled_branch": ("outcome",),
+    "validate_active_cancel_unresolved_branch": ("outcome",),
+    "validate_pre_effect_cancel_basis_unusable_branch": ("outcome",),
+})
+RELATION_EXPECTED_SELECTIVE_BYPASSES = MappingProxyType({
+    "validate_phase_entry_basis": ("basis",),
+    "validate_authority_observation": ("observation",),
+    "validate_per_fence_basis": ("observation",),
+    "validate_external_common_family_claim": ("observation",),
+    "validate_subordinate_narrowing": ("proposal",),
+    "validate_custody_binding": ("availability",),
+    "validate_retrieval_event_sequence": ("observation",),
+    "validate_host_qualification": ("readiness",),
+    "validate_terminal_outcome_binding": ("outcome",),
+    "validate_normal_terminal_branch": ("outcome",),
+    "validate_active_cancel_reconciled_branch": ("outcome",),
+    "validate_active_cancel_unresolved_branch": ("outcome",),
+    "validate_pre_effect_cancel_basis_unusable_branch": ("outcome",),
+})
+RELATION_EXPECTED_SELECTIVE_DELEGATIONS = MappingProxyType({
+    "validate_phase_entry_basis": (),
+    "validate_authority_observation": ("basis",),
+    "validate_per_fence_basis": ("proposal",),
+    "validate_external_common_family_claim": ("proposal",),
+    "validate_subordinate_narrowing": ("basis", "observation"),
+    "validate_custody_binding": ("basis",),
+    "validate_retrieval_event_sequence": (
+        "basis", "availability", "proposal", "events[0]",
+    ),
+    "validate_host_qualification": (
+        "basis", "authority", "qualification",
+    ),
+    "validate_terminal_outcome_binding": ("basis", "outcome#fresh"),
+    "validate_normal_terminal_branch": (),
+    "validate_active_cancel_reconciled_branch": (),
+    "validate_active_cancel_unresolved_branch": (),
+    "validate_pre_effect_cancel_basis_unusable_branch": (),
+})
+RELATION_EXPECTED_CLASS_WIDE_BYPASSES = MappingProxyType({
+    "validate_phase_entry_basis": ("basis",),
+    "validate_authority_observation": ("basis", "observation"),
+    "validate_per_fence_basis": ("observation", "proposal"),
+    "validate_external_common_family_claim": ("observation", "proposal"),
+    "validate_subordinate_narrowing": ("basis", "observation", "proposal"),
+    "validate_custody_binding": ("basis", "availability"),
+    "validate_retrieval_event_sequence": (
+        "basis", "availability", "observation", "proposal", "events[0]",
+    ),
+    "validate_host_qualification": (
+        "basis", "authority", "readiness", "qualification",
+    ),
+    "validate_terminal_outcome_binding": (
+        "basis", "outcome", "outcome#fresh",
+    ),
+    "validate_normal_terminal_branch": ("outcome",),
+    "validate_active_cancel_reconciled_branch": ("outcome",),
+    "validate_active_cancel_unresolved_branch": ("outcome",),
+    "validate_pre_effect_cancel_basis_unusable_branch": ("outcome",),
+})
+RELATION_EXPECTED_CLASS_WIDE_DELEGATIONS = MappingProxyType({
+    "validate_phase_entry_basis": (),
+    "validate_authority_observation": (),
+    "validate_per_fence_basis": (),
+    "validate_external_common_family_claim": (),
+    "validate_subordinate_narrowing": (),
+    "validate_custody_binding": (),
+    "validate_retrieval_event_sequence": (),
+    "validate_host_qualification": (),
+    "validate_terminal_outcome_binding": (),
+    "validate_normal_terminal_branch": (),
+    "validate_active_cancel_reconciled_branch": (),
+    "validate_active_cancel_unresolved_branch": (),
+    "validate_pre_effect_cancel_basis_unusable_branch": (),
+})
+RELATION_EXPECTED_POISON_TARGET = MappingProxyType({
+    "validate_phase_entry_basis": "basis",
+    "validate_authority_observation": "observation",
+    "validate_per_fence_basis": "observation",
+    "validate_external_common_family_claim": "observation",
+    "validate_subordinate_narrowing": "proposal",
+    "validate_custody_binding": "availability",
+    "validate_retrieval_event_sequence": "observation",
+    "validate_host_qualification": "readiness",
+    "validate_terminal_outcome_binding": "outcome",
+    "validate_normal_terminal_branch": "outcome",
+    "validate_active_cancel_reconciled_branch": "outcome",
+    "validate_active_cancel_unresolved_branch": "outcome",
+    "validate_pre_effect_cancel_basis_unusable_branch": "outcome",
+})
+
+
+def test_all_thirteen_relations_are_present() -> None:
+    assert tuple(SEMANTIC_TO_PRODUCTION_RELATION) == SEMANTIC_RELATION_NAMES
+    for specification in (
+        RELATION_SELECTED_TARGET,
+        RELATION_EXPECTED_RECONSTRUCTION_CALLS,
+        RELATION_EXPECTED_SELECTIVE_BYPASSES,
+        RELATION_EXPECTED_SELECTIVE_DELEGATIONS,
+        RELATION_EXPECTED_CLASS_WIDE_BYPASSES,
+        RELATION_EXPECTED_CLASS_WIDE_DELEGATIONS,
+        RELATION_EXPECTED_POISON_TARGET,
+    ):
+        assert tuple(specification) == SEMANTIC_RELATION_NAMES
+    source = Path(b1.__file__).read_text()
+    production = {
+        node.name
+        for node in ast.parse(source).body
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("validate_")
+    }
+    assert set(SEMANTIC_TO_PRODUCTION_RELATION.values()) == production
+    assert len(production) == len(SEMANTIC_RELATION_NAMES) == 13
+    assert all(callable(getattr(b1, name)) for name in production)
 
 
 def test_per_fence_and_family_claim_positive_and_mutants(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -162,10 +318,10 @@ def test_per_fence_and_family_claim_positive_and_mutants(monkeypatch: pytest.Mon
     assert b1.validate_external_common_family_claim(
         observation=obs, proposal=proposal, attempt_fence=attempt,
         current_effect_fence=effect) is None
-    exact_relation_budget(monkeypatch, 110, lambda: b1.validate_per_fence_basis(
+    exact_relation_budget(monkeypatch, 550, lambda: b1.validate_per_fence_basis(
         observation=obs, proposal=proposal, attempt_fence=attempt,
         current_effect_fence=effect))
-    exact_relation_budget(monkeypatch, 110, lambda: b1.validate_external_common_family_claim(
+    exact_relation_budget(monkeypatch, 550, lambda: b1.validate_external_common_family_claim(
         observation=obs, proposal=proposal, attempt_fence=attempt,
         current_effect_fence=effect))
     bad = value(b1.RW0SubordinateAuthorizationProposalV1,
@@ -190,12 +346,27 @@ def test_authority_current_freshness_and_narrowing(monkeypatch: pytest.MonkeyPat
     assert b1.validate_subordinate_narrowing(
         basis=basis, observation=obs, proposal=proposal,
         attempt_fence=attempt, current_effect_fence=effect, now_utc=NOW) is None
-    exact_relation_budget(monkeypatch, 196, lambda: b1.validate_authority_observation(
-        basis=basis, observation=obs, attempt_fence=attempt,
-        author_effect_fence=effect, current_effect_fence=effect,
-        author_command=command, capsule_manifest=None, cancellation_target=None,
-        now_utc=NOW))
-    exact_relation_budget(monkeypatch, 242, lambda: b1.validate_subordinate_narrowing(
+    manifest = CandidateCapsuleManifestV1.from_mapping(
+        _full_record("CandidateCapsuleManifestV1")
+    )
+    with monkeypatch.context() as bounded:
+        bounded.setattr(b1, "_owner_relation", lambda *args, **kwargs: None)
+        exact_relation_budget(
+            bounded,
+            1151,
+            lambda: b1.validate_authority_observation(
+                basis=basis,
+                observation=obs,
+                attempt_fence=attempt,
+                author_effect_fence=effect,
+                current_effect_fence=effect,
+                author_command=command,
+                capsule_manifest=manifest,
+                cancellation_target=effect,
+                now_utc=NOW,
+            ),
+        )
+    exact_relation_budget(monkeypatch, 891, lambda: b1.validate_subordinate_narrowing(
         basis=basis, observation=obs, proposal=proposal,
         attempt_fence=attempt, current_effect_fence=effect, now_utc=NOW))
     error("observation_stale_or_expired", lambda: b1.validate_authority_observation(
@@ -221,7 +392,7 @@ def test_custody_subject_and_freshness(monkeypatch: pytest.MonkeyPatch) -> None:
                          expires_at="2030-01-01T00:00:00Z")
     assert b1.validate_custody_binding(basis=basis, availability=availability,
                                        subject=work, now_utc=NOW) is None
-    exact_relation_budget(monkeypatch, 106, lambda: b1.validate_custody_binding(
+    exact_relation_budget(monkeypatch, 520, lambda: b1.validate_custody_binding(
         basis=basis, availability=availability, subject=work, now_utc=NOW))
     error("observation_stale_or_expired", lambda: b1.validate_custody_binding(
         basis=basis, availability=availability, subject=work,
@@ -280,7 +451,7 @@ def test_retrieval_sequence_success_diagnostic_and_illegal_transition(monkeypatc
     for sequence in ((issued,), (issued, redeemed),
                      (issued, redeemed, consumed), (event("unknown", 0),)):
         assert b1.validate_retrieval_event_sequence(events=sequence, **base) is None
-    exact_relation_budget(monkeypatch, 374, lambda: b1.validate_retrieval_event_sequence(
+    exact_relation_budget(monkeypatch, 1285, lambda: b1.validate_retrieval_event_sequence(
         events=(issued, redeemed, consumed), **base))
     failed = event("failed", 1, issued)
     assert b1.validate_retrieval_event_sequence(events=(issued, failed), **base) is None
@@ -321,7 +492,7 @@ def test_host_qualification_precedence_and_profile_binding(monkeypatch: pytest.M
     args = dict(basis=basis, authority=authority, readiness=readiness,
                 current_effect_fence=effect, now_utc=NOW)
     assert b1.validate_host_qualification(qualification=qualification, **args) is None
-    exact_relation_budget(monkeypatch, 241, lambda: b1.validate_host_qualification(
+    exact_relation_budget(monkeypatch, 863, lambda: b1.validate_host_qualification(
         qualification=qualification, **args))
     denied = value(b1.RW0AuthorityVerificationObservationV1,
                    **{**authority.identity_mapping(), "status": "denied"})
@@ -364,7 +535,7 @@ def test_normal_terminal_shape_binds_real_block_decision(monkeypatch: pytest.Mon
                     decision_digest=decision.decision_digest,
                     decision_kind="block", outcome="block", branch="normal")
     assert b1.validate_normal_outcome_shape(outcome=outcome, decision=decision) is None
-    exact_relation_budget(monkeypatch, 33, lambda: b1.validate_normal_outcome_shape(
+    exact_relation_budget(monkeypatch, 97, lambda: b1.validate_normal_outcome_shape(
         outcome=outcome, decision=decision))
     error("terminal_branch_mismatch", lambda: b1.validate_reconciled_cancel_outcome_shape(
         outcome=outcome, decision=decision))
@@ -598,19 +769,22 @@ def test_relation_budget_largest_valid_one_over_alias_and_cycle(monkeypatch: pyt
     kwargs = dict(basis=basis, observation=obs, proposal=proposal,
                   attempt_fence=attempt, current_effect_fence=effect, now_utc=NOW)
     assert b1.validate_subordinate_narrowing(**kwargs) is None
-    assert instances[-1].original_limit == 242 and instances[-1].remaining == 0
+    relation_instances = [item for item in instances if item.original_limit == 891]
+    assert len(relation_instances) == 1 and relation_instances[0].remaining == 0
     args, make_event = retrieval_case()
     issued = make_event("issued", 0)
     redeemed = make_event("redeemed", 1, issued)
     consumed = make_event("consumed", 2, redeemed)
     assert b1.validate_retrieval_event_sequence(events=(issued, redeemed, consumed), **args) is None
-    assert instances[-1].original_limit == 374 and instances[-1].remaining == 0
+    relation_instances = [item for item in instances if item.original_limit == 1285]
+    assert len(relation_instances) == 1 and relation_instances[0].remaining == 0
     error("retrieval_transition_invalid", lambda: b1.validate_retrieval_event_sequence(
         events=(consumed, consumed, consumed), **args))
-    assert instances[-1].original_limit == 374 and instances[-1].remaining == 0
+    relation_instances = [item for item in instances if item.original_limit == 1285]
+    assert len(relation_instances) == 2 and relation_instances[-1].remaining == 0
     class OneLess(original):
         def __init__(self, limit: int) -> None:
-            super().__init__(limit - 1)
+            super().__init__(limit - 1 if limit in (891, 1285) else limit)
     monkeypatch.setattr(b1, "_WorkBudget", OneLess)
     error("cumulative_work_exhausted", lambda: b1.validate_subordinate_narrowing(**kwargs))
     error("cumulative_work_exhausted", lambda: b1.validate_retrieval_event_sequence(
@@ -620,7 +794,7 @@ def test_relation_budget_largest_valid_one_over_alias_and_cycle(monkeypatch: pyt
     cyclic.append(cyclic)
     damaged = value(b1.RW0PhaseEntryBasisV1, **basis.identity_mapping())
     fields = type(damaged)._FIELDS
-    members = list(damaged._values)
+    members = list(object.__getattribute__(damaged, "_values"))
     members[fields.index("selection_key")] = cyclic
     object.__setattr__(damaged, "_values", tuple(members))
     error("graph_cycle", lambda: b1.validate_subordinate_narrowing(
@@ -746,7 +920,7 @@ def test_phase_entry_basis_relation_positive_and_causal_head_drift(tmp_path, mon
              "author_delivery", "effect_head", "delivery_head", "global_stop")
     args = {name: bundle[name] for name in names}
     assert b1.validate_phase_entry_basis(**args) is None
-    exact_relation_budget(monkeypatch, 104, lambda: b1.validate_phase_entry_basis(**args))
+    exact_relation_budget(monkeypatch, 891, lambda: b1.validate_phase_entry_basis(**args))
     drifted = value(b1.RW0PhaseEntryBasisV1,
                     **{**bundle["basis"].identity_mapping(),
                        "current_effect_head_digest": "a" * 64})
@@ -802,7 +976,7 @@ def test_terminal_outcome_binding_positive_and_causal_head_drift(tmp_path, monke
                 delivery_head=bundle["delivery_head"],
                 global_stop=bundle["global_stop"])
     assert b1.validate_terminal_outcome_binding(**args) is None
-    exact_relation_budget(monkeypatch, 159, lambda: b1.validate_terminal_outcome_binding(**args))
+    exact_relation_budget(monkeypatch, 496, lambda: b1.validate_terminal_outcome_binding(**args))
     drifted = value(b1.RW0TerminalOutcomeV1,
                     **{**outcome.identity_mapping(), "effect_head_digest": "a" * 64})
     error("current_head_or_global_stop_mismatch", lambda: b1.validate_terminal_outcome_binding(
@@ -838,7 +1012,7 @@ def test_all_cancel_terminal_shape_relations_positive_and_causal_negative(tmp_pa
                pair + "_digest": "a" * 64},
         )
         assert validator(outcome=outcome, decision=decision) is None
-        exact_relation_budget(monkeypatch, 33, lambda: validator(
+        exact_relation_budget(monkeypatch, 97, lambda: validator(
             outcome=outcome, decision=decision))
         error("terminal_branch_mismatch", lambda: b1.validate_normal_outcome_shape(
             outcome=outcome, decision=decision))
@@ -1128,6 +1302,207 @@ def _host_case(issues: tuple[str, ...] = (), *, claimed: tuple[str, str] =
                 now_utc=NOW)
 
 
+def test_private_host_snapshot_seam_reconstructs_once_and_returns_only_fresh_maps(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    case = _host_case()
+    original_b1 = b1._reconstruct_exact_b1_value
+    original_c2a = b1._reconstruct_exact_worker_execution_value
+    b1_calls: list[type] = []
+    c2a_calls: list[type] = []
+
+    def measured_b1(value, expected, budget=None):
+        b1_calls.append(expected)
+        return original_b1(value, expected, budget)
+
+    def measured_c2a(value, expected, budget=None):
+        c2a_calls.append(expected)
+        return original_c2a(value, expected, budget)
+
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", measured_b1)
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_worker_execution_value", measured_c2a
+    )
+    snapshots = b1._validate_host_qualification_with_snapshots(**case)
+    assert b1_calls == [
+        b1.RW0PhaseEntryBasisV1,
+        b1.RW0AuthorityVerificationObservationV1,
+        b1.RW0RemoteHostReadinessObservationV1,
+        b1.RW0EffectHostQualificationV1,
+    ]
+    assert c2a_calls == [b1.CeilingsV1, EffectFenceV1]
+    assert len(snapshots) == 5
+    assert all(type(snapshot) is dict for snapshot in snapshots)
+    assert snapshots == (
+        case["basis"].to_mapping(),
+        case["authority"].to_mapping(),
+        case["readiness"].to_mapping(),
+        case["qualification"].to_mapping(),
+        case["current_effect_fence"].to_mapping(),
+    )
+    readiness_members = list(
+        object.__getattribute__(case["readiness"], "_values")
+    )
+    readiness_members[type(case["readiness"])._FIELDS.index("status")] = (
+        "constructor-invalid"
+    )
+    object.__setattr__(case["readiness"], "_values", tuple(readiness_members))
+    assert snapshots[2]["status"] == "ready"
+
+
+def test_b1_relation_reconstruction_is_causal_selectively_and_class_wide(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    case = _host_case()
+    readiness = case["readiness"]
+    members = list(object.__getattribute__(readiness, "_values"))
+    members[type(readiness)._FIELDS.index("status")] = "constructor-invalid"
+    object.__setattr__(readiness, "_values", tuple(members))
+
+    with pytest.raises(b1.RW0PhaseValueError):
+        b1.validate_host_qualification(**case)
+
+    original = b1._reconstruct_exact_b1_value
+
+    def selective(value, expected, budget=None):
+        if value is readiness:
+            return value, {}
+        return original(value, expected, budget)
+
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", selective)
+    assert b1.validate_host_qualification(**case) is None
+
+    monkeypatch.setattr(
+        b1,
+        "_reconstruct_exact_b1_value",
+        lambda value, expected, budget=None: (value, {}),
+    )
+    assert b1.validate_host_qualification(**case) is None
+
+
+def test_c2a_and_lineage_owner_helpers_are_causal_selectively_and_class_wide(
+    tmp_path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host = _host_case()
+    effect = host["current_effect_fence"]
+    valid_effect = EffectFenceV1.from_mapping(effect.to_mapping())
+    object.__setattr__(effect, "_schema_id", "constructor-invalid")
+    error(
+        "relation_mismatch",
+        lambda: b1.validate_host_qualification(**host),
+    )
+
+    original_c2a = b1._reconstruct_exact_worker_execution_value
+
+    def selective_c2a(value, expected, budget=None):
+        if value is effect:
+            return valid_effect, valid_effect.to_mapping()
+        return original_c2a(value, expected, budget)
+
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_worker_execution_value", selective_c2a
+    )
+    assert b1.validate_host_qualification(**host) is None
+
+    monkeypatch.setattr(
+        b1,
+        "_reconstruct_exact_worker_execution_value",
+        lambda value, expected, budget=None: (value, value.to_mapping()),
+    )
+    assert b1.validate_host_qualification(**host) is None
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_worker_execution_value", original_c2a
+    )
+
+    bundle = phase_bundle(tmp_path)
+    names = (
+        "basis", "lineage", "selection_result", "selection_head",
+        "selected_proposal", "selected_artifact", "work_spec",
+        "attempt_fence", "author_effect_fence", "author_command",
+        "author_delivery", "effect_head", "delivery_head", "global_stop",
+    )
+    arguments = {name: bundle[name] for name in names}
+    lineage = arguments["lineage"]
+    valid_lineage = type(lineage)(**lineage.to_mapping())
+    object.__setattr__(
+        lineage, "authority_evaluation_digest", "constructor-invalid"
+    )
+    error(
+        "relation_mismatch",
+        lambda: b1.validate_phase_entry_basis(**arguments),
+    )
+
+    original_lineage = b1._reconstruct_exact_c2b3d_lineage
+
+    def selective_lineage(value, budget=None):
+        if value is lineage:
+            return valid_lineage, valid_lineage.to_mapping()
+        return original_lineage(value, budget)
+
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_c2b3d_lineage", selective_lineage
+    )
+    assert b1.validate_phase_entry_basis(**arguments) is None
+
+    monkeypatch.setattr(
+        b1,
+        "_reconstruct_exact_c2b3d_lineage",
+        lambda value, budget=None: (valid_lineage, valid_lineage.to_mapping()),
+    )
+    assert b1.validate_phase_entry_basis(**arguments) is None
+
+
+def test_relations_use_only_reconstructed_b1_c2a_and_lineage_locals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    case = _host_case()
+    original_b1 = b1._reconstruct_exact_b1_value
+    original_c2a = b1._reconstruct_exact_worker_execution_value
+    original_lineage = b1._reconstruct_exact_c2b3d_lineage
+    b1_seen: list[type] = []
+    c2a_seen: list[type] = []
+    lineage_seen = 0
+
+    def reconstruct_b1_then_poison(value, expected, budget=None):
+        rebuilt = original_b1(value, expected, budget)
+        b1_seen.append(expected)
+        members = list(object.__getattribute__(value, "_values"))
+        members[0] = "poisoned-original"
+        object.__setattr__(value, "_values", tuple(members))
+        return rebuilt
+
+    def reconstruct_c2a_then_poison(value, expected, budget=None):
+        rebuilt = original_c2a(value, expected, budget)
+        c2a_seen.append(expected)
+        object.__setattr__(value, f"_{expected._FIELDS[0]}", "poisoned-original")
+        return rebuilt
+
+    def reconstruct_lineage_then_poison(value, budget=None):
+        nonlocal lineage_seen
+        rebuilt = original_lineage(value, budget)
+        lineage_seen += 1
+        object.__setattr__(value, b1._L34_FIELDS[0], "poisoned-original")
+        return rebuilt
+
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", reconstruct_b1_then_poison)
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_worker_execution_value", reconstruct_c2a_then_poison
+    )
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_c2b3d_lineage", reconstruct_lineage_then_poison
+    )
+    snapshots = b1._validate_host_qualification_with_snapshots(**case)
+    assert b1_seen == [
+        b1.RW0PhaseEntryBasisV1,
+        b1.RW0AuthorityVerificationObservationV1,
+        b1.RW0RemoteHostReadinessObservationV1,
+        b1.RW0EffectHostQualificationV1,
+    ]
+    assert c2a_seen == [b1.CeilingsV1, EffectFenceV1]
+    assert lineage_seen == 1
+    assert all("poisoned-original" not in repr(snapshot) for snapshot in snapshots)
+
+
 def test_reaudit_host_attempt_pair_and_effect_origin_are_causal() -> None:
     basis, authority, _, _, attempt, effect, _ = claims()
     assert (authority.attempt_fence_ref, authority.attempt_fence_digest) == (
@@ -1297,7 +1672,7 @@ def test_reaudit_retrieval_shared_path_alias_is_charged_twice(monkeypatch: pytes
     issued = make_event("issued", 0)
     redeemed = make_event("redeemed", 1, issued)
     consumed = make_event("consumed", 2, redeemed)
-    exact_relation_budget(monkeypatch, 374, lambda: b1.validate_retrieval_event_sequence(
+    exact_relation_budget(monkeypatch, 1285, lambda: b1.validate_retrieval_event_sequence(
         events=(issued, redeemed, consumed), **args))
 
 
@@ -1362,19 +1737,20 @@ def test_reaudit_retrieval_external_members_charge_once(monkeypatch: pytest.Monk
     observed = []
     class Measured(original):
         def __init__(self, limit: int) -> None:
-            assert limit == 374
             super().__init__(limit)
-            self.charges = []
-            observed.append(self)
+            if limit == 1285:
+                self.charges = []
+                observed.append(self)
         def charge(self, amount: int = 1) -> None:
-            self.charges.append(amount)
+            if hasattr(self, "charges"):
+                self.charges.append(amount)
             super().charge(amount)
     monkeypatch.setattr(b1, "_WorkBudget", Measured)
     assert b1.validate_retrieval_event_sequence(
         events=(issued, redeemed, consumed), **args) is None
     assert len(observed) == 1
     assert observed[0].charges.count(30 + 6) == 1
-    assert sum(observed[0].charges) == 374
+    assert sum(observed[0].charges) == 1285
     assert observed[0].remaining == 0
 
 
@@ -1490,3 +1866,593 @@ def test_third_later_current_effect_keeps_stable_origin() -> None:
             "effect_class": later.effect_class,
             "effect_basis_ref": later.effect_authorization_ref,
             "effect_basis_digest": later.effect_authorization_digest})) is None
+
+
+def _matrix_block_decision():
+    import ge_nwp_coordinator._development_decision_row_values as owner
+    from tests.test_c2b2_private_development_readers import _decision_row
+
+    identity = dict(
+        zip(owner._DEVELOPMENT_DECISION_COLUMNS, _decision_row(), strict=True)
+    )
+    identity.update(
+        decision_kind="block",
+        decision_variant="program_block",
+        basis_decision_ref="ref-basis-decision",
+        basis_program_version_ref="ref-basis-version",
+        basis_program_version_number=1,
+        preassigned_semantic_attempt_ref=None,
+        preassigned_candidate_ref=None,
+    )
+    identity["decision_digest"] = _digest(
+        "governed-execution.nwp-development-decision.v1.identity",
+        {key: member for key, member in identity.items() if key != "decision_digest"},
+    )
+    return owner.development_decision_row_value_from_row_tuple(
+        tuple(identity[name] for name in owner._DEVELOPMENT_DECISION_COLUMNS)
+    )
+
+
+def _matrix_terminal_binding_case(tmp_path):
+    bundle = phase_bundle(tmp_path)
+    decision = _matrix_block_decision()
+    basis = bundle["basis"]
+    outcome = value(
+        b1.RW0TerminalOutcomeV1,
+        phase_basis_ref=basis.basis_ref,
+        phase_basis_digest=basis.basis_digest,
+        decision_ref=decision.decision_ref,
+        decision_digest=decision.decision_digest,
+        branch="normal",
+        outcome="block",
+        decision_kind="block",
+        program_head_revision=bundle["program_head"].head_revision,
+        program_head_digest=bundle["program_head"].head_digest,
+        work_item_head_revision=bundle["work_head"].head_revision,
+        work_item_head_digest=bundle["work_head"].head_digest,
+        selection_head_revision=bundle["selection_head"].head_revision,
+        selection_head_digest=bundle["selection_head"].head_digest,
+        effect_head_revision=bundle["effect_head"].head_revision,
+        effect_head_digest=bundle["effect_head"].head_digest,
+        delivery_head_revision=bundle["delivery_head"].head_revision,
+        delivery_head_digest=bundle["delivery_head"].head_digest,
+        global_stop_ref=bundle["global_stop"].state.stop_ref,
+        global_stop_version=bundle["global_stop"].state.version,
+        global_stop_state="clear",
+    )
+    return dict(
+        basis=basis,
+        outcome=outcome,
+        decision=decision,
+        program_head=bundle["program_head"],
+        work_head=bundle["work_head"],
+        selection_head=bundle["selection_head"],
+        effect_head=bundle["effect_head"],
+        delivery_head=bundle["delivery_head"],
+        global_stop=bundle["global_stop"],
+    )
+
+
+def _matrix_relation_case(semantic_name: str, tmp_path):
+    production_name = SEMANTIC_TO_PRODUCTION_RELATION[semantic_name]
+    function = getattr(b1, production_name)
+    if semantic_name == "validate_phase_entry_basis":
+        bundle = phase_bundle(tmp_path)
+        names = (
+            "basis", "lineage", "selection_result", "selection_head",
+            "selected_proposal", "selected_artifact", "work_spec",
+            "attempt_fence", "author_effect_fence", "author_command",
+            "author_delivery", "effect_head", "delivery_head", "global_stop",
+        )
+        return function, {name: bundle[name] for name in names}
+
+    basis, observation, proposal, work, attempt, effect, command = claims()
+    if semantic_name == "validate_authority_observation":
+        return function, dict(
+            basis=basis,
+            observation=observation,
+            attempt_fence=attempt,
+            author_effect_fence=effect,
+            current_effect_fence=effect,
+            author_command=command,
+            capsule_manifest=None,
+            cancellation_target=None,
+            now_utc=NOW,
+        )
+    if semantic_name in (
+        "validate_per_fence_basis", "validate_external_common_family_claim"
+    ):
+        return function, dict(
+            observation=observation,
+            proposal=proposal,
+            attempt_fence=attempt,
+            current_effect_fence=effect,
+        )
+    if semantic_name == "validate_subordinate_narrowing":
+        return function, dict(
+            basis=basis,
+            observation=observation,
+            proposal=proposal,
+            attempt_fence=attempt,
+            current_effect_fence=effect,
+            now_utc=NOW,
+        )
+    if semantic_name == "validate_custody_binding":
+        availability = value(
+            b1.RW0CustodyAvailabilityObservationV1,
+            phase_basis_ref=basis.basis_ref,
+            phase_basis_digest=basis.basis_digest,
+            subject_ref=work.work_spec_ref,
+            subject_semantic_digest=work.work_spec_digest,
+            observed_at="2028-01-01T00:00:00Z",
+            expires_at="2030-01-01T00:00:00Z",
+        )
+        return function, dict(
+            basis=basis, availability=availability, subject=work, now_utc=NOW
+        )
+    if semantic_name == "validate_retrieval_event_sequence":
+        arguments, make_event = retrieval_case()
+        arguments = {**arguments, "events": (make_event("issued", 0),)}
+        return function, arguments
+    if semantic_name == "validate_host_qualification":
+        return function, _host_case()
+    if semantic_name == "validate_terminal_outcome_binding":
+        return function, _matrix_terminal_binding_case(tmp_path)
+    if semantic_name == "validate_normal_terminal_branch":
+        decision = _matrix_block_decision()
+        outcome = value(
+            b1.RW0TerminalOutcomeV1,
+            decision_ref=decision.decision_ref,
+            decision_digest=decision.decision_digest,
+            decision_kind="block",
+            outcome="block",
+            branch="normal",
+        )
+        return function, {"outcome": outcome, "decision": decision}
+
+    from test_c2b3d_author_effect_establishment_recovery import _decision_row
+    bundle = phase_bundle(tmp_path)
+    decision = _decision_row(
+        bundle["author_fixture"],
+        decision_ref="decision-b1-matrix-cancel",
+        mutation_ref="mutation-b1-matrix-cancel",
+        variant="effect_cancellation",
+        target_delivery_attempt_ref=None,
+        preassigned_delivery_attempt_ref="delivery-b1-matrix-cancel",
+        timestamp="2098-01-01T00:00:09Z",
+    )
+    branches = {
+        "validate_active_cancel_reconciled_branch":
+            ("active_cancel_reconciled", "cancel", "reconciliation"),
+        "validate_active_cancel_unresolved_branch":
+            ("active_cancel_unresolved", "block", "reconciliation"),
+        "validate_pre_effect_cancel_basis_unusable_branch":
+            ("pre_effect_cancel_basis_unusable", "block", "mismatch"),
+    }
+    branch, outcome_kind, pair = branches[semantic_name]
+    outcome = value(
+        b1.RW0TerminalOutcomeV1,
+        branch=branch,
+        outcome=outcome_kind,
+        decision_kind="cancel",
+        decision_ref=decision.decision_ref,
+        decision_digest=decision.decision_digest,
+        **{
+            pair + "_ref": "ref-" + pair.replace("_", "-"),
+            pair + "_digest": "a" * 64,
+        },
+    )
+    return function, {"outcome": outcome, "decision": decision}
+
+
+def _resealed_constructor_invalid(owner):
+    expected = type(owner)
+    valid_values = object.__getattribute__(owner, "_values")
+    assert type(valid_values) is tuple
+    forged_values = list(valid_values)
+    forged_values[0] = "constructor-invalid-schema"
+
+    digest_projection = owner.to_mapping()
+    digest_projection["schema_id"] = forged_values[0]
+    final = expected._FIELDS[-1]
+    forged_values[-1] = _digest(
+        expected._SCHEMA + ".identity",
+        {
+            key: member
+            for key, member in digest_projection.items()
+            if key != final
+        },
+    )
+    damaged = object.__new__(expected)
+    object.__setattr__(damaged, "_values", tuple(forged_values))
+
+    damaged_values = object.__getattribute__(damaged, "_values")
+    changed = {
+        index
+        for index, (valid, forged) in enumerate(
+            zip(valid_values, damaged_values, strict=True)
+        )
+        if valid is not forged
+    }
+    assert changed == {0, len(valid_values) - 1}
+    for index, (valid, forged) in enumerate(
+        zip(valid_values, damaged_values, strict=True)
+    ):
+        if index in changed:
+            continue
+        assert forged == valid
+        assert forged is valid
+    return damaged
+
+
+def _named_matrix_b1_values(arguments: dict[str, object]):
+    for name, argument in arguments.items():
+        if isinstance(argument, b1._B1Value):
+            yield name, argument
+        elif type(argument) is tuple:
+            for index, member in enumerate(argument):
+                if isinstance(member, b1._B1Value):
+                    yield f"{name}[{index}]", member
+
+
+def _matrix_occurrence_maps(
+    semantic_name: str, arguments: dict[str, object],
+) -> tuple[dict[str, b1._B1Value], dict[int, str]]:
+    occurrences = tuple(_named_matrix_b1_values(arguments))
+    labels = tuple(label for label, _owner in occurrences)
+    identities = tuple(id(owner) for _label, owner in occurrences)
+    assert len(labels) == len(set(labels)), (
+        f"{semantic_name}:duplicate occurrence label"
+    )
+    assert len(identities) == len(set(identities)), (
+        f"{semantic_name}:ambiguous occurrence identity"
+    )
+    by_label = dict(occurrences)
+    by_identity = {id(owner): label for label, owner in occurrences}
+    target = RELATION_SELECTED_TARGET[semantic_name]
+    assert target in by_label, f"{semantic_name}:selected target occurrence"
+    assert sum(label == target for label in labels) == 1, (
+        f"{semantic_name}:one selected target occurrence"
+    )
+    for label in RELATION_EXPECTED_RECONSTRUCTION_CALLS[semantic_name]:
+        assert label.removesuffix("#fresh") in by_label, (
+            f"{semantic_name}:literal call occurrence"
+        )
+    return by_label, by_identity
+
+
+def _assert_matrix_reconstruction_pair(
+    semantic_name: str,
+    mode: str,
+    label: str,
+    owner: object,
+    expected: type,
+    pair: tuple[object, object],
+) -> tuple[b1._B1Value, dict[str, object]]:
+    reconstructed, projection = pair
+    assert type(reconstructed) is expected, (
+        f"{semantic_name}:{mode}:{label}:pair exact value"
+    )
+    assert isinstance(reconstructed, b1._B1Value)
+    assert reconstructed is not owner, (
+        f"{semantic_name}:{mode}:{label}:pair fresh value"
+    )
+    assert type(projection) is dict, (
+        f"{semantic_name}:{mode}:{label}:pair exact projection"
+    )
+    return reconstructed, projection
+
+
+def _fresh_matrix_pair(owner: b1._B1Value) -> tuple[object, object]:
+    projection = owner.to_mapping()
+    return type(owner).from_mapping(projection), dict(projection)
+
+
+def _assert_matrix_projection_observations(
+    semantic_name: str,
+    mode: str,
+    observations: list[tuple[str, b1._B1Value, dict[str, object]]],
+) -> None:
+    for label, reconstructed, projection in observations:
+        assert projection == reconstructed.to_mapping(), (
+            f"{semantic_name}:{mode}:{label}:pair projection matches value"
+        )
+
+
+def _exercise_relation_reconstruction_matrix(
+    semantic_name: str,
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    mutation: str | None = None,
+) -> None:
+    function, valid_arguments = _matrix_relation_case(semantic_name, tmp_path)
+    assert function(**valid_arguments) is None, f"{semantic_name}:valid harness"
+    occurrences, _valid_identities = _matrix_occurrence_maps(
+        semantic_name, valid_arguments
+    )
+    literal_target_name = RELATION_SELECTED_TARGET[semantic_name]
+    selected_target_name = literal_target_name
+    if mutation == "wrong-selected-object":
+        selected_target_name = next(
+            label for label in occurrences if label != literal_target_name
+        )
+    assert RELATION_EXPECTED_POISON_TARGET[semantic_name] == literal_target_name
+
+    target = occurrences[literal_target_name]
+    valid_target = type(target).from_mapping(target.to_mapping())
+    assert type(valid_target) is type(target)
+    assert valid_target is not target
+    valid_projection = valid_target.to_mapping()
+    invalid_target = _resealed_constructor_invalid(target)
+    invalid_arguments = {
+        **valid_arguments,
+        literal_target_name: invalid_target,
+    }
+    assert selected_target_name == literal_target_name, (
+        f"{semantic_name}:target literal"
+    )
+    with pytest.raises(b1.RW0PhaseValueError) as caught:
+        function(**invalid_arguments)
+    assert caught.value.reason == "invalid_enum", f"{semantic_name}:normal reason"
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+
+    original = b1._reconstruct_exact_b1_value
+    _invalid_occurrences, selective_labels = _matrix_occurrence_maps(
+        semantic_name, invalid_arguments
+    )
+    selective_sequence: list[str] = []
+    selective_bypasses: list[str] = []
+    selective_delegations: list[str] = []
+    selective_pairs: list[
+        tuple[str, b1._B1Value, dict[str, object]]
+    ] = []
+    selective_mutation_label = next(
+        iter(RELATION_EXPECTED_SELECTIVE_DELEGATIONS[semantic_name]), None
+    )
+    selective_extra_pairs = {
+        id(owner): _fresh_matrix_pair(owner)
+        for _label, owner in _named_matrix_b1_values(invalid_arguments)
+        if owner is not invalid_target
+    }
+
+    def selective(owner, expected, budget=None):
+        identity = id(owner)
+        assert identity in selective_labels, (
+            f"{semantic_name}:selective unexpected call"
+        )
+        label = selective_labels[identity]
+        selective_sequence.append(label)
+        if owner is invalid_target:
+            pair: tuple[object, object] = (
+                valid_target,
+                dict(valid_projection),
+            )
+            if mutation == "projection-substitution":
+                pair = (dict(valid_projection), valid_target)
+            reconstructed, projection = _assert_matrix_reconstruction_pair(
+                semantic_name, "selective", label, owner, expected, pair
+            )
+            selective_pairs.append((label, reconstructed, projection))
+            selective_bypasses.append(label)
+            selective_labels[id(reconstructed)] = f"{label}#fresh"
+            if mutation == "extra-delegation":
+                extra_pair = original(
+                    reconstructed, type(reconstructed), None
+                )
+                _assert_matrix_reconstruction_pair(
+                    semantic_name,
+                    "selective-extra",
+                    f"{label}#extra",
+                    reconstructed,
+                    type(reconstructed),
+                    extra_pair,
+                )
+                selective_pairs.append(
+                    (f"{label}#extra", extra_pair[0], extra_pair[1])
+                )
+                selective_delegations.append(f"{label}#extra")
+            return reconstructed, projection
+        if mutation in {"extra-selective-bypass", "omitted-delegation"} and (
+            label == selective_mutation_label
+        ):
+            pair = selective_extra_pairs[id(owner)]
+            reconstructed, projection = _assert_matrix_reconstruction_pair(
+                semantic_name, "selective", label, owner, expected, pair
+            )
+            selective_pairs.append((label, reconstructed, projection))
+            selective_labels[id(reconstructed)] = f"{label}#fresh"
+            if mutation == "extra-selective-bypass":
+                selective_bypasses.append(label)
+            return reconstructed, projection
+        pair = original(owner, expected, budget)
+        reconstructed, projection = _assert_matrix_reconstruction_pair(
+            semantic_name, "selective", label, owner, expected, pair
+        )
+        selective_pairs.append((label, reconstructed, projection))
+        selective_delegations.append(label)
+        selective_labels[id(reconstructed)] = f"{label}#fresh"
+        return reconstructed, projection
+
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", selective)
+    assert function(**invalid_arguments) is None
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", original)
+    _assert_matrix_projection_observations(
+        semantic_name, "selective", selective_pairs
+    )
+    assert tuple(selective_sequence) == (
+        RELATION_EXPECTED_RECONSTRUCTION_CALLS[semantic_name]
+    ), f"{semantic_name}:selective call inventory"
+    assert tuple(selective_bypasses) == (
+        RELATION_EXPECTED_SELECTIVE_BYPASSES[semantic_name]
+    ), f"{semantic_name}:selective bypass ledger"
+    assert tuple(selective_delegations) == (
+        RELATION_EXPECTED_SELECTIVE_DELEGATIONS[semantic_name]
+    ), f"{semantic_name}:selective delegation ledger"
+
+    classwide_target = _resealed_constructor_invalid(target)
+    classwide_arguments = {
+        **valid_arguments,
+        literal_target_name: classwide_target,
+    }
+    _classwide_occurrences, classwide_labels = _matrix_occurrence_maps(
+        semantic_name, classwide_arguments
+    )
+    classwide_sequence: list[str] = []
+    classwide_bypasses: list[str] = []
+    classwide_delegations: list[str] = []
+    classwide_pairs: list[
+        tuple[str, b1._B1Value, dict[str, object]]
+    ] = []
+    classwide_replacements: dict[
+        int, tuple[b1._B1Value, dict[str, object]]
+    ] = {}
+    for label, owner in _named_matrix_b1_values(classwide_arguments):
+        counterpart = (
+            valid_target
+            if owner is classwide_target
+            else type(owner).from_mapping(owner.to_mapping())
+        )
+        projection = counterpart.to_mapping()
+        next_counterpart = type(counterpart).from_mapping(projection)
+        classwide_replacements[id(owner)] = (
+            counterpart, dict(projection)
+        )
+        classwide_labels[id(counterpart)] = f"{label}#fresh"
+        classwide_replacements[id(counterpart)] = (
+            next_counterpart, next_counterpart.to_mapping()
+        )
+    missing_classwide_label = next(
+        (
+            label
+            for label in RELATION_EXPECTED_CLASS_WIDE_BYPASSES[semantic_name]
+            if label != literal_target_name
+        ),
+        None,
+    )
+
+    def class_wide(owner, expected, budget=None):
+        identity = id(owner)
+        assert identity in classwide_labels, (
+            f"{semantic_name}:class-wide unexpected call"
+        )
+        label = classwide_labels[identity]
+        classwide_sequence.append(label)
+        if mutation == "missing-class-wide-bypass" and (
+            label == missing_classwide_label
+        ):
+            pair = original(owner, expected, budget)
+            classwide_delegations.append(label)
+        else:
+            pair = classwide_replacements[identity]
+            classwide_bypasses.append(label)
+        reconstructed, projection = _assert_matrix_reconstruction_pair(
+            semantic_name, "class-wide", label, owner, expected, pair
+        )
+        classwide_pairs.append((label, reconstructed, projection))
+        classwide_labels[id(reconstructed)] = f"{label}#fresh"
+        return reconstructed, projection
+
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", class_wide)
+    assert function(**classwide_arguments) is None
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", original)
+    _assert_matrix_projection_observations(
+        semantic_name, "class-wide", classwide_pairs
+    )
+    assert tuple(classwide_sequence) == (
+        RELATION_EXPECTED_RECONSTRUCTION_CALLS[semantic_name]
+    ), f"{semantic_name}:class-wide call inventory"
+    assert tuple(classwide_bypasses) == (
+        RELATION_EXPECTED_CLASS_WIDE_BYPASSES[semantic_name]
+    ), f"{semantic_name}:class-wide bypass ledger"
+    assert tuple(classwide_delegations) == (
+        RELATION_EXPECTED_CLASS_WIDE_DELEGATIONS[semantic_name]
+    ), f"{semantic_name}:class-wide delegation ledger"
+
+    poison_target_name = RELATION_EXPECTED_POISON_TARGET[semantic_name]
+    poison_target = occurrences[poison_target_name]
+    cache: tuple[b1._B1Value, dict[str, object]] | None = None
+    _poison_occurrences, poison_labels = _matrix_occurrence_maps(
+        semantic_name, valid_arguments
+    )
+    poison_sequence: list[str] = []
+    poison_pairs: list[tuple[str, b1._B1Value, dict[str, object]]] = []
+    poison_count = 0
+
+    def reconstruct_then_poison(owner, expected, budget=None):
+        nonlocal cache, poison_count
+        identity = id(owner)
+        assert identity in poison_labels, f"{semantic_name}:poison unexpected call"
+        label = poison_labels[identity]
+        poison_sequence.append(label)
+        pair = original(owner, expected, budget)
+        reconstructed, projection = _assert_matrix_reconstruction_pair(
+            semantic_name, "poison", label, owner, expected, pair
+        )
+        poison_pairs.append((label, reconstructed, projection))
+        poison_labels[id(reconstructed)] = f"{label}#fresh"
+        if owner is poison_target:
+            poison_count += 1
+            if cache is None:
+                cache = reconstructed, dict(projection)
+                poisoned_values = list(
+                    object.__getattribute__(owner, "_values")
+                )
+                poisoned_values[0] = "poisoned-original-schema"
+                object.__setattr__(owner, "_values", tuple(poisoned_values))
+            return cache[0], dict(cache[1])
+        return reconstructed, projection
+
+    monkeypatch.setattr(
+        b1, "_reconstruct_exact_b1_value", reconstruct_then_poison
+    )
+    assert function(**valid_arguments) is None
+    monkeypatch.setattr(b1, "_reconstruct_exact_b1_value", original)
+    _assert_matrix_projection_observations(
+        semantic_name, "poison", poison_pairs
+    )
+    assert tuple(poison_sequence) == (
+        RELATION_EXPECTED_RECONSTRUCTION_CALLS[semantic_name]
+    ), f"{semantic_name}:poison call inventory"
+    assert poison_count == 1, f"{semantic_name}:poison selected count"
+    with pytest.raises(b1.RW0PhaseValueError) as poisoned:
+        original(poison_target, type(poison_target))
+    assert poisoned.value.reason == "invalid_enum", (
+        f"{semantic_name}:poison direct reconstruction"
+    )
+
+
+@pytest.mark.parametrize("semantic_name", SEMANTIC_RELATION_NAMES)
+def test_every_semantic_relation_has_all_four_reconstruction_controls(
+    semantic_name: str, tmp_path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _exercise_relation_reconstruction_matrix(
+        semantic_name, tmp_path, monkeypatch
+    )
+
+
+@pytest.mark.parametrize(
+    ("kind", "diagnostic"),
+    (
+        ("wrong-selected-object", "target literal"),
+        ("missing-class-wide-bypass", "class-wide bypass ledger"),
+        ("extra-selective-bypass", "selective bypass ledger"),
+        ("projection-substitution", "pair exact value"),
+        ("omitted-delegation", "selective delegation ledger"),
+        ("extra-delegation", "selective delegation ledger"),
+    ),
+)
+def test_audit_surviving_matrix_mutants_are_rejected(
+    kind: str,
+    diagnostic: str,
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(AssertionError, match=diagnostic):
+        _exercise_relation_reconstruction_matrix(
+            "validate_authority_observation",
+            tmp_path,
+            monkeypatch,
+            mutation=kind,
+        )

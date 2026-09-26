@@ -430,6 +430,24 @@ No current custody, adapter, supervisor, worker, capsule, validation, review, mo
 Direct-local route-local process and cancellation ownership does not absorb ES-route authority; no successor, Git, or publication effect follows RW0.
 Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->
-RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B1 remains unchanged. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability remains seam-bounded and unimplemented. RW0-C retains durable fact and acceptance ownership, RW0-D/E retain process and live-proof gates, and Execution Substrate retains admission and runtime ownership.
+RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts; their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability is implemented separately as private, pure, no-I/O semantics owned by `.docs/rw0-b2-capability.md` and does not widen Wire ownership. RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts; RW0-C/D/E durable, transport, process, provider, credential, live-proof, and runtime mechanics remain future, and Execution Substrate retains admission and runtime ownership.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_END -->
+<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->
+RW0-B2-Capability implements private, pure, no-I/O worker-mechanism capability
+declaration, independently authored supplied observation, and Coordinator
+qualification values plus one pure qualification relation. It binds the fixed
+RW0-B2-Wire profile `rw0-wire-nwpf-v1` with digest
+`470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`
+and consumes one private B1 host-validation snapshot seam after B1 reconstructs
+the complete applicable B1, C2A, and lineage graph through protected owners.
+It authenticates no source, proves no physical process
+behavior, grants no permission or semantic acceptance, persists no fact,
+contacts no worker/provider/host, and selects no CLI, App Server, credential,
+provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
+is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
+RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
+durable, transport, process, provider, credential, live-proof, and runtime
+mechanics remain future; Execution Substrate retains admission and runtime
+authority.
+<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->

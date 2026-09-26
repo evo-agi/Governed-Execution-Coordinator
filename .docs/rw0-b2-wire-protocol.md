@@ -2,9 +2,21 @@
 
 ## Current status and authority
 
-RW0-B2-Wire currently implements one private, pure, no-I/O source module for NWPF v1 representational framing and canonical decoding, two safe unauthenticated source-claim values, a closed worker-result tuple, pure relations, a process/result classifier, and a fixed protocol profile. Physical transport framing and stream/process plumbing remain deferred. It adds no caller, package-root export, transport, source authentication, supervisor, worker, live process, filesystem, database, network, model, Codex, Git, publication, Bridge, ES call, executable permission, durable truth, acceptance, or Capability implementation.
+RW0-B2-Wire currently implements one private, pure, no-I/O source module for NWPF v1 representational framing and canonical decoding, two safe unauthenticated source-claim values, a closed worker-result tuple, pure relations, a process/result classifier, and a fixed protocol profile. Physical transport framing and stream/process plumbing remain deferred. It adds no caller, package-root export, transport, source authentication, supervisor, worker, live process, filesystem, database, network, model, Codex, Git, publication, Bridge, ES call, executable permission, durable truth, acceptance, or ownership of the separately implemented Capability semantics.
 
-RW0-A remains the target phase-entry model; RW0-B1's pure phase-entry values and C2A's semantic values and six relations are unchanged. RW0-C owns any future durable facts, evidence membership, recovery, terminal outcome, and acceptance latch. RW0-D/E own offline process proof and separately authorized live proof. Execution Substrate owns admission and runtime lifecycle on the ES route. Direct-local and ES use the same semantic protocol without selecting transport or provider. Capability remains seam-bounded and unimplemented.
+RW0-B2-Wire does not own or alter RW0-B1 or C2A schema,
+canonical-identity, semantic-outcome, or authority contracts; their protected
+owner reconstruction and occurrence-work accounting are hardened separately
+for fail-closed Capability composition.
+
+RW0-A remains the target phase-entry model; RW0-B1, RW0-B2-Wire, and
+RW0-B2-Capability private semantics are current implemented contracts. RW0-C
+owns future durable facts, evidence membership, recovery, terminal outcome,
+and acceptance latch. RW0-D/E own future offline process proof and separately
+authorized live proof. Execution Substrate owns admission and runtime lifecycle
+on the ES route. Direct-local and ES use the same semantic protocol without
+selecting transport or provider. The separate Capability semantics are
+implemented under `.docs/rw0-b2-capability.md` and do not widen Wire ownership.
 
 ## Canonical records and digests
 

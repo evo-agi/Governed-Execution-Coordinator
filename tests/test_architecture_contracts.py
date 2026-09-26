@@ -1069,6 +1069,9 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     )
 
     wire_owner = _compact(_text(".docs/rw0-b2-wire-protocol.md"))
+    capability_owner = _compact(_text(".docs/rw0-b2-capability.md"))
+    capability_source = _text(
+        "src/ge_nwp_coordinator/_rw0_worker_mechanism_capability_values.py")
     package_root = _text("src/ge_nwp_coordinator/__init__.py")
     state_store = _text("src/ge_nwp_coordinator/state_store.py")
     writer_session = _text("src/ge_nwp_coordinator/sqlite_writer_session.py")
@@ -1077,11 +1080,12 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
         for phrase in (
             "RW0-B2-Wire currently implements one private, pure, no-I/O source module",
             "It adds no caller, package-root export, transport, source authentication",
-            "RW0-B1's pure phase-entry values and C2A's semantic values and six relations are unchanged",
-            "RW0-C owns any future durable facts",
-            "RW0-D/E own offline process proof and separately authorized live proof",
+            "RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts",
+            "their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition",
+            "RW0-C owns future durable facts",
+            "RW0-D/E own future offline process proof and separately authorized live proof",
             "Execution Substrate owns admission and runtime lifecycle",
-            "Capability remains seam-bounded and unimplemented",
+            "The separate Capability semantics are implemented under `.docs/rw0-b2-capability.md` and do not widen Wire ownership",
             "The profile is absent from frames and proves no authenticity, permission, acceptance, or mechanism choice",
         ):
             assert phrase in owner
@@ -1090,8 +1094,22 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
 
     require_private_wire_boundary(wire_owner)
     assert "RW0_B2_WIRE_CURRENT_STATUS_BEGIN" in worker
+    assert "RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN" in worker
     assert "470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454" in worker
+    for phrase in (
+        "private, pure, deterministic, no-I/O semantic layer",
+        "does not contact or execute a worker, provider, host, CLI, or App Server",
+        "introduces no public API, schema migration, durable state, process behavior",
+        "No declaration, observation, qualification, digest, profile, provenance, or report authenticates a source",
+        "RW0-D/E retain the CLI/App Server/provider choice",
+        "Execution Substrate retains admission and runtime authority",
+    ):
+        assert phrase in capability_owner
+    assert "__all__: tuple[str, ...] = ()" in capability_source
+    assert "import sqlite3" not in capability_source
+    assert "subprocess" not in capability_source
     assert "RW0Wire" not in package_root
+    assert "RW0WorkerMechanismCapability" not in package_root
     assert "RW0Wire" not in state_store
     assert "RW0Wire" not in writer_session
     contradictory = wire_owner.replace(

@@ -118,6 +118,30 @@ encoding remain deferred.
 fresh nested lists and dictionaries. They are explicit private-data accessors;
 their contents are not log-safe merely because the accessors exist.
 
+## Private Owner Reconstruction
+
+The current module also owns one private, non-exported exact-class
+reconstruction seam for `CeilingsV1`, `CapsuleEntryV1`, `WorkSpecV1`,
+`AttemptFenceV1`, `EffectFenceV1`, `WorkerCommandV1`, `DeliveryEnvelopeV1`,
+and `CandidateCapsuleManifestV1`. `WorkerObservationV1` is deliberately outside
+this seam. The helper reads only owner-known private slots, uses a non-recursive
+stack, accepts only exact built-in container shapes, detects active-path cycles,
+and recharges shared aliases at every occurrence. It invokes no semantic method
+on the supplied object before it has a complete raw snapshot, then reserves the
+trusted reconstruction tariff and returns a fresh exact value plus a fresh
+plain projection.
+
+The exact maximum raw graph work `G` and complete reconstruction tariff `2G`
+are: `CeilingsV1` 16/32, `CapsuleEntryV1` 8/16, `WorkSpecV1` 86/172,
+`AttemptFenceV1` 46/92, `EffectFenceV1` 51/102, `WorkerCommandV1` 58/116,
+`DeliveryEnvelopeV1` 16/32, and `CandidateCapsuleManifestV1` 49/98. Ordinary
+owner failures are content-free and process-control exceptions propagate.
+
+This is an occurrence-work bound. It is not a finite integer-bit-length,
+serialized-byte, SQLite-width, or wall-clock bound, and it changes no field,
+schema, enum, scalar domain, relation, canonical byte, digest, public method,
+or authority meaning.
+
 ## Strict External Types And Validation Order
 
 Every `create()` and `from_mapping()` boundary requires exact built-in types:

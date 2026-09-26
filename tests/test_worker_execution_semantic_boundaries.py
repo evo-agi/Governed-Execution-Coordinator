@@ -192,6 +192,32 @@ def test_exact_one_c2a1_production_source_module_and_internal_export_posture() -
         assert not hasattr(ge_nwp_coordinator, name)
 
 
+def test_private_owner_reconstruction_has_closed_class_inventory_and_no_export() -> None:
+    expected = (
+        (semantic_values.CeilingsV1, 16),
+        (semantic_values.CapsuleEntryV1, 8),
+        (semantic_values.WorkSpecV1, 86),
+        (semantic_values.AttemptFenceV1, 46),
+        (semantic_values.EffectFenceV1, 51),
+        (semantic_values.WorkerCommandV1, 58),
+        (semantic_values.DeliveryEnvelopeV1, 16),
+        (semantic_values.CandidateCapsuleManifestV1, 49),
+    )
+    assert semantic_values._EXACT_WORKER_EXECUTION_RECONSTRUCTION_GRAPHS == expected
+    assert all(
+        name not in ge_nwp_coordinator.__dict__
+        for name in (
+            "_WorkerExecutionReconstructionBudget",
+            "_exact_worker_execution_reconstruction_work",
+            "_reconstruct_exact_worker_execution_value",
+        )
+    )
+    assert all(
+        value_type is not semantic_values.WorkerObservationV1
+        for value_type, _work in expected
+    )
+
+
 def test_source_specific_import_and_ast_boundary_is_finite() -> None:
     source = SOURCE_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)

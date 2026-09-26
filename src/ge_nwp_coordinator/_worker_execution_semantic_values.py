@@ -2201,6 +2201,253 @@ class CandidateCapsuleManifestV1(_TopLevelValue):
         return self._to_mapping()
 
 
+class _WorkerExecutionReconstructionFailure(Exception):
+    """Private control-flow sentinel for exact owner reconstruction."""
+
+    __slots__ = ()
+
+
+class _WorkerExecutionReconstructionBudget:
+    """Occurrence-work meter for one C2A owner reconstruction."""
+
+    __slots__ = ("remaining",)
+
+    def __init__(self, limit: int) -> None:
+        if type(limit) is not int or limit < 0:
+            raise _WorkerExecutionReconstructionFailure
+        self.remaining = limit
+
+    def consume(self, amount: int = 1) -> None:
+        if (
+            type(amount) is not int
+            or amount < 0
+            or amount > self.remaining
+        ):
+            raise _WorkerExecutionReconstructionFailure
+        self.remaining -= amount
+
+
+_EXACT_WORKER_EXECUTION_RECONSTRUCTION_GRAPHS = (
+    (CeilingsV1, 16),
+    (CapsuleEntryV1, 8),
+    (WorkSpecV1, 86),
+    (AttemptFenceV1, 46),
+    (EffectFenceV1, 51),
+    (WorkerCommandV1, 58),
+    (DeliveryEnvelopeV1, 16),
+    (CandidateCapsuleManifestV1, 49),
+)
+
+
+def _exact_worker_execution_reconstruction_work(
+    expected: type[object],
+) -> int:
+    for candidate, graph_work in _EXACT_WORKER_EXECUTION_RECONSTRUCTION_GRAPHS:
+        if expected is candidate:
+            return graph_work * 2
+    _fail("relation_mismatch", "_exact_worker_execution_reconstruction_work")
+
+
+def _worker_execution_tuple_field_limit(
+    owner: type[object], field: str,
+) -> int | None:
+    if owner is WorkSpecV1:
+        return {
+            "authorized_paths": 3,
+            "requirements": 32,
+            "exclusions": 32,
+        }.get(field)
+    if owner is AttemptFenceV1:
+        return {"path_ceiling": 3, "allowed_effect_classes": 5}.get(field)
+    if owner is EffectFenceV1 or owner is WorkerCommandV1:
+        return 3 if field == "path_ceiling" else None
+    if owner is CandidateCapsuleManifestV1:
+        return 3 if field == "entries" else None
+    return None
+
+
+def _worker_execution_nested_owner(
+    owner: type[object], field: str,
+) -> type[_ImmutableValue] | None:
+    if owner is AttemptFenceV1 and field == "aggregate_ceilings":
+        return CeilingsV1
+    if (
+        (owner is EffectFenceV1 or owner is WorkerCommandV1)
+        and field == "effect_ceilings"
+    ):
+        return CeilingsV1
+    return None
+
+
+def _raw_worker_execution_projection(
+    value: object,
+    expected: type[_ImmutableValue],
+    budget: _WorkerExecutionReconstructionBudget,
+) -> tuple[dict[str, object], int]:
+    """Snapshot one exact owner graph without invoking supplied behavior."""
+
+    starting = budget.remaining
+    active: set[int] = set()
+    projection: dict[str, object] = {}
+    events: list[tuple[object, ...]] = []
+
+    budget.consume()
+    if type(value) is not expected:
+        raise _WorkerExecutionReconstructionFailure
+    active.add(id(value))
+    events.append(("leave", value))
+    for field in reversed(expected._FIELDS):
+        events.append(("field", value, expected, field, projection))
+
+    while events:
+        event = events.pop()
+        kind = typing.cast(str, event[0])
+        if kind == "leave":
+            active.discard(id(event[1]))
+            continue
+
+        if kind == "field":
+            owner_value = event[1]
+            owner_type = typing.cast(type[_ImmutableValue], event[2])
+            field = typing.cast(str, event[3])
+            target = typing.cast(dict[str, object], event[4])
+            budget.consume()
+            try:
+                member = object.__getattribute__(owner_value, f"_{field}")
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                raise
+            except Exception as error:
+                raise _WorkerExecutionReconstructionFailure from error
+
+            tuple_limit = _worker_execution_tuple_field_limit(owner_type, field)
+            nested_owner = _worker_execution_nested_owner(owner_type, field)
+            if tuple_limit is not None:
+                if type(member) is not tuple:
+                    raise _WorkerExecutionReconstructionFailure
+                sequence = typing.cast(tuple[object, ...], member)
+                if len(sequence) > tuple_limit:
+                    raise _WorkerExecutionReconstructionFailure
+                identity = id(sequence)
+                if identity in active:
+                    raise _WorkerExecutionReconstructionFailure
+                result: list[object] = []
+                target[field] = result
+                active.add(identity)
+                events.append(("leave", sequence))
+                item_owner = (
+                    CapsuleEntryV1
+                    if owner_type is CandidateCapsuleManifestV1
+                    and field == "entries"
+                    else None
+                )
+                if sequence:
+                    events.append(
+                        ("item", sequence, item_owner, result, 0)
+                    )
+                continue
+            if nested_owner is not None:
+                if type(member) is not nested_owner:
+                    raise _WorkerExecutionReconstructionFailure
+                identity = id(member)
+                if identity in active:
+                    raise _WorkerExecutionReconstructionFailure
+                nested_projection: dict[str, object] = {}
+                target[field] = nested_projection
+                active.add(identity)
+                events.append(("leave", member))
+                for nested_field in reversed(nested_owner._FIELDS):
+                    events.append(
+                        (
+                            "field",
+                            member,
+                            nested_owner,
+                            nested_field,
+                            nested_projection,
+                        )
+                    )
+                continue
+            if type(member) not in (str, int, type(None)):
+                raise _WorkerExecutionReconstructionFailure
+            target[field] = member
+            continue
+
+        if kind == "item":
+            sequence = typing.cast(tuple[object, ...], event[1])
+            item_owner = typing.cast(type[_ImmutableValue] | None, event[2])
+            target_list = typing.cast(list[object], event[3])
+            index = typing.cast(int, event[4])
+            budget.consume()
+            member = sequence[index]
+            if index + 1 < len(sequence):
+                events.append(
+                    ("item", sequence, item_owner, target_list, index + 1)
+                )
+            if item_owner is None:
+                if type(member) is not str:
+                    raise _WorkerExecutionReconstructionFailure
+                target_list.insert(index, member)
+                continue
+            if type(member) is not item_owner:
+                raise _WorkerExecutionReconstructionFailure
+            identity = id(member)
+            if identity in active:
+                raise _WorkerExecutionReconstructionFailure
+            nested_projection = {}
+            target_list.insert(index, nested_projection)
+            active.add(identity)
+            events.append(("leave", member))
+            for nested_field in reversed(item_owner._FIELDS):
+                events.append(
+                    (
+                        "field",
+                        member,
+                        item_owner,
+                        nested_field,
+                        nested_projection,
+                    )
+                )
+            continue
+
+        raise _WorkerExecutionReconstructionFailure
+
+    return projection, starting - budget.remaining
+
+
+def _reconstruct_exact_worker_execution_value(
+    value: object,
+    expected: type[object],
+    budget: _WorkerExecutionReconstructionBudget | None = None,
+) -> tuple[_ImmutableValue, dict[str, object]]:
+    """Return a fresh exact C2A value and its validated plain projection."""
+
+    failed = False
+    reconstructed: object = None
+    projection: dict[str, object] = {}
+    try:
+        maximum = _exact_worker_execution_reconstruction_work(expected)
+        if budget is None:
+            exact_budget = _WorkerExecutionReconstructionBudget(maximum)
+        elif type(budget) is _WorkerExecutionReconstructionBudget:
+            exact_budget = budget
+        else:
+            raise _WorkerExecutionReconstructionFailure
+        exact_expected = typing.cast(type[_ImmutableValue], expected)
+        projection, raw_work = _raw_worker_execution_projection(
+            value, exact_expected, exact_budget
+        )
+        exact_budget.consume(raw_work)
+        reconstructed = exact_expected.from_mapping(projection)
+        if type(reconstructed) is not exact_expected:
+            raise _WorkerExecutionReconstructionFailure
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    if failed:
+        _fail("relation_mismatch", "_reconstruct_exact_worker_execution_value")
+    return typing.cast(_ImmutableValue, reconstructed), projection
+
+
 def _prevalidate_worker_observation_mapping_types(
     mapping: dict[str, object],
 ) -> None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy, deepcopy
 import pickle
 import ast
 import inspect
@@ -28,15 +28,15 @@ BLOCKING_REASONS = (
 
 
 def test_retrieval_budget_literal_matches_complete_occurrence_formula() -> None:
-    expected = 87 + 17 + 62 + 46 + 3 * 38 + 1 + 2 + 1 + 8 + 30 + 6
-    assert expected == 374
+    expected = 296 + 51 + 202 + 154 + 3 * 114 + 1 + 92 + 102 + 1 + 8 + 30 + 6
+    assert expected == 1285
     function = ast.parse(inspect.getsource(b1.validate_retrieval_event_sequence)).body[0]
     limits = [node.args[0].value for node in ast.walk(function)
               if isinstance(node, ast.Call)
               and isinstance(node.func, ast.Name)
               and node.func.id == "_WorkBudget"
               and len(node.args) == 1 and isinstance(node.args[0], ast.Constant)]
-    assert limits == [374]
+    assert limits == [1285]
 
 
 def reseal(cls: type, mapping: dict[str, object]) -> dict[str, object]:
@@ -195,6 +195,149 @@ def test_budget_formula_exact_and_one_over_with_alias_and_cycle() -> None:
     cycle.append(cycle)
     with pytest.raises(b1.RW0PhaseValueError) as caught:
         b1._WorkBudget(100).walk(cycle)
+    assert caught.value.reason == "graph_cycle"
+
+
+_OWNER_BUDGETS = (
+    (b1.RW0PhaseEntryBasisV1, 122, 174, 296, 592),
+    (b1.RW0AuthorityVerificationObservationV1, 78, 124, 202, 404),
+    (b1.RW0SubordinateAuthorizationProposalV1, 62, 92, 154, 308),
+    (b1.RW0CustodyAvailabilityObservationV1, 17, 34, 51, 102),
+    (b1.RW0RetrievalCapabilityEventObservationV1, 38, 76, 114, 228),
+    (b1.RW0RemoteHostReadinessObservationV1, 40, 80, 120, 240),
+    (b1.RW0EffectHostQualificationV1, 46, 92, 138, 276),
+    (b1.RW0TerminalOutcomeV1, 32, 64, 96, 192),
+)
+
+
+def _maximum_owner_payload(cls: type) -> dict[str, object]:
+    payload = mapping_for(cls)
+    if cls is b1.RW0AuthorityVerificationObservationV1:
+        payload = reseal(
+            cls, {**payload, "allowed_effect_classes": list(EFFECT_CLASSES)}
+        )
+    return payload
+
+
+@pytest.mark.parametrize(
+    "cls,stored,construction,reconstruction,equality", _OWNER_BUDGETS
+)
+def test_exact_owner_reconstruction_and_equality_budgets(
+    monkeypatch: pytest.MonkeyPatch,
+    cls: type,
+    stored: int,
+    construction: int,
+    reconstruction: int,
+    equality: int,
+) -> None:
+    payload = _maximum_owner_payload(cls)
+    value = cls.from_mapping(payload)
+    peer = cls.from_mapping(payload)
+    assert (
+        cls._STORED_LIMIT,
+        cls._LIMIT,
+        cls._RECONSTRUCTION_LIMIT,
+        cls._EQUALITY_LIMIT,
+    ) == (stored, construction, reconstruction, equality)
+
+    budget = b1._WorkBudget(reconstruction)
+    rebuilt, projection = b1._reconstruct_exact_b1_value(value, cls, budget)
+    assert budget.remaining == 0
+    assert type(rebuilt) is cls and rebuilt is not value
+    assert projection == payload and projection is not payload
+    with pytest.raises(b1.RW0PhaseValueError) as caught:
+        b1._reconstruct_exact_b1_value(
+            value, cls, b1._WorkBudget(reconstruction - 1)
+        )
+    assert caught.value.reason == "cumulative_work_exhausted"
+
+    original = b1._WorkBudget
+    measured: list[object] = []
+
+    class Measured(original):
+        def __init__(self, limit: int) -> None:
+            super().__init__(limit)
+            if limit == equality:
+                measured.append(self)
+
+    monkeypatch.setattr(b1, "_WorkBudget", Measured)
+    assert value == peer
+    assert len(measured) == 1
+    assert measured[0].remaining == 0
+
+    class OneUnder(original):
+        def __init__(self, limit: int) -> None:
+            super().__init__(limit - 1 if limit == equality else limit)
+
+    monkeypatch.setattr(b1, "_WorkBudget", OneUnder)
+    with pytest.raises(b1.RW0PhaseValueError) as caught:
+        value == peer
+    assert caught.value.reason == "cumulative_work_exhausted"
+
+
+@pytest.mark.parametrize(
+    "surface",
+    (
+        "field", "mapping", "identity", "canonical", "digest", "copy",
+        "deepcopy", "equality",
+    ),
+)
+def test_every_state_revealing_surface_reconstructs_before_read(
+    surface: str,
+) -> None:
+    cls = b1.RW0RemoteHostReadinessObservationV1
+    valid = cls.from_mapping(mapping_for(cls))
+    damaged = cls.from_mapping(mapping_for(cls))
+    members = object.__getattribute__(damaged, "_values")
+    object.__setattr__(damaged, "_values", members[:-1])
+    with pytest.raises(AttributeError):
+        getattr(damaged, "_values")
+    actions = {
+        "field": lambda: damaged.status,
+        "mapping": damaged.to_mapping,
+        "identity": damaged.identity_mapping,
+        "canonical": damaged.canonical_identity_bytes,
+        "digest": damaged.computed_digest,
+        "copy": lambda: copy(damaged),
+        "deepcopy": lambda: deepcopy(damaged),
+        "equality": lambda: damaged == valid,
+    }
+    with pytest.raises(b1.RW0PhaseValueError) as caught:
+        actions[surface]()
+    assert caught.value.reason == "relation_mismatch"
+    assert caught.value.__cause__ is None
+
+
+def test_valid_copy_surfaces_preserve_immutable_identity_after_reconstruction() -> None:
+    for cls, _stored, _construction, _reconstruction, _equality in _OWNER_BUDGETS:
+        value = cls.from_mapping(_maximum_owner_payload(cls))
+        assert copy(value) is value
+        assert deepcopy(value) is value
+
+
+def test_raw_owner_walk_is_iterative_and_recharges_shared_occurrences() -> None:
+    deep: object = "leaf"
+    for _ in range(5_000):
+        deep = [deep]
+    with pytest.raises(b1.RW0PhaseValueError) as caught:
+        b1._WorkBudget(100).walk(deep)
+    assert caught.value.reason == "cumulative_work_exhausted"
+
+    shared: list[object] = ["leaf"]
+    budget = b1._WorkBudget(5)
+    budget.walk([shared, shared])
+    assert budget.remaining == 0
+
+    value = b1.RW0PhaseEntryBasisV1.from_mapping(
+        mapping_for(b1.RW0PhaseEntryBasisV1)
+    )
+    cycle: list[object] = []
+    cycle.append(cycle)
+    members = list(object.__getattribute__(value, "_values"))
+    members[type(value)._FIELDS.index("selection_key")] = cycle
+    object.__setattr__(value, "_values", tuple(members))
+    with pytest.raises(b1.RW0PhaseValueError) as caught:
+        value.to_mapping()
     assert caught.value.reason == "graph_cycle"
 
 
@@ -454,8 +597,10 @@ def test_fourth_actual_constructor_maximum_and_one_over_budget(monkeypatch, cls,
             super().__init__(given)
             instances.append(self)
     monkeypatch.setattr(b1, "_WorkBudget", Measured)
-    assert cls.from_mapping(payload).to_mapping() == payload
+    constructed = cls.from_mapping(payload)
     assert len(instances) == 1 and instances[0].remaining == 0
+    monkeypatch.setattr(b1, "_WorkBudget", original)
+    assert constructed.to_mapping() == payload
     class OneLess(original):
         def __init__(self, given):
             assert given == limit

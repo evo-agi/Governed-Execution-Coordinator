@@ -514,11 +514,14 @@ def test_status_owner_and_five_cross_references_are_synchronized() -> None:
     bodies = [_status((ROOT / path).read_text(), *title)
               for path, title in zip(PATHS, titles, strict=True)]
     assert len(set(bodies)) == 1
-    for phrase in (PROFILE_DIGEST, "RW0-B1 remains unchanged",
-                   "Capability remains seam-bounded and unimplemented",
+    for phrase in (PROFILE_DIGEST,
+                   "their protected owner reconstruction and occurrence-work accounting are hardened separately",
+                   "Capability is implemented separately as private, pure, no-I/O semantics",
+                   ".docs/rw0-b2-capability.md",
+                   "does not widen Wire ownership",
                    "private, pure, no-I/O NWPF v1 representational framing",
                    "Physical transport framing and stream/process plumbing remain deferred",
-                   "RW0-C", "RW0-D/E", "Execution Substrate"):
+                   "RW0-C/D/E", "Execution Substrate"):
         assert phrase in bodies[0]
     stale = (
         "Exact custodian, transport, framing, Codex seam, schema, "
@@ -558,3 +561,27 @@ def test_private_import_and_public_boundary() -> None:
     import ge_nwp_coordinator as package
     assert not hasattr(package, "RW0WireWorkerResultV1")
     assert not hasattr(package, "wire_profile_mapping")
+    capability_path = ROOT / "src/ge_nwp_coordinator/_rw0_worker_mechanism_capability_values.py"
+    production_importers = []
+    for candidate in (ROOT / "src/ge_nwp_coordinator").rglob("*.py"):
+        if candidate == path:
+            continue
+        source = candidate.read_text()
+        if "_rw0_wire_protocol_values" not in source:
+            continue
+        production_importers.append(candidate)
+        assert candidate == capability_path
+        owner_imports = [
+            node for node in ast.parse(source).body
+            if isinstance(node, ast.ImportFrom)
+            and node.level == 1
+            and node.module == "_rw0_wire_protocol_values"
+        ]
+        assert len(owner_imports) == 1
+        assert {alias.name for alias in owner_imports[0].names} == {"wire_profile_mapping"}
+    assert production_importers == [capability_path]
+    assert "_rw0_worker_mechanism_capability_values" not in path.read_text()
+    capability_owner = (ROOT / ".docs/rw0-b2-capability.md").read_text()
+    assert capability_owner.count("<!-- RW0_B2_CAPABILITY_OWNER_BEGIN -->") == 1
+    assert capability_owner.count("<!-- RW0_B2_CAPABILITY_OWNER_END -->") == 1
+    assert "sole detailed owner" in capability_owner

@@ -20,12 +20,15 @@ from ._worker_execution_semantic_values import (
     EffectFenceV1,
     WorkSpecV1,
     WorkerCommandV1,
+    WorkerExecutionValueError,
     _CEILING_FIELDS,
     _DELIVERABLE_EFFECT_CLASSES,
     _EFFECT_CLASSES,
     _ceilings_at_most,
+    _exact_worker_execution_reconstruction_work,
     _local_git_effect_ceilings,
     _non_git_effect_ceilings,
+    _reconstruct_exact_worker_execution_value,
     validate_authoring_relation,
     validate_delivery_relation,
     validate_effect_relation,
@@ -33,8 +36,10 @@ from ._worker_execution_semantic_values import (
 from ._development_pre_execution_plan_disposition_contracts import (
     CanonicalC2B3DLineage,
     PreExecutionPlanDispositionResultProjectionV1,
+    _EXACT_C2B3D_LINEAGE_RECONSTRUCTION_WORK,
     _K8_FIELDS,
     _L34_FIELDS,
+    _reconstruct_exact_c2b3d_lineage,
 )
 from ._cognitive_proposal_row_values import (
     DevelopmentModelProposalRowValue,
@@ -172,30 +177,47 @@ class _WorkBudget:
         self.remaining -= amount
 
     def walk(self, value: object) -> None:
-        if type(value) in (bytes, bytearray, memoryview):
-            _fail("privacy_forbidden_material", "value")
-        if type(value) in (dict, list, tuple):
-            identity = id(value)
+        events: list[tuple[str, object]] = [("visit", value)]
+        while events:
+            event, member = events.pop()
+            if event == "leave":
+                self.active.remove(id(member))
+                continue
+            if event == "dict-member":
+                self.charge()
+                if type(member) in (bytes, bytearray, memoryview):
+                    _fail("privacy_forbidden_material", "value")
+                if type(member) in (dict, list, tuple):
+                    events.append(("visit", member))
+                continue
+            if event != "visit":
+                _fail("relation_mismatch", "work_budget")
+            if type(member) in (bytes, bytearray, memoryview):
+                _fail("privacy_forbidden_material", "value")
+            if type(member) not in (dict, list, tuple):
+                self.charge()
+                continue
+            identity = id(member)
             if identity in self.active:
                 _fail("graph_cycle", "value_graph")
             self.charge()
             self.active.add(identity)
-            try:
-                if type(value) is dict:
-                    mapping = typing.cast(dict[object, object], value)
-                    for member in mapping.values():
-                        self.charge()
-                        if type(member) in (dict, list, tuple):
-                            self.walk(member)
-                        elif type(member) in (bytes, bytearray, memoryview):
-                            _fail("privacy_forbidden_material", "value")
-                else:
-                    for member in typing.cast(list[object] | tuple[object, ...], value):
-                        self.walk(member)
-            finally:
-                self.active.remove(identity)
-        else:
-            self.charge()
+            events.append(("leave", member))
+            if type(member) is dict:
+                mapping = typing.cast(dict[object, object], member)
+                if len(mapping) > self.remaining:
+                    _fail("cumulative_work_exhausted", "work_budget")
+                pairs = tuple(mapping.items())
+                for key, item in reversed(pairs):
+                    if type(key) is not str:
+                        _fail("invalid_field_type", "value")
+                    events.append(("dict-member", item))
+            else:
+                sequence = typing.cast(list[object] | tuple[object, ...], member)
+                if len(sequence) > self.remaining:
+                    _fail("cumulative_work_exhausted", "work_budget")
+                for item in reversed(sequence):
+                    events.append(("visit", item))
 
 
 def _closed_mapping(payload: object, fields: tuple[str, ...], label: str) -> dict[str, object]:
@@ -375,14 +397,78 @@ def _effects(value: object) -> tuple[str, ...]:
     return checked
 
 
-def _external(member: object) -> object:
+def _trusted_external(member: object) -> object:
     if type(member) is CanonicalC2B3DLineage:
         return typing.cast(CanonicalC2B3DLineage, member).to_mapping()
     if type(member) is CeilingsV1:
         return typing.cast(CeilingsV1, member).to_mapping()
     if type(member) is tuple:
-        return [_external(item) for item in typing.cast(tuple[object, ...], member)]
+        return [
+            _trusted_external(item)
+            for item in typing.cast(tuple[object, ...], member)
+        ]
     return member
+
+
+def _trusted_b1_projection(
+    expected: type[_B1Value], values: tuple[object, ...],
+) -> dict[str, object]:
+    return {
+        name: _trusted_external(member)
+        for name, member in zip(expected._FIELDS, values, strict=True)
+    }
+
+
+def _trusted_b1_digest(
+    expected: type[_B1Value], projection: dict[str, object],
+) -> str:
+    identity = dict(projection)
+    identity.pop(expected._FIELDS[-1])
+    return _domain_digest(expected._SCHEMA + ".identity", identity)
+
+
+class _B1RelationView:
+    """Private attribute view over one freshly reconstructed B1 value."""
+
+    __slots__ = ("_fields", "_members", "_projection")
+
+    def __init__(
+        self,
+        expected: type[_B1Value],
+        members: tuple[object, ...],
+        projection: dict[str, object],
+    ) -> None:
+        object.__setattr__(self, "_fields", expected._FIELDS)
+        object.__setattr__(self, "_members", members)
+        object.__setattr__(self, "_projection", projection)
+
+    def __getattr__(self, name: str) -> object:
+        fields = typing.cast(
+            tuple[str, ...], object.__getattribute__(self, "_fields")
+        )
+        if name not in fields:
+            raise AttributeError(name)
+        members = typing.cast(
+            tuple[object, ...], object.__getattribute__(self, "_members")
+        )
+        return members[fields.index(name)]
+
+    def to_mapping(self) -> dict[str, object]:
+        return dict(
+            typing.cast(
+                dict[str, object],
+                object.__getattribute__(self, "_projection"),
+            )
+        )
+
+
+def _b1_relation_view(
+    value: _B1Value, projection: dict[str, object],
+) -> _B1RelationView:
+    members = typing.cast(
+        tuple[object, ...], object.__getattribute__(value, "_values")
+    )
+    return _B1RelationView(type(value), members, projection)
 
 
 def _reject_subclass(cls: type[object], **kwargs: object) -> typing.NoReturn:
@@ -395,6 +481,9 @@ class _B1Value:
     _FIELDS: tuple[str, ...] = ()
     _SCHEMA = ""
     _LIMIT = 0
+    _STORED_LIMIT = 0
+    _RECONSTRUCTION_LIMIT = 0
+    _EQUALITY_LIMIT = 0
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         raise TypeError("construction disabled")
@@ -405,10 +494,18 @@ class _B1Value:
     def __delattr__(self, name: str) -> typing.NoReturn:
         raise AttributeError("immutable")
 
-    def __getattr__(self, name: str) -> object:
-        if name in type(self)._FIELDS:
-            return object.__getattribute__(self, "_values")[type(self)._FIELDS.index(name)]
-        raise AttributeError(name)
+    def __getattribute__(self, name: str) -> object:
+        if name == "_values":
+            raise AttributeError(name)
+        expected = type(self)
+        if name in expected._FIELDS:
+            rebuilt, _projection = _reconstruct_exact_b1_value(self, expected)
+            members = typing.cast(
+                tuple[object, ...],
+                object.__getattribute__(rebuilt, "_values"),
+            )
+            return members[expected._FIELDS.index(name)]
+        return object.__getattribute__(self, name)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}>"
@@ -416,12 +513,24 @@ class _B1Value:
     __str__ = __repr__
 
     def __eq__(self, other: object) -> bool:
-        return type(self) is type(other) and self._values == typing.cast(_B1Value, other)._values
+        expected = type(self)
+        if type(other) is not expected:
+            return False
+        budget = _WorkBudget(expected._EQUALITY_LIMIT)
+        _left, left_projection = _reconstruct_exact_b1_value(
+            self, expected, budget
+        )
+        _right, right_projection = _reconstruct_exact_b1_value(
+            other, expected, budget
+        )
+        return left_projection == right_projection
 
     def __copy__(self) -> _B1Value:
+        _rebuilt, _projection = _reconstruct_exact_b1_value(self, type(self))
         return self
 
     def __deepcopy__(self, memo: object) -> _B1Value:
+        _rebuilt, _projection = _reconstruct_exact_b1_value(self, type(self))
         return self
 
     def __reduce__(self) -> typing.NoReturn:
@@ -432,34 +541,29 @@ class _B1Value:
 
     @classmethod
     def from_mapping(cls, payload: dict[str, object]) -> _B1Value:
-        mapping = _closed_mapping(payload, cls._FIELDS, cls.__name__)
-        budget = _WorkBudget(cls._LIMIT)
-        budget.walk(mapping)
-        values = tuple(_validate_member(cls, name, mapping[name], mapping) for name in cls._FIELDS)
-        _validate_cross_fields(cls, mapping)
-        result = object.__new__(cls)
-        object.__setattr__(result, "_values", values)
-        if result.computed_digest() != object.__getattribute__(result, "_values")[-1]:
-            _fail("relation_mismatch", cls.__name__)
-        budget.walk(result.to_mapping())
-        return result
+        rebuilt, _projection = _from_mapping_impl(cls, payload)
+        return rebuilt
 
     def to_mapping(self) -> dict[str, object]:
-        return {
-            name: _external(member)
-            for name, member in zip(type(self)._FIELDS, self._values)
-        }
+        _rebuilt, projection = _reconstruct_exact_b1_value(self, type(self))
+        return projection
 
     def identity_mapping(self) -> dict[str, object]:
-        mapping = self.to_mapping()
-        mapping.pop(type(self)._FIELDS[-1])
-        return mapping
+        expected = type(self)
+        _rebuilt, projection = _reconstruct_exact_b1_value(self, expected)
+        projection.pop(expected._FIELDS[-1])
+        return projection
 
     def canonical_identity_bytes(self) -> bytes:
-        return _canonical_bytes(self.identity_mapping())
+        expected = type(self)
+        _rebuilt, projection = _reconstruct_exact_b1_value(self, expected)
+        projection.pop(expected._FIELDS[-1])
+        return _canonical_bytes(projection)
 
     def computed_digest(self) -> str:
-        return _domain_digest(type(self)._SCHEMA + ".identity", self.identity_mapping())
+        expected = type(self)
+        _rebuilt, projection = _reconstruct_exact_b1_value(self, expected)
+        return _trusted_b1_digest(expected, projection)
 
 
 class RW0PhaseEntryBasisV1(_B1Value):
@@ -478,6 +582,9 @@ class RW0PhaseEntryBasisV1(_B1Value):
         "path_scope_digest", "basis_digest",
     )
     _LIMIT = 174
+    _STORED_LIMIT = 122
+    _RECONSTRUCTION_LIMIT = 296
+    _EQUALITY_LIMIT = 592
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -500,6 +607,9 @@ class RW0AuthorityVerificationObservationV1(_B1Value):
         "global_stop_version", "global_stop_state", "observation_digest",
     )
     _LIMIT = 124
+    _STORED_LIMIT = 78
+    _RECONSTRUCTION_LIMIT = 202
+    _EQUALITY_LIMIT = 404
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -518,6 +628,9 @@ class RW0SubordinateAuthorizationProposalV1(_B1Value):
         "global_stop_ref", "global_stop_version", "proposal_digest",
     )
     _LIMIT = 92
+    _STORED_LIMIT = 62
+    _RECONSTRUCTION_LIMIT = 154
+    _EQUALITY_LIMIT = 308
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -532,6 +645,9 @@ class RW0CustodyAvailabilityObservationV1(_B1Value):
         "expires_at", "observation_digest",
     )
     _LIMIT = 34
+    _STORED_LIMIT = 17
+    _RECONSTRUCTION_LIMIT = 51
+    _EQUALITY_LIMIT = 102
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -554,6 +670,9 @@ class RW0RetrievalCapabilityEventObservationV1(_B1Value):
         "expires_at", "event_digest",
     )
     _LIMIT = 76
+    _STORED_LIMIT = 38
+    _RECONSTRUCTION_LIMIT = 114
+    _EQUALITY_LIMIT = 228
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -580,6 +699,9 @@ class RW0RemoteHostReadinessObservationV1(_B1Value):
         "observation_digest",
     )
     _LIMIT = 80
+    _STORED_LIMIT = 40
+    _RECONSTRUCTION_LIMIT = 120
+    _EQUALITY_LIMIT = 240
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -614,6 +736,9 @@ class RW0EffectHostQualificationV1(_B1Value):
         "result", "reason", "evaluated_at", "qualification_digest",
     )
     _LIMIT = 92
+    _STORED_LIMIT = 46
+    _RECONSTRUCTION_LIMIT = 138
+    _EQUALITY_LIMIT = 276
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -634,6 +759,9 @@ class RW0TerminalOutcomeV1(_B1Value):
         "mismatch_digest", "outcome_value_digest",
     )
     _LIMIT = 64
+    _STORED_LIMIT = 32
+    _RECONSTRUCTION_LIMIT = 96
+    _EQUALITY_LIMIT = 192
     __slots__ = ()
     __init_subclass__ = _reject_subclass
 
@@ -645,6 +773,164 @@ _B1_CLASSES = (
     RW0RemoteHostReadinessObservationV1, RW0EffectHostQualificationV1,
     RW0TerminalOutcomeV1,
 )
+
+
+def _from_mapping_impl(
+    expected: type[_B1Value], payload: object,
+) -> tuple[_B1Value, dict[str, object]]:
+    """Single trusted B1 constructor used by public and owner paths."""
+
+    if not any(expected is candidate for candidate in _B1_CLASSES):
+        _fail("relation_mismatch", "b1_constructor")
+    mapping = _closed_mapping(payload, expected._FIELDS, expected.__name__)
+    budget = _WorkBudget(expected._LIMIT)
+    budget.walk(mapping)
+    values = tuple(
+        _validate_member(expected, name, mapping[name], mapping)
+        for name in expected._FIELDS
+    )
+    _validate_cross_fields(expected, mapping)
+    rebuilt = object.__new__(expected)
+    object.__setattr__(rebuilt, "_values", values)
+    projection = _trusted_b1_projection(expected, values)
+    if _trusted_b1_digest(expected, projection) != values[-1]:
+        _fail("relation_mismatch", expected.__name__)
+    budget.walk(projection)
+    return rebuilt, projection
+
+
+def _translate_lineage_owner(value: object) -> dict[str, object]:
+    failed = False
+    projection: dict[str, object] = {}
+    try:
+        _fresh, projection = _reconstruct_exact_c2b3d_lineage(value)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    if failed:
+        _fail("relation_mismatch", "c2b3d_lineage")
+    return projection
+
+
+def _translate_worker_execution_owner(
+    value: object, expected: type[object], label: str,
+) -> dict[str, object]:
+    failed = False
+    projection: dict[str, object] = {}
+    try:
+        _fresh, projection = _reconstruct_exact_worker_execution_value(
+            value, expected
+        )
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except WorkerExecutionValueError:
+        failed = True
+    except Exception:
+        failed = True
+    if failed:
+        _fail("relation_mismatch", label)
+    return projection
+
+
+def _extract_exact_b1_stored_mapping(
+    value: object,
+    expected: type[_B1Value],
+    budget: _WorkBudget,
+) -> dict[str, object]:
+    """Snapshot exact stored B1 state before any public semantic read."""
+
+    if not any(expected is candidate for candidate in _B1_CLASSES):
+        _fail("relation_mismatch", "b1_expected_type")
+    if type(value) is not expected:
+        _fail("invalid_field_type", expected.__name__)
+    budget.charge()
+    values: object = None
+    failed = False
+    try:
+        values = object.__getattribute__(value, "_values")
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    if failed or type(values) is not tuple:
+        _fail("relation_mismatch", expected.__name__)
+    members = typing.cast(tuple[object, ...], values)
+    if len(members) != len(expected._FIELDS):
+        _fail("relation_mismatch", expected.__name__)
+
+    mapping: dict[str, object] = {}
+    for index, name in enumerate(expected._FIELDS):
+        budget.charge()
+        member = members[index]
+        if name == "c2b3d_lineage":
+            budget.charge(_EXACT_C2B3D_LINEAGE_RECONSTRUCTION_WORK)
+            mapping[name] = _translate_lineage_owner(member)
+            continue
+        if name in ("parent_ceilings", "ceilings"):
+            owner_tariff = _exact_worker_execution_reconstruction_work(
+                CeilingsV1
+            )
+            budget.charge(owner_tariff)
+            mapping[name] = _translate_worker_execution_owner(
+                member, CeilingsV1, name
+            )
+            continue
+        if name == "selection_key":
+            budget.walk(member)
+            if type(member) is not tuple or len(member) != len(_K8_FIELDS):
+                _fail("relation_mismatch", name)
+            selection: list[list[str]] = []
+            for pair_index in range(len(_K8_FIELDS)):
+                pair = member[pair_index]
+                if type(pair) is not tuple or len(pair) != 2:
+                    _fail("relation_mismatch", name)
+                key, item = pair
+                if (
+                    type(key) is not str
+                    or key != _K8_FIELDS[pair_index]
+                    or type(item) is not str
+                ):
+                    _fail("relation_mismatch", name)
+                selection.append([key, item])
+            mapping[name] = selection
+            continue
+        if name == "allowed_effect_classes":
+            budget.walk(member)
+            if type(member) is not tuple or not 1 <= len(member) <= 5:
+                _fail("relation_mismatch", name)
+            effects = typing.cast(tuple[object, ...], member)
+            if any(type(item) is not str for item in effects):
+                _fail("relation_mismatch", name)
+            checked = typing.cast(tuple[str, ...], effects)
+            if checked != tuple(sorted(checked)) or len(checked) != len(
+                set(checked)
+            ):
+                _fail("relation_mismatch", name)
+            mapping[name] = list(checked)
+            continue
+        if type(member) not in (str, int, type(None)):
+            _fail("relation_mismatch", name)
+        mapping[name] = member
+    return mapping
+
+
+def _reconstruct_exact_b1_value(
+    value: object,
+    expected: type[_B1Value],
+    budget: _WorkBudget | None = None,
+) -> tuple[_B1Value, dict[str, object]]:
+    if not any(expected is candidate for candidate in _B1_CLASSES):
+        _fail("relation_mismatch", "b1_expected_type")
+    if budget is None:
+        exact_budget = _WorkBudget(expected._RECONSTRUCTION_LIMIT)
+    elif type(budget) is _WorkBudget:
+        exact_budget = budget
+    else:
+        _fail("relation_mismatch", "work_budget")
+    stored = _extract_exact_b1_stored_mapping(value, expected, exact_budget)
+    exact_budget.charge(expected._LIMIT)
+    return _from_mapping_impl(expected, stored)
 
 
 def _validate_member(cls: type[_B1Value], name: str, value: object,
@@ -787,13 +1073,74 @@ def _terminal_shape_mapping(mapping: dict[str, object]) -> None:
         _fail("terminal_branch_mismatch", "terminal_branch")
 
 
-def _value(budget: _WorkBudget, value: object, expected: type[_B1Value]) -> _B1Value:
-    if type(value) is not expected:
-        _fail("invalid_field_type", expected.__name__)
-    checked = typing.cast(_B1Value, value)
-    budget.walk(checked.to_mapping())
-    _require(checked.computed_digest() == checked._values[-1], "relation_mismatch", expected.__name__)
-    return checked
+def _value_with_projection(
+    budget: _WorkBudget, value: object, expected: type[_B1Value],
+) -> tuple[_B1Value, _B1RelationView, dict[str, object]]:
+    rebuilt, projection = _reconstruct_exact_b1_value(
+        value, expected, budget
+    )
+    return rebuilt, _b1_relation_view(rebuilt, projection), projection
+
+
+def _value(
+    budget: _WorkBudget, value: object, expected: type[_B1Value],
+) -> _B1RelationView:
+    _rebuilt, view, _projection = _value_with_projection(
+        budget, value, expected
+    )
+    return view
+
+
+def _worker_execution_value_with_projection(
+    budget: _WorkBudget,
+    value: object,
+    expected: type[object],
+    label: str,
+) -> tuple[object, dict[str, object]]:
+    budget.charge(_exact_worker_execution_reconstruction_work(expected))
+    failed = False
+    rebuilt: object = None
+    projection: dict[str, object] = {}
+    try:
+        rebuilt, projection = _reconstruct_exact_worker_execution_value(
+            value, expected
+        )
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    if failed:
+        _fail("relation_mismatch", label)
+    return rebuilt, projection
+
+
+def _worker_execution_value(
+    budget: _WorkBudget,
+    value: object,
+    expected: type[object],
+    label: str,
+) -> object:
+    rebuilt, _projection = _worker_execution_value_with_projection(
+        budget, value, expected, label
+    )
+    return rebuilt
+
+
+def _lineage_value(
+    budget: _WorkBudget, value: object,
+) -> CanonicalC2B3DLineage:
+    budget.charge(_EXACT_C2B3D_LINEAGE_RECONSTRUCTION_WORK)
+    failed = False
+    rebuilt: object = None
+    try:
+        rebuilt, _projection = _reconstruct_exact_c2b3d_lineage(value)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    if failed:
+        _fail("relation_mismatch", "lineage")
+    return typing.cast(CanonicalC2B3DLineage, rebuilt)
 
 
 def _leaf(budget: _WorkBudget, value: object, expected: type[object], label: str) -> None:
@@ -897,10 +1244,7 @@ def _attempt_effect_lineage(basis: RW0PhaseEntryBasisV1,
 def _current_effect_within_attempt(basis: RW0PhaseEntryBasisV1,
                                    attempt_fence: AttemptFenceV1,
                                    current_effect_fence: EffectFenceV1) -> None:
-    # External leaves were charged by the caller's single shared B1 budget.
-    # Reconstruct through the owner to validate fields and stored self-digests.
-    _owner_relation(AttemptFenceV1.from_mapping, payload=attempt_fence.to_mapping())
-    _owner_relation(EffectFenceV1.from_mapping, payload=current_effect_fence.to_mapping())
+    # Callers supply only fresh values returned by the owner reconstruction seam.
     _attempt_effect_lineage(basis, attempt_fence, current_effect_fence)
     _require(attempt_fence.allowed_effect_classes.count(current_effect_fence.effect_class) == 1,
              "scope_or_ceiling_mismatch", "current_effect_class")
@@ -960,24 +1304,50 @@ def validate_phase_entry_basis(*, basis: RW0PhaseEntryBasisV1,
                                effect_head: DevelopmentEffectHeadRowValue,
                                delivery_head: DevelopmentDeliveryHeadRowValue,
                                global_stop: GlobalStopCurrentRecordEnvelope) -> None:
-    budget = _WorkBudget(104)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
+    budget = _WorkBudget(891)
+    basis = _value(budget, basis, RW0PhaseEntryBasisV1)
+    lineage = _lineage_value(budget, lineage)
     for label, obj, kind in (
-        ("lineage", lineage, CanonicalC2B3DLineage),
         ("selection_result", selection_result, PreExecutionPlanDispositionResultProjectionV1),
         ("selection_head", selection_head, DevelopmentPreExecutionSelectionHeadRowValue),
         ("selected_proposal", selected_proposal, DevelopmentModelProposalRowValue),
         ("selected_artifact", selected_artifact, DevelopmentPrivateProposalArtifactBindingRowValue),
-        ("work_spec", work_spec, WorkSpecV1),
-        ("attempt_fence", attempt_fence, AttemptFenceV1),
-        ("author_effect_fence", author_effect_fence, EffectFenceV1),
-        ("author_command", author_command, WorkerCommandV1),
-        ("author_delivery", author_delivery, DeliveryEnvelopeV1),
         ("effect_head", effect_head, DevelopmentEffectHeadRowValue),
         ("delivery_head", delivery_head, DevelopmentDeliveryHeadRowValue),
         ("global_stop", global_stop, GlobalStopCurrentRecordEnvelope),
     ):
         _leaf(budget, obj, kind, label)
+    work_spec = typing.cast(
+        WorkSpecV1,
+        _worker_execution_value(budget, work_spec, WorkSpecV1, "work_spec"),
+    )
+    attempt_fence = typing.cast(
+        AttemptFenceV1,
+        _worker_execution_value(
+            budget, attempt_fence, AttemptFenceV1, "attempt_fence"
+        ),
+    )
+    author_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            author_effect_fence,
+            EffectFenceV1,
+            "author_effect_fence",
+        ),
+    )
+    author_command = typing.cast(
+        WorkerCommandV1,
+        _worker_execution_value(
+            budget, author_command, WorkerCommandV1, "author_command"
+        ),
+    )
+    author_delivery = typing.cast(
+        DeliveryEnvelopeV1,
+        _worker_execution_value(
+            budget, author_delivery, DeliveryEnvelopeV1, "author_delivery"
+        ),
+    )
     _require(basis.c2b3d_lineage == lineage, "relation_mismatch", "lineage")
     _require(basis.selection_key == tuple((name, getattr(lineage, name)) for name in _K8_FIELDS),
              "relation_mismatch", "selection_key")
@@ -1046,20 +1416,61 @@ def validate_authority_observation(*, basis: RW0PhaseEntryBasisV1,
                                    capsule_manifest: CandidateCapsuleManifestV1 | None,
                                    cancellation_target: EffectFenceV1 | None,
                                    now_utc: str) -> None:
-    budget = _WorkBudget(196)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
-    _value(budget, observation, RW0AuthorityVerificationObservationV1)
-    for label, obj, kind in (
-        ("attempt_fence", attempt_fence, AttemptFenceV1),
-        ("author_effect_fence", author_effect_fence, EffectFenceV1),
-        ("current_effect_fence", current_effect_fence, EffectFenceV1),
-        ("author_command", author_command, WorkerCommandV1),
-        ("capsule_manifest", capsule_manifest, CandidateCapsuleManifestV1),
-        ("cancellation_target", cancellation_target, EffectFenceV1),
-    ):
-        budget.charge()
-        if obj is not None and type(obj) is not kind:
-            _fail("invalid_field_type", label)
+    budget = _WorkBudget(1151)
+    basis = _value(budget, basis, RW0PhaseEntryBasisV1)
+    observation = _value(
+        budget, observation, RW0AuthorityVerificationObservationV1
+    )
+    attempt_fence = typing.cast(
+        AttemptFenceV1,
+        _worker_execution_value(
+            budget, attempt_fence, AttemptFenceV1, "attempt_fence"
+        ),
+    )
+    author_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            author_effect_fence,
+            EffectFenceV1,
+            "author_effect_fence",
+        ),
+    )
+    current_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            current_effect_fence,
+            EffectFenceV1,
+            "current_effect_fence",
+        ),
+    )
+    author_command = typing.cast(
+        WorkerCommandV1,
+        _worker_execution_value(
+            budget, author_command, WorkerCommandV1, "author_command"
+        ),
+    )
+    if capsule_manifest is not None:
+        capsule_manifest = typing.cast(
+            CandidateCapsuleManifestV1,
+            _worker_execution_value(
+                budget,
+                capsule_manifest,
+                CandidateCapsuleManifestV1,
+                "capsule_manifest",
+            ),
+        )
+    if cancellation_target is not None:
+        cancellation_target = typing.cast(
+            EffectFenceV1,
+            _worker_execution_value(
+                budget,
+                cancellation_target,
+                EffectFenceV1,
+                "cancellation_target",
+            ),
+        )
     now = _time_leaf(budget, now_utc)
     budget.charge(30 + 6)
     _basis_pair(observation, basis)
@@ -1136,11 +1547,28 @@ def validate_per_fence_basis(*, observation: RW0AuthorityVerificationObservation
                              proposal: RW0SubordinateAuthorizationProposalV1,
                              attempt_fence: AttemptFenceV1,
                              current_effect_fence: EffectFenceV1) -> None:
-    budget = _WorkBudget(110)
-    _value(budget, observation, RW0AuthorityVerificationObservationV1)
-    _value(budget, proposal, RW0SubordinateAuthorizationProposalV1)
-    _leaf(budget, attempt_fence, AttemptFenceV1, "attempt_fence")
-    _leaf(budget, current_effect_fence, EffectFenceV1, "current_effect_fence")
+    budget = _WorkBudget(550)
+    observation = _value(
+        budget, observation, RW0AuthorityVerificationObservationV1
+    )
+    proposal = _value(
+        budget, proposal, RW0SubordinateAuthorizationProposalV1
+    )
+    attempt_fence = typing.cast(
+        AttemptFenceV1,
+        _worker_execution_value(
+            budget, attempt_fence, AttemptFenceV1, "attempt_fence"
+        ),
+    )
+    current_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            current_effect_fence,
+            EffectFenceV1,
+            "current_effect_fence",
+        ),
+    )
     for value in (observation, proposal):
         _pair_equals(value, "attempt_fence", attempt_fence.attempt_fence_ref,
                      attempt_fence.attempt_fence_digest, "per_fence_basis_mismatch")
@@ -1161,11 +1589,28 @@ def validate_external_common_family_claim(*,
     proposal: RW0SubordinateAuthorizationProposalV1,
     attempt_fence: AttemptFenceV1,
     current_effect_fence: EffectFenceV1) -> None:
-    budget = _WorkBudget(110)
-    _value(budget, observation, RW0AuthorityVerificationObservationV1)
-    _value(budget, proposal, RW0SubordinateAuthorizationProposalV1)
-    _leaf(budget, attempt_fence, AttemptFenceV1, "attempt_fence")
-    _leaf(budget, current_effect_fence, EffectFenceV1, "current_effect_fence")
+    budget = _WorkBudget(550)
+    observation = _value(
+        budget, observation, RW0AuthorityVerificationObservationV1
+    )
+    proposal = _value(
+        budget, proposal, RW0SubordinateAuthorizationProposalV1
+    )
+    attempt_fence = typing.cast(
+        AttemptFenceV1,
+        _worker_execution_value(
+            budget, attempt_fence, AttemptFenceV1, "attempt_fence"
+        ),
+    )
+    current_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            current_effect_fence,
+            EffectFenceV1,
+            "current_effect_fence",
+        ),
+    )
     _require(observation.family_status == "compatible", "common_family_unverified", "family_status")
     _require((observation.grant_family_ref, observation.grant_family_digest) ==
              (proposal.grant_family_ref, proposal.grant_family_digest),
@@ -1306,12 +1751,29 @@ def validate_subordinate_narrowing(*, basis: RW0PhaseEntryBasisV1,
     proposal: RW0SubordinateAuthorizationProposalV1,
     attempt_fence: AttemptFenceV1,
     current_effect_fence: EffectFenceV1, now_utc: str) -> None:
-    budget = _WorkBudget(242)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
-    _value(budget, observation, RW0AuthorityVerificationObservationV1)
-    _value(budget, proposal, RW0SubordinateAuthorizationProposalV1)
-    _leaf(budget, attempt_fence, AttemptFenceV1, "attempt_fence")
-    _leaf(budget, current_effect_fence, EffectFenceV1, "current_effect_fence")
+    budget = _WorkBudget(891)
+    basis = _value(budget, basis, RW0PhaseEntryBasisV1)
+    observation = _value(
+        budget, observation, RW0AuthorityVerificationObservationV1
+    )
+    proposal = _value(
+        budget, proposal, RW0SubordinateAuthorizationProposalV1
+    )
+    attempt_fence = typing.cast(
+        AttemptFenceV1,
+        _worker_execution_value(
+            budget, attempt_fence, AttemptFenceV1, "attempt_fence"
+        ),
+    )
+    current_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            current_effect_fence,
+            EffectFenceV1,
+            "current_effect_fence",
+        ),
+    )
     now = _time_leaf(budget, now_utc)
     _narrowing_core(basis, observation, proposal, attempt_fence,
                     current_effect_fence, now, budget)
@@ -1321,19 +1783,25 @@ def validate_custody_binding(*, basis: RW0PhaseEntryBasisV1,
     availability: RW0CustodyAvailabilityObservationV1,
     subject: WorkSpecV1 | DevelopmentPrivateProposalArtifactBindingRowValue,
     now_utc: str) -> None:
-    budget = _WorkBudget(106)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
-    _value(budget, availability, RW0CustodyAvailabilityObservationV1)
-    budget.charge()
+    budget = _WorkBudget(520)
+    basis = _value(budget, basis, RW0PhaseEntryBasisV1)
+    availability = _value(
+        budget, availability, RW0CustodyAvailabilityObservationV1
+    )
     now = _time_leaf(budget, now_utc)
     _basis_pair(availability, basis, "custody_subject_mismatch")
     if availability.subject_kind == "work_spec":
-        _require(type(subject) is WorkSpecV1, "invalid_field_type", "subject")
-        checked = typing.cast(WorkSpecV1, subject)
+        checked = typing.cast(
+            WorkSpecV1,
+            _worker_execution_value(
+                budget, subject, WorkSpecV1, "subject"
+            ),
+        )
         expected = (basis.c2b3d_lineage.work_spec_ref,
                     basis.c2b3d_lineage.work_spec_digest)
         actual = (checked.work_spec_ref, checked.work_spec_digest)
     else:
+        budget.charge()
         _require(type(subject) is DevelopmentPrivateProposalArtifactBindingRowValue,
                  "invalid_field_type", "subject")
         artifact = typing.cast(DevelopmentPrivateProposalArtifactBindingRowValue, subject)
@@ -1355,18 +1823,39 @@ def validate_retrieval_event_sequence(*, basis: RW0PhaseEntryBasisV1,
     events: tuple[RW0RetrievalCapabilityEventObservationV1, ...],
     attempt_fence: AttemptFenceV1, current_effect_fence: EffectFenceV1,
     now_utc: str) -> None:
-    budget = _WorkBudget(374)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
-    _value(budget, availability, RW0CustodyAvailabilityObservationV1)
-    _value(budget, observation, RW0AuthorityVerificationObservationV1)
-    _value(budget, proposal, RW0SubordinateAuthorizationProposalV1)
+    budget = _WorkBudget(1285)
+    basis = _value(budget, basis, RW0PhaseEntryBasisV1)
+    availability = _value(
+        budget, availability, RW0CustodyAvailabilityObservationV1
+    )
+    observation = _value(
+        budget, observation, RW0AuthorityVerificationObservationV1
+    )
+    proposal = _value(
+        budget, proposal, RW0SubordinateAuthorizationProposalV1
+    )
     if type(events) is not tuple or not 1 <= len(events) <= 3:
         _fail("invalid_length_or_cardinality", "events")
     budget.charge()
-    for event in events:
+    events = tuple(
         _value(budget, event, RW0RetrievalCapabilityEventObservationV1)
-    _leaf(budget, attempt_fence, AttemptFenceV1, "attempt_fence")
-    _leaf(budget, current_effect_fence, EffectFenceV1, "current_effect_fence")
+        for event in events
+    )
+    attempt_fence = typing.cast(
+        AttemptFenceV1,
+        _worker_execution_value(
+            budget, attempt_fence, AttemptFenceV1, "attempt_fence"
+        ),
+    )
+    current_effect_fence = typing.cast(
+        EffectFenceV1,
+        _worker_execution_value(
+            budget,
+            current_effect_fence,
+            EffectFenceV1,
+            "current_effect_fence",
+        ),
+    )
     now = _time_leaf(budget, now_utc)
     for paths in (attempt_fence.path_ceiling, current_effect_fence.path_ceiling):
         _require(_path_leaf(budget, paths) == basis.path_scope_digest,
@@ -1485,21 +1974,47 @@ def validate_retrieval_event_sequence(*, basis: RW0PhaseEntryBasisV1,
     _require(events[-1].occurred_at <= now, "retrieval_transition_invalid", "future_event")
 
 
-def validate_host_qualification(*, basis: RW0PhaseEntryBasisV1,
+def _validate_host_qualification_with_snapshots(*, basis: RW0PhaseEntryBasisV1,
     authority: RW0AuthorityVerificationObservationV1,
     readiness: RW0RemoteHostReadinessObservationV1,
     qualification: RW0EffectHostQualificationV1,
-    current_effect_fence: EffectFenceV1, now_utc: str) -> None:
-    budget = _WorkBudget(241)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
-    _value(budget, authority, RW0AuthorityVerificationObservationV1)
-    _value(budget, readiness, RW0RemoteHostReadinessObservationV1)
-    _value(budget, qualification, RW0EffectHostQualificationV1)
-    _leaf(budget, current_effect_fence, EffectFenceV1, "current_effect_fence")
+    current_effect_fence: EffectFenceV1, now_utc: str,
+) -> tuple[
+    dict[str, object],
+    dict[str, object],
+    dict[str, object],
+    dict[str, object],
+    dict[str, object],
+]:
+    """Validate once and return only fresh owner-validated safe projections."""
+
+    budget = _WorkBudget(863)
+    _fresh_basis, basis, basis_projection = _value_with_projection(
+        budget, basis, RW0PhaseEntryBasisV1
+    )
+    _fresh_authority, authority, authority_projection = _value_with_projection(
+        budget, authority, RW0AuthorityVerificationObservationV1
+    )
+    _fresh_readiness, readiness, readiness_projection = _value_with_projection(
+        budget, readiness, RW0RemoteHostReadinessObservationV1
+    )
+    _fresh_qualification, qualification, qualification_projection = (
+        _value_with_projection(
+            budget, qualification, RW0EffectHostQualificationV1
+        )
+    )
+    current_effect_fence, current_effect_projection = (
+        _worker_execution_value_with_projection(
+            budget,
+            current_effect_fence,
+            EffectFenceV1,
+            "current_effect_fence",
+        )
+    )
+    current_effect_fence = typing.cast(EffectFenceV1, current_effect_fence)
     now = _time_leaf(budget, now_utc)
     path_digest = _path_leaf(budget, current_effect_fence.path_ceiling)
     lineage = basis.c2b3d_lineage
-    _owner_relation(EffectFenceV1.from_mapping, payload=current_effect_fence.to_mapping())
     phase_match = (
         _stable_current_origin(basis, current_effect_fence) and
         path_digest == basis.path_scope_digest == authority.path_scope_digest and
@@ -1613,11 +2128,33 @@ def validate_host_qualification(*, basis: RW0PhaseEntryBasisV1,
     _require((qualification.result, qualification.reason) == result,
              "qualification_reason_mismatch", "qualification_result")
     _require(qualification.evaluated_at == now, "qualification_reason_mismatch", "evaluated_at")
+    return (
+        basis_projection,
+        authority_projection,
+        readiness_projection,
+        qualification_projection,
+        current_effect_projection,
+    )
+
+
+def validate_host_qualification(*, basis: RW0PhaseEntryBasisV1,
+    authority: RW0AuthorityVerificationObservationV1,
+    readiness: RW0RemoteHostReadinessObservationV1,
+    qualification: RW0EffectHostQualificationV1,
+    current_effect_fence: EffectFenceV1, now_utc: str) -> None:
+    _validate_host_qualification_with_snapshots(
+        basis=basis,
+        authority=authority,
+        readiness=readiness,
+        qualification=qualification,
+        current_effect_fence=current_effect_fence,
+        now_utc=now_utc,
+    )
 
 
 def _terminal_shape(outcome: RW0TerminalOutcomeV1, decision: DevelopmentDecisionRowValue,
                     branch: str, budget: _WorkBudget) -> None:
-    _value(budget, outcome, RW0TerminalOutcomeV1)
+    outcome = _value(budget, outcome, RW0TerminalOutcomeV1)
     _leaf(budget, decision, DevelopmentDecisionRowValue, "decision")
     _require(outcome.branch == branch and outcome.decision_kind == decision.decision_kind,
              "terminal_branch_mismatch", "terminal_branch")
@@ -1626,22 +2163,28 @@ def _terminal_shape(outcome: RW0TerminalOutcomeV1, decision: DevelopmentDecision
 
 def validate_normal_outcome_shape(*, outcome: RW0TerminalOutcomeV1,
                                   decision: DevelopmentDecisionRowValue) -> None:
-    _terminal_shape(outcome, decision, "normal", _WorkBudget(33))
+    _terminal_shape(outcome, decision, "normal", _WorkBudget(97))
 
 
 def validate_reconciled_cancel_outcome_shape(*, outcome: RW0TerminalOutcomeV1,
                                              decision: DevelopmentDecisionRowValue) -> None:
-    _terminal_shape(outcome, decision, "active_cancel_reconciled", _WorkBudget(33))
+    _terminal_shape(
+        outcome, decision, "active_cancel_reconciled", _WorkBudget(97)
+    )
 
 
 def validate_unresolved_cancel_outcome_shape(*, outcome: RW0TerminalOutcomeV1,
                                              decision: DevelopmentDecisionRowValue) -> None:
-    _terminal_shape(outcome, decision, "active_cancel_unresolved", _WorkBudget(33))
+    _terminal_shape(
+        outcome, decision, "active_cancel_unresolved", _WorkBudget(97)
+    )
 
 
 def validate_unusable_cancel_basis_outcome_shape(*, outcome: RW0TerminalOutcomeV1,
                                                   decision: DevelopmentDecisionRowValue) -> None:
-    _terminal_shape(outcome, decision, "pre_effect_cancel_basis_unusable", _WorkBudget(33))
+    _terminal_shape(
+        outcome, decision, "pre_effect_cancel_basis_unusable", _WorkBudget(97)
+    )
 
 
 def validate_terminal_outcome_binding(*, basis: RW0PhaseEntryBasisV1,
@@ -1652,9 +2195,11 @@ def validate_terminal_outcome_binding(*, basis: RW0PhaseEntryBasisV1,
     effect_head: DevelopmentEffectHeadRowValue,
     delivery_head: DevelopmentDeliveryHeadRowValue,
     global_stop: GlobalStopCurrentRecordEnvelope) -> None:
-    budget = _WorkBudget(159)
-    _value(budget, basis, RW0PhaseEntryBasisV1)
-    _value(budget, outcome, RW0TerminalOutcomeV1)
+    budget = _WorkBudget(496)
+    basis = _value(budget, basis, RW0PhaseEntryBasisV1)
+    fresh_outcome, outcome, _outcome_projection = _value_with_projection(
+        budget, outcome, RW0TerminalOutcomeV1
+    )
     for label, obj, kind in (
         ("decision", decision, DevelopmentDecisionRowValue),
         ("program_head", program_head, DevelopmentProgramHeadRowValue),
@@ -1688,4 +2233,9 @@ def validate_terminal_outcome_binding(*, basis: RW0PhaseEntryBasisV1,
              "current_head_or_global_stop_mismatch", "basis_heads")
     _stop_matches(outcome, global_stop)
     _stop_matches(basis, global_stop)
-    _terminal_shape(outcome, decision, outcome.branch, budget)
+    _terminal_shape(
+        typing.cast(RW0TerminalOutcomeV1, fresh_outcome),
+        decision,
+        typing.cast(str, outcome.branch),
+        budget,
+    )
