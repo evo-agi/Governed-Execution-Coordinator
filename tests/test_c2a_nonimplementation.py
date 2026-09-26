@@ -38,6 +38,7 @@ EXPECTED_PRODUCTION_FILES = (
     "_sqlite_development_program_initialization.py",
     "_rw0_phase_entry_semantic_values.py",
     "_rw0_wire_protocol_values.py",
+    "_rw0_worker_mechanism_capability_values.py",
     "_worker_execution_semantic_values.py",
     "backlog.py",
     "canonicalization.py",
@@ -180,13 +181,15 @@ CURRENT_SCHEMA_STATUS_CONTRADICTIONS = (
 CURRENT_ABSENCE_WORDING = (
     "Migration 0003 and its private pre-execution selection runtime are now "
     "implemented outside C2A under Sections 41 and 42 of the durable-state owner.",
-    "C2B2 Slice 2 provides pure private row/value reconstruction over the "
-    "unchanged C2A1 values.",
+    "C2B2 Slice 2 provides pure private row/value reconstruction over C2A1's "
+    "unchanged public schemas, semantics, and canonical identities.",
     "C2B2 private readers are implemented; VS1B consumes unchanged C2A/C2B2 "
-    "semantics for private route-neutral genesis, and C2B3D consumes unchanged "
+    "public semantics for private route-neutral genesis, and C2B3D consumes unchanged "
     "authoring, effect, delivery, and redelivery relations for private "
     "author-effect persistence and verification.",
-    "C2A itself remains unchanged and confers no durable or executable authority.",
+    "C2A's public contract remains unchanged while its private owner "
+    "reconstruction helper and occurrence-work accounting are current; neither "
+    "confers durable or executable authority.",
     "Worker, process, or model execution, Git effects, direct-local execution, "
     "ES routing, Bridge integration, publication, service, API, and IPC also "
     "remain absent.",

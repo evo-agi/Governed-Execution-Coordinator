@@ -459,6 +459,90 @@ CanonicalC2B3DLineage = _make_contract_class(
 )
 
 
+class _ExactC2B3DLineageReconstructionFailure(Exception):
+    __slots__ = ()
+
+
+class _ExactC2B3DLineageReconstructionBudget:
+    """Occurrence-work meter for one exact L34 reconstruction."""
+
+    __slots__ = ("remaining",)
+
+    def __init__(self, limit: int) -> None:
+        if type(limit) is not int or limit < 0:
+            raise _ExactC2B3DLineageReconstructionFailure
+        self.remaining = limit
+
+    def consume(self, amount: int = 1) -> None:
+        if (
+            type(amount) is not int
+            or amount < 0
+            or amount > self.remaining
+        ):
+            raise _ExactC2B3DLineageReconstructionFailure
+        self.remaining -= amount
+
+
+_EXACT_C2B3D_LINEAGE_RECONSTRUCTION_WORK = 70
+
+
+def _reconstruct_exact_c2b3d_lineage(
+    value: object,
+    budget: _ExactC2B3DLineageReconstructionBudget | None = None,
+) -> tuple[CanonicalC2B3DLineage, dict[str, object]]:
+    """Return a fresh exact L34 value and validated plain projection."""
+
+    failed = False
+    reconstructed: object = None
+    projection: dict[str, object] = {}
+    try:
+        if budget is None:
+            exact_budget = _ExactC2B3DLineageReconstructionBudget(
+                _EXACT_C2B3D_LINEAGE_RECONSTRUCTION_WORK
+            )
+        elif type(budget) is _ExactC2B3DLineageReconstructionBudget:
+            exact_budget = budget
+        else:
+            raise _ExactC2B3DLineageReconstructionFailure
+
+        exact_budget.consume()
+        if type(value) is not CanonicalC2B3DLineage:
+            raise _ExactC2B3DLineageReconstructionFailure
+        active = {id(value)}
+        events: list[tuple[str, object]] = [
+            ("field", field_name) for field_name in reversed(_L34_FIELDS)
+        ]
+        raw_work = 1
+        while events:
+            kind, item = events.pop()
+            if kind != "field" or id(value) not in active:
+                raise _ExactC2B3DLineageReconstructionFailure
+            field_name = typing.cast(str, item)
+            exact_budget.consume()
+            raw_work += 1
+            try:
+                member = object.__getattribute__(value, field_name)
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                raise
+            except Exception as error:
+                raise _ExactC2B3DLineageReconstructionFailure from error
+            if type(member) not in (str, int):
+                raise _ExactC2B3DLineageReconstructionFailure
+            projection[field_name] = member
+        active.remove(id(value))
+        exact_budget.consume(raw_work)
+        reconstructed = CanonicalC2B3DLineage(**projection)
+        if type(reconstructed) is not CanonicalC2B3DLineage:
+            raise _ExactC2B3DLineageReconstructionFailure
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    if failed:
+        _violate("recovery_unresolved")
+    return typing.cast(CanonicalC2B3DLineage, reconstructed), projection
+
+
 def _validate_command(value: object) -> None:
     mapping = typing.cast(_ContractValue, value).to_mapping()
     _require_enum(

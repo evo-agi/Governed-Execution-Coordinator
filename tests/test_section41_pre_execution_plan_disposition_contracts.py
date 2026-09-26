@@ -66,6 +66,46 @@ def _shared_tuple_dag(depth: int) -> tuple[object, ...]:
     return node
 
 
+def test_exact_l34_owner_reconstruction_uses_literal_35_70_tariff() -> None:
+    from test_rw0_b1_vectors import mapping_for
+    import ge_nwp_coordinator._rw0_phase_entry_semantic_values as b1
+
+    mapping = mapping_for(b1.RW0PhaseEntryBasisV1)["c2b3d_lineage"]
+    lineage = contracts.CanonicalC2B3DLineage(**mapping)
+    assert len(contracts._L34_FIELDS) == 34
+    assert contracts._EXACT_C2B3D_LINEAGE_RECONSTRUCTION_WORK == 70
+    budget = contracts._ExactC2B3DLineageReconstructionBudget(70)
+    rebuilt, projection = contracts._reconstruct_exact_c2b3d_lineage(
+        lineage, budget
+    )
+    assert budget.remaining == 0
+    assert type(rebuilt) is contracts.CanonicalC2B3DLineage
+    assert rebuilt is not lineage
+    assert projection == mapping and projection is not mapping
+
+    with pytest.raises(_CognitiveProposalContractViolation) as caught:
+        contracts._reconstruct_exact_c2b3d_lineage(
+            lineage,
+            contracts._ExactC2B3DLineageReconstructionBudget(69),
+        )
+    assert caught.value.reason == "recovery_unresolved"
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+
+
+def test_exact_l34_owner_reconstruction_rejects_forged_raw_state() -> None:
+    from test_rw0_b1_vectors import mapping_for
+    import ge_nwp_coordinator._rw0_phase_entry_semantic_values as b1
+
+    mapping = mapping_for(b1.RW0PhaseEntryBasisV1)["c2b3d_lineage"]
+    lineage = contracts.CanonicalC2B3DLineage(**mapping)
+    object.__setattr__(lineage, "program_ref", ["hostile", ["deep"]])
+    with pytest.raises(_CognitiveProposalContractViolation) as caught:
+        contracts._reconstruct_exact_c2b3d_lineage(lineage)
+    assert caught.value.reason == "recovery_unresolved"
+    assert caught.value.__cause__ is None
+
+
 @pytest.mark.parametrize("readiness_present", (False, True))
 def test_contract_values_match_both_repaired_section41_golden_families(
     readiness_present: bool,

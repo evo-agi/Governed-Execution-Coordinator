@@ -18,9 +18,14 @@ revocation, expiry, and source authenticity. The physical custodian owns byte
 availability and retrieval events. The host owner owns readiness claims.
 Coordinator owns only the inert subordinate proposal and pure qualification.
 RW0-C owns guarded persistence, evidence membership and completeness, terminal
-facts, readback, and the acceptance latch. RW0-D owns physical custody,
-bearers, processes, worker and capsule proof. RW0-E owns live-host proof. B2
-owns wire framing and Codex mechanism; ES keeps ES-route runtime authority.
+facts, readback, and the acceptance latch. RW0-B2-Wire owns representational
+framing and process/result classification. RW0-B2-Capability owns only
+provider- and mechanism-neutral declaration, supplied observation, and pure
+qualification semantics. RW0-D/E own concrete CLI, App Server, provider,
+credential, session, process, physical-custody, worker, capsule, and live-host
+proof mechanics; ES keeps ES-route runtime authority. B1 schemas, relations,
+identities, and nonclaims are unchanged; protected owner reconstruction and
+occurrence-work budgets are hardened by this current contract.
 
 No source, observation, effect, path, or schema enum in C2A is widened. B1
 values never contain raw WorkSpec or plan bytes, bearer material, host details,
@@ -30,6 +35,32 @@ syntactically valid digest proves identity only, not authenticity or permission.
 Implementation must stop if a new public, durable, I/O, worker, Bridge, ES, or
 provider dependency is needed, if an existing identity changes, or if a
 frozen field or traversal budget mechanically undercounts the final schema.
+
+## Current-contract registry
+
+Only the bounded registry below is machine-authoritative for the facts that it
+owns. Projection rows consume their named owner and create no second authority.
+
+<!-- RW0_B1_CURRENT_CONTRACT_REGISTRY_BEGIN -->
+Registry version: 1
+
+| Fact | Value | Role | Source |
+| --- | --- | --- | --- |
+| component | RW0-B1 | authority | this_document |
+| lifecycle_status | current_implemented | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| contract_class | private_pure_no_io_semantics | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| retrieval_event_sequence_work_maximum | 1285 | authority | this_document |
+| sole_current_cross_module_production_consumer | RW0-B2-Capability | authority | this_document |
+| source_authentication | none | authority | this_document |
+| executable_permission | none | authority | this_document |
+| durable_persistence | none | authority | this_document |
+| semantic_acceptance | none | authority | this_document |
+| future_acceptance_latch_owner | RW0-C | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| future_durable_ingest_completeness_recovery_terminal_owner | RW0-C | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| future_physical_custody_transport_process_cancellation_owner | RW0-D | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| future_separately_authorized_live_proof_owner | RW0-E | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| es_admission_reliable_submit_runtime_identity_lifecycle_cancellation_results_owner | Execution Substrate | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+<!-- RW0_B1_CURRENT_CONTRACT_REGISTRY_END -->
 
 ## Closed value grammar
 
@@ -42,16 +73,24 @@ and the digest is SHA-256 of schema ID plus `.identity`, NUL, and those bytes.
 The module defines no JSON decoder; duplicate-key rejection belongs to a later
 decoder.
 
-| Value | Schema suffix after `governed-execution.` | Fields | Construction budget |
-| --- | --- | ---: | ---: |
-| `RW0PhaseEntryBasisV1` | `nwp-rw0-phase-entry-basis.v1` | 26 | 174 |
-| `RW0AuthorityVerificationObservationV1` | `nwp-rw0-authority-verification-observation.v1` | 39 | 124 |
-| `RW0SubordinateAuthorizationProposalV1` | `nwp-rw0-subordinate-authorization-proposal.v1` | 29 | 92 |
-| `RW0CustodyAvailabilityObservationV1` | `nwp-rw0-custody-availability-observation.v1` | 16 | 34 |
-| `RW0RetrievalCapabilityEventObservationV1` | `nwp-rw0-retrieval-capability-event-observation.v1` | 37 | 76 |
-| `RW0RemoteHostReadinessObservationV1` | `nwp-rw0-remote-host-readiness-observation.v1` | 39 | 80 |
-| `RW0EffectHostQualificationV1` | `nwp-rw0-effect-host-qualification.v1` | 45 | 92 |
-| `RW0TerminalOutcomeV1` | `nwp-rw0-terminal-outcome-value.v1` | 31 | 64 |
+| Value | Fields | Stored `S` | Construction `C` | Reconstruction `R=S+C` | Equality `2R` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `RW0PhaseEntryBasisV1` | 26 | 122 | 174 | 296 | 592 |
+| `RW0AuthorityVerificationObservationV1` | 39 | 78 | 124 | 202 | 404 |
+| `RW0SubordinateAuthorizationProposalV1` | 29 | 62 | 92 | 154 | 308 |
+| `RW0CustodyAvailabilityObservationV1` | 16 | 17 | 34 | 51 | 102 |
+| `RW0RetrievalCapabilityEventObservationV1` | 37 | 38 | 76 | 114 | 228 |
+| `RW0RemoteHostReadinessObservationV1` | 39 | 40 | 80 | 120 | 240 |
+| `RW0EffectHostQualificationV1` | 45 | 46 | 92 | 138 | 276 |
+| `RW0TerminalOutcomeV1` | 31 | 32 | 64 | 96 | 192 |
+
+The schema suffixes, ordered fields, digest domains, and canonical bytes remain
+exactly those already frozen below. `S` snapshots the exact stored graph and
+reserves any nested owner tariff; `C` is the existing public constructor
+limit. Every state-revealing surface reconstructs through the owning grammar
+before reading semantic state. Valid copy and deepcopy remain identity-stable
+only after that reconstruction succeeds. Ordinary `_values` access remains
+hidden.
 
 The exact ordered fields are listed below. Each `schema_id` is the full schema
 ID from the table. The digest domain is that full ID followed by `.identity`.
@@ -150,16 +189,16 @@ exact owner values, and raises sealed `RW0PhaseValueError` otherwise.
 
 | Relation | Bound facts | Maximum B1 units |
 | --- | --- | ---: |
-| `validate_phase_entry_basis` | Exact L34/K8, selected proposal/artifact/disposition/head postimage, WorkSpec and C2A authoring/delivery, current heads/stop/path | 104 |
-| `validate_authority_observation` | Verified compatible unrevoked fresh claim, complete verified-parent containment of attempt/author/current fences, phase and per-fence lineage, scope, heads/stop, C2A current effect relation | 196 |
-| `validate_per_fence_basis` | Two role-specific basis pairs and both fence identities | 110 |
-| `validate_external_common_family_claim` | Verifier family compatibility, matching parent family claim, each fence basis; no independent ancestry proof | 110 |
-| `validate_subordinate_narrowing` | Current claim, exact attempt/current-effect origin, complete verified-parent containment, and strict effect-set, ceiling, or expiry reduction within parent and both fences | 242 |
-| `validate_custody_binding` | Exact phase/semantic subject, selected-plan byte length, live available assertion | 106 |
-| `validate_retrieval_event_sequence` | One to three events, current narrowing and complete supplied-parent containment, exact authority/proposal/custody/fence/scope/correlation, predecessor, time and legal sequence | 374 |
-| `validate_host_qualification` | One effect-bound supplied claim, available phase/attempt/current-effect lineage and parent containment, deterministic precedence, profiles and current path | 241 |
-| `validate_terminal_outcome_binding` | Decision and current heads/stop, dispatched branch shape; evidence-set binding only | 159 |
-| Each of four standalone shape validators | Its exact branch row and decision kind | 33 |
+| `validate_phase_entry_basis` | Exact L34/K8, selected proposal/artifact/disposition/head postimage, WorkSpec and C2A authoring/delivery, current heads/stop/path | 891 |
+| `validate_authority_observation` | Verified compatible unrevoked fresh claim, complete verified-parent containment of attempt/author/current fences, phase and per-fence lineage, scope, heads/stop, C2A current effect relation | 1151 |
+| `validate_per_fence_basis` | Two role-specific basis pairs and both fence identities | 550 |
+| `validate_external_common_family_claim` | Verifier family compatibility, matching parent family claim, each fence basis; no independent ancestry proof | 550 |
+| `validate_subordinate_narrowing` | Current claim, exact attempt/current-effect origin, complete verified-parent containment, and strict effect-set, ceiling, or expiry reduction within parent and both fences | 891 |
+| `validate_custody_binding` | Exact phase/semantic subject, selected-plan byte length, live available assertion | 520 |
+| `validate_retrieval_event_sequence` | One to three events, current narrowing and complete supplied-parent containment, exact authority/proposal/custody/fence/scope/correlation, predecessor, time and legal sequence | 1285 |
+| `validate_host_qualification` | One effect-bound supplied claim, available phase/attempt/current-effect lineage and parent containment, deterministic precedence, profiles and current path | 863 |
+| `validate_terminal_outcome_binding` | Decision and current heads/stop, dispatched branch shape; evidence-set binding only | 496 |
+| Each of four standalone shape validators | Its exact branch row and decision kind | 97 |
 
 Path correlation is
 `SHA256("governed-execution.nwp-rw0-current-path-scope-binding.v1.identity" + NUL + compact JSON of the exact validated C2A path tuple)`.
@@ -224,9 +263,11 @@ each applicable expiry.
 
 A B1 traversal unit is a value, container, or member occurrence charged before
 descent. Active-object identity detects cycles. Shared aliases are charged on
-every occurrence. External owner values are one B1 leaf each and are separately
-validated by their owners. Construction traverses input and reconstruction
-under one `2V` budget. The common closed-mapping path first requires an exact
+every occurrence. Before any semantic read, raw B1 storage is inspected only
+through exact owner-known slots with a non-recursive stack. Nested C2A and L34
+values reserve their full owner tariff in the outer counter and are then
+independently reconstructed by their owners. Construction retains its existing
+independent `C` meter. The common closed-mapping path first requires an exact
 built-in dict and checks its cardinality in O(1), before caller-key iteration,
 aliasing, materialization, sorting, or copying. A mapping larger than its exact
 allowed field count necessarily contains an unknown key and fails immediately
@@ -234,24 +275,46 @@ with content-free `unknown_field`, even if an excess key names private material.
 For remaining mappings, one key pass scans at most the fixed field count;
 non-exact key types retain type-error precedence, and the first unknown key's
 existing classification precedes missing-field rejection. Once all keys are
-known, a smaller cardinality is missing-only. Closure validation is included in
-the validation half of the existing `2V` accounting; the shared budget still
-covers input validation and defensive reconstruction, with no unbounded key
-traversal before it. Maximum valid mappings retain their unchanged budgets,
-schema identities, and canonical bytes. Relation budgets have one shared counter, including
-terminal shape dispatch. The maximum formulas are 87+13+4, 87+62+6+1+4+30+6,
-62+46+2, 62+46+2, 87+62+46+2+1+8+30+6, 87+17+1+1,
-87+17+62+46+3*38+1+2+1+8+30+6, 87+62+40+46+1+1+4,
-87+32+7+32+1, and 32+1 respectively. If these limits cannot accommodate the
-exact frozen fields under faithful traversal, implementation stops rather than
-increasing a limit.
+known, a smaller cardinality is missing-only. Maximum valid mappings retain
+their existing construction budgets, schema identities, and canonical bytes.
+Relation budgets have one shared exact outer counter, including terminal shape
+dispatch. The maximum formulas are
+`296+70+4+172+92+102+116+32+3+4=891`,
+`296+202+92+102+102+116+98+102+1+4+30+6=1151`,
+`202+154+92+102=550` for each two-fence relation,
+`296+202+154+92+102+1+8+30+6=891`,
+`296+51+172+1=520`,
+`296+51+202+154+3*114+1+92+102+1+8+30+6=1285`,
+`296+202+120+138+102+1+4=863`,
+`296+96+7+96+1=496`, and `96+1=97` respectively. The terminal
+binding intentionally reconstructs the outcome again in its nested shape
+check. If these limits cannot accommodate the exact frozen fields under
+faithful traversal, implementation stops rather than increasing a limit.
+
+The private `_validate_host_qualification_with_snapshots(...)` seam performs
+the complete 863-unit validation once and returns only fresh validated built-in
+projections for basis, authority, readiness, qualification, and current effect.
+The public validator delegates to that core and still returns `None`.
+RW0-B2-Capability is the seam's sole cross-module production consumer.
+
+The Section 41 owner supplies a private exact
+`CanonicalC2B3DLineage` reconstruction helper with raw graph work 35 and
+complete tariff 70. It reads the exact L34 slots without recursion and returns
+a fresh exact lineage plus a fresh plain projection. B1 reserves that full
+tariff before calling the independently metered owner helper. The L34 field
+inventory, route meaning, canonical bytes, and authority posture do not change.
+
+This is an occurrence-work contract, not a finite integer-bit-length,
+serialized-byte, or wall-clock bound. It adds no C2A integer upper limit and no
+SQLite-width restriction.
 
 Retrieval first checks the current clear-stop, verified and fresh authority,
 strict parent-based subordinate narrowing, compatible current fences, and a
 live available custody assertion under the same traversal budget.
-The retrieval limit is 374: 87 basis + 17 custody + 62 authority observation
-+ 46 proposal + 3×38 retrieval events + 1 sequence container + 2 fence leaves
-+ 1 supplied time + 8 current-path occurrences + 30 external ceiling-member
+The retrieval limit is 1285 B1 units: 296 basis + 51 custody + 202 authority
+observation + 154 proposal + 3×114 retrieval events + 1 sequence container +
+92 attempt-fence reconstruction + 102 current-effect-fence reconstruction + 1
+supplied time + 8 current-path occurrences + 30 external ceiling-member
 occurrences + 6 external effect-set occurrences. The narrowing helper charges
 those final 36 occurrences exactly once against the retrieval caller's shared
 budget; it neither resets that budget nor treats uncharged work as charged.
@@ -322,12 +385,13 @@ outside the current C2A safe-ref grammar where prohibited by that owner;
 B1 does not widen it. Synthetic address-shaped rejection probes are test-only
 negative inputs and never accepted B1 values.
 
-There is no production consumer in this tranche. Direct private tests alone
-import the module. B2 may frame safe semantics; C may persist projections and
-prove evidence completeness/latch behavior; D may consume values for offline
-worker/custody proof; E may consume them for live-host proof. ES owns ES-route
-admission, reliable submit, lifecycle, cancellation, runtime identity, and
-retained results. None of B1's assertions performs those effects.
+RW0-B2-Capability is the sole current cross-module production consumer of B1;
+no other production module currently consumes these values or relations. C may
+persist projections and prove evidence completeness/latch behavior; D may
+consume values for offline worker/custody proof; E may consume them for
+live-host proof. ES owns ES-route admission, reliable submit, lifecycle,
+cancellation, runtime identity, and retained results. None of B1's assertions
+performs those effects.
 
 Direct tests pin ordered fields, independent canonical vectors, privacy and
 immutability, budgets, relation matrices, and source boundaries. Existing C2A,

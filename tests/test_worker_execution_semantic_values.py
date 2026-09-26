@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import copy, deepcopy
+from pathlib import Path
 import pickle
+import sys
 import traceback
 
 import pytest
 
+import ge_nwp_coordinator._worker_execution_semantic_values as semantic_values
 from ge_nwp_coordinator._worker_execution_semantic_values import (
     AttemptFenceV1,
     CandidateCapsuleManifestV1,
@@ -87,6 +90,201 @@ class _HostileInput:
     @property
     def effect_class(self) -> str:
         self._called("effect_class")
+
+
+def test_private_owner_reconstruction_rejects_deep_raw_state_before_projection() -> None:
+    reconstruct = getattr(
+        semantic_values, "_reconstruct_exact_worker_execution_value"
+    )
+    work_spec = WorkSpecV1.from_mapping(_full_record("WorkSpecV1"))
+    nested: object = "leaf"
+    for _ in range(2_000):
+        nested = (nested,)
+    object.__setattr__(work_spec, "_requirements", (nested,))
+
+    with pytest.raises(WorkerExecutionValueError) as caught:
+        reconstruct(work_spec, WorkSpecV1)
+    assert caught.value.reason == "relation_mismatch"
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+
+
+_OWNER_RECONSTRUCTION_CASES = (
+    (CeilingsV1, "CeilingsV1", 16, 32),
+    (CapsuleEntryV1, "CapsuleEntryV1", 8, 16),
+    (WorkSpecV1, "WorkSpecV1", 86, 172),
+    (AttemptFenceV1, "AttemptFenceV1", 46, 92),
+    (EffectFenceV1, "EffectFenceV1", 51, 102),
+    (WorkerCommandV1, "WorkerCommandV1", 58, 116),
+    (DeliveryEnvelopeV1, "DeliveryEnvelopeV1", 16, 32),
+    (CandidateCapsuleManifestV1, "CandidateCapsuleManifestV1", 49, 98),
+)
+
+
+def _maximum_owner_value(value_type: type, model_name: str):
+    if value_type is CeilingsV1:
+        return value_type.from_mapping(
+            _full_record("AttemptFenceV1")["aggregate_ceilings"]
+        )
+    if value_type is CapsuleEntryV1:
+        return value_type.from_mapping(
+            _full_record("CandidateCapsuleManifestV1")["entries"][0]
+        )
+    mapping = _full_record(model_name)
+    if value_type is WorkSpecV1:
+        mapping["requirements"] = [f"requirement-{index:02d}" for index in range(32)]
+        mapping["exclusions"] = [f"exclusion-{index:02d}" for index in range(32)]
+        mapping = _reseal_single_digest_record(model_name, mapping)
+    return value_type.from_mapping(mapping)
+
+
+@pytest.mark.parametrize(
+    "value_type,model_name,graph_work,tariff", _OWNER_RECONSTRUCTION_CASES
+)
+def test_private_owner_reconstruction_exact_tariffs_and_one_under(
+    value_type: type, model_name: str, graph_work: int, tariff: int,
+) -> None:
+    value = _maximum_owner_value(value_type, model_name)
+    assert graph_work * 2 == tariff
+    assert semantic_values._exact_worker_execution_reconstruction_work(
+        value_type
+    ) == tariff
+    budget = semantic_values._WorkerExecutionReconstructionBudget(tariff)
+    rebuilt, projection = (
+        semantic_values._reconstruct_exact_worker_execution_value(
+            value, value_type, budget
+        )
+    )
+    assert budget.remaining == 0
+    assert type(rebuilt) is value_type and rebuilt is not value
+    assert projection == value.to_mapping()
+    assert projection is not value.to_mapping()
+
+    one_under = semantic_values._WorkerExecutionReconstructionBudget(tariff - 1)
+    with pytest.raises(WorkerExecutionValueError) as caught:
+        semantic_values._reconstruct_exact_worker_execution_value(
+            value, value_type, one_under
+        )
+    assert caught.value.reason == "relation_mismatch"
+    assert caught.value.field_path == (
+        "_reconstruct_exact_worker_execution_value"
+    )
+    assert caught.value.__cause__ is None
+    assert caught.value.__context__ is None
+
+
+class _ProjectionTraceBudget:
+    def __init__(
+        self,
+        events: list[tuple[str, int]],
+        *,
+        limit: int = 10_000,
+        fail_on_call: int | None = None,
+    ) -> None:
+        self.remaining = limit
+        self.calls = 0
+        self._events = events
+        self._fail_on_call = fail_on_call
+
+    def consume(self, amount: int = 1) -> None:
+        self.calls += 1
+        self._events.append(("charge", self.calls))
+        if self.calls == self._fail_on_call or amount > self.remaining:
+            raise semantic_values._WorkerExecutionReconstructionFailure
+        self.remaining -= amount
+
+
+def _trace_tuple_dereferences(
+    value: WorkSpecV1,
+    budget: _ProjectionTraceBudget,
+) -> tuple[dict[str, object], int] | None:
+    raw = semantic_values._raw_worker_execution_projection
+    source_lines = Path(semantic_values.__file__).read_text().splitlines()
+    start = raw.__code__.co_firstlineno
+    end = start + 200
+    dereference_lines = {
+        number
+        for number, line in enumerate(source_lines, 1)
+        if start <= number <= end and "sequence[index]" in line
+    }
+    assert len(dereference_lines) == 1
+
+    def trace(frame, event, _argument):
+        if frame.f_code is raw.__code__ and event == "line":
+            if frame.f_lineno in dereference_lines:
+                budget._events.append(("index", budget.calls))
+        return trace
+
+    previous = sys.gettrace()
+    sys.settrace(trace)
+    try:
+        return raw(value, WorkSpecV1, budget)
+    finally:
+        sys.settrace(previous)
+
+
+def test_c2a_tuple_members_are_charged_before_each_index_operation() -> None:
+    value = _maximum_owner_value(WorkSpecV1, "WorkSpecV1")
+    events: list[tuple[str, int]] = []
+    budget = _ProjectionTraceBudget(events)
+    projection, graph_work = _trace_tuple_dereferences(value, budget)
+
+    assert projection == value.to_mapping()
+    assert graph_work == 86
+    assert budget.calls == 86
+    assert sum(kind == "index" for kind, _call in events) == 67
+    for position, (kind, call) in enumerate(events):
+        if kind == "index":
+            assert position > 0
+            assert events[position - 1] == ("charge", call)
+
+    first_tuple_field = next(
+        field
+        for field in WorkSpecV1._FIELDS
+        if semantic_values._worker_execution_tuple_field_limit(WorkSpecV1, field)
+        is not None
+    )
+    first_member_charge = 3 + WorkSpecV1._FIELDS.index(first_tuple_field)
+    one_short_events: list[tuple[str, int]] = []
+    one_short = _ProjectionTraceBudget(
+        one_short_events, fail_on_call=first_member_charge
+    )
+    with pytest.raises(semantic_values._WorkerExecutionReconstructionFailure):
+        _trace_tuple_dereferences(value, one_short)
+    assert [event for event in one_short_events if event[0] == "index"] == []
+
+
+def test_private_owner_reconstruction_recharges_repeated_aliases() -> None:
+    mapping = _full_record("WorkSpecV1")
+    shared = [f"shared-requirement-{index:02d}" for index in range(32)]
+    mapping["requirements"] = list(shared)
+    mapping["exclusions"] = list(shared)
+    value = WorkSpecV1.from_mapping(
+        _reseal_single_digest_record("WorkSpecV1", mapping)
+    )
+    object.__setattr__(
+        value,
+        "_exclusions",
+        object.__getattribute__(value, "_requirements"),
+    )
+    rebuilt, projection = semantic_values._reconstruct_exact_worker_execution_value(
+        value, WorkSpecV1
+    )
+    assert rebuilt.to_mapping() == projection
+    assert projection["requirements"] == projection["exclusions"]
+    assert projection["requirements"] is not projection["exclusions"]
+
+
+def test_private_owner_reconstruction_excludes_worker_observation() -> None:
+    observation = WorkerObservationV1.from_mapping(
+        _full_record("WorkerObservationV1")
+    )
+    with pytest.raises(WorkerExecutionValueError) as caught:
+        semantic_values._reconstruct_exact_worker_execution_value(
+            observation, WorkerObservationV1
+        )
+    assert caught.value.reason == "relation_mismatch"
+    assert caught.value.__cause__ is None
 
 
 def _assert_isolated_hostile_unused_arguments(

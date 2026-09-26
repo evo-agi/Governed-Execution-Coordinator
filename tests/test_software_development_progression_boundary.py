@@ -601,17 +601,21 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
         assert phrase in open_decisions
 
     wire_owner = _compact(_text(".docs/rw0-b2-wire-protocol.md"))
+    capability_owner = _compact(_text(".docs/rw0-b2-capability.md"))
+    capability_source = _text(
+        "src/ge_nwp_coordinator/_rw0_worker_mechanism_capability_values.py")
     composition = _compact(_text(".docs/autonomous-software-development-operating-model.md"))
 
     def require_wire_non_progression(owner: str) -> None:
         for phrase in (
             "RW0-B2-Wire currently implements one private, pure, no-I/O source module",
             "It adds no caller, package-root export, transport, source authentication",
-            "RW0-B1's pure phase-entry values and C2A's semantic values and six relations are unchanged",
-            "RW0-C owns any future durable facts, evidence membership, recovery, terminal outcome, and acceptance latch",
-            "RW0-D/E own offline process proof and separately authorized live proof",
+            "RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts",
+            "their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition",
+            "RW0-C owns future durable facts, evidence membership, recovery, terminal outcome, and acceptance latch",
+            "RW0-D/E own future offline process proof and separately authorized live proof",
             "Execution Substrate owns admission and runtime lifecycle",
-            "Capability remains seam-bounded and unimplemented",
+            "The separate Capability semantics are implemented under `.docs/rw0-b2-capability.md` and do not widen Wire ownership",
             "No classification implies teardown, reconciliation, semantic cancellation, terminal outcome, durable fact, permission, or acceptance",
             "Future physical transport framing, stream/process plumbing, pre-read allocation",
             "source authentication, host verification, credential custody, provider/session behavior",
@@ -622,7 +626,19 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
 
     require_wire_non_progression(wire_owner)
     assert "RW0_B2_WIRE_CURRENT_STATUS_BEGIN" in composition
+    assert "RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN" in composition
     assert "No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented" in composition
+    for phrase in (
+        "private, pure, deterministic, no-I/O semantic layer",
+        "introduces no public API, schema migration, durable state, process behavior",
+        "grants permission", "persists a fact", "becomes durable program truth",
+        "RW0-C retains durable evidence membership and completeness",
+        "RW0-D/E retain the CLI/App Server/provider choice",
+    ):
+        assert phrase in capability_owner
+    assert "__all__: tuple[str, ...] = ()" in capability_source
+    assert "StateStore" not in capability_source
+    assert "WriterSession" not in capability_source
     contradictory = wire_owner.replace(
         "No classification implies teardown, reconciliation, semantic cancellation, terminal outcome, durable fact, permission, or acceptance",
         "A classification implements a semantic terminal fact and acceptance",

@@ -64,6 +64,15 @@ from C2B2 physical-schema authority.
 
 C2A1 implements only the nine immutable internal values, exact mapping and
 identity mechanics, two pure factories, and six pure coherence validators. It
+also implements the private exact-class owner reconstruction helper governed by
+`.docs/c2a1-pure-semantic-values.md` for eight admitted value classes, excluding
+`WorkerObservationV1`. That helper adds only non-recursive raw-slot
+reconstruction and occurrence-work accounting; public schemas, semantics,
+canonical identities, relations, and scalar domains remain unchanged. The
+occurrence-work contract is not an integer-bit-length, serialized-byte,
+SQLite-width, or wall-clock bound.
+
+It
 implements no durable state, schema, migration, packaging, dependency, package
 export, entry point, worker, supervisor, process launch, filesystem capsule
 effect, SQLite state, model/provider or Codex invocation, validation/review
@@ -1462,13 +1471,14 @@ from C2A/C2A1 semantic authority.
 
 Migration 0003 and its private pre-execution selection runtime are now
 implemented outside C2A under Sections 41 and 42 of the durable-state owner.
-C2B2 Slice 2 provides pure private row/value
-reconstruction over the unchanged C2A1 values. C2B2 private readers are
-implemented; VS1B consumes unchanged C2A/C2B2 semantics for private
-route-neutral genesis, and C2B3D consumes unchanged authoring, effect,
+C2B2 Slice 2 provides pure private row/value reconstruction over C2A1's
+unchanged public schemas, semantics, and canonical identities. C2B2 private
+readers are implemented; VS1B consumes unchanged C2A/C2B2 public semantics for
+private route-neutral genesis, and C2B3D consumes unchanged authoring, effect,
 delivery, and redelivery relations for private author-effect persistence and
-verification. C2A itself remains unchanged and confers no durable or
-executable authority. Worker, process, or model execution, Git effects,
+verification. C2A's public contract remains unchanged while its private owner
+reconstruction helper and occurrence-work accounting are current; neither
+confers durable or executable authority. Worker, process, or model execution, Git effects,
 direct-local execution, ES routing, Bridge integration, publication, service,
 API, and IPC also remain absent.
 

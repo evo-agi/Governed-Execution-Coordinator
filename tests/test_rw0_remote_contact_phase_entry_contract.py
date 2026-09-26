@@ -4,8 +4,11 @@ import ast
 import hashlib
 import re
 from pathlib import Path
+from typing import NamedTuple
 
 import pytest
+
+import test_rw0_b1_boundaries as _b1_owner_test_module
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +62,7 @@ K8_FIELDS = (
     "delivery_attempt_ref",
 )
 REQUIRED_HEADINGS = (
+    "Current-contract registry",
     "Status, scope, and nonimplementation",
     "Current entry lineage",
     "Bounded RW0 scenario class",
@@ -81,6 +85,810 @@ TERMINAL_OUTCOMES = (
     "cancel",
 )
 
+_RW0_OWNER_TITLE = "# RW0 Remote-Contact Phase-Entry Operating Model"
+_RW0_STATUS_HEADING = "## Status, scope, and nonimplementation"
+_RW0_TRANCHE_HEADING = "## Tranche map and open decisions"
+
+
+class _RW0RegistryProjection(NamedTuple):
+    version: int
+    rows: tuple[tuple[str, ...], ...]
+
+
+_RW0_REGISTRY_HEADING = "## Current-contract registry"
+_RW0_REGISTRY_POLICY = (
+    "Only the bounded registry below is machine-authoritative for the facts that it",
+    "owns. Projection rows consume their named owner and create no second authority.",
+)
+_RW0_REGISTRY_BEGIN = "<!-- COORDINATOR_RW0_CURRENT_CONTRACT_REGISTRY_BEGIN -->"
+_RW0_REGISTRY_END = "<!-- COORDINATOR_RW0_CURRENT_CONTRACT_REGISTRY_END -->"
+_RW0_REGISTRY_VERSION = "Registry version: 1"
+_RW0_REGISTRY_HEADER = "| Component | Lifecycle status | Contract class | Authority owner | Detail contract | Authority posture | Implementation posture | Explicit nonclaims |"
+_RW0_REGISTRY_SEPARATOR = "| --- | --- | --- | --- | --- | --- | --- | --- |"
+_RW0_REGISTRY_ROW_LINES = (
+    "| RW0-B1 | current_implemented | private_pure_no_io_semantics | RW0-B1 | .docs/rw0-b1-pure-phase-values.md | no_executable_authority | implemented_in_this_repository | source_authentication,executable_permission,persistence,semantic_acceptance,acceptance_latch,es_runtime_fact |",
+    "| RW0-B2-Wire | current_implemented | private_pure_no_io_semantics | RW0-B2-Wire | .docs/rw0-b2-wire-protocol.md | no_executable_authority | implemented_in_this_repository | physical_transport,stream_process_plumbing,source_authentication,executable_permission,persistence,semantic_acceptance,es_runtime_fact |",
+    "| RW0-B2-Capability | current_implemented | private_pure_no_io_semantics | RW0-B2-Capability | .docs/rw0-b2-capability.md | no_executable_authority | implemented_in_this_repository | source_authentication,physical_process_behavior,executable_permission,semantic_acceptance,persistence,provider_runtime_selection,es_runtime_fact |",
+    "| RW0-C | future | durable_semantics_and_recovery | RW0-C | this_document | future_guarded_coordinator_progression_only | not_implemented | external_standing_authority,physical_process,es_runtime_fact |",
+    "| RW0-D | future | physical_custody_transport_process_provider_cancellation_mechanics | RW0-D | this_document | source_owned_physical_facts_no_semantic_progression | not_implemented | executable_authority,semantic_acceptance,es_runtime_fact,live_credentials,network |",
+    "| RW0-E | future | separately_authorized_live_proof | RW0-E | this_document | external_standing_authority_required_no_independent_authority | not_implemented | independent_standing_authority,semantic_progression,git,publication,es_runtime_fact |",
+    "| Execution Substrate | current_external_owner | route_admission_reliable_submit_runtime | Execution Substrate | external_contract | admission_and_runtime_authority_only | external_contract_not_implemented_here | coordinator_semantic_progression,semantic_acceptance,publication_authority,external_standing_authority |",
+)
+_RW0_CANONICAL_BLOCK_LINES = (
+    _RW0_REGISTRY_HEADING,
+    "",
+    *_RW0_REGISTRY_POLICY,
+    "",
+    _RW0_REGISTRY_BEGIN,
+    _RW0_REGISTRY_VERSION,
+    "",
+    _RW0_REGISTRY_HEADER,
+    _RW0_REGISTRY_SEPARATOR,
+    *_RW0_REGISTRY_ROW_LINES,
+    _RW0_REGISTRY_END,
+)
+_RW0_CANONICAL_BLOCK = "\n".join(_RW0_CANONICAL_BLOCK_LINES)
+_RW0_EXPECTED_PROJECTION = _RW0RegistryProjection(
+    1,
+    (
+        ("RW0-B1", "current_implemented", "private_pure_no_io_semantics", "RW0-B1", ".docs/rw0-b1-pure-phase-values.md", "no_executable_authority", "implemented_in_this_repository", "source_authentication,executable_permission,persistence,semantic_acceptance,acceptance_latch,es_runtime_fact"),
+        ("RW0-B2-Wire", "current_implemented", "private_pure_no_io_semantics", "RW0-B2-Wire", ".docs/rw0-b2-wire-protocol.md", "no_executable_authority", "implemented_in_this_repository", "physical_transport,stream_process_plumbing,source_authentication,executable_permission,persistence,semantic_acceptance,es_runtime_fact"),
+        ("RW0-B2-Capability", "current_implemented", "private_pure_no_io_semantics", "RW0-B2-Capability", ".docs/rw0-b2-capability.md", "no_executable_authority", "implemented_in_this_repository", "source_authentication,physical_process_behavior,executable_permission,semantic_acceptance,persistence,provider_runtime_selection,es_runtime_fact"),
+        ("RW0-C", "future", "durable_semantics_and_recovery", "RW0-C", "this_document", "future_guarded_coordinator_progression_only", "not_implemented", "external_standing_authority,physical_process,es_runtime_fact"),
+        ("RW0-D", "future", "physical_custody_transport_process_provider_cancellation_mechanics", "RW0-D", "this_document", "source_owned_physical_facts_no_semantic_progression", "not_implemented", "executable_authority,semantic_acceptance,es_runtime_fact,live_credentials,network"),
+        ("RW0-E", "future", "separately_authorized_live_proof", "RW0-E", "this_document", "external_standing_authority_required_no_independent_authority", "not_implemented", "independent_standing_authority,semantic_progression,git,publication,es_runtime_fact"),
+        ("Execution Substrate", "current_external_owner", "route_admission_reliable_submit_runtime", "Execution Substrate", "external_contract", "admission_and_runtime_authority_only", "external_contract_not_implemented_here", "coordinator_semantic_progression,semantic_acceptance,publication_authority,external_standing_authority"),
+    ),
+)
+
+_RW0_PROSE_AUTHORITY_POLICY = {
+    "enumerated_facts": "registry_is_sole_machine_authority",
+    "surrounding_prose": "governing_explanatory_contract_text",
+    "natural_language_contradiction_detection": "not_claimed",
+    "arbitrary_semantic_equivalence": "outside_parser_contract",
+}
+
+def _registry_fail(owner: str, kind: str) -> None:
+    assert owner in {"b1", "rw0"}
+    assert kind in {
+        "encoding", "fence", "marker", "visibility", "location", "version",
+        "shape", "order", "value", "projection",
+    }
+    raise AssertionError(f"{owner}.registry.{kind}")
+
+
+def _registry_fence_candidate(line: str) -> tuple[str, int, str] | None:
+    indent = len(line) - len(line.lstrip(" "))
+    if indent > 3:
+        return None
+    rest = line[indent:]
+    if not rest or rest[0] not in "`~":
+        return None
+    marker = rest[0]
+    run = len(rest) - len(rest.lstrip(marker))
+    if run < 3:
+        return None
+    return marker, run, rest[run:]
+
+
+def _registry_visibility(
+    lines: tuple[str, ...], permitted_markers: frozenset[str],
+) -> tuple[bool, ...]:
+    visible: list[bool] = []
+    fence: tuple[str, int] | None = None
+    in_comment = False
+    for line in lines:
+        if fence is not None:
+            visible.append(False)
+            candidate = _registry_fence_candidate(line)
+            if (
+                candidate is not None
+                and candidate[0] == fence[0]
+                and candidate[1] >= fence[1]
+                and all(character in " \t" for character in candidate[2])
+            ):
+                fence = None
+            continue
+        if in_comment:
+            visible.append(False)
+            if "-->" in line:
+                in_comment = False
+            continue
+        if line in permitted_markers:
+            visible.append(True)
+            continue
+        comment_at = line.find("<!--")
+        if comment_at != -1:
+            visible.append(False)
+            if line.find("-->", comment_at + 4) == -1:
+                in_comment = True
+            continue
+        candidate = _registry_fence_candidate(line)
+        if candidate is not None and (
+            candidate[0] != "`" or "`" not in candidate[2]
+        ):
+            visible.append(False)
+            fence = candidate[:2]
+            continue
+        visible.append(True)
+    return tuple(visible)
+
+
+def _registry_decode(raw: bytes, owner: str) -> tuple[str, tuple[str, ...]]:
+    if raw.startswith(b"\xef\xbb\xbf"):
+        _registry_fail(owner, "encoding")
+    try:
+        text = raw.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        _registry_fail(owner, "encoding")
+    return text, tuple(text.split("\n"))
+
+
+def _registry_ascii_decimal(value: str, owner: str) -> int:
+    if not value or any(character < "0" or character > "9" for character in value):
+        _registry_fail(owner, "value")
+    return int(value)
+
+
+def _registry_row(line: str, width: int, owner: str) -> tuple[str, ...]:
+    if not line.startswith("| ") or not line.endswith(" |") or "\t" in line:
+        _registry_fail(owner, "shape")
+    cells = tuple(line[2:-2].split(" | "))
+    if len(cells) != width or any(not cell for cell in cells):
+        _registry_fail(owner, "shape")
+    return cells
+
+
+def _parse_rw0_registry(raw: bytes) -> _RW0RegistryProjection:
+    _text_value, lines = _registry_decode(raw, "rw0")
+    for token in (_RW0_REGISTRY_HEADING, _RW0_REGISTRY_BEGIN, _RW0_REGISTRY_END):
+        if lines.count(token) != 1:
+            _registry_fail("rw0", "marker")
+    if lines.count(_RW0_REGISTRY_VERSION) != 1:
+        _registry_fail("rw0", "version")
+    if lines.count(_RW0_REGISTRY_HEADER) != 1:
+        _registry_fail("rw0", "shape")
+    if lines.count(CONTRACT_BEGIN) != 1 or lines.count(CONTRACT_END) != 1:
+        _registry_fail("rw0", "location")
+
+    heading_index = lines.index(_RW0_REGISTRY_HEADING)
+    begin_index = lines.index(_RW0_REGISTRY_BEGIN)
+    end_index = lines.index(_RW0_REGISTRY_END)
+    outer_begin = lines.index(CONTRACT_BEGIN)
+    outer_end = lines.index(CONTRACT_END)
+    status_indices = tuple(
+        index for index, line in enumerate(lines) if line == _RW0_STATUS_HEADING
+    )
+    visible = _registry_visibility(
+        lines, frozenset({_RW0_REGISTRY_BEGIN, _RW0_REGISTRY_END})
+    )
+    if not all(visible[index] for index in (heading_index, begin_index, end_index)):
+        _registry_fail("rw0", "visibility")
+    if len(status_indices) != 1:
+        _registry_fail("rw0", "location")
+    status_index = status_indices[0]
+    live_h2 = tuple(
+        index for index in range(outer_begin + 1, outer_end)
+        if visible[index] and lines[index].startswith("## ")
+    )
+    if not live_h2 or live_h2[0] != heading_index:
+        _registry_fail("rw0", "location")
+    if not (outer_begin < heading_index < begin_index < end_index < status_index < outer_end):
+        _registry_fail("rw0", "location")
+    if heading_index != outer_begin + 2 or lines[outer_begin + 1] != "":
+        _registry_fail("rw0", "location")
+    if end_index + 2 != status_index or lines[end_index + 1] != "":
+        _registry_fail("rw0", "location")
+
+    section = lines[heading_index:end_index + 1]
+    if any("\r" in line for line in section):
+        _registry_fail("rw0", "shape")
+    if len(section) != len(_RW0_CANONICAL_BLOCK_LINES):
+        _registry_fail("rw0", "shape")
+    fixed_positions = tuple(range(10)) + (len(section) - 1,)
+    if any(section[index] != _RW0_CANONICAL_BLOCK_LINES[index] for index in fixed_positions):
+        _registry_fail("rw0", "shape")
+    row_lines = section[10:-1]
+    rows = tuple(_registry_row(line, 8, "rw0") for line in row_lines)
+    expected_components = tuple(row[0] for row in _RW0_EXPECTED_PROJECTION.rows)
+    observed_components = tuple(row[0] for row in rows)
+    if observed_components != expected_components:
+        if len(observed_components) == len(expected_components) and set(observed_components) == set(expected_components):
+            _registry_fail("rw0", "order")
+        _registry_fail("rw0", "shape")
+    if tuple(row_lines) != _RW0_REGISTRY_ROW_LINES:
+        _registry_fail("rw0", "value")
+    if not all(visible[index] for index in range(heading_index, end_index + 1)):
+        _registry_fail("rw0", "visibility")
+    projection = _RW0RegistryProjection(
+        _registry_ascii_decimal(section[6].removeprefix("Registry version: "), "rw0"),
+        tuple(tuple(cell for cell in row) for row in rows),
+    )
+    if projection != _RW0_EXPECTED_PROJECTION:
+        _registry_fail("rw0", "projection")
+    return projection
+
+
+def _assert_b1_projects_rw0(
+    b1_projection: _b1_owner_test_module._B1RegistryProjection,
+    rw0_projection: _RW0RegistryProjection,
+) -> None:
+    b1_rows = {row[0]: row for row in b1_projection.rows}
+    rw0_rows = {row[0]: row for row in rw0_projection.rows}
+    expected = (
+        (b1_rows["lifecycle_status"][1], rw0_rows["RW0-B1"][1]),
+        (b1_rows["contract_class"][1], rw0_rows["RW0-B1"][2]),
+        (b1_rows["future_acceptance_latch_owner"][1], rw0_rows["RW0-C"][3]),
+        (b1_rows["future_durable_ingest_completeness_recovery_terminal_owner"][1], rw0_rows["RW0-C"][3]),
+        (b1_rows["future_physical_custody_transport_process_cancellation_owner"][1], rw0_rows["RW0-D"][3]),
+        (b1_rows["future_separately_authorized_live_proof_owner"][1], rw0_rows["RW0-E"][3]),
+        (b1_rows["es_admission_reliable_submit_runtime_identity_lifecycle_cancellation_results_owner"][1], rw0_rows["Execution Substrate"][3]),
+    )
+    if any(left != right for left, right in expected):
+        _registry_fail("b1", "projection")
+
+
+def _rw0_replace_once(text: str, old: str, new: str) -> str:
+    assert text.count(old) == 1
+    return text.replace(old, new, 1)
+
+
+_RW0_STRUCTURE_CASES = (
+    "missing_heading", "duplicate_heading", "heading_in_fence",
+    "heading_in_larger_comment", "missing_begin", "missing_end",
+    "reversed_markers", "duplicate_begin", "duplicate_end",
+    "begin_marker_in_fence", "end_marker_in_comment", "missing_version",
+    "wrong_version", "duplicate_version", "missing_header", "wrong_header",
+    "duplicate_header", "missing_row", "extra_row", "duplicate_row",
+    "unknown_row", "renamed_component", "reordered_rows", "relocated_block",
+    "registry_after_wrong_heading", "block_hidden_backtick_fence",
+    "block_hidden_tilde_fence", "unclosed_fence",
+    "opposite_marker_nonclosure", "shorter_closer_nonclosure",
+    "backtick_info_with_backtick_nonopener", "four_space_fence_nonopener",
+    "cr_in_registry_line", "bom", "unicode_line_separator", "tab",
+    "trailing_space", "nbsp", "unicode_digit", "inline_emphasis",
+    "inline_link", "inline_code", "extra_pipe",
+    "multiline_comment_spanning_registry", "comment_spliced_registry_line",
+)
+_RW0_STRUCTURE_ACCEPTED = {
+    "backtick_info_with_backtick_nonopener", "four_space_fence_nonopener",
+}
+_RW0_DECLARED_FENCE_CASES = (
+    "heading_in_fence",
+    "begin_marker_in_fence",
+    "block_hidden_backtick_fence",
+    "block_hidden_tilde_fence",
+    "unclosed_fence",
+    "opposite_marker_nonclosure",
+    "shorter_closer_nonclosure",
+    "backtick_info_with_backtick_nonopener",
+    "four_space_fence_nonopener",
+)
+
+
+class _RW0CausalFenceCase(NamedTuple):
+    case_id: str
+    family: str
+    prefix_lines: tuple[str, ...]
+    candidate_line: str
+    opener_marker: str
+    opener_run: int
+    expected_real_result: str
+    sensitivity_mutant: str
+    expected_mutated_result: str
+
+
+_RW0_CAUSAL_FENCE_CASES = (
+    _RW0CausalFenceCase(
+        "valid-backtick-3-same-indent-0",
+        "valid_closer",
+        ("```valid-backtick-3-same-indent-0", "decoy valid-backtick-3-same-indent-0", "```"),
+        "```", "`", 3, "accept", "refuse_valid_closer", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "valid-backtick-4-longer-opener-1-closer-2-space",
+        "valid_closer",
+        (" ````valid-backtick-4-longer", "decoy valid-backtick-4-longer", "  ````` "),
+        "  ````` ", "`", 4, "accept", "refuse_valid_closer", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "valid-backtick-5-same-opener-2-closer-3-tab",
+        "valid_closer",
+        ("  `````valid-backtick-5-same", "decoy valid-backtick-5-same", "   `````\t"),
+        "   `````\t", "`", 5, "accept", "refuse_valid_closer", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "valid-tilde-3-longer-opener-3-closer-1-space",
+        "valid_closer",
+        ("   ~~~valid-tilde-3-longer", "decoy valid-tilde-3-longer", " ~~~~ "),
+        " ~~~~ ", "~", 3, "accept", "refuse_valid_closer", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "valid-tilde-4-same-indent-0-tab",
+        "valid_closer",
+        ("~~~~valid-tilde-4-same", "decoy valid-tilde-4-same", "~~~~\t"),
+        "~~~~\t", "~", 4, "accept", "refuse_valid_closer", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "valid-tilde-5-longer-opener-1-closer-2",
+        "valid_closer",
+        (" ~~~~~valid-tilde-5-longer", "decoy valid-tilde-5-longer", "  ~~~~~~"),
+        "  ~~~~~~", "~", 5, "accept", "refuse_valid_closer", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-opposite-marker",
+        "invalid_closer",
+        ("```invalid-opposite-marker", "decoy invalid-opposite-marker", "~~~"),
+        "~~~", "`", 3, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-shorter-closer",
+        "invalid_closer",
+        ("````invalid-shorter-closer", "decoy invalid-shorter-closer", "```"),
+        "```", "`", 4, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-text-suffix",
+        "invalid_closer",
+        ("```invalid-text-suffix", "decoy invalid-text-suffix", "```text"),
+        "```text", "`", 3, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-nbsp-suffix",
+        "invalid_closer",
+        ("```invalid-nbsp-suffix", "decoy invalid-nbsp-suffix", "```\u00a0"),
+        "```\u00a0", "`", 3, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-em-space-suffix",
+        "invalid_closer",
+        ("~~~invalid-em-space-suffix", "decoy invalid-em-space-suffix", "~~~\u2003"),
+        "~~~\u2003", "~", 3, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-four-space-closer",
+        "invalid_closer",
+        ("~~~invalid-four-space-closer", "decoy invalid-four-space-closer", "    ~~~"),
+        "    ~~~", "~", 3, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "invalid-missing-closer",
+        "invalid_closer",
+        ("```invalid-missing-closer", "decoy invalid-missing-closer", "ordinary missing-closer sentinel"),
+        "ordinary missing-closer sentinel", "`", 3, "rw0.registry.visibility", "treat_invalid_closer_as_valid", "accept",
+    ),
+    _RW0CausalFenceCase(
+        "nonopener-backtick-info-containing-backtick",
+        "nonopener",
+        ("```bad`info", "decoy nonopener-backtick-info-containing-backtick"),
+        "```bad`info", "`", 3, "accept", "treat_nonopener_as_opener", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "nonopener-four-space-backtick",
+        "nonopener",
+        ("    ```", "decoy nonopener-four-space-backtick"),
+        "    ```", "`", 3, "accept", "treat_nonopener_as_opener", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "nonopener-four-space-tilde",
+        "nonopener",
+        ("    ~~~",),
+        "    ~~~", "~", 3, "accept", "treat_nonopener_as_opener", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "nonopener-short-backtick-run",
+        "nonopener",
+        ("``",),
+        "``", "`", 3, "accept", "treat_nonopener_as_opener", "rw0.registry.visibility",
+    ),
+    _RW0CausalFenceCase(
+        "nonopener-short-tilde-run",
+        "nonopener",
+        ("~~",),
+        "~~", "~", 3, "accept", "treat_nonopener_as_opener", "rw0.registry.visibility",
+    ),
+)
+
+
+def _rw0_structure_mutant(raw: bytes, case: str) -> bytes:
+    text = raw.decode("utf-8")
+    row0, row1 = _RW0_REGISTRY_ROW_LINES[:2]
+    if case == "missing_heading":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADING, "## Current contract registry")
+    elif case == "duplicate_heading":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADING, _RW0_REGISTRY_HEADING + "\n" + _RW0_REGISTRY_HEADING)
+    elif case == "heading_in_fence":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("```heading-in-fence", "decoy heading-in-fence"),
+        )
+    elif case == "heading_in_larger_comment":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADING, "<!-- heading-only\n" + _RW0_REGISTRY_HEADING + "\n-->")
+    elif case == "missing_begin":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_BEGIN + "\n", "")
+    elif case == "missing_end":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_END, "<!-- missing rw0 registry end -->")
+    elif case == "reversed_markers":
+        text = text.replace(_RW0_REGISTRY_BEGIN, "__RW0_BEGIN__", 1).replace(_RW0_REGISTRY_END, _RW0_REGISTRY_BEGIN, 1).replace("__RW0_BEGIN__", _RW0_REGISTRY_END, 1)
+    elif case == "duplicate_begin":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_BEGIN, _RW0_REGISTRY_BEGIN + "\n" + _RW0_REGISTRY_BEGIN)
+    elif case == "duplicate_end":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_END, _RW0_REGISTRY_END + "\n" + _RW0_REGISTRY_END)
+    elif case == "begin_marker_in_fence":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("```begin-marker-in-fence", "decoy begin-marker-in-fence"),
+        )
+    elif case == "end_marker_in_comment":
+        text = _rw0_replace_once(
+            text,
+            _RW0_REGISTRY_END,
+            "<!-- enclosing-end\n" + _RW0_REGISTRY_END + "\n-->",
+        )
+    elif case == "missing_version":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_VERSION + "\n", "")
+    elif case == "wrong_version":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_VERSION, "Registry version: 2")
+    elif case == "duplicate_version":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_VERSION, _RW0_REGISTRY_VERSION + "\n" + _RW0_REGISTRY_VERSION)
+    elif case == "missing_header":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADER + "\n", "")
+    elif case == "wrong_header":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADER, "| Component | Contract class | Lifecycle status | Authority owner | Detail contract | Authority posture | Implementation posture | Explicit nonclaims |")
+    elif case == "duplicate_header":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADER, _RW0_REGISTRY_HEADER + "\n" + _RW0_REGISTRY_HEADER)
+    elif case == "missing_row":
+        text = _rw0_replace_once(text, row0 + "\n", "")
+    elif case == "extra_row":
+        text = _rw0_replace_once(text, row0, row0 + "\n| RW0-X | future | unknown | RW0-X | this_document | none | not_implemented | none |")
+    elif case == "duplicate_row":
+        text = _rw0_replace_once(text, row0, row0 + "\n" + row0)
+    elif case == "unknown_row":
+        text = _rw0_replace_once(text, row0, row0.replace("RW0-B1", "RW0-UNKNOWN", 1))
+    elif case == "renamed_component":
+        text = _rw0_replace_once(text, row1, row1.replace("RW0-B2-Wire", "RW0-B2-Frame", 1))
+    elif case == "reordered_rows":
+        text = _rw0_replace_once(text, row0 + "\n" + row1, row1 + "\n" + row0)
+    elif case == "relocated_block":
+        text = _rw0_replace_once(text, _RW0_CANONICAL_BLOCK + "\n\n", "")
+        text = _rw0_replace_once(text, CONTRACT_END, _RW0_CANONICAL_BLOCK + "\n\n" + CONTRACT_END)
+    elif case == "registry_after_wrong_heading":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADING, "## Earlier machine heading\n\n" + _RW0_REGISTRY_HEADING)
+    elif case == "block_hidden_backtick_fence":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("```block-hidden-backtick", "decoy block-hidden-backtick"),
+        )
+    elif case == "block_hidden_tilde_fence":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("~~~block-hidden-tilde", "decoy block-hidden-tilde"),
+        )
+    elif case == "unclosed_fence":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("```unclosed-fence", "decoy unclosed-fence"),
+        )
+    elif case == "opposite_marker_nonclosure":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("```opposite-marker", "decoy opposite-marker", "~~~"),
+        )
+    elif case == "shorter_closer_nonclosure":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("````shorter-closer", "decoy shorter-closer", "```"),
+        )
+    elif case == "backtick_info_with_backtick_nonopener":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("```bad`info",),
+        )
+    elif case == "four_space_fence_nonopener":
+        return _rw0_lines_before_outer_contract(
+            raw,
+            ("    ```",),
+        )
+    elif case == "cr_in_registry_line":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_HEADER, _RW0_REGISTRY_HEADER + "\r")
+    elif case == "bom":
+        return b"\xef\xbb\xbf" + raw
+    elif case == "unicode_line_separator":
+        text = _rw0_replace_once(text, row0, row0.replace("RW0-B1", "RW0\u2028-B1", 1))
+    elif case == "tab":
+        text = _rw0_replace_once(text, row0, row0.replace(" | current_implemented", "\t| current_implemented", 1))
+    elif case == "trailing_space":
+        text = _rw0_replace_once(text, row0, row0 + " ")
+    elif case == "nbsp":
+        text = _rw0_replace_once(text, row0, row0.replace(" | current_implemented", "\u00a0| current_implemented", 1))
+    elif case == "unicode_digit":
+        text = _rw0_replace_once(text, _RW0_REGISTRY_VERSION, "Registry version: \u0661")
+    elif case == "inline_emphasis":
+        text = _rw0_replace_once(text, row0, row0.replace("RW0-B1", "*RW0-B1*", 1))
+    elif case == "inline_link":
+        text = _rw0_replace_once(text, row0, row0.replace("RW0-B1", "[RW0-B1](owner)", 1))
+    elif case == "inline_code":
+        text = _rw0_replace_once(text, row0, row0.replace("RW0-B1", "`RW0-B1`", 1))
+    elif case == "extra_pipe":
+        text = _rw0_replace_once(text, row0, row0[:-1] + " extra |")
+    elif case == "multiline_comment_spanning_registry":
+        text = _rw0_replace_once(text, _RW0_CANONICAL_BLOCK, "<!-- entire-registry-hidden\n" + _RW0_CANONICAL_BLOCK + "\n-->")
+    else:
+        assert case == "comment_spliced_registry_line"
+        text = _rw0_replace_once(text, row0, row0.replace("RW0-B1", "RW0<!-- splice -->-B1", 1))
+    return text.encode("utf-8")
+
+
+def _rw0_lines_before_outer_contract(raw: bytes, lines: tuple[str, ...]) -> bytes:
+    text = raw.decode("utf-8")
+    insertion = "\n".join(lines) + "\n" + CONTRACT_BEGIN
+    return _rw0_replace_once(text, CONTRACT_BEGIN, insertion).encode("utf-8")
+
+
+def _rw0_causal_fence_document(
+    raw: bytes,
+    case: _RW0CausalFenceCase,
+) -> bytes:
+    return _rw0_lines_before_outer_contract(raw, case.prefix_lines)
+
+
+def _rw0_registry_outcome(raw: bytes) -> tuple[str, object]:
+    try:
+        return "accept", _parse_rw0_registry(raw)
+    except AssertionError as caught:
+        diagnostic = str(caught)
+        assert re.fullmatch(r"rw0\.registry\.[a-z_]+", diagnostic)
+        return "reject", diagnostic
+
+
+def _b1_registry_outcome(parser: object, raw: bytes) -> tuple[object, ...]:
+    assert callable(parser)
+    try:
+        projection = parser(raw)
+    except AssertionError as caught:
+        diagnostic = str(caught)
+        assert re.fullmatch(r"b1\.registry\.[a-z_]+", diagnostic)
+        return "diagnostic", diagnostic
+    return "projection", projection.version, projection.rows
+
+
+def _b1_cross_document_projection(raw: bytes) -> object:
+    return _b1_owner_test_module._parse_b1_registry(raw)
+
+
+_B1_INDEPENDENT_PROJECTION_OUTCOME = (
+    "projection",
+    1,
+    (
+        ("component", "RW0-B1", "authority", "this_document"),
+        (
+            "lifecycle_status",
+            "current_implemented",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+        (
+            "contract_class",
+            "private_pure_no_io_semantics",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+        (
+            "retrieval_event_sequence_work_maximum",
+            1285,
+            "authority",
+            "this_document",
+        ),
+        (
+            "sole_current_cross_module_production_consumer",
+            "RW0-B2-Capability",
+            "authority",
+            "this_document",
+        ),
+        ("source_authentication", "none", "authority", "this_document"),
+        ("executable_permission", "none", "authority", "this_document"),
+        ("durable_persistence", "none", "authority", "this_document"),
+        ("semantic_acceptance", "none", "authority", "this_document"),
+        (
+            "future_acceptance_latch_owner",
+            "RW0-C",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+        (
+            "future_durable_ingest_completeness_recovery_terminal_owner",
+            "RW0-C",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+        (
+            "future_physical_custody_transport_process_cancellation_owner",
+            "RW0-D",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+        (
+            "future_separately_authorized_live_proof_owner",
+            "RW0-E",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+        (
+            "es_admission_reliable_submit_runtime_identity_lifecycle_cancellation_results_owner",
+            "Execution Substrate",
+            "projection",
+            ".docs/rw0-remote-worker-contact-phase-entry.md",
+        ),
+    ),
+)
+_B1_INDEPENDENT_EQUIVALENCE_CORPUS = (
+    ("canonical", None, _B1_INDEPENDENT_PROJECTION_OUTCOME),
+    ("earlier-h2-0-space", "## Earlier live H2", ("diagnostic", "b1.registry.location")),
+    ("earlier-h2-1-space", " ## Earlier live H2", ("diagnostic", "b1.registry.location")),
+    ("earlier-h2-2-space", "  ## Earlier live H2", ("diagnostic", "b1.registry.location")),
+    ("earlier-h2-3-space", "   ## Earlier live H2", ("diagnostic", "b1.registry.location")),
+    ("earlier-h2-tab-delimiter", "##\tEarlier live H2", ("diagnostic", "b1.registry.location")),
+    ("four-space-literal", "    ## literal", _B1_INDEPENDENT_PROJECTION_OUTCOME),
+    ("nbsp-delimiter", "##\u00a0literal", _B1_INDEPENDENT_PROJECTION_OUTCOME),
+    ("h3-before-registry", "### Earlier H3", _B1_INDEPENDENT_PROJECTION_OUTCOME),
+    (
+        "ordinary-prose",
+        "Ordinary visible prose before the registry.",
+        _B1_INDEPENDENT_PROJECTION_OUTCOME,
+    ),
+    (
+        "fenced-h2",
+        "```text\n## Ordinary fenced H2\n```",
+        _B1_INDEPENDENT_PROJECTION_OUTCOME,
+    ),
+    (
+        "commented-h2",
+        "<!--\n## Ordinary commented H2\n-->",
+        _B1_INDEPENDENT_PROJECTION_OUTCOME,
+    ),
+)
+
+
+def _b1_equivalence_document(raw: bytes, insertion: str) -> bytes:
+    text = raw.decode("utf-8")
+    assert text.count(_b1_owner_test_module._B1_REGISTRY_HEADING) == 1
+    return text.replace(
+        _b1_owner_test_module._B1_REGISTRY_HEADING,
+        insertion + "\n\n" + _b1_owner_test_module._B1_REGISTRY_HEADING,
+        1,
+    ).encode("utf-8")
+
+
+def _b1_parser_owner_violations(source: str) -> tuple[str, ...]:
+    tree = ast.parse(source)
+    violations: list[str] = []
+    owner_imports = tuple(
+        alias
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+        if alias.name == "test_rw0_b1_boundaries"
+    )
+    if len(owner_imports) != 1 or owner_imports[0].asname != "_b1_owner_test_module":
+        violations.append("owner_module_import")
+    if any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "test_rw0_b1_boundaries"
+        for node in ast.walk(tree)
+    ):
+        violations.append("owner_parser_import_by_value")
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and (
+            "parse_b1_registry" in node.name or "b1_registry_parser" in node.name
+        ):
+            violations.append("local_b1_parser_definition:" + node.name)
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.NamedExpr)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            for target in targets:
+                if isinstance(target, ast.Name) and "parse_b1_registry" in target.id:
+                    violations.append("detached_b1_parser_alias:" + target.id)
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in {
+                "__import__", "compile", "eval", "exec",
+            }:
+                violations.append("dynamic_source_execution:" + node.func.id)
+            if isinstance(node.func, ast.Attribute) and node.func.attr in {
+                "exec_module", "get_source", "import_module",
+                "source_to_code", "spec_from_file_location",
+            }:
+                violations.append("dynamic_source_execution:" + node.func.attr)
+    wrapper = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_b1_cross_document_projection"
+        ),
+        None,
+    )
+    expected_wrapper = False
+    if wrapper is not None and len(wrapper.body) == 1:
+        statement = wrapper.body[0]
+        if isinstance(statement, ast.Return) and isinstance(statement.value, ast.Call):
+            call = statement.value
+            expected_wrapper = (
+                isinstance(call.func, ast.Attribute)
+                and isinstance(call.func.value, ast.Name)
+                and call.func.value.id == "_b1_owner_test_module"
+                and call.func.attr == "_parse_b1_registry"
+                and len(call.args) == 1
+                and isinstance(call.args[0], ast.Name)
+                and call.args[0].id == "raw"
+                and not call.keywords
+            )
+    if not expected_wrapper:
+        violations.append("cross_path_not_live_owner_attribute")
+    return tuple(sorted(set(violations)))
+
+
+_RW0_VALUE_CASES = tuple(
+    (f"row-{row_index}-column-{column_index}", row_index, column_index, None)
+    for row_index in range(len(_RW0_REGISTRY_ROW_LINES))
+    for column_index in range(8)
+) + (
+    ("current-future-swap", -1, -1, "swap"),
+    ("wrong-authority-owner", 0, 3, "RW0-C"),
+    ("wrong-detail-contract", 0, 4, "this_document"),
+    ("wrong-authority-posture", 0, 5, "future_guarded_coordinator_progression_only"),
+    ("wrong-implementation-posture", 0, 6, "not_implemented"),
+    ("wrong-explicit-nonclaims", 0, 7, "semantic_acceptance"),
+    ("row-component-mismatch", -1, -1, "component_swap"),
+)
+
+
+def _rw0_value_mutant(raw: bytes, case: tuple[str, int, int, str | None]) -> bytes:
+    case_id, row_index, column_index, explicit = case
+    text = raw.decode("utf-8")
+    if case_id == "current-future-swap":
+        first = _RW0_REGISTRY_ROW_LINES[0]
+        fourth = _RW0_REGISTRY_ROW_LINES[3]
+        changed_first = first.replace("current_implemented", "future", 1)
+        changed_fourth = fourth.replace("| future |", "| current_implemented |", 1)
+        return _rw0_replace_once(_rw0_replace_once(text, first, changed_first), fourth, changed_fourth).encode("utf-8")
+    if case_id == "row-component-mismatch":
+        first = _RW0_REGISTRY_ROW_LINES[0]
+        second = _RW0_REGISTRY_ROW_LINES[1]
+        changed_first = first.replace("| RW0-B1 |", "| RW0-B2-Wire |", 1)
+        changed_second = second.replace("| RW0-B2-Wire |", "| RW0-B1 |", 1)
+        return _rw0_replace_once(_rw0_replace_once(text, first, changed_first), second, changed_second).encode("utf-8")
+    old_line = _RW0_REGISTRY_ROW_LINES[row_index]
+    cells = list(_registry_row(old_line, 8, "rw0"))
+    cells[column_index] = explicit or f"{cells[column_index]}-wrong-{row_index}-{column_index}"
+    new_line = "| " + " | ".join(cells) + " |"
+    return _rw0_replace_once(text, old_line, new_line).encode("utf-8")
+
+
+_RW0_FALSE_POSITIVE_CASES = (
+    ("unrelated_before", "Unrelated explanatory prose appears before the registry."),
+    ("unrelated_after", "Unrelated explanatory prose appears after the registry."),
+    ("status_words", "Current future blocked and deferred are ordinary explanatory words here."),
+    ("setext_title", "Current-contract registry\n---"),
+    ("inline_title", "The *Current-contract registry* phrase is explanatory only."),
+    ("four_space_title", "    ## Current-contract registry"),
+    ("fenced_example", "```text\n## Current contract registry\nRegistry version example: 9\n```"),
+    ("historical", "Historical prose may say a former tranche was future."),
+    ("restatement", "RW0-B1, Wire, and Capability are current in explanatory prose."),
+    ("ordinary_comment", "<!-- An ordinary comment outside the registry. -->"),
+    ("unicode_prose", "Explanatory prose may contain café, λ, and \u2028 separators."),
+)
+
+
+def _rw0_false_positive(raw: bytes, case: tuple[str, str]) -> bytes:
+    case_id, insertion = case
+    text = raw.decode("utf-8")
+    if case_id == "unrelated_before":
+        text = _rw0_replace_once(text, CONTRACT_BEGIN, insertion + "\n\n" + CONTRACT_BEGIN)
+    elif case_id == "unrelated_after":
+        text = text.rstrip() + "\n\n" + insertion + "\n"
+    else:
+        text = _rw0_replace_once(text, _RW0_STATUS_HEADING, _RW0_STATUS_HEADING + "\n\n" + insertion)
+    return text.encode("utf-8")
+
 
 def _text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
@@ -88,6 +896,84 @@ def _text(path: str) -> str:
 
 def _compact(value: str) -> str:
     return " ".join(value.split())
+
+
+_OPEN_DECISION_ASSIGNMENTS = {
+    "authority verifier deployment, trust roots, grant encoding, and revocation transport":
+        "RW0-C / RW0-E",
+    "custodian implementation, capability issuance, and revocation enforcement":
+        "RW0-C / RW0-D / RW0-E",
+    (
+        "phase-entry claim, retrieval-event, host-observation, terminal-outcome, "
+        "latch schema, receipt, and idempotency design"
+    ): "RW0-C",
+    (
+        "supervisor/process-group strategy, fake CLI transcript protocol, and "
+        "capsule/tool implementation"
+    ): "RW0-D",
+    "live credential/account selection and qualified-host evidence": "RW0-E",
+    "ES route implementation, reliable-submit, runtime, cancel, and result APIs":
+        "ES phase",
+    "direct-local/ES wrapper choice": "RW0-D / RW0-E / ES phase",
+}
+
+
+def _open_decision_rows(text: str) -> dict[str, str]:
+    body = _owner_visible_body(text)
+    heading = "## Tranche map and open decisions"
+    assert body.count(heading) == 1
+    section = body.split(heading, 1)[1].split("\n## ", 1)[0]
+    rows: dict[str, str] = {}
+    for line in section.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        assert len(cells) == 2
+        if cells[0] in {"Deferred decision", "---"}:
+            continue
+        assert cells[0] not in rows
+        rows[cells[0]] = cells[1]
+    return rows
+
+
+def _assert_current_open_decision_ownership(text: str) -> None:
+    projection = _parse_rw0_registry(text.encode("utf-8"))
+    assert projection == _RW0_EXPECTED_PROJECTION
+
+    body = _owner_visible_body(text)
+    normalized_owner = _compact(body)
+    for current_fact in (
+        "RW0-B1 now implements only the private pure semantic values and relations",
+        "RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing",
+        "RW0-B2-Capability implements private, pure, no-I/O worker-mechanism capability",
+        "RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts",
+    ):
+        assert current_fact in normalized_owner
+
+    rows = _open_decision_rows(text)
+    assert rows == _OPEN_DECISION_ASSIGNMENTS
+    assert normalized_owner.count(
+        "RW0-B is current and implemented; no unresolved decision blocks it."
+    ) == 1
+    current_row = (
+        "2. **RW0-B — current private pure protocol, value, Wire, and Capability "
+        "contracts** — B1, NWPF representational framing, worker-result grammar, "
+        "process/result classification, and Capability composition are current; "
+        "no SQLite, filesystem, process, network, or model effect."
+    )
+    assert normalized_owner.count(current_row) == 1
+    for later_row in (
+        "3. **RW0-C — durable phase-entry and observation state** — future",
+        "4. **RW0-D — offline worker, supervisor, and capsule proof** — future",
+        "5. **RW0-E — one live qualified-host proof** — one future",
+    ):
+        assert normalized_owner.count(later_row) == 1
+    assert normalized_owner.count(
+        "ES route implementation, reliable-submit, runtime, cancel, and result APIs | ES phase"
+    ) == 1
+    assert normalized_owner.count(
+        "Execution Substrate owns ES-route admission, reliable submit, runtime lifecycle"
+    ) == 1
 
 
 def _extract_unique(text: str, begin: str, end: str, *, role: str) -> str:
@@ -114,6 +1000,22 @@ def _owner_text() -> str:
     path = ROOT / OWNER_PATH
     assert path.is_file(), "RW0 owner document is absent"
     return path.read_text(encoding="utf-8")
+
+
+def test_rw0_b_current_tranche_and_wire_decision_split_are_not_stale() -> None:
+    text = _compact(_owner_text())
+    assert (
+        "RW0-B — current private pure protocol, value, Wire, and Capability "
+        "contracts" in text
+    )
+    assert "NWPF representational framing" in text
+    assert "worker-result grammar" in text
+    assert "process/result classification" in text
+    assert "Physical transport framing and stream/process plumbing remain deferred" in text
+    assert "route wrappers" in text
+    assert "terminal runtime reconciliation" in text
+    assert "future private no-I/O values and strict semantic/wire boundaries" not in text
+    assert "exact framing and terminal-result grammar | RW0-B / RW0-D" not in text
 
 
 def _require_phrases(text: str, phrases: tuple[str, ...], *, role: str) -> None:
@@ -958,7 +1860,7 @@ def _validate_owner(text: str) -> None:
         "There is no Mac, Coordinator-host, or alternate-host fallback and no third adapter kind.",
         "direct_local_bootstrap remains only the compatibility route token.",
         "A host-key-pinned SSH forced command is only a preferred future proof candidate; it is not governing architecture in RW0-A.",
-        "RW0-A does not freeze length-prefix framing, exact frame encoding, terminal-result grammar, or numeric caps.",
+        "RW0-B2-Wire now fixes NWPF representational framing, the closed worker-result grammar, and process/result classification.",
         "No adapter, supervisor, worker, builder, store, validator, reviewer, or model adapter receives Coordinator SQLite or writer authority.",
         "Delivery, source invocation, observation, candidate, capsule, validation, review, model proposal, C2B decision, RW0 terminal outcome, and Git effect remain distinct facts.",
         "Validator and reviewer evidence, model output, reports, IM evidence, and transport receipts are non-authoritative evidence.",
@@ -1038,7 +1940,7 @@ def _validate_owner(text: str) -> None:
 
     for tranche in (
         "RW0-A — phase-entry contract freeze",
-        "RW0-B — pure protocol and value contracts",
+        "RW0-B — current private pure protocol, value, Wire, and Capability contracts",
         "RW0-C — durable phase-entry and observation state",
         "RW0-D — offline worker, supervisor, and capsule proof",
         "RW0-E — one live qualified-host proof",
@@ -1048,16 +1950,13 @@ def _validate_owner(text: str) -> None:
     assert offsets == sorted(offsets), "rw0.owner: tranche order"
 
     for open_decision in (
-        "verifier deployment, trust root, grant encoding, and revocation transport",
-        "custodian and capability issuance",
-        "Codex CLI versus App Server",
-        "host-observation authenticity and sandbox technology",
-        "exact framing and terminal-result grammar",
-        "migration-0004 table, receipt, and application-generation design",
-        "acceptance-latch representation",
-        "capsule backend, encryption, retention, and garbage collection",
-        "validator, reviewer, and model-adapter implementation",
-        "ES reliable-submit and public recovery",
+        "authority verifier deployment, trust roots, grant encoding, and revocation transport",
+        "custodian implementation, capability issuance, and revocation enforcement",
+        "phase-entry claim, retrieval-event, host-observation, terminal-outcome, latch schema, receipt, and idempotency design",
+        "supervisor/process-group strategy, fake CLI transcript protocol, and capsule/tool implementation",
+        "live credential/account selection and qualified-host evidence",
+        "ES route implementation, reliable-submit, runtime, cancel, and result APIs",
+        "direct-local/ES wrapper choice",
     ):
         assert open_decision in body, f"rw0.owner: open decision {open_decision}"
 
@@ -1202,18 +2101,65 @@ def _wire_status_visible_body(
         assert prior[-1] == (
             "RW0-B1 pure semantics are implemented. C2B3D and Section 41 remain the complete durable and executable implemented boundary relevant to this target."
         )
-        assert later[0] == "## Current entry lineage"
+        assert later[0] == "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->"
     else:
         assert prior[-1] == (
             "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred."
         )
-        assert later[0] == CROSS_REFERENCE_END
+        assert later[0] == "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->"
     body = tuple(
         line.strip() for position, line in visible
         if begin[0] < position < end[0] and line.strip()
     )
     assert len(body) == 1 and body[0].startswith("RW0-B2-Wire now implements")
     return _compact(body[0])
+
+
+def _capability_status_visible_body(
+    path: str, text: str, root_title: str, owner_heading: str, owner_level: int
+) -> str:
+    begin_marker = "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->"
+    end_marker = "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->"
+    begin, end, headings, visible = _visible_marker_span(
+        text, begin_marker, end_marker, role=f"rw0.capability_status.{path}"
+    )
+    roots = tuple(item for item in headings if item[0] == 1)
+    owners = tuple(
+        item for item in headings
+        if item[0] == owner_level and item[1] == owner_heading
+    )
+    assert len(roots) == len(owners) == 1
+    assert roots[0][1] == root_title
+    expected_chain = (
+        ((1, root_title), (2, owner_heading))
+        if owner_level == 2 else
+        ((1, root_title), (2, CROSS_REFERENCE_PARENT), (3, owner_heading))
+    )
+    assert _heading_chain(headings, owners[0]) == expected_chain
+    assert owners[0][3] <= begin[0] < end[0]
+    assert not any(
+        owner[2] > owners[0][2] and owner[2] < end[0] and owner[0] <= owner_level
+        for owner in headings
+    )
+    wire_begin, wire_end, _wire_headings, _wire_visible = _visible_marker_span(
+        text,
+        "<!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->",
+        "<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->",
+        role=f"rw0.capability_wire_predecessor.{path}",
+    )
+    assert wire_begin[0] < wire_end[0] < begin[0] < end[0]
+    prior = tuple(line.strip() for position, line in visible if position < begin[0] and line.strip())
+    later = tuple(line.strip() for position, line in visible if position > end[0] and line.strip())
+    assert prior[-1] == "<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->"
+    assert later[0] == (
+        "## Current entry lineage" if path == OWNER_PATH else CROSS_REFERENCE_END
+    )
+    body = " ".join(
+        line.strip() for position, line in visible
+        if begin[0] < position < end[0] and line.strip()
+    )
+    assert body.startswith("RW0-B2-Capability implements private, pure, no-I/O")
+    return _compact(body)
 
 
 def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
@@ -1261,10 +2207,93 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
         "Physical transport framing and stream/process plumbing remain deferred",
         "rw0-wire-nwpf-v1",
         "470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454",
-        "RW0-B1 remains unchanged", "No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented",
-        "Capability remains seam-bounded and unimplemented",
-        "RW0-C", "RW0-D/E", "Execution Substrate",
+        "RW0-B2-Wire does not own or alter RW0-B1 or C2A schema",
+        "protected owner reconstruction and occurrence-work accounting are hardened separately",
+        "No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented",
+        "Capability is implemented separately as private, pure, no-I/O semantics",
+        ".docs/rw0-b2-capability.md", "does not widen Wire ownership",
+            "RW0-C/D/E", "Execution Substrate",
     ), role="rw0.wire_status")
+
+    expected_capability_status = _compact("""
+        RW0-B2-Capability implements private, pure, no-I/O worker-mechanism capability
+        declaration, independently authored supplied observation, and Coordinator
+        qualification values plus one pure qualification relation. It binds the fixed
+        RW0-B2-Wire profile `rw0-wire-nwpf-v1` with digest
+        `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`
+        and consumes one private B1 host-validation snapshot seam after B1 reconstructs
+        the complete applicable B1, C2A, and lineage graph through protected owners.
+        It authenticates no source, proves no physical process
+        behavior, grants no permission or semantic acceptance, persists no fact,
+        contacts no worker/provider/host, and selects no CLI, App Server, credential,
+        provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
+        is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
+        RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
+        durable, transport, process, provider, credential, live-proof, and runtime
+        mechanics remain future; Execution Substrate retains admission and runtime
+        authority.
+    """)
+    capability_bodies: list[str] = []
+    for path, root, heading, level in wire_owners:
+        source = _text(path)
+        body = _capability_status_visible_body(path, source, root, heading, level)
+        capability_bodies.append(body)
+        assert body == expected_capability_status
+        begin, end, _headings, _visible = _visible_marker_span(
+            source,
+            "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->",
+            "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->",
+            role=f"rw0.capability_status.{path}",
+        )
+        block = source[begin[0] : end[0] + len(end[1])]
+        for fence in ("~~~", "```"):
+            hidden = source + "\n" + fence + "\n" + block + "\n" + fence + "\n"
+            assert _capability_status_visible_body(
+                path, hidden, root, heading, level) == body
+        with pytest.raises(AssertionError):
+            _capability_status_visible_body(
+                path, source + "\n" + block + "\n", root, heading, level)
+        sibling = source[:begin[0]] + ("#" * level) + " " + heading + "\n" + source[begin[0]:]
+        with pytest.raises(AssertionError):
+            _capability_status_visible_body(path, sibling, root, heading, level)
+        without = source[:begin[0]] + source[end[0] + len(end[1]):]
+        wire_begin, _wire_end, _wire_headings, _wire_visible = _visible_marker_span(
+            without,
+            "<!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->",
+            "<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->",
+            role=f"rw0.capability_relocated.{path}",
+        )
+        relocated = without[:wire_begin[0]] + block + "\n" + without[wire_begin[0]:]
+        with pytest.raises(AssertionError):
+            _capability_status_visible_body(path, relocated, root, heading, level)
+        split = source.replace(
+            "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->",
+            ("#" * level) + " Detached Capability status\n"
+            "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->",
+            1,
+        )
+        with pytest.raises(AssertionError):
+            _capability_status_visible_body(path, split, root, heading, level)
+        reversed_markers = (
+            source.replace(
+                "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->",
+                "__CAPABILITY_STATUS_BEGIN__", 1)
+            .replace(
+                "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->",
+                "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->", 1)
+            .replace(
+                "__CAPABILITY_STATUS_BEGIN__",
+                "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->", 1)
+        )
+        with pytest.raises(AssertionError):
+            _capability_status_visible_body(path, reversed_markers, root, heading, level)
+        trailing = (
+            source[:end[0] + len(end[1])] + "\nUnbounded Capability claim.\n"
+            + source[end[0] + len(end[1]):]
+        )
+        with pytest.raises(AssertionError):
+            _capability_status_visible_body(path, trailing, root, heading, level)
+    assert len(set(capability_bodies)) == 1
 
     def mapped(path: str, candidate: str) -> str:
         mutated = dict(live_map)
@@ -1810,10 +2839,13 @@ def test_causal_owner_mutants_fail(case: str, required: str, mutant: str) -> Non
         "collapse_decision_sources": (
             "Delivery, source invocation, observation, candidate, capsule, validation, review, model proposal, C2B decision, RW0 terminal outcome, and Git effect remain distinct facts."
         ),
-        "implemented_migration_runtime": (
-            "Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A."
-        ),
-    }.get(case, required)
+            "implemented_migration_runtime": (
+                "Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A."
+            ),
+            "length_prefix_frozen": (
+                "RW0-B2-Wire now fixes NWPF representational framing, the closed worker-result grammar, and process/result classification."
+            ),
+        }.get(case, required)
     assert effective_required in owner
     changed = owner.replace(effective_required, mutant, 1)
     assert changed != owner
@@ -1911,3 +2943,541 @@ def test_rw0_b1_current_status_disambiguates_pure_values_from_durable_boundary()
     assert mutant != owner
     with pytest.raises(AssertionError):
         require_current_status(mutant)
+
+
+def test_current_rw0_b_has_no_stale_open_decision_blockers() -> None:
+    owner = _owner_text()
+    _assert_current_open_decision_ownership(owner)
+
+    for decision, assigned in _OPEN_DECISION_ASSIGNMENTS.items():
+        stale_assignment = "RW0-B" + (f" / {assigned}" if assigned else "")
+        mutant = owner.replace(
+            f"| {decision} | {assigned} |",
+            f"| {decision} | {stale_assignment} |",
+            1,
+        )
+        assert mutant != owner
+        with pytest.raises(AssertionError):
+            _assert_current_open_decision_ownership(mutant)
+
+    section = _owner_visible_body(owner).split(
+        "## Tranche map and open decisions", 1
+    )[1].split("\n## ", 1)[0]
+    duplicate_owner = owner.replace(
+        "## Non-authoritative initial proof fixture candidate",
+        "## Tranche map and open decisions\n"
+        + section
+        + "\n## Non-authoritative initial proof fixture candidate",
+        1,
+    )
+    relocated_owner = owner.replace(
+        "## Tranche map and open decisions",
+        "### Tranche map and open decisions",
+        1,
+    )
+    fenced_only = owner.replace(
+        "## Tranche map and open decisions",
+        "```text\n## Tranche map and open decisions\n```",
+        1,
+    )
+    for mutant in (duplicate_owner, relocated_owner, fenced_only):
+        with pytest.raises(AssertionError):
+            _assert_current_open_decision_ownership(mutant)
+
+
+def test_rw0_live_registry_projection() -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    projection = _parse_rw0_registry(raw)
+    assert projection == _RW0_EXPECTED_PROJECTION
+    assert _parse_rw0_registry(raw) is not projection
+    assert isinstance(projection.rows, tuple)
+    assert all(isinstance(row, tuple) for row in projection.rows)
+
+
+def test_rw0_registry_prose_authority_policy_is_explicit() -> None:
+    assert _RW0_PROSE_AUTHORITY_POLICY == {
+        "enumerated_facts": "registry_is_sole_machine_authority",
+        "surrounding_prose": "governing_explanatory_contract_text",
+        "natural_language_contradiction_detection": "not_claimed",
+        "arbitrary_semantic_equivalence": "outside_parser_contract",
+    }
+    source = (ROOT / OWNER_PATH).read_text(encoding="utf-8")
+    assert "\n".join(_RW0_REGISTRY_POLICY) in source
+
+
+def test_b1_registry_projects_rw0_composition() -> None:
+    rw0_projection = _parse_rw0_registry((ROOT / OWNER_PATH).read_bytes())
+    b1_projection = _b1_cross_document_projection(
+        (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    )
+    _assert_b1_projects_rw0(b1_projection, rw0_projection)
+    b1_rows = {row[0]: row for row in b1_projection.rows}
+    assert b1_rows["retrieval_event_sequence_work_maximum"] == (
+        "retrieval_event_sequence_work_maximum", 1285, "authority", "this_document",
+    )
+    assert b1_rows["sole_current_cross_module_production_consumer"] == (
+        "sole_current_cross_module_production_consumer", "RW0-B2-Capability",
+        "authority", "this_document",
+    )
+    assert tuple(b1_rows[fact][1] for fact in (
+        "source_authentication", "executable_permission", "durable_persistence",
+        "semantic_acceptance",
+    )) == ("none", "none", "none", "none")
+
+
+def test_b1_primary_and_cross_registry_parsers_are_equivalent() -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    for case_id, insertion, expected in _B1_INDEPENDENT_EQUIVALENCE_CORPUS:
+        candidate = raw if insertion is None else _b1_equivalence_document(raw, insertion)
+        direct = _b1_registry_outcome(
+            _b1_owner_test_module._parse_b1_registry,
+            candidate,
+        )
+        cross = _b1_registry_outcome(_b1_cross_document_projection, candidate)
+        assert direct == expected, "b1.registry.equivalence.direct:" + case_id
+        assert cross == expected, "b1.registry.equivalence.cross:" + case_id
+    assert _b1_cross_document_projection(raw) == (
+        _b1_owner_test_module._B1_EXPECTED_PROJECTION
+    )
+
+
+def test_b1_independent_equivalence_corpus_has_exact_expected_outcomes() -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    seen_case_ids: set[str] = set()
+    seen_documents: set[str] = set()
+    for case_id, insertion, expected in _B1_INDEPENDENT_EQUIVALENCE_CORPUS:
+        assert case_id not in seen_case_ids, "b1.registry.corpus.case_id"
+        seen_case_ids.add(case_id)
+        candidate = raw if insertion is None else _b1_equivalence_document(raw, insertion)
+        digest = hashlib.sha256(candidate).hexdigest()
+        assert digest not in seen_documents, "b1.registry.corpus.document"
+        seen_documents.add(digest)
+        direct = _b1_registry_outcome(
+            _b1_owner_test_module._parse_b1_registry,
+            candidate,
+        )
+        cross = _b1_registry_outcome(_b1_cross_document_projection, candidate)
+        assert direct == expected, "b1.registry.corpus.direct:" + case_id
+        assert cross == expected, "b1.registry.corpus.cross:" + case_id
+    assert len(seen_case_ids) == len(_B1_INDEPENDENT_EQUIVALENCE_CORPUS)
+
+
+def test_b1_cross_document_parser_resolves_live_owner_after_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    original = _b1_owner_test_module._parse_b1_registry
+    stale_projection = original(raw)
+    sentinel = object()
+
+    def live_owner_parser(candidate: bytes) -> object:
+        assert candidate is raw, "b1.registry.live_owner.input"
+        return sentinel
+
+    monkeypatch.setattr(
+        _b1_owner_test_module,
+        "_parse_b1_registry",
+        live_owner_parser,
+    )
+    assert stale_projection is not sentinel
+    assert _b1_cross_document_projection(raw) is sentinel, (
+        "b1.registry.live_owner.post_import"
+    )
+
+
+def test_b1_cross_document_parser_ignores_detached_stale_aliases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    original = _b1_owner_test_module._parse_b1_registry
+    sentinel = object()
+
+    def stale_local_parser(candidate: bytes) -> object:
+        return original(candidate)
+
+    def live_owner_parser(candidate: bytes) -> object:
+        assert candidate is raw, "b1.registry.stale_alias.input"
+        return sentinel
+
+    monkeypatch.setitem(globals(), "_canonical_parse_b1_registry", stale_local_parser)
+    monkeypatch.setitem(
+        globals(), "_parse_b1_registry_for_projection", stale_local_parser,
+    )
+    monkeypatch.setattr(
+        _b1_owner_test_module,
+        "_parse_b1_registry",
+        live_owner_parser,
+    )
+    assert _b1_cross_document_projection(raw) is sentinel, (
+        "b1.registry.live_owner.stale_alias"
+    )
+
+
+def test_b1_detached_alias_mutant_control_reproduces_pre_repair_gap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    original = _b1_owner_test_module._parse_b1_registry
+    sentinel = object()
+
+    def stale_local_parser(candidate: bytes) -> object:
+        return original(candidate)
+
+    def live_owner_parser(_candidate: bytes) -> object:
+        return sentinel
+
+    monkeypatch.setitem(globals(), "_canonical_parse_b1_registry", stale_local_parser)
+    monkeypatch.setitem(
+        globals(), "_parse_b1_registry_for_projection", stale_local_parser,
+    )
+    monkeypatch.setattr(
+        _b1_owner_test_module,
+        "_parse_b1_registry",
+        live_owner_parser,
+    )
+    primary = _b1_registry_outcome(
+        globals()["_canonical_parse_b1_registry"], raw,
+    )
+    detached_cross = _b1_registry_outcome(
+        globals()["_parse_b1_registry_for_projection"], raw,
+    )
+    assert primary == detached_cross == _B1_INDEPENDENT_PROJECTION_OUTCOME
+    assert _b1_owner_test_module._parse_b1_registry(raw) is sentinel
+
+
+def test_b1_cross_document_parser_ignores_injected_fallback_copy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    sentinel = object()
+    fallback_calls: list[bytes] = []
+
+    def fallback_parser(candidate: bytes) -> object:
+        fallback_calls.append(candidate)
+        raise AssertionError("b1.registry.fallback")
+
+    def live_owner_parser(candidate: bytes) -> object:
+        assert candidate is raw, "b1.registry.fallback.input"
+        return sentinel
+
+    monkeypatch.setitem(globals(), "_fallback_parse_b1_registry", fallback_parser)
+    monkeypatch.setattr(
+        _b1_owner_test_module,
+        "_parse_b1_registry",
+        live_owner_parser,
+    )
+    assert _b1_cross_document_projection(raw) is sentinel, (
+        "b1.registry.live_owner.fallback"
+    )
+    assert fallback_calls == [], "b1.registry.fallback.reachable"
+
+
+def test_b1_cross_document_parser_has_one_static_owner_path() -> None:
+    source = Path(__file__).read_text(encoding="utf-8")
+    assert _b1_parser_owner_violations(source) == (), "b1.registry.owner_ast"
+    fallback_mutant = source + (
+        "\ndef _fallback_parse_b1_registry(raw):\n"
+        "    return _parse_b1_registry_for_projection(raw)\n"
+    )
+    assert "local_b1_parser_definition:_fallback_parse_b1_registry" in (
+        _b1_parser_owner_violations(fallback_mutant)
+    )
+
+
+@pytest.mark.parametrize("case", _RW0_STRUCTURE_CASES)
+def test_rw0_finite_registry_structure_and_visibility_contract(case: str) -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    _parse_rw0_registry(raw)
+    mutant = _rw0_structure_mutant(raw, case)
+    assert mutant != raw
+    if case in _RW0_STRUCTURE_ACCEPTED:
+        assert _parse_rw0_registry(mutant) == _RW0_EXPECTED_PROJECTION
+    else:
+        with pytest.raises(AssertionError, match=r"^rw0\.registry\.[a-z_]+$"):
+            _parse_rw0_registry(mutant)
+
+
+@pytest.mark.parametrize("case", _RW0_DECLARED_FENCE_CASES)
+def test_rw0_declared_fence_cases_are_causal(
+    case: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    candidate = _rw0_structure_mutant(raw, case)
+    real = _rw0_registry_outcome(candidate)
+    if case in _RW0_STRUCTURE_ACCEPTED:
+        assert real == ("accept", _RW0_EXPECTED_PROJECTION)
+        candidate_line, marker = {
+            "backtick_info_with_backtick_nonopener": ("```bad`info", "`"),
+            "four_space_fence_nonopener": ("    ```", "`"),
+        }[case]
+        original = _registry_fence_candidate
+
+        def overbroad_nonopener(line: str) -> tuple[str, int, str] | None:
+            if line == candidate_line:
+                return marker, 3, ""
+            return original(line)
+
+        monkeypatch.setattr(
+            "test_rw0_remote_contact_phase_entry_contract._registry_fence_candidate",
+            overbroad_nonopener,
+        )
+        assert _rw0_registry_outcome(candidate) == (
+            "reject", "rw0.registry.visibility",
+        )
+    else:
+        assert real == ("reject", "rw0.registry.visibility")
+        monkeypatch.setattr(
+            "test_rw0_remote_contact_phase_entry_contract._registry_visibility",
+            lambda lines, _permitted_markers: tuple(True for _line in lines),
+        )
+        assert _rw0_registry_outcome(candidate) == (
+            "accept", _RW0_EXPECTED_PROJECTION,
+        )
+
+
+@pytest.mark.parametrize(
+    "case",
+    _RW0_CAUSAL_FENCE_CASES,
+    ids=tuple(case.case_id for case in _RW0_CAUSAL_FENCE_CASES),
+)
+def test_rw0_causal_fence_real_and_sensitivity_results(
+    case: _RW0CausalFenceCase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    candidate = _rw0_causal_fence_document(raw, case)
+    assert candidate != raw
+    real = _rw0_registry_outcome(candidate)
+    expected_real = (
+        ("accept", _RW0_EXPECTED_PROJECTION)
+        if case.expected_real_result == "accept"
+        else ("reject", case.expected_real_result)
+    )
+    assert real == expected_real
+
+    if case.family == "valid_closer":
+        original = _registry_fence_candidate
+
+        def refuse_valid_closer(line: str) -> tuple[str, int, str] | None:
+            if line == case.candidate_line:
+                return None
+            return original(line)
+
+        monkeypatch.setattr(
+            "test_rw0_remote_contact_phase_entry_contract._registry_fence_candidate",
+            refuse_valid_closer,
+        )
+        mutated = _rw0_registry_outcome(candidate)
+        assert mutated == ("reject", case.expected_mutated_result)
+    elif case.family == "invalid_closer":
+        with monkeypatch.context() as visible_context:
+            visible_context.setattr(
+                "test_rw0_remote_contact_phase_entry_contract._registry_visibility",
+                lambda lines, _permitted_markers: tuple(True for _line in lines),
+            )
+            assert _rw0_registry_outcome(candidate) == (
+                "accept", _RW0_EXPECTED_PROJECTION,
+            )
+        original = _registry_fence_candidate
+
+        def accept_invalid_closer(line: str) -> tuple[str, int, str] | None:
+            if line == case.candidate_line:
+                return case.opener_marker, case.opener_run, ""
+            return original(line)
+
+        monkeypatch.setattr(
+            "test_rw0_remote_contact_phase_entry_contract._registry_fence_candidate",
+            accept_invalid_closer,
+        )
+        mutated = _rw0_registry_outcome(candidate)
+        assert mutated == ("accept", _RW0_EXPECTED_PROJECTION)
+    else:
+        assert case.family == "nonopener"
+        original = _registry_fence_candidate
+
+        def treat_nonopener_as_opener(line: str) -> tuple[str, int, str] | None:
+            if line == case.candidate_line:
+                return case.opener_marker, case.opener_run, ""
+            return original(line)
+
+        monkeypatch.setattr(
+            "test_rw0_remote_contact_phase_entry_contract._registry_fence_candidate",
+            treat_nonopener_as_opener,
+        )
+        mutated = _rw0_registry_outcome(candidate)
+        assert mutated == ("reject", case.expected_mutated_result)
+
+
+def test_rw0_causal_fence_documents_have_unique_bytes_and_purposes() -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    records = tuple(
+        (
+            case.family + ":" + case.case_id,
+            hashlib.sha256(_rw0_causal_fence_document(raw, case)).hexdigest(),
+        )
+        for case in _RW0_CAUSAL_FENCE_CASES
+    )
+    assert len(records) == len({purpose for purpose, _digest in records})
+    assert len(records) == len({digest for _purpose, digest in records})
+
+
+@pytest.mark.parametrize(
+    "case", _RW0_VALUE_CASES, ids=lambda case: case[0],
+)
+def test_rw0_finite_registry_value_contract(
+    case: tuple[str, int, int, str | None],
+) -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    mutant = _rw0_value_mutant(raw, case)
+    assert mutant != raw
+    with pytest.raises(AssertionError, match=r"^rw0\.registry\.(?:shape|order|value|projection)$"):
+        _parse_rw0_registry(mutant)
+
+
+def _projection_with_row(
+    projection: NamedTuple, row_name: str, column: int, value: object,
+) -> NamedTuple:
+    changed = []
+    found = False
+    for row in projection.rows:
+        if row[0] == row_name:
+            cells = list(row)
+            cells[column] = value
+            changed.append(tuple(cells))
+            found = True
+        else:
+            changed.append(row)
+    assert found
+    return type(projection)(projection.version, tuple(changed))
+
+
+def test_b1_to_rw0_projection_checker_is_one_way_and_causal() -> None:
+    rw0_projection = _parse_rw0_registry((ROOT / OWNER_PATH).read_bytes())
+    b1_projection = _b1_cross_document_projection(
+        (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    )
+    stale_b1 = _projection_with_row(
+        b1_projection, "lifecycle_status", 1, "future",
+    )
+    with pytest.raises(AssertionError, match=r"^b1\.registry\.projection$"):
+        _assert_b1_projects_rw0(stale_b1, rw0_projection)
+    changed_owner = _projection_with_row(
+        rw0_projection, "RW0-B1", 1, "future",
+    )
+    with pytest.raises(AssertionError, match=r"^b1\.registry\.projection$"):
+        _assert_b1_projects_rw0(b1_projection, changed_owner)
+    b1_local_authority_change = _projection_with_row(
+        b1_projection, "retrieval_event_sequence_work_maximum", 1, 1284,
+    )
+    _assert_b1_projects_rw0(b1_local_authority_change, rw0_projection)
+
+
+_CROSS_DOCUMENT_MUTANT_CASES = (
+    "b1_projection_differs", "rw0_owner_changes_b1_stale",
+    "b1_authority_row_changed", "projection_source_mislabeled_authority",
+    "authority_source_mislabeled_projection",
+)
+
+
+def _cross_document_mutant(
+    rw0_raw: bytes, b1_raw: bytes, case: str,
+) -> tuple[bytes, bytes]:
+    rw0_text = rw0_raw.decode("utf-8")
+    b1_text = b1_raw.decode("utf-8")
+    if case == "b1_projection_differs":
+        b1_text = _rw0_replace_once(
+            b1_text,
+            "| lifecycle_status | current_implemented | projection |",
+            "| lifecycle_status | future | projection |",
+        )
+    elif case == "rw0_owner_changes_b1_stale":
+        rw0_text = _rw0_replace_once(
+            rw0_text,
+            "| RW0-B1 | current_implemented | private_pure_no_io_semantics |",
+            "| RW0-B1 | future | private_pure_no_io_semantics |",
+        )
+    elif case == "b1_authority_row_changed":
+        b1_text = _rw0_replace_once(
+            b1_text,
+            "| retrieval_event_sequence_work_maximum | 1285 | authority |",
+            "| retrieval_event_sequence_work_maximum | 1284 | authority |",
+        )
+    elif case == "projection_source_mislabeled_authority":
+        b1_text = _rw0_replace_once(
+            b1_text,
+            "| lifecycle_status | current_implemented | projection |",
+            "| lifecycle_status | current_implemented | authority |",
+        )
+    else:
+        assert case == "authority_source_mislabeled_projection"
+        b1_text = _rw0_replace_once(
+            b1_text,
+            "| retrieval_event_sequence_work_maximum | 1285 | authority |",
+            "| retrieval_event_sequence_work_maximum | 1285 | projection |",
+        )
+    return rw0_text.encode("utf-8"), b1_text.encode("utf-8")
+
+
+@pytest.mark.parametrize("case", _CROSS_DOCUMENT_MUTANT_CASES)
+def test_b1_to_rw0_cross_document_mutants_fail(case: str) -> None:
+    rw0_raw = (ROOT / OWNER_PATH).read_bytes()
+    b1_raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    changed_rw0, changed_b1 = _cross_document_mutant(rw0_raw, b1_raw, case)
+    assert (changed_rw0, changed_b1) != (rw0_raw, b1_raw)
+    with pytest.raises(AssertionError, match=r"^(?:b1|rw0)\.registry\.[a-z_]+$"):
+        rw0_projection = _parse_rw0_registry(changed_rw0)
+        b1_projection = _b1_cross_document_projection(changed_b1)
+        _assert_b1_projects_rw0(b1_projection, rw0_projection)
+
+
+@pytest.mark.parametrize(
+    "case", _RW0_FALSE_POSITIVE_CASES, ids=lambda case: case[0],
+)
+def test_rw0_explanatory_prose_is_outside_registry_oracle(
+    case: tuple[str, str],
+) -> None:
+    raw = (ROOT / OWNER_PATH).read_bytes()
+    baseline = _parse_rw0_registry(raw)
+    candidate = _rw0_false_positive(raw, case)
+    assert candidate != raw
+    assert _parse_rw0_registry(candidate) == baseline
+
+
+def test_rw0_generated_registry_documents_have_unique_bytes_and_purposes() -> None:
+    rw0_raw = (ROOT / OWNER_PATH).read_bytes()
+    b1_raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    documents: list[tuple[str, bytes]] = []
+    documents.extend(
+        ("structure:" + case, _rw0_structure_mutant(rw0_raw, case))
+        for case in _RW0_STRUCTURE_CASES
+    )
+    documents.extend(
+        ("value:" + case[0], _rw0_value_mutant(rw0_raw, case))
+        for case in _RW0_VALUE_CASES
+    )
+    documents.extend(
+        ("prose:" + case[0], _rw0_false_positive(rw0_raw, case))
+        for case in _RW0_FALSE_POSITIVE_CASES
+    )
+    documents.extend(
+        (
+            "cross:" + case,
+            b"RW0\0" + changed_rw0 + b"\0B1\0" + changed_b1,
+        )
+        for case in _CROSS_DOCUMENT_MUTANT_CASES
+        for changed_rw0, changed_b1 in (
+            _cross_document_mutant(rw0_raw, b1_raw, case),
+        )
+    )
+    documents.extend(
+        (
+            "causal-fence:" + case.case_id,
+            _rw0_causal_fence_document(rw0_raw, case),
+        )
+        for case in _RW0_CAUSAL_FENCE_CASES
+    )
+    purposes = tuple(purpose for purpose, _document in documents)
+    digests = tuple(hashlib.sha256(document).hexdigest() for _purpose, document in documents)
+    assert len(purposes) == len(set(purposes))
+    assert len(digests) == len(set(digests))
