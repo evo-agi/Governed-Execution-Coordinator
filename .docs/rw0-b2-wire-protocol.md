@@ -4,6 +4,8 @@
 
 RW0-B2-Wire currently implements one private, pure, no-I/O source module for NWPF v1 representational framing and canonical decoding, two safe unauthenticated source-claim values, a closed worker-result tuple, pure relations, a process/result classifier, and a fixed protocol profile. Physical transport framing and stream/process plumbing remain deferred. It adds no caller, package-root export, transport, source authentication, supervisor, worker, live process, filesystem, database, network, model, Codex, Git, publication, Bridge, ES call, executable permission, durable truth, acceptance, or ownership of the separately implemented Capability semantics.
 
+RW0-B2-Wire also implements one additive private, pure, no-I/O cancellation-control evidence profile for the exact current `author_candidate`, `validate_candidate`, and `review_candidate` targets. It supplies bounded exact-current request, process-observation, and acknowledgement/rejection relations plus an `invalid`/`incomplete`/`finite` evidence classifier. This separate profile neither replaces nor enters NWPF v1 frames and does not widen Capability, B1, C2A, persistence, runtime, or authority ownership.
+
 RW0-B2-Wire does not own or alter RW0-B1 or C2A schema,
 canonical-identity, semantic-outcome, or authority contracts; their protected
 owner reconstruction and occurrence-work accounting are hardened separately
@@ -98,6 +100,32 @@ Priority is: invalid type/cardinality or malformed reconstruction, duplicate, un
 ## Fixed profile
 
 wire_profile_mapping returns fresh keys in order schema_id, profile_ref, manifest, profile_digest. The profile is rw0-wire-nwpf-v1, schema governed-execution.nwp-rw0-wire-protocol-profile.v1, digest domain governed-execution.nwp-rw0-wire-protocol-profile.v1.identity, canonical identity length 4,021 bytes, digest 470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454. Its manifest fixes authority booleans, frame, JSON, integer, caps, work meter, result grammar, request/process source kinds, and classifier grammar. The profile is absent from frames and proves no authenticity, permission, acceptance, or mechanism choice.
+
+## Additive cancellation-control value
+
+`RW0WireCancellationControlClassificationV1` is a final, slotted, immutable, noncopyable, non-deepcopyable, non-pickleable private value with exactly the ordered fields `classification` and `reason`. Its closed classifications are `invalid`, `incomplete`, and `finite`. Invalid reasons are `invalid_input`, `duplicate_fact`, `unrelated_fact`, `conflicting_fact`, and `cancellation_graph_mismatch`; incomplete reasons are `process_evidence_incomplete`, `resource_limit_exceeded`, `deadline_elapsed`, `signal_delivered`, `cancellation_acknowledged`, and `cancellation_request_pending`; finite reasons are `cancellation_rejected` and `target_process_exited`. The value has no schema, ref, digest, canonical identity, equality override, nullable field, or hidden payload. `finite` is only a supplied control-evidence state for later C2 reasoning, not semantic cancellation, success, teardown, terminality, permission, acceptance, or durable truth.
+
+## Exact-current cancellation-control relations
+
+`validate_wire_exact_current_cancellation_request_relation` validates the target delivery against the exact target fence, validates the cancellation delivery against the cancellation fence and exact target, binds every request target/cancellation coordinate, and binds the request source to the cancellation delivery route. `validate_wire_exact_current_process_observation_relation` validates the target delivery, binds the process claim to the exact target fence/delivery, and admits only the closed supervisor or operating-system resource-limit/signal claims. `validate_wire_exact_current_cancellation_response_relation` first proves the complete request graph and then validates one acknowledgement or rejection against the exact cancellation fence/delivery and target. Direct-local request claims use `supervisor` and responses use `direct_local_adapter`; ES request claims use `execution_substrate` and responses use `es_adapter`. Source refs and invocation refs need not match, and timestamps do not order semantics.
+
+For `author_candidate`, the capsule operand is exactly omitted and both target and cancellation portable capsule digests are null. For `validate_candidate` and `review_candidate`, one exact safely reconstructed `CandidateCapsuleManifestV1` is required and both portable capsule digests equal that manifest. Explicit `None` is not omission.
+
+## Supplied cancellation-control classifier
+
+`classify_wire_exact_current_cancellation_control` accepts zero or one request, an exact built-in tuple of zero to four adapter observations, and an exact built-in tuple of zero to two process observations, for at most seven supplied facts. The singleton roles are request, acknowledgement, rejection, deadline, exit, resource limit, and signal; acknowledgement and rejection conflict. Every occurrence is reconstructed before duplicate classification. Exact precedence is malformed input; duplicate; unrelated role or target; singleton conflict; cancellation-graph mismatch; request absence; rejection; target exit; resource limit; deadline; signal; acknowledgement; request pending. Rejection outranks exit, while exit outranks acknowledgement, signal, resource limit, and deadline. Target process facts without a request remain incomplete; acknowledgement or rejection without a request is a graph mismatch. Exit codes `-255`, `0`, and `255` are equally finite target-process exit evidence, and zero has no cancellation-success meaning.
+
+## Cancellation-control profile identity
+
+`cancellation_control_profile_mapping` returns a fresh exact built-in outer dictionary ordered `schema_id`, `profile_ref`, `manifest`, `profile_digest`, with a fresh complete manifest graph. The schema is `governed-execution.nwp-rw0-wire-cancellation-control-profile.v1`, the profile ref is `rw0-wire-cancellation-control-v1`, the digest domain is `governed-execution.nwp-rw0-wire-cancellation-control-profile.v1.identity`, the canonical manifest is 12,014 bytes, the canonical outer identity is 12,154 bytes, and the profile digest is `4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288`. This profile is additive and never appears in NWPF v1 frames; Capability continues to bind only `rw0-wire-nwpf-v1`.
+
+## Cancellation-control reconstruction and work bounds
+
+Every supplied occurrence is charged before exact safe reconstruction, including repeated aliases. The fixed tariffs are 62 units for `RW0WireCancellationRequestObservationV1`, 54 for `RW0WireProcessObservationV1`, 116 for `WorkerCommandV1`, 92 for `AttemptFenceV1`, 102 for `EffectFenceV1`, 32 for `DeliveryEnvelopeV1`, 124 for `WorkerObservationV1`, and 98 for `CandidateCapsuleManifestV1`. Author/validation-or-review operation maxima are respectively 640/738 for request, 498/596 for process, 764/862 for response, and 1,244/1,342 for the classifier. A relation one unit below maximum fails with content-free `work_limit_exceeded`; classifier exhaustion is `invalid`/`invalid_input`. The manifest and its nested entries use the existing bounded C2A owner reconstruction; Wire values continue to use their existing reconstruction paths. Common graph operands are reconstructed exactly once per operation, and the owning C2A relations remain authoritative for graph coherence.
+
+## Cancellation-control nonclaims
+
+The additive profile and its pure functions perform no I/O and add no public export or production caller. They do not authenticate sources, issue authority, deliver cancellation, launch or control a process, send a signal, select a provider, contact a worker, persist evidence, decide acceptance, reconcile runtime state, or implement RW0-C, RW0-D, RW0-E, Bridge, or Execution Substrate behavior. RW0-C remains future and blocked pending separately governed entry; D/E retain later proof and provider/process responsibilities, and Execution Substrate retains admission and runtime ownership.
 
 ## Privacy boundary and later owners
 

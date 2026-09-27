@@ -10,6 +10,7 @@ import typing
 
 from ._worker_execution_semantic_values import (
     AttemptFenceV1,
+    CandidateCapsuleManifestV1,
     CeilingsV1,
     DeliveryEnvelopeV1,
     EffectFenceV1,
@@ -17,6 +18,7 @@ from ._worker_execution_semantic_values import (
     WorkerExecutionValueError,
     WorkerObservationV1,
     _MISSING as _C2A_MISSING,
+    _reconstruct_exact_worker_execution_value,
     validate_delivery_relation,
     validate_observation_relation,
 )
@@ -1914,3 +1916,978 @@ def classify_wire_process_result(
     if type(outcome) is _BoundaryFailure:
         return _classified("invalid", "invalid_input")
     return typing.cast(RW0WireProcessResultClassificationV1, outcome)
+
+
+_CANCELLATION_CONTROL_PROFILE_SCHEMA = (
+    "governed-execution.nwp-rw0-wire-cancellation-control-profile.v1"
+)
+_CANCELLATION_CONTROL_PROFILE_REF = "rw0-wire-cancellation-control-v1"
+_CANCELLATION_CONTROL_PROFILE_DIGEST = (
+    "4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288"
+)
+_CANCELLATION_CONTROL_MANIFEST_JSON = r'''{"authority":{"acceptance":false,"authentication":false,"c1_evidence_member":false,"current_selection":false,"durable":false,"durable_truth":false,"effect_authority":false,"external_contact":false,"io":false,"mechanism_neutral":true,"permission":false,"persistence":false,"process_control":false,"production_caller":false,"profile_in_frame":false,"provider_neutral":true,"public_export":false,"reconciliation":false,"review_result":false,"runtime":false,"semantic_cancellation":false,"source_authenticity":false,"target_result":false,"teardown":false,"terminality":false,"transport":false,"validation_result":false,"worker_result":false},"capsule":{"author_candidate":{"argument":"omitted","cancellation_portable_capsule_digest":"null","target_portable_capsule_digest":"null"},"entries":{"maximum":3,"minimum":3},"review_candidate":{"argument":"exact_CandidateCapsuleManifestV1","cancellation_portable_capsule_digest":"manifest","target_portable_capsule_digest":"manifest"},"validate_candidate":{"argument":"exact_CandidateCapsuleManifestV1","cancellation_portable_capsule_digest":"manifest","target_portable_capsule_digest":"manifest"}},"classifier":{"acknowledgement_rejection_exclusive":true,"classifications":["invalid","incomplete","finite"],"decision_order":[["invalid_input","invalid","invalid_input"],["duplicate_fact","invalid","duplicate_fact"],["unrelated_fact","invalid","unrelated_fact"],["conflicting_fact","invalid","conflicting_fact"],["cancellation_graph_mismatch","invalid","cancellation_graph_mismatch"],["request_absent","incomplete","process_evidence_incomplete"],["cancellation_rejected","finite","cancellation_rejected"],["target_process_exited","finite","target_process_exited"],["resource_limit_exceeded","incomplete","resource_limit_exceeded"],["deadline_elapsed","incomplete","deadline_elapsed"],["signal_delivered","incomplete","signal_delivered"],["cancellation_acknowledged","incomplete","cancellation_acknowledged"],["request_present","incomplete","cancellation_request_pending"]],"exit_code":{"maximum":255,"minimum":-255,"zero_special":false},"matrix":{"finite":["cancellation_rejected","target_process_exited"],"incomplete":["process_evidence_incomplete","resource_limit_exceeded","deadline_elapsed","signal_delivered","cancellation_acknowledged","cancellation_request_pending"],"invalid":["invalid_input","duplicate_fact","unrelated_fact","conflicting_fact","cancellation_graph_mismatch"]},"reasons":["invalid_input","duplicate_fact","unrelated_fact","conflicting_fact","cancellation_graph_mismatch","process_evidence_incomplete","resource_limit_exceeded","deadline_elapsed","signal_delivered","cancellation_acknowledged","cancellation_request_pending","cancellation_rejected","target_process_exited"],"response_requires_request":true,"return_type":"exact_RW0WireCancellationControlClassificationV1","timestamp_ordering":false},"facts":{"absence":"None","adapter_observations":{"maximum":4,"minimum":0,"roles":["cancellation_acknowledged","cancellation_rejected","deadline_elapsed","process_exited"]},"duplicate_detection":{"after_reconstruction":true,"keys":["original_object_identity","safe_fact_ref","safe_fact_digest"],"scope":"all_supplied_facts"},"item_types":{"adapter_observations":"exact_WorkerObservationV1","process_observations":"exact_RW0WireProcessObservationV1"},"observation_items_nullable":false,"outer_types":{"adapter_observations":"exact_builtin_tuple","process_observations":"exact_builtin_tuple","request":"exact_RW0WireCancellationRequestObservationV1_or_None"},"process_observations":{"maximum":2,"minimum":0,"roles":["resource_limit_exceeded","signal_delivered"]},"request":{"maximum":1,"minimum":0},"request_absence":"None","request_bindings":["target_effect_fence","target_delivery","cancellation_effect_fence","cancellation_delivery"],"role_bindings":{"cancellation_acknowledged":["cancellation_effect_fence","cancellation_delivery"],"cancellation_rejected":["cancellation_effect_fence","cancellation_delivery"],"deadline_elapsed":["target_effect_fence","target_delivery"],"process_exited":["target_effect_fence","target_delivery"],"resource_limit_exceeded":["target_effect_fence","target_delivery"],"signal_delivered":["target_effect_fence","target_delivery"]},"role_validation":{"cancellation_acknowledged":["cancellation_response"],"cancellation_rejected":["cancellation_response"],"deadline_elapsed":["target_observation"],"process_exited":["target_observation"],"request":["target_delivery","cancellation_delivery"],"resource_limit_exceeded":["target_delivery"],"signal_delivered":["target_delivery"]},"singleton_maximum":1,"singleton_roles":["request","cancellation_acknowledged","cancellation_rejected","deadline_elapsed","process_exited","resource_limit_exceeded","signal_delivered"],"total_maximum":7},"identity":{"canonical_json":{"allow_nan":false,"ensure_ascii":false,"normalization":"none","separators":[",",":"],"sort_keys":true},"digest":"sha256","domain_separator":"NUL","encoding":"UTF-8"},"relations":{"c2a_call_profiles":{"cancellation_delivery":{"arguments":[["delivery","cancellation_delivery"],["author_command","author_command"],["attempt_fence","attempt_fence"],["author_effect_fence","author_effect_fence"],["effect_fence","cancellation_effect_fence"],["capsule_manifest","target_capsule_manifest_by_target_class"],["cancellation_target","target_effect_fence"]],"call":"validate_delivery_relation"},"cancellation_response":{"arguments":[["observation","response"],["delivery","cancellation_delivery"],["author_command","author_command"],["attempt_fence","attempt_fence"],["author_effect_fence","author_effect_fence"],["effect_fence","cancellation_effect_fence"],["capsule_manifest","target_capsule_manifest_by_target_class"],["before_blobs","omitted"],["after_blobs","omitted"],["cancellation_target","target_effect_fence"]],"call":"validate_observation_relation"},"target_delivery":{"arguments":[["delivery","target_delivery"],["author_command","author_command"],["attempt_fence","attempt_fence"],["author_effect_fence","author_effect_fence"],["effect_fence","target_effect_fence"],["capsule_manifest","target_capsule_manifest_by_target_class"],["cancellation_target","omitted"]],"call":"validate_delivery_relation"},"target_observation":{"arguments":[["observation","adapter_observation"],["delivery","target_delivery"],["author_command","author_command"],["attempt_fence","attempt_fence"],["author_effect_fence","author_effect_fence"],["effect_fence","target_effect_fence"],["capsule_manifest","target_capsule_manifest_by_target_class"],["before_blobs","omitted"],["after_blobs","omitted"],["cancellation_target","omitted"]],"call":"validate_observation_relation"}},"c2a_owner_relations":["validate_delivery_relation","validate_observation_relation"],"classifier":{"name":"classify_wire_exact_current_cancellation_control","operands":["author_command","attempt_fence","author_effect_fence","target_effect_fence","target_delivery","cancellation_effect_fence","cancellation_delivery","request","adapter_observations","process_observations","target_capsule_manifest"],"return_type":"exact_RW0WireCancellationControlClassificationV1"},"ordered_direct_c2a_calls":{"classifier_base":["target_delivery","cancellation_delivery"],"process":["target_delivery"],"request":["target_delivery","cancellation_delivery"],"response":["target_delivery","cancellation_delivery","cancellation_response"]},"process":{"name":"validate_wire_exact_current_process_observation_relation","operands":["observation","author_command","attempt_fence","author_effect_fence","target_effect_fence","target_delivery","target_capsule_manifest"],"return_type":"None"},"request":{"name":"validate_wire_exact_current_cancellation_request_relation","operands":["request","author_command","attempt_fence","author_effect_fence","target_effect_fence","target_delivery","cancellation_effect_fence","cancellation_delivery","target_capsule_manifest"],"return_type":"None"},"response":{"name":"validate_wire_exact_current_cancellation_response_relation","operands":["response","request","author_command","attempt_fence","author_effect_fence","target_effect_fence","target_delivery","cancellation_effect_fence","cancellation_delivery","target_capsule_manifest"],"return_type":"None"},"response_prerequisite":"validate_wire_exact_current_cancellation_request_relation"},"routes":{"adapter_observation_orientation":{"cancellation_acknowledged":{"cancellation_target":"target_effect_fence","delivery":"cancellation_delivery","effect":"cancellation_effect_fence","source_basis":"bound_delivery.adapter_kind"},"cancellation_rejected":{"cancellation_target":"target_effect_fence","delivery":"cancellation_delivery","effect":"cancellation_effect_fence","source_basis":"bound_delivery.adapter_kind"},"deadline_elapsed":{"cancellation_target":"omitted","delivery":"target_delivery","effect":"target_effect_fence","source_basis":"bound_delivery.adapter_kind"},"process_exited":{"cancellation_target":"omitted","delivery":"target_delivery","effect":"target_effect_fence","source_basis":"bound_delivery.adapter_kind"}},"adapter_observation_sources":{"direct_local_bootstrap":"direct_local_adapter","execution_substrate":"es_adapter"},"process_observation_orientation":{"resource_limit_exceeded":{"delivery":"target_delivery","effect":"target_effect_fence","source_basis":"closed_process_source_kind"},"signal_delivered":{"delivery":"target_delivery","effect":"target_effect_fence","source_basis":"closed_process_source_kind"}},"process_sources":["supervisor","operating_system"],"request_orientation":{"cancellation_delivery":"cancellation_delivery","cancellation_effect":"cancellation_effect_fence","source_basis":"cancellation_delivery.adapter_kind","target_delivery":"target_delivery","target_effect":"target_effect_fence"},"request_sources":{"direct_local_bootstrap":"supervisor","execution_substrate":"execution_substrate"}},"targets":["author_candidate","validate_candidate","review_candidate"],"values":{"classification":{"c1_evidence_member":false,"c2_binding":"profile_pair_plus_exact_operand_closure","durable_identity":false,"fields":["classification","reason"],"identity":false,"name":"RW0WireCancellationControlClassificationV1"},"process":{"digest_domain":"governed-execution.nwp-rw0-wire-process-observation.v1.identity","name":"RW0WireProcessObservationV1","schema_id":"governed-execution.nwp-rw0-wire-process-observation.v1"},"request":{"digest_domain":"governed-execution.nwp-rw0-wire-cancellation-request-observation.v1.identity","name":"RW0WireCancellationRequestObservationV1","schema_id":"governed-execution.nwp-rw0-wire-cancellation-request-observation.v1"}},"work":{"alias_accounting":"per_occurrence","duplicate_detection_after_reconstruction":true,"fixed_closed_relations":"unmetered","limit_outcomes":{"maximum":"evaluate_normally","one_under_classifier":["invalid","invalid_input"],"one_under_relation_error":"work_limit_exceeded"},"maximum_local_work_units":{"classifier":{"author_candidate":1244,"review_candidate":1342,"validate_candidate":1342},"process_relation":{"author_candidate":498,"review_candidate":596,"validate_candidate":596},"request_relation":{"author_candidate":640,"review_candidate":738,"validate_candidate":738},"response_relation":{"author_candidate":764,"review_candidate":862,"validate_candidate":862}},"one_under_local_work_units":{"classifier":{"author_candidate":1243,"review_candidate":1341,"validate_candidate":1341},"process_relation":{"author_candidate":497,"review_candidate":595,"validate_candidate":595},"request_relation":{"author_candidate":639,"review_candidate":737,"validate_candidate":737},"response_relation":{"author_candidate":763,"review_candidate":861,"validate_candidate":861}},"operand_reconstruction_units":{"AttemptFenceV1":92,"CandidateCapsuleManifestV1":98,"DeliveryEnvelopeV1":32,"EffectFenceV1":102,"RW0WireCancellationRequestObservationV1":62,"RW0WireProcessObservationV1":54,"WorkerCommandV1":116,"WorkerObservationV1":124},"tariff":"two_pass_occurrence_work_including_root_and_owner_revalidation"}}'''
+_CANCELLATION_CONTROL_WORK_TEST_EXTRA_UNITS = 0
+_CANCELLATION_CONTROL_TARIFFS = {
+    RW0WireCancellationRequestObservationV1: 62,
+    RW0WireProcessObservationV1: 54,
+    WorkerCommandV1: 116,
+    AttemptFenceV1: 92,
+    EffectFenceV1: 102,
+    DeliveryEnvelopeV1: 32,
+    WorkerObservationV1: 124,
+    CandidateCapsuleManifestV1: 98,
+}
+_CANCELLATION_CONTROL_MATRIX = {
+    "invalid": (
+        "invalid_input", "duplicate_fact", "unrelated_fact",
+        "conflicting_fact", "cancellation_graph_mismatch",
+    ),
+    "incomplete": (
+        "process_evidence_incomplete", "resource_limit_exceeded",
+        "deadline_elapsed", "signal_delivered",
+        "cancellation_acknowledged", "cancellation_request_pending",
+    ),
+    "finite": ("cancellation_rejected", "target_process_exited"),
+}
+_CANCELLATION_CONTROL_ADAPTER_ROLES = (
+    "cancellation_acknowledged", "cancellation_rejected",
+    "deadline_elapsed", "process_exited",
+)
+_CANCELLATION_CONTROL_RESPONSE_ROLES = (
+    "cancellation_acknowledged", "cancellation_rejected",
+)
+_CANCELLATION_CONTROL_TARGET_ROLES = ("deadline_elapsed", "process_exited")
+
+
+class RW0WireCancellationControlClassificationV1(_ImmutableValue):
+    _FIELDS = ("classification", "reason")
+    __slots__ = ("_classification", "_reason")
+
+    def __init_subclass__(cls, **kwargs: object) -> typing.NoReturn:
+        raise TypeError("subclassing disabled") from None
+
+    @classmethod
+    def _create(
+        cls, classification: str, reason: str,
+    ) -> RW0WireCancellationControlClassificationV1:
+        outcome = _capture(
+            _cancellation_control_classification_create_impl,
+            "invalid_field_value", classification, reason,
+        )
+        classification = reason = None
+        return typing.cast(
+            RW0WireCancellationControlClassificationV1, _unwrap(outcome),
+        )
+
+    def to_mapping(self) -> dict[str, object]:
+        outcome = _capture(
+            _cancellation_control_classification_mapping_impl,
+            "invalid_field_value", self,
+        )
+        self = None
+        return typing.cast(dict[str, object], _unwrap(outcome))
+
+
+def _cancellation_control_classification_create_impl(
+    classification: object, reason: object,
+) -> RW0WireCancellationControlClassificationV1:
+    if type(classification) is not str or type(reason) is not str:
+        _fail("invalid_field_type")
+    if (
+        classification not in _CANCELLATION_CONTROL_MATRIX
+        or reason not in _CANCELLATION_CONTROL_MATRIX[classification]
+    ):
+        _fail("invalid_field_value")
+    return typing.cast(
+        RW0WireCancellationControlClassificationV1,
+        _construct(
+            RW0WireCancellationControlClassificationV1,
+            ("classification", "reason"),
+            {"classification": classification, "reason": reason},
+        ),
+    )
+
+
+def _validated_cancellation_control_classification(
+    value: object,
+) -> RW0WireCancellationControlClassificationV1:
+    if type(value) is not RW0WireCancellationControlClassificationV1:
+        _fail("invalid_field_type")
+    mapping = _raw_slots(
+        typing.cast(_ImmutableValue, value), ("classification", "reason"),
+    )
+    failed = False
+    rebuilt: RW0WireCancellationControlClassificationV1 | None = None
+    try:
+        rebuilt = _cancellation_control_classification_create_impl(
+            mapping["classification"], mapping["reason"],
+        )
+    except _WireFailure:
+        failed = True
+    value = None
+    mapping = {}
+    if failed or rebuilt is None:
+        _fail("invalid_field_value")
+    return rebuilt
+
+
+def _cancellation_control_classification_mapping_impl(
+    value: object,
+) -> dict[str, object]:
+    rebuilt = _validated_cancellation_control_classification(value)
+    return _raw_slots(rebuilt, ("classification", "reason"))
+
+
+def cancellation_control_profile_mapping() -> dict[str, object]:
+    manifest = json.loads(_CANCELLATION_CONTROL_MANIFEST_JSON)
+    return {
+        "schema_id": _CANCELLATION_CONTROL_PROFILE_SCHEMA,
+        "profile_ref": _CANCELLATION_CONTROL_PROFILE_REF,
+        "manifest": manifest,
+        "profile_digest": _CANCELLATION_CONTROL_PROFILE_DIGEST,
+    }
+
+
+class _CancellationControlWorkBudget:
+    __slots__ = ("remaining",)
+
+    def __init__(self, maximum: int) -> None:
+        extra = _CANCELLATION_CONTROL_WORK_TEST_EXTRA_UNITS
+        if type(maximum) is not int or type(extra) is not int:
+            _fail("work_limit_exceeded")
+        self.remaining = maximum + extra
+
+    def charge(self, units: int) -> None:
+        if type(units) is not int or units < 0 or self.remaining < units:
+            _fail("work_limit_exceeded")
+        self.remaining -= units
+
+
+class _CancellationControlTargetGraph:
+    __slots__ = (
+        "command", "attempt", "author", "target", "target_delivery",
+        "manifest", "manifest_present",
+    )
+
+    def __init__(
+        self, command: WorkerCommandV1, attempt: AttemptFenceV1,
+        author: EffectFenceV1, target: EffectFenceV1,
+        target_delivery: DeliveryEnvelopeV1,
+        manifest: CandidateCapsuleManifestV1 | None,
+        manifest_present: bool,
+    ) -> None:
+        self.command = command
+        self.attempt = attempt
+        self.author = author
+        self.target = target
+        self.target_delivery = target_delivery
+        self.manifest = manifest
+        self.manifest_present = manifest_present
+
+
+class _CancellationControlGraph(_CancellationControlTargetGraph):
+    __slots__ = ("cancel", "cancel_delivery")
+
+    def __init__(
+        self, command: WorkerCommandV1, attempt: AttemptFenceV1,
+        author: EffectFenceV1, target: EffectFenceV1,
+        target_delivery: DeliveryEnvelopeV1,
+        cancel: EffectFenceV1, cancel_delivery: DeliveryEnvelopeV1,
+        manifest: CandidateCapsuleManifestV1 | None,
+        manifest_present: bool,
+    ) -> None:
+        _CancellationControlTargetGraph.__init__(
+            self, command, attempt, author, target, target_delivery,
+            manifest, manifest_present,
+        )
+        self.cancel = cancel
+        self.cancel_delivery = cancel_delivery
+
+
+def _cancellation_control_classified(
+    classification: str, reason: str,
+) -> RW0WireCancellationControlClassificationV1:
+    return _cancellation_control_classification_create_impl(classification, reason)
+
+
+def _cancellation_control_capsule_present(value: object) -> bool:
+    if value is _C2A_MISSING:
+        return False
+    if type(value) is not CandidateCapsuleManifestV1:
+        _fail("invalid_field_type")
+    return True
+
+
+def _cancellation_control_budget(
+    author_maximum: int, capsule_present: bool,
+) -> _CancellationControlWorkBudget:
+    return _CancellationControlWorkBudget(
+        author_maximum + (98 if capsule_present else 0)
+    )
+
+
+def _cancellation_control_rebuild_c2a(
+    value: object, expected: type[object], budget: _CancellationControlWorkBudget,
+) -> object:
+    tariff = _CANCELLATION_CONTROL_TARIFFS.get(expected)
+    if type(tariff) is not int:
+        _fail("invalid_field_value")
+    budget.charge(tariff)
+    return _rebuild_c2a(value, expected)
+
+
+def _cancellation_control_rebuild_manifest(
+    value: object, budget: _CancellationControlWorkBudget,
+) -> CandidateCapsuleManifestV1:
+    budget.charge(_CANCELLATION_CONTROL_TARIFFS[CandidateCapsuleManifestV1])
+    failed = False
+    rebuilt: object = None
+    try:
+        rebuilt, projection = _reconstruct_exact_worker_execution_value(
+            value, CandidateCapsuleManifestV1,
+        )
+        projection = {}
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        failed = True
+    value = None
+    if failed or type(rebuilt) is not CandidateCapsuleManifestV1:
+        _fail("invalid_field_value")
+    return typing.cast(CandidateCapsuleManifestV1, rebuilt)
+
+
+def _cancellation_control_rebuild_request(
+    value: object, budget: _CancellationControlWorkBudget,
+) -> RW0WireCancellationRequestObservationV1:
+    budget.charge(
+        _CANCELLATION_CONTROL_TARIFFS[
+            RW0WireCancellationRequestObservationV1
+        ]
+    )
+    return _validated_request(value)
+
+
+def _cancellation_control_rebuild_process(
+    value: object, budget: _CancellationControlWorkBudget,
+) -> RW0WireProcessObservationV1:
+    budget.charge(
+        _CANCELLATION_CONTROL_TARIFFS[RW0WireProcessObservationV1]
+    )
+    return _validated_process(value)
+
+
+def _cancellation_control_reconstruct_target_graph(
+    author_command: object, attempt_fence: object,
+    author_effect_fence: object, target_effect_fence: object,
+    target_delivery: object, target_capsule_manifest: object,
+    capsule_present: bool, budget: _CancellationControlWorkBudget,
+) -> _CancellationControlTargetGraph:
+    safe_command = typing.cast(
+        WorkerCommandV1,
+        _cancellation_control_rebuild_c2a(
+            author_command, WorkerCommandV1, budget,
+        ),
+    )
+    safe_attempt = typing.cast(
+        AttemptFenceV1,
+        _cancellation_control_rebuild_c2a(
+            attempt_fence, AttemptFenceV1, budget,
+        ),
+    )
+    safe_author = typing.cast(
+        EffectFenceV1,
+        _cancellation_control_rebuild_c2a(
+            author_effect_fence, EffectFenceV1, budget,
+        ),
+    )
+    safe_target = typing.cast(
+        EffectFenceV1,
+        _cancellation_control_rebuild_c2a(
+            target_effect_fence, EffectFenceV1, budget,
+        ),
+    )
+    safe_delivery = typing.cast(
+        DeliveryEnvelopeV1,
+        _cancellation_control_rebuild_c2a(
+            target_delivery, DeliveryEnvelopeV1, budget,
+        ),
+    )
+    safe_manifest = (
+        _cancellation_control_rebuild_manifest(
+            target_capsule_manifest, budget,
+        )
+        if capsule_present
+        else None
+    )
+    return _CancellationControlTargetGraph(
+        safe_command, safe_attempt, safe_author, safe_target, safe_delivery,
+        safe_manifest, capsule_present,
+    )
+
+
+def _cancellation_control_reconstruct_graph(
+    author_command: object, attempt_fence: object,
+    author_effect_fence: object, target_effect_fence: object,
+    target_delivery: object, cancellation_effect_fence: object,
+    cancellation_delivery: object, target_capsule_manifest: object,
+    capsule_present: bool, budget: _CancellationControlWorkBudget,
+) -> _CancellationControlGraph:
+    target_graph = _cancellation_control_reconstruct_target_graph(
+        author_command, attempt_fence, author_effect_fence,
+        target_effect_fence, target_delivery, target_capsule_manifest,
+        capsule_present, budget,
+    )
+    safe_cancel = typing.cast(
+        EffectFenceV1,
+        _cancellation_control_rebuild_c2a(
+            cancellation_effect_fence, EffectFenceV1, budget,
+        ),
+    )
+    safe_cancel_delivery = typing.cast(
+        DeliveryEnvelopeV1,
+        _cancellation_control_rebuild_c2a(
+            cancellation_delivery, DeliveryEnvelopeV1, budget,
+        ),
+    )
+    return _CancellationControlGraph(
+        target_graph.command, target_graph.attempt, target_graph.author,
+        target_graph.target, target_graph.target_delivery, safe_cancel,
+        safe_cancel_delivery, target_graph.manifest,
+        target_graph.manifest_present,
+    )
+
+
+def _cancellation_control_capsule_argument(
+    graph: _CancellationControlTargetGraph,
+) -> object:
+    return graph.manifest if graph.manifest_present else _C2A_MISSING
+
+
+def _validate_cancellation_control_capsule_branch(
+    graph: _CancellationControlTargetGraph,
+) -> None:
+    if graph.target.effect_class == "author_candidate":
+        _relation(not graph.manifest_present)
+        _relation(graph.target.portable_capsule_digest is None)
+        return
+    _relation(
+        graph.target.effect_class in ("validate_candidate", "review_candidate")
+    )
+    _relation(
+        graph.manifest_present
+        and type(graph.manifest) is CandidateCapsuleManifestV1
+    )
+    manifest = typing.cast(CandidateCapsuleManifestV1, graph.manifest)
+    _relation(
+        graph.target.portable_capsule_digest == manifest.portable_capsule_digest
+    )
+
+
+def _validate_cancellation_control_target_owner(
+    graph: _CancellationControlTargetGraph,
+) -> None:
+    _validate_cancellation_control_capsule_branch(graph)
+    capsule = _cancellation_control_capsule_argument(graph)
+    _c2a_relation(lambda: validate_delivery_relation(
+        delivery=graph.target_delivery,
+        author_command=graph.command,
+        attempt_fence=graph.attempt,
+        author_effect_fence=graph.author,
+        effect_fence=graph.target,
+        capsule_manifest=capsule,
+    ))
+
+
+def _validate_cancellation_control_graph(
+    graph: _CancellationControlGraph,
+) -> None:
+    _validate_cancellation_control_capsule_branch(graph)
+    _relation(graph.cancel.effect_class == "cancel_effect")
+    _relation((
+        graph.cancel.cancellation_target_effect_intent_ref,
+        graph.cancel.cancellation_target_effect_fence_ref,
+        graph.cancel.cancellation_target_effect_fence_digest,
+    ) == (
+        graph.target.effect_intent_ref,
+        graph.target.effect_fence_ref,
+        graph.target.effect_fence_digest,
+    ))
+    if graph.manifest_present:
+        manifest = typing.cast(CandidateCapsuleManifestV1, graph.manifest)
+        _relation(
+            graph.cancel.portable_capsule_digest
+            == graph.target.portable_capsule_digest
+            == manifest.portable_capsule_digest
+        )
+    else:
+        _relation(
+            graph.cancel.portable_capsule_digest is None
+            and graph.target.portable_capsule_digest is None
+        )
+    capsule = _cancellation_control_capsule_argument(graph)
+    _c2a_relation(lambda: validate_delivery_relation(
+        delivery=graph.target_delivery,
+        author_command=graph.command,
+        attempt_fence=graph.attempt,
+        author_effect_fence=graph.author,
+        effect_fence=graph.target,
+        capsule_manifest=capsule,
+    ))
+    _c2a_relation(lambda: validate_delivery_relation(
+        delivery=graph.cancel_delivery,
+        author_command=graph.command,
+        attempt_fence=graph.attempt,
+        author_effect_fence=graph.author,
+        effect_fence=graph.cancel,
+        capsule_manifest=capsule,
+        cancellation_target=graph.target,
+    ))
+
+
+def _validate_cancellation_control_request_bindings(
+    request: RW0WireCancellationRequestObservationV1,
+    graph: _CancellationControlGraph,
+) -> None:
+    bindings = (
+        ("program_ref", graph.command.program_ref),
+        ("program_version_ref", graph.command.program_version_ref),
+        (
+            "accepted_intent_revision_ref",
+            graph.command.accepted_intent_revision_ref,
+        ),
+        ("work_item_ref", graph.command.work_item_ref),
+        ("work_item_revision_ref", graph.command.work_item_revision_ref),
+        ("semantic_attempt_ref", graph.command.semantic_attempt_ref),
+        ("candidate_ref", graph.command.candidate_ref),
+        ("command_ref", graph.command.command_ref),
+        ("command_digest", graph.command.command_digest),
+        ("attempt_fence_ref", graph.attempt.attempt_fence_ref),
+        ("attempt_fence_digest", graph.attempt.attempt_fence_digest),
+        ("cancellation_effect_intent_ref", graph.cancel.effect_intent_ref),
+        ("cancellation_effect_fence_ref", graph.cancel.effect_fence_ref),
+        (
+            "cancellation_effect_fence_digest",
+            graph.cancel.effect_fence_digest,
+        ),
+        (
+            "cancellation_delivery_attempt_ref",
+            graph.cancel_delivery.delivery_attempt_ref,
+        ),
+        (
+            "cancellation_delivery_envelope_digest",
+            graph.cancel_delivery.delivery_envelope_digest,
+        ),
+        ("target_effect_intent_ref", graph.target.effect_intent_ref),
+        ("target_effect_fence_ref", graph.target.effect_fence_ref),
+        ("target_effect_fence_digest", graph.target.effect_fence_digest),
+        (
+            "target_delivery_attempt_ref",
+            graph.target_delivery.delivery_attempt_ref,
+        ),
+        (
+            "target_delivery_envelope_digest",
+            graph.target_delivery.delivery_envelope_digest,
+        ),
+    )
+    _relation(all(getattr(request, field) == value for field, value in bindings))
+    expected_source = (
+        "supervisor"
+        if graph.cancel_delivery.adapter_kind == "direct_local_bootstrap"
+        else "execution_substrate"
+    )
+    _relation(request.source_kind == expected_source)
+
+
+def _validate_cancellation_control_process_bindings(
+    observation: RW0WireProcessObservationV1,
+    graph: _CancellationControlTargetGraph,
+) -> None:
+    bindings = (
+        ("program_ref", graph.command.program_ref),
+        ("program_version_ref", graph.command.program_version_ref),
+        (
+            "accepted_intent_revision_ref",
+            graph.command.accepted_intent_revision_ref,
+        ),
+        ("work_item_ref", graph.command.work_item_ref),
+        ("work_item_revision_ref", graph.command.work_item_revision_ref),
+        ("semantic_attempt_ref", graph.command.semantic_attempt_ref),
+        ("candidate_ref", graph.command.candidate_ref),
+        ("command_ref", graph.command.command_ref),
+        ("command_digest", graph.command.command_digest),
+        ("attempt_fence_ref", graph.attempt.attempt_fence_ref),
+        ("attempt_fence_digest", graph.attempt.attempt_fence_digest),
+        ("effect_intent_ref", graph.target.effect_intent_ref),
+        ("effect_fence_ref", graph.target.effect_fence_ref),
+        ("effect_fence_digest", graph.target.effect_fence_digest),
+        ("delivery_attempt_ref", graph.target_delivery.delivery_attempt_ref),
+        (
+            "delivery_envelope_digest",
+            graph.target_delivery.delivery_envelope_digest,
+        ),
+    )
+    _relation(all(
+        getattr(observation, field) == value for field, value in bindings
+    ))
+
+
+def _validate_cancellation_control_target_observation(
+    observation: WorkerObservationV1,
+    graph: _CancellationControlTargetGraph,
+) -> None:
+    _relation(observation.observation_kind in _CANCELLATION_CONTROL_TARGET_ROLES)
+    capsule = _cancellation_control_capsule_argument(graph)
+    _c2a_relation(lambda: validate_observation_relation(
+        observation=observation,
+        delivery=graph.target_delivery,
+        author_command=graph.command,
+        attempt_fence=graph.attempt,
+        author_effect_fence=graph.author,
+        effect_fence=graph.target,
+        capsule_manifest=capsule,
+    ))
+
+
+def _validate_cancellation_control_response(
+    response: WorkerObservationV1,
+    graph: _CancellationControlGraph,
+) -> None:
+    _relation(
+        response.observation_kind in _CANCELLATION_CONTROL_RESPONSE_ROLES
+    )
+    capsule = _cancellation_control_capsule_argument(graph)
+    _c2a_relation(lambda: validate_observation_relation(
+        observation=response,
+        delivery=graph.cancel_delivery,
+        author_command=graph.command,
+        attempt_fence=graph.attempt,
+        author_effect_fence=graph.author,
+        effect_fence=graph.cancel,
+        capsule_manifest=capsule,
+        cancellation_target=graph.target,
+    ))
+
+
+def _validate_wire_exact_current_cancellation_request_relation_impl(
+    request: object, author_command: object, attempt_fence: object,
+    author_effect_fence: object, target_effect_fence: object,
+    target_delivery: object, cancellation_effect_fence: object,
+    cancellation_delivery: object, target_capsule_manifest: object,
+) -> None:
+    if (
+        type(request) is not RW0WireCancellationRequestObservationV1
+        or type(author_command) is not WorkerCommandV1
+        or type(attempt_fence) is not AttemptFenceV1
+        or type(author_effect_fence) is not EffectFenceV1
+        or type(target_effect_fence) is not EffectFenceV1
+        or type(target_delivery) is not DeliveryEnvelopeV1
+        or type(cancellation_effect_fence) is not EffectFenceV1
+        or type(cancellation_delivery) is not DeliveryEnvelopeV1
+    ):
+        _fail("invalid_field_type")
+    capsule_present = _cancellation_control_capsule_present(
+        target_capsule_manifest
+    )
+    budget = _cancellation_control_budget(640, capsule_present)
+    safe_request = _cancellation_control_rebuild_request(request, budget)
+    graph = _cancellation_control_reconstruct_graph(
+        author_command, attempt_fence, author_effect_fence,
+        target_effect_fence, target_delivery, cancellation_effect_fence,
+        cancellation_delivery, target_capsule_manifest, capsule_present,
+        budget,
+    )
+    _validate_cancellation_control_graph(graph)
+    _validate_cancellation_control_request_bindings(safe_request, graph)
+
+
+def validate_wire_exact_current_cancellation_request_relation(
+    *,
+    request: RW0WireCancellationRequestObservationV1,
+    author_command: WorkerCommandV1,
+    attempt_fence: AttemptFenceV1,
+    author_effect_fence: EffectFenceV1,
+    target_effect_fence: EffectFenceV1,
+    target_delivery: DeliveryEnvelopeV1,
+    cancellation_effect_fence: EffectFenceV1,
+    cancellation_delivery: DeliveryEnvelopeV1,
+    target_capsule_manifest: object = _C2A_MISSING,
+) -> None:
+    outcome = _capture(
+        _validate_wire_exact_current_cancellation_request_relation_impl,
+        "invalid_field_value", request, author_command, attempt_fence,
+        author_effect_fence, target_effect_fence, target_delivery,
+        cancellation_effect_fence, cancellation_delivery,
+        target_capsule_manifest,
+    )
+    request = author_command = attempt_fence = author_effect_fence = None
+    target_effect_fence = target_delivery = None
+    cancellation_effect_fence = cancellation_delivery = None
+    target_capsule_manifest = None
+    _unwrap(outcome)
+
+
+def _validate_wire_exact_current_process_observation_relation_impl(
+    observation: object, author_command: object, attempt_fence: object,
+    author_effect_fence: object, target_effect_fence: object,
+    target_delivery: object, target_capsule_manifest: object,
+) -> None:
+    if (
+        type(observation) is not RW0WireProcessObservationV1
+        or type(author_command) is not WorkerCommandV1
+        or type(attempt_fence) is not AttemptFenceV1
+        or type(author_effect_fence) is not EffectFenceV1
+        or type(target_effect_fence) is not EffectFenceV1
+        or type(target_delivery) is not DeliveryEnvelopeV1
+    ):
+        _fail("invalid_field_type")
+    capsule_present = _cancellation_control_capsule_present(
+        target_capsule_manifest
+    )
+    budget = _cancellation_control_budget(498, capsule_present)
+    safe_observation = _cancellation_control_rebuild_process(
+        observation, budget,
+    )
+    graph = _cancellation_control_reconstruct_target_graph(
+        author_command, attempt_fence, author_effect_fence,
+        target_effect_fence, target_delivery, target_capsule_manifest,
+        capsule_present, budget,
+    )
+    _validate_cancellation_control_target_owner(graph)
+    _validate_cancellation_control_process_bindings(safe_observation, graph)
+
+
+def validate_wire_exact_current_process_observation_relation(
+    *,
+    observation: RW0WireProcessObservationV1,
+    author_command: WorkerCommandV1,
+    attempt_fence: AttemptFenceV1,
+    author_effect_fence: EffectFenceV1,
+    target_effect_fence: EffectFenceV1,
+    target_delivery: DeliveryEnvelopeV1,
+    target_capsule_manifest: object = _C2A_MISSING,
+) -> None:
+    outcome = _capture(
+        _validate_wire_exact_current_process_observation_relation_impl,
+        "invalid_field_value", observation, author_command, attempt_fence,
+        author_effect_fence, target_effect_fence, target_delivery,
+        target_capsule_manifest,
+    )
+    observation = author_command = attempt_fence = author_effect_fence = None
+    target_effect_fence = target_delivery = target_capsule_manifest = None
+    _unwrap(outcome)
+
+
+def _validate_wire_exact_current_cancellation_response_relation_impl(
+    response: object, request: object, author_command: object,
+    attempt_fence: object, author_effect_fence: object,
+    target_effect_fence: object, target_delivery: object,
+    cancellation_effect_fence: object, cancellation_delivery: object,
+    target_capsule_manifest: object,
+) -> None:
+    if (
+        type(response) is not WorkerObservationV1
+        or type(request) is not RW0WireCancellationRequestObservationV1
+        or type(author_command) is not WorkerCommandV1
+        or type(attempt_fence) is not AttemptFenceV1
+        or type(author_effect_fence) is not EffectFenceV1
+        or type(target_effect_fence) is not EffectFenceV1
+        or type(target_delivery) is not DeliveryEnvelopeV1
+        or type(cancellation_effect_fence) is not EffectFenceV1
+        or type(cancellation_delivery) is not DeliveryEnvelopeV1
+    ):
+        _fail("invalid_field_type")
+    capsule_present = _cancellation_control_capsule_present(
+        target_capsule_manifest
+    )
+    budget = _cancellation_control_budget(764, capsule_present)
+    safe_response = typing.cast(
+        WorkerObservationV1,
+        _cancellation_control_rebuild_c2a(
+            response, WorkerObservationV1, budget,
+        ),
+    )
+    safe_request = _cancellation_control_rebuild_request(request, budget)
+    graph = _cancellation_control_reconstruct_graph(
+        author_command, attempt_fence, author_effect_fence,
+        target_effect_fence, target_delivery, cancellation_effect_fence,
+        cancellation_delivery, target_capsule_manifest, capsule_present,
+        budget,
+    )
+    _validate_cancellation_control_graph(graph)
+    _validate_cancellation_control_request_bindings(safe_request, graph)
+    _validate_cancellation_control_response(safe_response, graph)
+
+
+def validate_wire_exact_current_cancellation_response_relation(
+    *,
+    response: WorkerObservationV1,
+    request: RW0WireCancellationRequestObservationV1,
+    author_command: WorkerCommandV1,
+    attempt_fence: AttemptFenceV1,
+    author_effect_fence: EffectFenceV1,
+    target_effect_fence: EffectFenceV1,
+    target_delivery: DeliveryEnvelopeV1,
+    cancellation_effect_fence: EffectFenceV1,
+    cancellation_delivery: DeliveryEnvelopeV1,
+    target_capsule_manifest: object = _C2A_MISSING,
+) -> None:
+    outcome = _capture(
+        _validate_wire_exact_current_cancellation_response_relation_impl,
+        "invalid_field_value", response, request, author_command,
+        attempt_fence, author_effect_fence, target_effect_fence,
+        target_delivery, cancellation_effect_fence, cancellation_delivery,
+        target_capsule_manifest,
+    )
+    response = request = author_command = attempt_fence = None
+    author_effect_fence = target_effect_fence = target_delivery = None
+    cancellation_effect_fence = cancellation_delivery = None
+    target_capsule_manifest = None
+    _unwrap(outcome)
+
+
+def _cancellation_control_fact_identity(
+    value: object,
+) -> tuple[str, str]:
+    if type(value) is RW0WireCancellationRequestObservationV1:
+        request = typing.cast(
+            RW0WireCancellationRequestObservationV1, value,
+        )
+        return request.request_observation_ref, request.request_observation_digest
+    if type(value) is WorkerObservationV1:
+        observation = typing.cast(WorkerObservationV1, value)
+        return observation.observation_ref, observation.observation_digest
+    process = typing.cast(RW0WireProcessObservationV1, value)
+    return process.process_observation_ref, process.process_observation_digest
+
+
+def _classify_wire_exact_current_cancellation_control_impl(
+    author_command: object, attempt_fence: object,
+    author_effect_fence: object, target_effect_fence: object,
+    target_delivery: object, cancellation_effect_fence: object,
+    cancellation_delivery: object, request: object,
+    adapter_observations: object, process_observations: object,
+    target_capsule_manifest: object,
+) -> RW0WireCancellationControlClassificationV1:
+    if (
+        type(author_command) is not WorkerCommandV1
+        or type(attempt_fence) is not AttemptFenceV1
+        or type(author_effect_fence) is not EffectFenceV1
+        or type(target_effect_fence) is not EffectFenceV1
+        or type(target_delivery) is not DeliveryEnvelopeV1
+        or type(cancellation_effect_fence) is not EffectFenceV1
+        or type(cancellation_delivery) is not DeliveryEnvelopeV1
+        or (request is not None
+            and type(request) is not RW0WireCancellationRequestObservationV1)
+        or type(adapter_observations) is not tuple
+        or type(process_observations) is not tuple
+        or (
+            target_capsule_manifest is not _C2A_MISSING
+            and type(target_capsule_manifest) is not CandidateCapsuleManifestV1
+        )
+    ):
+        return _cancellation_control_classified("invalid", "invalid_input")
+    adapters = typing.cast(tuple[object, ...], adapter_observations)
+    processes = typing.cast(tuple[object, ...], process_observations)
+    if (
+        len(adapters) > 4
+        or len(processes) > 2
+        or len(adapters) + len(processes) + int(request is not None) > 7
+        or any(type(item) is not WorkerObservationV1 for item in adapters)
+        or any(
+            type(item) is not RW0WireProcessObservationV1
+            for item in processes
+        )
+    ):
+        return _cancellation_control_classified("invalid", "invalid_input")
+    raw_facts: tuple[object, ...] = (
+        (() if request is None else (request,)) + adapters + processes
+    )
+    original_markers = tuple(id(item) for item in raw_facts)
+    capsule_present = target_capsule_manifest is not _C2A_MISSING
+    budget = _cancellation_control_budget(1244, capsule_present)
+    try:
+        graph = _cancellation_control_reconstruct_graph(
+            author_command, attempt_fence, author_effect_fence,
+            target_effect_fence, target_delivery, cancellation_effect_fence,
+            cancellation_delivery, target_capsule_manifest, capsule_present,
+            budget,
+        )
+        safe_request = (
+            None
+            if request is None
+            else _cancellation_control_rebuild_request(request, budget)
+        )
+        safe_adapters = tuple(
+            typing.cast(
+                WorkerObservationV1,
+                _cancellation_control_rebuild_c2a(
+                    item, WorkerObservationV1, budget,
+                ),
+            )
+            for item in adapters
+        )
+        safe_processes = tuple(
+            _cancellation_control_rebuild_process(item, budget)
+            for item in processes
+        )
+    except _WireFailure:
+        return _cancellation_control_classified("invalid", "invalid_input")
+
+    if (
+        graph.target.effect_class not in (
+            "author_candidate", "validate_candidate", "review_candidate",
+        )
+        or graph.cancel.effect_class != "cancel_effect"
+    ):
+        return _cancellation_control_classified("invalid", "invalid_input")
+
+    safe_facts: tuple[object, ...] = (
+        (() if safe_request is None else (safe_request,))
+        + safe_adapters
+        + safe_processes
+    )
+    duplicate = False
+    seen_objects: set[int] = set()
+    seen_refs: set[str] = set()
+    seen_digests: set[str] = set()
+    for marker in original_markers:
+        if marker in seen_objects:
+            duplicate = True
+        seen_objects.add(marker)
+    for fact in safe_facts:
+        reference, digest = _cancellation_control_fact_identity(fact)
+        if reference in seen_refs or digest in seen_digests:
+            duplicate = True
+        seen_refs.add(reference)
+        seen_digests.add(digest)
+    if duplicate:
+        return _cancellation_control_classified("invalid", "duplicate_fact")
+
+    adapter_roles = tuple(item.observation_kind for item in safe_adapters)
+    process_roles = tuple(item.event_kind for item in safe_processes)
+    for observation in safe_adapters:
+        if observation.observation_kind not in _CANCELLATION_CONTROL_ADAPTER_ROLES:
+            return _cancellation_control_classified("invalid", "unrelated_fact")
+        if observation.observation_kind in _CANCELLATION_CONTROL_TARGET_ROLES:
+            unrelated = False
+            try:
+                _validate_cancellation_control_target_observation(
+                    observation, graph,
+                )
+            except _WireFailure:
+                unrelated = True
+            if unrelated:
+                return _cancellation_control_classified(
+                    "invalid", "unrelated_fact",
+                )
+    for observation in safe_processes:
+        unrelated = False
+        try:
+            _validate_cancellation_control_process_bindings(observation, graph)
+        except _WireFailure:
+            unrelated = True
+        if unrelated:
+            return _cancellation_control_classified("invalid", "unrelated_fact")
+
+    conflict = (
+        len(adapter_roles) != len(set(adapter_roles))
+        or len(process_roles) != len(set(process_roles))
+        or (
+            "cancellation_acknowledged" in adapter_roles
+            and "cancellation_rejected" in adapter_roles
+        )
+    )
+    if conflict:
+        return _cancellation_control_classified("invalid", "conflicting_fact")
+
+    graph_mismatch = False
+    try:
+        _validate_cancellation_control_graph(graph)
+    except _WireFailure:
+        graph_mismatch = True
+    if safe_request is not None:
+        try:
+            _validate_cancellation_control_request_bindings(
+                safe_request, graph,
+            )
+        except _WireFailure:
+            graph_mismatch = True
+    responses = tuple(
+        item for item in safe_adapters
+        if item.observation_kind in _CANCELLATION_CONTROL_RESPONSE_ROLES
+    )
+    if responses and safe_request is None:
+        graph_mismatch = True
+    if safe_request is not None:
+        for response in responses:
+            try:
+                _validate_cancellation_control_response(response, graph)
+            except _WireFailure:
+                graph_mismatch = True
+                break
+    if graph_mismatch:
+        return _cancellation_control_classified(
+            "invalid", "cancellation_graph_mismatch",
+        )
+    if safe_request is None:
+        return _cancellation_control_classified(
+            "incomplete", "process_evidence_incomplete",
+        )
+    if "cancellation_rejected" in adapter_roles:
+        return _cancellation_control_classified(
+            "finite", "cancellation_rejected",
+        )
+    if "process_exited" in adapter_roles:
+        return _cancellation_control_classified(
+            "finite", "target_process_exited",
+        )
+    if "resource_limit_exceeded" in process_roles:
+        return _cancellation_control_classified(
+            "incomplete", "resource_limit_exceeded",
+        )
+    if "deadline_elapsed" in adapter_roles:
+        return _cancellation_control_classified("incomplete", "deadline_elapsed")
+    if "signal_delivered" in process_roles:
+        return _cancellation_control_classified("incomplete", "signal_delivered")
+    if "cancellation_acknowledged" in adapter_roles:
+        return _cancellation_control_classified(
+            "incomplete", "cancellation_acknowledged",
+        )
+    return _cancellation_control_classified(
+        "incomplete", "cancellation_request_pending",
+    )
+
+
+def classify_wire_exact_current_cancellation_control(
+    *,
+    author_command: WorkerCommandV1,
+    attempt_fence: AttemptFenceV1,
+    author_effect_fence: EffectFenceV1,
+    target_effect_fence: EffectFenceV1,
+    target_delivery: DeliveryEnvelopeV1,
+    cancellation_effect_fence: EffectFenceV1,
+    cancellation_delivery: DeliveryEnvelopeV1,
+    request: RW0WireCancellationRequestObservationV1 | None,
+    adapter_observations: tuple[WorkerObservationV1, ...],
+    process_observations: tuple[RW0WireProcessObservationV1, ...],
+    target_capsule_manifest: object = _C2A_MISSING,
+) -> RW0WireCancellationControlClassificationV1:
+    outcome = _capture(
+        _classify_wire_exact_current_cancellation_control_impl,
+        "invalid_field_value", author_command, attempt_fence,
+        author_effect_fence, target_effect_fence, target_delivery,
+        cancellation_effect_fence, cancellation_delivery, request,
+        adapter_observations, process_observations,
+        target_capsule_manifest,
+    )
+    author_command = attempt_fence = author_effect_fence = None
+    target_effect_fence = target_delivery = None
+    cancellation_effect_fence = cancellation_delivery = request = None
+    adapter_observations = process_observations = None
+    target_capsule_manifest = None
+    if type(outcome) is _BoundaryFailure:
+        return _cancellation_control_classified("invalid", "invalid_input")
+    return typing.cast(
+        RW0WireCancellationControlClassificationV1, outcome,
+    )

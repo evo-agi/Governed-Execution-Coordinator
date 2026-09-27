@@ -115,7 +115,7 @@ REQUIRED_CANDIDATE_ROWS = (
 )
 
 PROTECTED_CONTENT_ROWS = (
-    ('P01', 'src/ge_nwp_coordinator/_rw0_wire_protocol_values.py', 77003, '6bf39f634b619829fcc4cc7ada5cf019b40b3c5a2258947ebee8fdfe2a13031e',
+    ('P01', 'src/ge_nwp_coordinator/_rw0_wire_protocol_values.py', 126092, 'fdb97043f4f93620ecf5be43e78ebda0553e2792a219ab846789ad586790c776',
      ('authority_non_effect',), 'protected Wire implementation'),
     ('P02', 'src/ge_nwp_coordinator/_development_author_effect_establishment_contracts.py', 63518, 'f6938024436a765a69e9a44d20d834a85075ba10b821e61e3e91bfb09cf17af0',
      ('authority_non_effect',), 'protected author-effect authority'),
