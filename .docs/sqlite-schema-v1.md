@@ -383,10 +383,11 @@ persistence contract. B3b prerequisite contracts and B3b1 pure row contracts pin
 schema 0001 as sufficient for the historical meanings used by the bounded
 typed-reader slice: admitted backlog validation, exact limit provenance, zero
 scalar budget posture, READY-only dependency receipts, global-stop-current row
-reconstruction, and internal timestamp envelopes. Migration 0002 is now the
-generation-2 physical C2B2 extension, while migration 0003 is the current
-terminal cognitive proposal-selection extension; both leave migration 0001 and
-those historical row meanings unchanged. Any later contract needing additional facts
+reconstruction, and internal timestamp envelopes. Migration 0002 is the
+generation-2 physical C2B2 extension, migration 0003 is the cognitive
+proposal-selection extension, and migration 0004 is the current terminal C1
+durable-evidence extension; all leave migration 0001 and those historical row
+meanings unchanged. Any later contract needing additional facts
 not representable by the cumulative generation-2 schema requires separately
 audited schema/model evolution and must not modify migration 0001.
 
@@ -418,7 +419,7 @@ index, durable fact, event insertion, current-state update, commit, or migration
 
 B3 tests-only coherent fixtures preserve schema-0001 graph meanings without
 changing migration 0001. They live under `tests/` only, initialize temporary
-current generation-2 / migration-0003 physical databases, directly seed only
+current generation-2 / migration-0004 physical databases, directly seed only
 the historical synthetic authoritative rows as test setup, validate through
 existing row contracts, acquire real writer issuance as temporary test evidence,
 and may persist only domain-rejected event/replay rows. Their legacy seeding
@@ -474,3 +475,16 @@ timestamp, and accepted/domain-rejected consistency. Existing `work_items`
 columns support the accepted current-state CAS by work-item id and source
 version. B3c4a adds no correctness-required durable fact, and B3c4b adds no
 schema-ID bump, no migration 0002, and no edit to migration 0001.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**Current cumulative schema through migration 0004.**
+
+Migration `0004_rw0_c1_durable_evidence` is an additive generation-2 suffix and
+does not edit the schema-v1 snapshot or migrations 0001-0003. It adds exactly
+twenty-three STRICT tables, forty-six immutable update/delete triggers, and four
+explicit indexes with zero seeds. The cumulative packaged-SQL manifest is
+sixty-two user tables, one hundred ten triggers, and five explicit indexes.
+The schema represents C1 phase/evidence facts only; it contains no C2
+completeness, decision, latch, terminal state, worker, runtime, transport,
+capsule custody, or external integration table.
+<!-- RW0_C1_CURRENT_STATUS_END -->

@@ -751,6 +751,7 @@ def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
+        "0004_rw0_c1_durable_evidence.sql",
     ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
@@ -779,14 +780,14 @@ def test_b3a_contract_doc_pins_non_runtime_scope_and_future_reconstruction() -> 
         "COALESCE(MAX(event_sequence), -1) + 1",
         "commit_outcome_unknown",
         "B3a adds no admission API",
-        "temporary current-generation-2 database at terminal migration `0003_cognitive_proposal_and_selection_state`",
+        "temporary current-generation-2 database at terminal migration `0004_rw0_c1_durable_evidence`",
         "historical schema-0001 B3/B4 graph",
-        "All nineteen C2B tables and all nine cognitive proposal-selection tables remain empty",
+        "All nineteen C2B tables, all nine cognitive proposal-selection tables, and all twenty-three RW0-C1 tables remain empty",
         "Migration 0002 is the unchanged historical prefix introduced by C2B2",
         "neither B3 nor C2B2 implemented or acquired ownership of migration 0003",
         "neither add nor consume C2B2 runtime behavior",
-        "current physical generation-2, terminal-0003 database",
-        "B3 did not implement migration 0003",
+        "current physical generation-2, terminal-0004 database",
+        "B3 did not implement migration 0003 or 0004",
         "`.docs/b3-tests-only-coherent-fixtures.md`",
     ):
         assert phrase in normalized

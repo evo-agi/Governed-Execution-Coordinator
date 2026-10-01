@@ -48,11 +48,11 @@ all nineteen migration-0002 tables. The C2B2 reader layer remains exactly
 twelve private roles and twenty-four bounded query contracts with no public API
 or reader-created durable authority. All twelve roles have the bounded private
 C2B3D author-effect caller, the mutation-receipt role also retains the private
-VS1B route-neutral program-initialization caller, and the later Section 41
-runtime composes with a bounded seven-role subset without widening that query
-contract. C2B2 did not implement or acquire ownership of migration 0003 or
-Section 41; reader reports and projections remain neither durable program truth nor
-effect authority. C2B3 implements the receipt-first route-neutral genesis and
+VS1B route-neutral program-initialization caller, and the later Section 41 and
+RW0-C1 runtimes compose with a bounded seven-role subset without widening that
+query contract. C2B2 did not implement or acquire ownership of migrations
+0003/0004, Section 41, or RW0-C1; reader reports and projections remain neither
+durable program truth nor effect authority. C2B3 implements the receipt-first route-neutral genesis and
 author-effect families with readback-only uncertainty resolution, and Section
 41 implements private pre-execution proposal selection. Coordinator still has
 no bound-effect or post-execution progression-decision runtime, dispatcher,
@@ -67,10 +67,10 @@ lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and
 `control-plane-normal-shell/v1` compatibility remain unchanged within their
 owning contracts. The physical Coordinator schema remains at application
-generation 2 and now applies the complete three-entry catalog
-`[0001, 0002, 0003]`, whose current packaged tip is migration 0003. Migration
-0002 remains the unchanged historical prefix introduced by C2B2 Slice 1, and
-migration 0001 retains its preserved identity.
+generation 2 and now applies the complete four-entry catalog
+`[0001, 0002, 0003, 0004]`, whose current packaged tip is migration 0004.
+Migrations 0002 and 0003 remain unchanged historical prefixes, and migration
+0001 retains its preserved identity.
 
 Classification: `ACCEPTED STRATEGIC TARGET`. This record is authoritative for
 the selected staged model, first exact scenario, first effect ceiling, ten
@@ -374,7 +374,7 @@ C1 preserves `FiniteBacklog`, current standing-lease behavior, current zero-only
 budget behavior, current READY-only dependency behavior, current disabled-stage
 behavior, current coding `global_stop`, current `WriterSession` authority, the
 schema-0001 compatibility meanings and unchanged `0001_initial.sql` identity,
-the current generation-2 migration-0003 physical tip, and
+the current generation-2 migration-0004 physical tip, and
 `control-plane-normal-shell/v1` as an ES/CP compatibility edge. Coding and
 operational progression remain separately versioned domains; operational
 progression is excluded from the first software-development slice.
@@ -494,8 +494,8 @@ single-transaction migration, and three-way migration commit readback while
 retaining the common state-authority lock and filesystem binding. C2B2 Slice 1
 introduced application generation 2 and catalog entry
 `0002_development_program_and_effect_state`. The current generation-2 catalog
-tip is `0003_cognitive_proposal_and_selection_state`, with three production SQL
-resources.
+tip is `0004_rw0_c1_durable_evidence`, with four production SQL resources;
+migrations 0003 and 0004 retain their separate Section 41 and RW0-C1 owners.
 Slice 1 adds physical schema representability only. This administrative
 evidence is not program, progression, decision, effect, acceptance,
 publication, or runtime truth.
@@ -549,11 +549,12 @@ migration owns reliable keyed submit, response-loss and Nomad ambiguity,
 retained results/capsules, conformance, and bootstrap disablement.
 
 These are required questions, not selected future schemas. Current capability
-remains generation 2 and now terminates at migration 0003. It comprises C2A1,
+remains generation 2 and now terminates at migration 0004. It comprises C2A1,
 C2B2 private values/readers, existing bounded writer/transaction authority, the
-private VS1B genesis family, the private C2B3D author-effect family, and the
-private non-executable pre-execution proposal-selection family. All worker,
-dispatch, Git, Bridge, ES, and other external execution remains absent.
+private VS1B genesis family, the private C2B3D author-effect family, the private
+non-executable pre-execution proposal-selection family, and RW0-C1 private
+immutable phase/evidence persistence. All worker, dispatch, Git, Bridge, ES,
+and other external execution remains absent.
 <!-- C2B3_NARROWED_OPERATING_MODEL_END -->
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
@@ -583,7 +584,7 @@ not reduced to this private source tranche.
 ### RW0 remote-contact phase-entry target cross-reference
 
 .docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.
-A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.
+A private no-I/O RW0-B1 semantic value and relation layer is now implemented. RW0-C1 now adds private immutable phase establishment and one-member-at-a-time supplied-evidence admission through the existing mutation controller. No verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. C1 records durable evidence only; the executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.
 RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.
 External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.
 Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests; the future subordinate record binds each corresponding basis pair and both exact fence identities byte-for-byte without replacement.
@@ -599,6 +600,7 @@ A current compatible cancel basis follows distinct request, acknowledgement, sig
 No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.
 Direct-local route-local process and cancellation ownership does not absorb ES-route authority; no successor, Git, or publication effect follows RW0.
 Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.
+RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery. It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->
 RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. It also implements the separate private, pure, no-I/O cancellation-control evidence profile `rw0-wire-cancellation-control-v1` with digest `4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288`, exact-current author/validation/review cancellation-control relations, and pure `invalid`/`incomplete`/`finite` supplied-control-evidence classification. The additive cancellation-control profile does not replace or enter the fixed NWPF v1 frames, Capability continues to bind only `rw0-wire-nwpf-v1`, and the profile remains distinct from B1 physical host cancellation-mechanism evidence. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts; their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability is implemented separately as private, pure, no-I/O semantics owned by `.docs/rw0-b2-capability.md` and does not widen Wire ownership. RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts; RW0-C/D/E durable, transport, process, provider, credential, live-proof, and runtime mechanics remain future, and Execution Substrate retains admission and runtime ownership.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_END -->
@@ -615,9 +617,10 @@ behavior, grants no permission or semantic acceptance, persists no fact,
 contacts no worker/provider/host, and selects no CLI, App Server, credential,
 provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
 is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
-RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
-durable, transport, process, provider, credential, live-proof, and runtime
-mechanics remain future; Execution Substrate retains admission and runtime
-authority.
+RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
+durable phase/evidence mechanics are implemented separately behind private
+mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
+provider, credential, live-proof, and runtime mechanics remain future.
+Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->

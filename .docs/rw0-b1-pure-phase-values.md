@@ -398,3 +398,15 @@ immutability, budgets, relation matrices, and source boundaries. Existing C2A,
 Section 41, architecture, and runtime non-authority tests must remain green.
 Stop if implementation needs new public/durable/I/O/worker/Bridge/ES/provider
 surface, alters an existing owner identity, or widens the frozen budget.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 consumer status.**
+
+RW0-C1 now privately reconstructs B1 phase and supplied-evidence values and
+invokes the existing B1 owner relations without altering this module. Phase
+establishment binds the exact B1 basis relation plus fourteen operands; ranks
+1-4 and 6 use the exact owner temporal contracts, and committed verification
+reuses persisted semantic time rather than the current clock. A C1 record is
+durable evidence only, never B1 source authentication, currentness at a later
+C2 decision, permission, completeness, or execution authority.
+<!-- RW0_C1_CURRENT_STATUS_END -->

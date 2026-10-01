@@ -51,12 +51,12 @@ When the C2A contract was originally frozen, the current physical application
 generation was 1 and the terminal migration was `0001_initial`. That is the
 historical C2A freeze baseline, not the current physical repository state. The
 current physical application generation is 2 and the current terminal migration
-is `0003_cognitive_proposal_and_selection_state`. Migration `0001_initial`
-remains the preserved historical schema-v1 migration; migration 0002 is
-implemented by C2B2 Slice 1, and migration 0003 is implemented outside C2A by
-the Section 41 tranche.
+is `0004_rw0_c1_durable_evidence`. Migration `0001_initial` remains the
+preserved historical schema-v1 migration; migration 0002 is implemented by
+C2B2 Slice 1, migration 0003 is implemented outside C2A by the Section 41
+tranche, and migration 0004 is implemented outside C2A by RW0-C1.
 
-C2A did not create or own migration 0002 or migration 0003. C2A semantic fields, values,
+C2A did not create or own migration 0002, migration 0003, or migration 0004. C2A semantic fields, values,
 identities, relations, and pure-value source do not themselves create durable
 C2A tables or durable C2A runtime rows. The generation-2 physical schema is a
 C2B2 Slice-1 implementation fact. C2A/C2A1 semantic authority remains distinct
@@ -277,6 +277,17 @@ supplied target is rejected rather than ignored. Manifest, capsule, and other
 related-record paths likewise validate explicitly supplied values exactly as
 supplied. Canonical omitted convenience remains test-only and confers no
 authority.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 durability cross-reference.**
+
+The current physical generation remains 2 and now terminates at
+`0004_rw0_c1_durable_evidence`. C1 can durably reconstruct the exact protected
+C2A worker observation value and its normalized evidence-ref children as one of
+fifteen supplied evidence kinds. C1 does not change any C2A schema, identity,
+digest, relation, effect boundary, or owner source, and a durable membership is
+not evidence completeness, semantic acceptance, or execution authority.
+<!-- RW0_C1_CURRENT_STATUS_END -->
 
 `WorkerCommandV1` uses an acyclic post-binding rule. Its identity contains
 `effect_fence_ref` but excludes both `effect_fence_digest` and
@@ -1453,9 +1464,9 @@ reconciler, or autonomous loop. When C2A was frozen, physical application
 generation 1 and terminal migration `0001_initial` were the current baseline.
 That schema-0001 statement is historical only. The current repository is at
 physical application generation 2 with terminal migration
-`0003_cognitive_proposal_and_selection_state`; C2B2 Slice 1 introduced the
-generation and migration 0002, and Section 41 separately governs migration
-0003.
+`0004_rw0_c1_durable_evidence`; C2B2 Slice 1 introduced the generation and
+migration 0002, Section 41 separately governs migration 0003, and RW0-C1
+separately governs migration 0004.
 Current B4c behavior remains unchanged.
 
 C2A1 implements the exact bounded source contract in
@@ -1463,7 +1474,7 @@ C2A1 implements the exact bounded source contract in
 durable mutation. The historical C2A freeze required separate later acceptance
 for durable schema design and forward migration. C2B2 Slice 1 subsequently
 implemented migration 0002 under its own physical-schema authority. C2A did not
-create or own migration 0002 or migration 0003. C2A assigns no migration number and authorizes no
+create or own migration 0002, migration 0003, or migration 0004. C2A assigns no migration number and authorizes no
 schema work. Its semantic fields, values, identities, relations, and pure-value
 source do not themselves create durable C2A tables or durable C2A runtime rows.
 The generation-2 physical schema is a C2B2 Slice-1 implementation fact, distinct
@@ -1471,6 +1482,8 @@ from C2A/C2A1 semantic authority.
 
 Migration 0003 and its private pre-execution selection runtime are now
 implemented outside C2A under Sections 41 and 42 of the durable-state owner.
+Migration 0004 and its private durable-evidence runtime are now implemented
+outside C2A under the RW0-C1 durable-evidence owner.
 C2B2 Slice 2 provides pure private row/value reconstruction over C2A1's
 unchanged public schemas, semantics, and canonical identities. C2B2 private
 readers are implemented; VS1B consumes unchanged C2A/C2B2 public semantics for

@@ -478,6 +478,9 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
     import ge_nwp_coordinator
     assert not any(name.startswith("RW0") for name in ge_nwp_coordinator.__dict__)
     capability_path = PACKAGE / "_rw0_worker_mechanism_capability_values.py"
+    c1_values_path = PACKAGE / "_rw0_c1_semantic_values.py"
+    c1_runtime_path = PACKAGE / "_sqlite_rw0_c1.py"
+    expected_importers = {capability_path, c1_values_path, c1_runtime_path}
     importers = []
     for path in PACKAGE.rglob("*.py"):
         if path == SOURCE:
@@ -486,22 +489,49 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
         if "_rw0_phase_entry_semantic_values" not in source:
             continue
         importers.append(path)
-        assert path == capability_path
         imports = [
             node for node in ast.parse(source).body
             if isinstance(node, ast.ImportFrom)
             and node.level == 1
-            and node.module == "_rw0_phase_entry_semantic_values"
         ]
-        assert len(imports) == 1
-        assert {alias.name for alias in imports[0].names} == {
-            "RW0PhaseEntryBasisV1",
-            "RW0AuthorityVerificationObservationV1",
-            "RW0RemoteHostReadinessObservationV1",
-            "RW0EffectHostQualificationV1",
-            "_validate_host_qualification_with_snapshots",
-        }
-    assert importers == [capability_path]
+        if path == capability_path:
+            owner_imports = [
+                node for node in imports
+                if node.module == "_rw0_phase_entry_semantic_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == {
+                "RW0PhaseEntryBasisV1",
+                "RW0AuthorityVerificationObservationV1",
+                "RW0RemoteHostReadinessObservationV1",
+                "RW0EffectHostQualificationV1",
+                "_validate_host_qualification_with_snapshots",
+            }
+        elif path == c1_values_path:
+            owner_imports = [
+                node for node in imports
+                if node.module == "_rw0_phase_entry_semantic_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == {
+                "RW0AuthorityVerificationObservationV1",
+                "RW0CustodyAvailabilityObservationV1",
+                "RW0EffectHostQualificationV1",
+                "RW0PhaseEntryBasisV1",
+                "RW0RemoteHostReadinessObservationV1",
+                "RW0RetrievalCapabilityEventObservationV1",
+                "RW0SubordinateAuthorizationProposalV1",
+            }
+        else:
+            assert path == c1_runtime_path
+            owner_imports = [
+                node for node in imports
+                if node.module is None
+                and [(alias.name, alias.asname) for alias in node.names]
+                == [("_rw0_phase_entry_semantic_values", "_b1")]
+            ]
+            assert len(owner_imports) == 1
+    assert set(importers) == expected_importers
     assert "_rw0_worker_mechanism_capability_values" not in SOURCE.read_text()
 
 

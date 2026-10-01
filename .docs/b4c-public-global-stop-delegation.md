@@ -85,7 +85,7 @@ provisioning remains a separately governed reopened seam outside B4a, B4b, and
 B4c.
 
 Tests may seed receipt rows only as part of the historical schema-0001 B3/B4
-graph hosted in a temporary current-generation-2, terminal-0003 fixture.
+graph hosted in a temporary current-generation-2, terminal-0004 fixture.
 Accepted public-path tests prove tests-only receipt verification, public
 delegation, and persistence mechanics; they do not prove production
 operator-policy authorization or any C2B behavior. The fixture boundary is
@@ -96,8 +96,9 @@ owned by `.docs/b3-tests-only-coherent-fixtures.md`.
 B4c does not change public transition delegation, `StateStore`, `WriterSession`
 signatures, package exports, schema identifiers, migration `0001`, or migration
 posture. Migration `0002` remains the physical C2B2 Slice-1 extension and
-migration `0003` is the current terminal; B4c itself neither adds nor consumes
-C2B runtime behavior.
+migration `0003` was the terminal at B4c landing; B4c itself neither adds nor
+consumes C2B runtime behavior. The current repository terminal is migration
+`0004_rw0_c1_durable_evidence`.
 
 B4c adds no receipt-provisioning integration, CLI, MCP, connector, worker,
 service, scheduler, report, admission, authorization verifier, orchestration,
@@ -110,3 +111,13 @@ exists, and B4c guarded public global-stop delegation exists. The Coordinator
 durable-state program can freeze pending final audit and snapshot. No worker,
 service, scheduler, admission, orchestration, publication, or cross-repository
 authority exists.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 compatibility status.**
+
+RW0-C1 adds four private concrete-session methods for phase/admission mutation
+and recovery but does not widen public `WriterSession`, `StateStore`, package
+exports, or global-stop outcomes. It reuses the same guarded Coordinator
+transaction controller and leaves B4c command, decision-receipt, evaluator,
+event, CAS, replay, and uncertainty behavior unchanged.
+<!-- RW0_C1_CURRENT_STATUS_END -->

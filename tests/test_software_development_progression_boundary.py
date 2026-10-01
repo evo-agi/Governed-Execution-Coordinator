@@ -770,7 +770,7 @@ def test_c2b2_current_private_reader_boundary_preserves_progression_nonimplement
     for phrase in (
         "private pure no-I/O row/value validation, private reader behavior, and the bounded private C2B3 route-neutral program-genesis and author-effect families plus the Section 41 pre-execution proposal-selection family",
         "Slice 1 introduced this administrative boundary at application generation 2",
-        "current generation-2 terminal is `0003_cognitive_proposal_and_selection_state`",
+            "current generation-2 terminal is `0004_rw0_c1_durable_evidence`",
         "Slice 2 adds private pure row/value source for those nineteen tables",
         "no SQLite or SQL in that pure layer",
         "Slice 3 implements exactly twelve private reader roles",

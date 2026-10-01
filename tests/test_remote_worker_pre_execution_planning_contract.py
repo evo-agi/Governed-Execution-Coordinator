@@ -4523,7 +4523,10 @@ def _assert_complete_rw0_cross_reference_map(owners: dict[str, bytes]) -> str:
     for phrase in (
         ".docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.",
         "A private no-I/O RW0-B1 semantic value and relation layer is now implemented.",
-        "The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
+        "RW0-C1 now adds private immutable phase establishment and one-member-at-a-time supplied-evidence admission through the existing mutation controller.",
+        "C1 records durable evidence only; the executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
+        "RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery.",
+        "It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.",
         "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
         "The existing C2B `cancel` decision commits before the cancellation effect",
         "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",

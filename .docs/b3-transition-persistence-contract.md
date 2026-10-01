@@ -106,9 +106,9 @@ are uncalled by production source.
 
 B3 tests-only coherent fixtures live under `tests/` only. They initialize a
 temporary current-generation-2 database at terminal migration
-`0003_cognitive_proposal_and_selection_state`, while seeding only the historical
-schema-0001 B3/B4 graph. All nineteen C2B tables and all nine cognitive
-proposal-selection tables remain empty. Migration 0002 is the unchanged
+`0004_rw0_c1_durable_evidence`, while seeding only the historical schema-0001
+B3/B4 graph. All nineteen C2B tables, all nine cognitive proposal-selection
+tables, and all twenty-three RW0-C1 tables remain empty. Migration 0002 is the unchanged
 historical prefix introduced by C2B2, and neither B3 nor C2B2 implemented or
 acquired ownership of migration 0003. Direct seeding is not admission or
 product mutation, and the fixtures prove no accepted
@@ -543,10 +543,10 @@ Schema 0001 remains sufficient for the historical row meanings used by the
 bounded B3b reader slice and B3c3 rollback-only dry-run runtime. Those
 prerequisite tranches neither add nor consume C2B2 runtime behavior. Their
 tests-only coherent graph is now hosted in the current physical generation-2,
-terminal-0003 database as specified by
+terminal-0004 database as specified by
 `.docs/b3-tests-only-coherent-fixtures.md`; that physical container does not
-change the historical B3 semantics. Migration 0002 remains its unchanged
-historical prefix, and B3 did not implement migration 0003. Future
+change the historical B3 semantics. Migrations 0002 and 0003 remain unchanged
+historical prefixes, and B3 did not implement migration 0003 or 0004. Future
 multidimensional dynamic budget
 consumption accounting requires a separately audited versioned contract and
 may require schema/model evolution, but it must not modify migration 0001.
@@ -575,3 +575,14 @@ the sole owner of SQL, transaction control, sequence allocation, event insertion
 accepted-current CAS, context assembly, evaluator invocation, capability
 construction, mutation-slot acquisition, and commit uncertainty. B3c4c adds the
 public operation-guarded delegation/import/error mapping wrapper only.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 compatibility status.**
+
+The generation-2 managed tip is now `0004_rw0_c1_durable_evidence`. RW0-C1
+reuses the existing Coordinator mutation controller and operation guard for its
+private phase/admission families; it creates no second writer, lock,
+connection, capability, transaction, commit path, or public transition API.
+The B3 transition command/event/conflict algebra and schema-0001 meanings are
+unchanged.
+<!-- RW0_C1_CURRENT_STATUS_END -->

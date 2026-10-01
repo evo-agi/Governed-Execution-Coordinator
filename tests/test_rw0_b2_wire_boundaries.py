@@ -562,6 +562,8 @@ def test_private_import_and_public_boundary() -> None:
     assert not hasattr(package, "RW0WireWorkerResultV1")
     assert not hasattr(package, "wire_profile_mapping")
     capability_path = ROOT / "src/ge_nwp_coordinator/_rw0_worker_mechanism_capability_values.py"
+    c1_values_path = ROOT / "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py"
+    c1_runtime_path = ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c1.py"
     production_importers = []
     for candidate in (ROOT / "src/ge_nwp_coordinator").rglob("*.py"):
         if candidate == path:
@@ -570,16 +572,43 @@ def test_private_import_and_public_boundary() -> None:
         if "_rw0_wire_protocol_values" not in source:
             continue
         production_importers.append(candidate)
-        assert candidate == capability_path
-        owner_imports = [
+        relative_imports = [
             node for node in ast.parse(source).body
             if isinstance(node, ast.ImportFrom)
             and node.level == 1
-            and node.module == "_rw0_wire_protocol_values"
         ]
-        assert len(owner_imports) == 1
-        assert {alias.name for alias in owner_imports[0].names} == {"wire_profile_mapping"}
-    assert production_importers == [capability_path]
+        if candidate == capability_path:
+            owner_imports = [
+                node for node in relative_imports
+                if node.module == "_rw0_wire_protocol_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == {
+                "wire_profile_mapping"
+            }
+        elif candidate == c1_values_path:
+            owner_imports = [
+                node for node in relative_imports
+                if node.module == "_rw0_wire_protocol_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == {
+                "RW0WireCancellationRequestObservationV1",
+                "RW0WireProcessObservationV1",
+                "RW0WireProtocolError",
+            }
+        else:
+            assert candidate == c1_runtime_path
+            owner_imports = [
+                node for node in relative_imports
+                if node.module is None
+                and [(alias.name, alias.asname) for alias in node.names]
+                == [("_rw0_wire_protocol_values", "_wire")]
+            ]
+            assert len(owner_imports) == 1
+    assert set(production_importers) == {
+        capability_path, c1_values_path, c1_runtime_path
+    }
     assert "_rw0_worker_mechanism_capability_values" not in path.read_text()
     capability_owner = (ROOT / ".docs/rw0-b2-capability.md").read_text()
     assert capability_owner.count("<!-- RW0_B2_CAPABILITY_OWNER_BEGIN -->") == 1

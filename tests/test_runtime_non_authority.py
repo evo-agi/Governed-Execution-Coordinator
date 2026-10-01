@@ -33,11 +33,17 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_development_effect_row_values.py",
         "src/ge_nwp_coordinator/_development_program_row_values.py",
         "src/ge_nwp_coordinator/_development_row_value_support.py",
+        "src/ge_nwp_coordinator/_rw0_c1_mutation_contracts.py",
+        "src/ge_nwp_coordinator/_rw0_c1_row_values.py",
+        "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py",
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
         "src/ge_nwp_coordinator/_sqlite_development_readers.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_c1_reader_contracts.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_c1_readers.py",
         "src/ge_nwp_coordinator/_rw0_phase_entry_semantic_values.py",
         "src/ge_nwp_coordinator/_rw0_wire_protocol_values.py",
         "src/ge_nwp_coordinator/_rw0_worker_mechanism_capability_values.py",
@@ -60,6 +66,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0003_cognitive_proposal_and_selection_state.sql",
+        "src/ge_nwp_coordinator/sqlite_migrations/0004_rw0_c1_durable_evidence.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/__init__.py",
         "src/ge_nwp_coordinator/sqlite_mutation_transaction_contracts.py",
         "src/ge_nwp_coordinator/sqlite_security.py",
@@ -859,6 +866,7 @@ def test_c2b2_private_readers_have_no_public_or_production_caller_surface() -> N
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",
     }
     for source in (package_source, state_source, writer_source):
         assert "read_development" not in source

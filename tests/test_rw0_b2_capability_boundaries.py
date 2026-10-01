@@ -46,10 +46,11 @@ behavior, grants no permission or semantic acceptance, persists no fact,
 contacts no worker/provider/host, and selects no CLI, App Server, credential,
 provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
 is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
-RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
-durable, transport, process, provider, credential, live-proof, and runtime
-mechanics remain future; Execution Substrate retains admission and runtime
-authority."""
+RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
+durable phase/evidence mechanics are implemented separately behind private
+mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
+provider, credential, live-proof, and runtime mechanics remain future.
+Execution Substrate retains admission and runtime authority."""
 
 REQUIRED_CANDIDATE_ROWS = (
     ('R01', '.docs/authority-boundaries.md', 0o644,
@@ -135,11 +136,11 @@ PROTECTED_CONTENT_ROWS = (
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 58903, 'ab3e788e3086088eb5caa2cf392a9ccb9582b645c082897574e55234aec860c8',
+    ('P11', 'AGENTS.md', 60530, 'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6',
      ('authority_non_effect',), 'protected repository governance'),
-    ('P12', 'README.md', 43280, '093134d136a8dc246c9a9c1557a95c3b5500007b8ccfd3a4cac0722b1a0aa1d4',
+    ('P12', 'README.md', 44919, '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb',
      ('authority_non_effect',), 'protected public claims'),
-    ('P13', '.docs/software-development-progression-boundary.md', 27194, '3b0c21f73048e458bd750b9896fbae7c285a4b35799b99060aef03d8379052fe',
+    ('P13', '.docs/software-development-progression-boundary.md', 27704, 'ab5c686211065eee0d9ad603b11eb32d61f1744a92660104108ead673ae9f4b4',
      ('state_store_writer_session',), 'protected progression authority'),
 )
 
@@ -236,10 +237,41 @@ def test_exact_private_import_direction_exports_and_public_surface() -> None:
                 seen_private[node.module] = {alias.name for alias in node.names}
     assert seen_private == exact_private
 
+    c1_values_path = PACKAGE / "_rw0_c1_semantic_values.py"
+    c1_runtime_path = PACKAGE / "_sqlite_rw0_c1.py"
+    importers: list[Path] = []
     for path in PACKAGE.rglob("*.py"):
-        if path != SOURCE:
-            assert "_rw0_worker_mechanism_capability_values" not in path.read_text(
-                encoding="utf-8")
+        if path == SOURCE:
+            continue
+        source = path.read_text(encoding="utf-8")
+        if "_rw0_worker_mechanism_capability_values" not in source:
+            continue
+        importers.append(path)
+        imports = [
+            node for node in ast.parse(source).body
+            if isinstance(node, ast.ImportFrom) and node.level == 1
+        ]
+        if path == c1_values_path:
+            owner_imports = [
+                node for node in imports
+                if node.module == "_rw0_worker_mechanism_capability_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == {
+                "RW0WorkerMechanismCapabilityDeclarationV1",
+                "RW0WorkerMechanismCapabilityObservationV1",
+                "RW0WorkerMechanismCapabilityQualificationV1",
+            }
+        else:
+            assert path == c1_runtime_path
+            owner_imports = [
+                node for node in imports
+                if node.module is None
+                and [(alias.name, alias.asname) for alias in node.names]
+                == [("_rw0_worker_mechanism_capability_values", "_capability_values")]
+            ]
+            assert len(owner_imports) == 1
+    assert set(importers) == {c1_values_path, c1_runtime_path}
     assert "_rw0_worker_mechanism_capability_values" not in (
         ROOT / "src/ge_nwp_coordinator/__init__.py").read_text(encoding="utf-8")
 

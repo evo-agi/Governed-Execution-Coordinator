@@ -130,3 +130,17 @@ The additive profile and its pure functions perform no I/O and add no public exp
 ## Privacy boundary and later owners
 
 Private key fragments include hostname, host_key, ip_address, endpoint, username, bearer, token, secret, signature, trust_root, prompt, transcript, stdout, stderr, provider, environment_value, absolute_path, workspace_path, and store_path. Direct B2 source-claim values do not admit those fields; frame payloads remain the exact pre-existing C2A mappings and closed Wire roots. Safe refs and digests are correlation claims only. Future physical transport framing, stream/process plumbing, pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, source authentication, host verification, credential custody, provider/session behavior, process targeting, live process proof, persistence, result ingest, CLI/App Server integration, and acceptance require their owning RW0-C/D/E and ES contracts.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 consumer status.**
+
+RW0-C1 now privately persists the supplied Wire request/process claims, C2A
+worker observations, worker-result binding, and process-result classification
+binding as ranks 10-14. Finite-failure classification is attested at admission
+and never recreates an `RW0WireProtocolError` during replay; present and absent
+branches are recomputable. C1 neither changes NWPF v1 nor persists frame bytes,
+complete manifests, private blob maps, exceptions, stdout/stderr, process
+handles, or cancellation-control classification. Earlier statements that RW0-C
+persistence was wholly future are superseded only for this bounded evidence
+surface; physical transport and RW0-D/E remain future.
+<!-- RW0_C1_CURRENT_STATUS_END -->

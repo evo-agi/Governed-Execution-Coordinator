@@ -531,9 +531,9 @@ publication, or related-repository authority.
 
 B3 tests-only coherent fixtures are implemented only under `tests/`. They
 create temporary current-generation-2 SQLite databases at terminal migration
-0003 through production initialization, but directly seed only the historical
-schema-0001 B3/B4 graph and leave all nineteen C2B core tables and all nine
-cognitive proposal-selection tables empty. The exact
+0004 through production initialization, but directly seed only the historical
+schema-0001 B3/B4 graph and leave all nineteen C2B core tables, all nine
+cognitive proposal-selection tables, and all twenty-three RW0-C1 tables empty. The exact
 physical-versus-semantic and writer-lifecycle contract is owned by
 `.docs/b3-tests-only-coherent-fixtures.md`. They are not production admission,
 authorization, runtime authority, product state initialization, accepted
@@ -559,9 +559,10 @@ only. C2B1 now
 implements only the administrative migration framework described above. C2B2
 Slice 1 introduced the generation-2 physical schema and
 `0002_development_program_and_effect_state`. The current physical terminal is
-`0003_cognitive_proposal_and_selection_state`, still at application generation
-2. It implements only the private Section 41 pre-execution proposal-selection
-family described in Section 42 of the durable-state owner. C2B2
+`0004_rw0_c1_durable_evidence`, still at application generation 2. Migration
+0003 implements only the private Section 41 pre-execution proposal-selection
+family described in Section 42 of the durable-state owner, while migration 0004
+implements only the bounded private RW0-C1 durable-evidence boundary. C2B2
 pure row/value source is now implemented only as the private no-I/O Slice-2
 layer. Slice 3 private database readers and bounded SQL/capability use are
 implemented. All twelve readers have the private C2B3D caller; the receipt
@@ -902,3 +903,29 @@ capsule custody, Git effect, Bridge or ES handoff, publication execution,
 service, scheduler, queue, or autonomous loop. The full remote-worker phase is
 not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 durable evidence current status.**
+
+RW0-C1 is now a `CURRENT IMPLEMENTED CONTRACT`. Generation 2 now terminates at
+`0004_rw0_c1_durable_evidence`; migration 0004 adds exactly twenty-three STRICT
+tables, forty-six immutability triggers, four explicit indexes, and zero seed
+rows. The cumulative managed schema is sixty-two user tables, one hundred ten
+triggers, and five explicit indexes.
+
+The private concrete SQLite writer session now delegates phase establishment,
+single-member evidence admission, and their explicit three-way recovery to the
+one existing Coordinator mutation transaction controller. The fixed inventory
+is fifteen evidence kinds. Replay is receipt-first after fencing; fresh writes
+use full in-transaction readback, one commit attempt, and explicit
+`committed_exact` / `definitely_not_committed` / `unresolved` recovery.
+Historical verification uses persisted semantic time and phase-local immutable
+snapshots, never the current clock or later mutable heads.
+
+C1 adds no public `StateStore`, public `WriterSession`, or package API and owns
+no completeness, C2 decision, latch, terminal outcome, source authentication,
+external permission, worker/process/runtime authority, or external contact.
+Any earlier unqualified statement that groups all RW0-C durable mechanics as
+future is historical and superseded only for this bounded C1 boundary; later
+RW0-C closure/decision work and RW0-D/E remain future.
+<!-- RW0_C1_CURRENT_STATUS_END -->

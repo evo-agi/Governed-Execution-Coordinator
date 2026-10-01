@@ -176,8 +176,8 @@ def _open_production_schema(tmp_path: Path, name: str) -> sqlite3.Connection:
 
 def test_catalog_identity_and_literal_sql_statement_inventory() -> None:
     catalog = load_migration_catalog()
-    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3)
-    migration = catalog.migrations[-1]
+    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4)
+    migration = catalog.by_sequence(3)
     assert migration.migration_id == MIGRATION_ID
     assert migration.sequence == 3
     assert migration.min_app_schema == migration.max_app_schema == 2
@@ -268,13 +268,19 @@ def test_generation_two_fresh_database_has_exact_cumulative_inventory(
         )
     finally:
         connection.close()
-    assert len(tables) == 39
-    assert columns == 786
-    assert foreign_keys == 140
-    assert len(triggers) == 64
-    assert len(explicit_indexes) == 1
+    assert len(tables) == 62
+    assert columns == 1482
+    assert foreign_keys == 190
+    assert len(triggers) == 110
+    assert len(explicit_indexes) == 5
     assert seed_count == 0
-    assert history[-1] == (3, MIGRATION_ID, MIGRATION_SHA256, 2, 2)
+    assert history[-1] == (
+        4,
+        "0004_rw0_c1_durable_evidence",
+        "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec",
+        2,
+        2,
+    )
     assert CURRENT_APPLICATION_SCHEMA == 2
 
 

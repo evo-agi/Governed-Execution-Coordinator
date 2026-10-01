@@ -216,7 +216,8 @@ LIVE_C2B3D_SUMMARY_INVENTORY = (
         capability_nonclaims=(
             "The pending authority evaluation and planned delivery remain durable intent and bounds, not execution permission.",
             "Raw WorkSpec and retrieval bearer authority never enter SQLite.",
-            "Current state remains generation 2 and terminates at migration 0003; its new runtime is private, pre-execution, and non-executable.",
+            "current state remains generation 2 and terminates at migration 0004 with the separately governed private RW0-C1 phase/evidence runtime.",
+            "Both runtimes are private and non-executable.",
         ),
         capability_mutation=(
             "The pending authority evaluation and planned delivery remain durable intent and bounds, not execution permission.",

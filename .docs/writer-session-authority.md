@@ -868,3 +868,34 @@ process, fork, cleanup, mutation-unavailable, or package-root export behavior.
 It adds no second transaction controller, no second capability constructor, no
 raw connection parameter, no callback, no observer, and no public
 writer-session surface.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 writer-session integration.**
+
+The concrete `_SQLiteWriterSession` now has private-only delegates for C1 phase
+establishment, evidence admission, phase recovery probes, and the stable
+evidence-admission recovery selector. Each enters the existing operation guard
+and passes the exact operation lease and payload once to the existing
+Coordinator mutation controller. Fresh apply creates one private in-memory
+commit-close witness before delegation and shares that exact object with the
+module wrapper and controller. A committed C1 result is not published until
+result publication, controller/module return, controller/connection cleanup,
+mutation-slot and operation-lease retirement, process stabilization, and
+writer-session post-operation cleanup all succeed. The resulting
+`close_proof_complete` state proves internal cleanup only. The exact witness is
+retained and commit-uncertainty normalization remains active through the final
+writer-result handoff and successful outer-frame return. Any ordinary failure
+after commit starts but before that return is the content-free
+`commit_outcome_unknown`; replay and conflicts that never commit stay outside
+commit uncertainty, and a standalone ordinary retirement failure on those
+paths is `mutation_failed` without another commit. Recovery uses a separate
+private close witness, retains its computed result through internal close, and
+maps an ordinary failure after result computation through final return to
+`unresolved` instead of commit uncertainty. An established safe session/store
+error or private C1 safe disposition remains primary over a later ordinary
+cleanup failure. Process-control handling retains its existing governing
+behavior. Public `WriterSession`,
+`StateStore`, package exports, writer proof/digest semantics, lock lifetime,
+fork handling, close/finalizer behavior, and process-control stabilization are
+unchanged. No C1 method is a public authority surface.
+<!-- RW0_C1_CURRENT_STATUS_END -->
