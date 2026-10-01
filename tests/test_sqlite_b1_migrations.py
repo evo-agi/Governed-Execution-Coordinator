@@ -67,6 +67,29 @@ EXPECTED_TABLES = {
     "development_pre_execution_dispositions",
     "development_pre_execution_selection_heads",
     "development_cognitive_mutation_receipts",
+    "rw0_phase_instances",
+    "rw0_evidence_values",
+    "rw0_evidence_memberships",
+    "rw0_relation_bindings",
+    "rw0_relation_operands",
+    "rw0_c1_mutation_receipts",
+    "rw0_authority_verification_observations",
+    "rw0_subordinate_authorization_proposals",
+    "rw0_custody_availability_observations",
+    "rw0_retrieval_capability_event_observations",
+    "rw0_remote_host_readiness_observations",
+    "rw0_effect_host_qualifications",
+    "rw0_worker_mechanism_capability_declarations",
+    "rw0_worker_mechanism_capability_observations",
+    "rw0_worker_mechanism_capability_qualifications",
+    "rw0_wire_cancellation_request_observations",
+    "rw0_wire_process_observations",
+    "rw0_c2a_worker_observations",
+    "rw0_wire_worker_result_bindings",
+    "rw0_wire_process_result_classification_bindings",
+    "rw0_section41_post_execution_proposal_family_members",
+    "rw0_authority_observation_effect_classes",
+    "rw0_c2a_worker_observation_evidence_refs",
 }
 
 EXPECTED_LITERAL_MIGRATION_CATALOG = (
@@ -93,6 +116,15 @@ EXPECTED_LITERAL_MIGRATION_CATALOG = (
         "0003_cognitive_proposal_and_selection_state",
         "0003_cognitive_proposal_and_selection_state.sql",
         "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579",
+        2,
+        2,
+        False,
+    ),
+    (
+        4,
+        "0004_rw0_c1_durable_evidence",
+        "0004_rw0_c1_durable_evidence.sql",
+        "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec",
         2,
         2,
         False,
@@ -353,6 +385,26 @@ def _catalog_row_0003(
     )
 
 
+def _catalog_row_0004(
+    *,
+    migration_id: str | None = None,
+    sequence: int = 4,
+    checksum: str | None = None,
+    applied_at: str = "2026-07-16T00:00:00Z",
+    min_app_schema: int = 2,
+    max_app_schema: int = 2,
+) -> tuple[str, int, str, str, int, int]:
+    expected = EXPECTED_LITERAL_MIGRATION_CATALOG[3]
+    return (
+        migration_id or expected[1],
+        sequence,
+        checksum or expected[3],
+        applied_at,
+        min_app_schema,
+        max_app_schema,
+    )
+
+
 def _migration_catalog_projection(
     catalog: MigrationCatalog,
 ) -> tuple[tuple[int, str, str, str, int, int, bool], ...]:
@@ -537,9 +589,9 @@ def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 3
-    assert inspection.latest_sequence == 3
-    assert inspection.current_migration_id == "0003_cognitive_proposal_and_selection_state"
+    assert inspection.current_sequence == 4
+    assert inspection.latest_sequence == 4
+    assert inspection.current_migration_id == "0004_rw0_c1_durable_evidence"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
@@ -575,17 +627,15 @@ def test_migration_catalog_and_history_match_independent_literal_truth(tmp_path:
 
 def test_literal_migration_catalog_truth_rejects_every_required_counterfactual() -> None:
     literal_before = EXPECTED_LITERAL_MIGRATION_CATALOG
-    swapped_ids = (
+    swapped_ids = tuple(
         (
-            EXPECTED_LITERAL_MIGRATION_CATALOG[0][0],
-            EXPECTED_LITERAL_MIGRATION_CATALOG[1][1],
-            *EXPECTED_LITERAL_MIGRATION_CATALOG[0][2:],
-        ),
-        (
-            EXPECTED_LITERAL_MIGRATION_CATALOG[1][0],
-            EXPECTED_LITERAL_MIGRATION_CATALOG[0][1],
-            *EXPECTED_LITERAL_MIGRATION_CATALOG[1][2:],
-        ),
+            row[0],
+            EXPECTED_LITERAL_MIGRATION_CATALOG[1 - index][1]
+            if index < 2
+            else row[1],
+            *row[2:],
+        )
+        for index, row in enumerate(EXPECTED_LITERAL_MIGRATION_CATALOG)
     )
     counterfactuals = {
         "wrong catalog length": EXPECTED_LITERAL_MIGRATION_CATALOG[:1],
@@ -612,7 +662,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 3
+    assert _count(location, "schema_migrations") == 4
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -623,7 +673,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 3
+    assert inspection.current_sequence == inspection.latest_sequence == 4
     assert _file_digest(location.database_path) == before
 
 
@@ -631,7 +681,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=4) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=5) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
         ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
@@ -660,7 +710,8 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
             _catalog_row(),
             _catalog_row_0002(),
             _catalog_row_0003(),
-            _catalog_row_0003(migration_id="0004_future", sequence=4),
+            _catalog_row_0004(),
+            _catalog_row_0004(migration_id="0005_future", sequence=5),
         ],
     )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")
@@ -940,7 +991,16 @@ def test_no_report_or_private_payload_tables_are_created(tmp_path: Path) -> None
     initialize_database(location)
 
     serialized_tables = " ".join(sorted(_table_names(location))).lower()
-    for fragment in ("report", "prompt", "credential", "endpoint", "path", "worker", "bridge"):
+    for fragment in (
+        "report",
+        "prompt",
+        "credential",
+        "endpoint",
+        "path",
+        "worker_queue",
+        "worker_process",
+        "bridge",
+    ):
         assert fragment not in serialized_tables
 
 

@@ -93,10 +93,9 @@ def _perform_select_fetch_bounded(
     parameters: tuple[object, ...],
     limit: int,
 ) -> list[object] | SQLiteMutationStoreErrorCode | _MutationReadCapabilityFailureReason:
-    # Section 41 adds one exact 16-row proposal-evidence bound and one exact
-    # 258-row disposition-inventory bound.  This remains a finite private
-    # registry rather than a caller-selected pagination surface.
-    if type(limit) is not int or limit not in (2, 16, 257, 258):
+    # RW0-C1 adds exact two-relation and fourteen-operand overflow bounds.
+    # The registry remains finite; callers cannot select arbitrary limits.
+    if type(limit) is not int or limit not in (2, 3, 15, 16, 257, 258):
         return SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
     borrowed = _borrow_connection_or_failure(capability)
     if type(borrowed) is _MutationReadCapabilityFailureReason:

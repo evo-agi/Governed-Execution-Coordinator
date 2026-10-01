@@ -24850,3 +24850,19 @@ or public API representation is selected by this target cross-reference. The
 pre-existing Section 42 bytes and exact-column-order owner remain unchanged.
 
 <!-- COORDINATOR_RW0_PHASE_ENTRY_TARGET_CROSS_REFERENCE_END -->
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 current durable boundary.**
+
+The current application generation remains 2 and the terminal migration is now
+`0004_rw0_c1_durable_evidence`. C1 adds an immutable phase family, a
+kind-scoped fifteen-value registry, phase memberships, relation/operand rows,
+typed payload/child rows, and receipt-first phase/admission mutation records.
+The additive schema has twenty-three STRICT tables, forty-six immutability
+triggers, four indexes, and no seed rows.
+
+C1 owns neither C2 evidence completeness nor any development decision, latch,
+terminal outcome, bound-effect progression, observation ingest, worker/runtime
+truth, or external effect. Existing C2B tables, row semantics, readers, and
+mutation families are unchanged.
+<!-- RW0_C1_CURRENT_STATUS_END -->

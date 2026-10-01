@@ -210,10 +210,10 @@ after the kernel unlock before old-process H2 or X; neither that acquisition nor
 X is retroactive unlock proof.
 
 C2B2 Slice 1 advanced the managed physical schema to application generation 2
-and migration 0002. The current terminal is migration 0003 at the same
-generation. Its nineteen C2B core tables and nine cognitive proposal-selection
-tables are empty at installation and add no filesystem, process, or executable
-authority.
+and migration 0002. The current terminal is migration 0004 at the same
+generation. Its nineteen C2B core tables, nine cognitive proposal-selection
+tables, and twenty-three RW0-C1 tables are empty at installation and add no
+filesystem, process, or executable authority.
 
 C2B2 Slice 2 adds pure private row/value validation, and Slice 3 adds twelve
 production-unintegrated private reader roles plus a shared bounded `{2, 257}`
@@ -568,3 +568,33 @@ head route, malformed inventory, or collision in any physical identity family fa
 closed with no result. The retained safe probe enables only a fresh-writer SELECT-only
 resolution after uncertainty; it does not enable same-writer readback, automatic retry,
 or authority transfer.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 threat-model extension.**
+
+C1 commands, phase recovery probes, and the evidence-admission pre-apply
+recovery selector are closed private values. The selector cannot smuggle a
+database-derived membership digest, current mutable snapshot, clock value, or
+raw transient operand into the recovery decision. Unknown fields,
+malformed identities, oversized pages/relations/operands, cross-phase member
+references, duplicate roles, owner-row mismatches, and partial or colliding
+families fail closed. Evidence registry identity is rank-scoped; membership is
+first-class and phase-specific. Durable rows never contain raw WorkSpec,
+capsule entries, path or blob-map material, exceptions, traces, credentials,
+provider/session data, or unrestricted process output.
+
+Writer fencing precedes receipt or collision disclosure. On fresh admission,
+the actual current-state CAS precedes collision disclosure. Replay does not
+capture time or write. Commit uncertainty is never retried automatically;
+one private one-use witness retains it across the controller, module, and
+writer layers until the complete outer close proof. Ordinary post-attempt
+result-publication, return, connection/capability, lease, stabilization, and
+writer-cleanup failures cannot escape as raw or narrower safe errors. Recovery
+uses a distinct no-COMMIT close witness: after a disposition is computed, an
+ordinary lease or outer-writer cleanup fault yields only `unresolved`.
+Recovery cannot treat a missing phase/prerequisite, registry or payload ref/
+digest alias, rank-1/rank-12 child-only fragment, foreign-phase relation-ref
+fragment, partial typed family, or orphan membership/relation/receipt row as
+clean absence. Sanitized owner-reader faults cannot be reclassified as
+semantic row absence.
+<!-- RW0_C1_CURRENT_STATUS_END -->

@@ -459,11 +459,11 @@ C2B1 implements the lasting migration catalog and runner. At C2B2 Slice 1
 tranche completion, that runner used application generation 2 with terminal tip
 `0002_development_program_and_effect_state` and exactly two production SQL
 resources. That is historical tranche status. The current repository retains
-application generation 2, contains three production SQL resources, and has
-current packaged tip `0003_cognitive_proposal_and_selection_state`. Migration
-0002 remains an unchanged historical prefix; the current production SQL
-resource count is `3`. C2B2 did not implement or acquire ownership of migration
-0003 or Section 41. Migration SQL is
+application generation 2, contains four production SQL resources, and has
+current packaged tip `0004_rw0_c1_durable_evidence`. Migrations 0002 and 0003
+remain unchanged historical prefixes; the current production SQL resource
+count is `4`. C2B2 did not implement or acquire ownership of migration 0003,
+migration 0004, or Section 41. Migration SQL is
 loaded only from code-owned package resources and never from arbitrary
 filesystem paths. Connection PRAGMAs are set and verified by bootstrap code and
 are not part of migration identity. Observational B1.1 inspection/validation
@@ -582,3 +582,16 @@ temporary test evidence, and optionally persists a domain-rejected event/replay
 row. It is not product state initialization, not admission, not authorization,
 not a concrete capability, not fencing, not context assembly, not mutation, and
 not a migration.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**Current catalog after RW0-C1.**
+
+The current generation-2 terminal migration is
+`0004_rw0_c1_durable_evidence`; the current production SQL resource count is
+`4`. Migration 0002 remains an unchanged historical prefix. C2B2 did not
+implement or acquire ownership of migration 0003 or migration 0004. C1 uses
+the existing local database, common lock, internal writer issuance, operation
+guard, nominal capability, and sole Coordinator transaction controller. It
+adds no second backend, connection path, lock, writer, transaction authority,
+or public API.
+<!-- RW0_C1_CURRENT_STATUS_END -->

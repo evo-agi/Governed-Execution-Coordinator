@@ -5,26 +5,27 @@
 Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. The
 bounded reader layer remains exactly twelve private roles and twenty-four
 bounded query contracts. Present production composition is source-derived and
-has exactly three private importer modules:
+has exactly four private importer modules:
 `_sqlite_development_author_effect_establishment.py`,
 `_sqlite_development_program_initialization.py`, and
-`_sqlite_development_pre_execution_plan_disposition.py`. All twelve roles now
+`_sqlite_development_pre_execution_plan_disposition.py`, plus
+`_sqlite_rw0_c1.py`. All twelve roles now
 have the bounded private C2B3D author-effect establishment, replay, and recovery
 caller; the mutation-receipt reader also retains its bounded private VS1B
 program-initialization and recovery caller; and the later Section 41 runtime
-composes with an exact seven-role subset. The exact role mapping is recorded in
-the current-integration section below.
+and RW0-C1 durable-evidence runtime compose with the exact seven-role subset.
+The exact role mapping is recorded in the current-integration section below.
 
 This is an implementation-status and private-API record. The semantic owner
 remains `.docs/c2b-durable-development-state.md`; migration 0002 and cumulative
-packaged SQL through current migration 0003 remain physical-schema authority;
+packaged SQL through current migration 0004 remain physical-schema authority;
 the existing transaction
 controller remains capability authority. This document is not semantic,
 schema, migration, capability, or runtime authority, and it defines no public
 API.
 
 Slice 3 itself added no schema or migration, created no durable record, and
-introduced no production caller. C2B3D, VS1B, and Section 41 are later
+introduced no production caller. C2B3D, VS1B, Section 41, and RW0-C1 are later
 consumers. Their composition does not retroactively make C2B2 the owner of
 those runtimes and does not widen the package root, `StateStore`, or public
 `WriterSession` protocol.
@@ -180,7 +181,7 @@ graph, replay, or recovery proof.
 
 ## Current Integration And Remaining Nonimplementation
 
-Present production composition is source-derived and has exactly three private
+Present production composition is source-derived and has exactly four private
 importer modules with this exact role mapping:
 
 <!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_BEGIN -->
@@ -211,6 +212,15 @@ importer modules with this exact role mapping:
     "_read_development_program_head_and_current_version",
     "_read_development_work_item_head_and_revision_by_exact_ref",
     "_read_development_work_spec_safe_binding"
+  ],
+  "_sqlite_rw0_c1.py": [
+    "_read_development_attempt_fence_command_effect_aggregate",
+    "_read_development_authority_evaluation_by_exact_ref",
+    "_read_development_delivery_head",
+    "_read_development_effect_head",
+    "_read_development_program_head_and_current_version",
+    "_read_development_work_item_head_and_revision_by_exact_ref",
+    "_read_development_work_spec_safe_binding"
   ]
 }
 ```
@@ -220,22 +230,24 @@ C2B3D consumes all twelve roles to verify the genesis basis, complete original
 author-effect family, and bounded current effect/delivery heads. All twelve
 roles have the bounded private C2B3D author-effect caller. The mutation-receipt
 role also retains the private VS1B program-initialization and recovery caller,
-and the later Section 41 selection runtime composes with the bounded seven-role
-subset shown above. C2B3D, VS1B, and Section 41 are later consumers. Their
+and the later Section 41 selection runtime and RW0-C1 durable-evidence runtime
+compose with the bounded seven-role subset shown above. C2B3D, VS1B, Section
+41, and RW0-C1 are later consumers. Their
 composition does not retroactively make C2B2 the owner of those runtimes. The
 exact twenty-four query specifications and their behavior are unchanged.
 C2B3D's three exact family-row locators and bounded identity-collision probes
 are private family-local queries and do not enlarge this Slice-3 inventory.
 
-Migration 0003 now exists in the current repository and is the current packaged
+Migration 0004 now exists in the current repository and is the current packaged
 migration tip. The C2B2 private-reader Slice 3 itself did not implement or own
-migration 0003, and that migration does not retroactively widen this contract
-or its exact twenty-four-query inventory. Sections 41 and 42 own the newer
-cognitive proposal-selection runtime. Generated reports and reader projections
-remain non-authoritative; neither becomes durable program state or effect
-authority.
+migrations 0003 or 0004, and neither migration retroactively widens this
+contract or its exact twenty-four-query inventory. Sections 41 and 42 own the
+cognitive proposal-selection runtime; RW0-C1 owns its separate durable-evidence
+runtime. Generated reports and reader projections remain non-authoritative;
+neither becomes durable program state or effect authority.
 
-C2B2 did not implement or acquire ownership of migration 0003 or Section 41.
+C2B2 did not implement or acquire ownership of migrations 0003/0004, Section
+41, or RW0-C1.
 The added Section 41 composition does not widen the twenty-four-query reader
 contract, creates no public package or protocol surface, grants no durable
 program truth, executable permission, effect authority, or other durable
@@ -248,3 +260,13 @@ package-root export, `StateStore`/public `WriterSession` reader method,
 ownership of later C2B mutation families, and every worker, model, process,
 capsule, Git, direct-local execution, Execution Substrate, Bridge, publication,
 or other external effect.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 reader compatibility.**
+
+Migration 0004 and RW0-C1 add separate private reader contracts over C1's
+twenty-three tables. They do not alter the frozen C2B2 twenty-four-query
+inventory, twelve reader roles, nominal capability authority, public surface,
+or owner semantics. The current packaged SQL tip is
+`0004_rw0_c1_durable_evidence` at unchanged application generation 2.
+<!-- RW0_C1_CURRENT_STATUS_END -->

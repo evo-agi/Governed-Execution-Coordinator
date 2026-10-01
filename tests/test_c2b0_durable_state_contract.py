@@ -10267,7 +10267,7 @@ def test_c2b0_summary_sections_ignore_fenced_target_claims() -> None:
                 _text(".docs/durable-state-model.md"),
                 "c2b0.summary.durable_state",
                 "C2B0 Accepted Durable-Development Target",
-                "The implemented cumulative generation-2 schema comprises",
+                "The implemented generation-2 extensions comprise",
         ),
         (
                 _text(".docs/architecture.md"),
@@ -11046,6 +11046,9 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
         ROOT
         / "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
     }
+    rw0_c1_literal_owner_snapshot_contract_sources = {
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c1_reader_contracts.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
@@ -11065,7 +11068,18 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
         value
         for path, value in production_sources.items()
         if path
-        not in slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources | section41_sources
+        not in (
+            slice2_sources
+            | slice3_sources
+            | vs1b_sources
+            | c2b3d_sources
+            | section41_sources
+            | rw0_c1_literal_owner_snapshot_contract_sources
+        )
+    )
+    assert all(
+        path.is_file() and not path.is_symlink()
+        for path in rw0_c1_literal_owner_snapshot_contract_sources
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(

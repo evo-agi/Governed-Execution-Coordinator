@@ -36,6 +36,7 @@ MAX_MIGRATION_RESOURCE_BYTES = 1_048_576
 MIGRATION_RESOURCE_READ_CHUNK_BYTES = 65_536
 _C2B2_MIGRATION_ID = "0002_development_program_and_effect_state"
 _SECTION41_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
+_RW0_C1_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -107,6 +108,29 @@ EXPECTED_TABLES = frozenset(
         "development_pre_execution_dispositions",
         "development_pre_execution_selection_heads",
         "development_cognitive_mutation_receipts",
+        "rw0_phase_instances",
+        "rw0_evidence_values",
+        "rw0_evidence_memberships",
+        "rw0_relation_bindings",
+        "rw0_relation_operands",
+        "rw0_c1_mutation_receipts",
+        "rw0_authority_verification_observations",
+        "rw0_subordinate_authorization_proposals",
+        "rw0_custody_availability_observations",
+        "rw0_retrieval_capability_event_observations",
+        "rw0_remote_host_readiness_observations",
+        "rw0_effect_host_qualifications",
+        "rw0_worker_mechanism_capability_declarations",
+        "rw0_worker_mechanism_capability_observations",
+        "rw0_worker_mechanism_capability_qualifications",
+        "rw0_wire_cancellation_request_observations",
+        "rw0_wire_process_observations",
+        "rw0_c2a_worker_observations",
+        "rw0_wire_worker_result_bindings",
+        "rw0_wire_process_result_classification_bindings",
+        "rw0_section41_post_execution_proposal_family_members",
+        "rw0_authority_observation_effect_classes",
+        "rw0_c2a_worker_observation_evidence_refs",
     }
 )
 
@@ -159,6 +183,34 @@ _EMPTY_AFTER_SECTION41_MIGRATION_TABLES = frozenset(
         "development_pre_execution_dispositions",
         "development_pre_execution_selection_heads",
         "development_cognitive_mutation_receipts",
+    }
+)
+
+_EMPTY_AFTER_RW0_C1_MIGRATION_TABLES = frozenset(
+    {
+        "rw0_phase_instances",
+        "rw0_evidence_values",
+        "rw0_evidence_memberships",
+        "rw0_relation_bindings",
+        "rw0_relation_operands",
+        "rw0_c1_mutation_receipts",
+        "rw0_authority_verification_observations",
+        "rw0_subordinate_authorization_proposals",
+        "rw0_custody_availability_observations",
+        "rw0_retrieval_capability_event_observations",
+        "rw0_remote_host_readiness_observations",
+        "rw0_effect_host_qualifications",
+        "rw0_worker_mechanism_capability_declarations",
+        "rw0_worker_mechanism_capability_observations",
+        "rw0_worker_mechanism_capability_qualifications",
+        "rw0_wire_cancellation_request_observations",
+        "rw0_wire_process_observations",
+        "rw0_c2a_worker_observations",
+        "rw0_wire_worker_result_bindings",
+        "rw0_wire_process_result_classification_bindings",
+        "rw0_section41_post_execution_proposal_family_members",
+        "rw0_authority_observation_effect_classes",
+        "rw0_c2a_worker_observation_evidence_refs",
     }
 )
 
@@ -363,6 +415,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="Cognitive proposal and pre-execution selection state schema",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_RW0_C1_MIGRATION_ID,
+        sequence=4,
+        resource_name="0004_rw0_c1_durable_evidence.sql",
+        literal_checksum="967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="RW0-C1 private durable phase and supplied-evidence state",
     ),
 )
 
@@ -2270,6 +2332,8 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_c2b2_migration_tables(connection)
     if migration.migration_id == _SECTION41_MIGRATION_ID:
         _verify_empty_section41_migration_tables(connection)
+    if migration.migration_id == _RW0_C1_MIGRATION_ID:
+        _verify_empty_rw0_c1_migration_tables(connection)
 
 
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:
@@ -2282,6 +2346,10 @@ def _verify_empty_c2b2_migration_tables(connection: sqlite3.Connection) -> None:
 
 def _verify_empty_section41_migration_tables(connection: sqlite3.Connection) -> None:
     _verify_empty_tables(connection, _EMPTY_AFTER_SECTION41_MIGRATION_TABLES)
+
+
+def _verify_empty_rw0_c1_migration_tables(connection: sqlite3.Connection) -> None:
+    _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C1_MIGRATION_TABLES)
 
 
 def _verify_empty_tables(

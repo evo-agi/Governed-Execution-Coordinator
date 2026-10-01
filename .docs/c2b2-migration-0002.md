@@ -16,13 +16,13 @@ At C2B2 Slice 1 tranche completion, application generation 2 terminated at
 `0002_development_program_and_effect_state` and the package contained exactly
 two production SQL migration resources. That is historical tranche status, not
 the current repository tip. The current repository remains at application
-generation 2, now contains exactly three production SQL migration resources in
+generation 2, now contains exactly four production SQL migration resources in
 the complete catalog
-`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state]`,
-and terminates at `0003_cognitive_proposal_and_selection_state`. The current
-production SQL resource count is `3`. Migration 0002 is an unchanged historical
-prefix. C2B2 did not implement or acquire ownership of migration 0003 or the
-Section 41 runtime. Migration 0002's complete literal UTF-8 SQL resource is
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence]`,
+and terminates at `0004_rw0_c1_durable_evidence`. The current production SQL
+resource count is `4`. Migration 0002 is an unchanged historical prefix. C2B2
+did not implement or acquire ownership of migration 0003, migration 0004, the
+Section 41 runtime, or RW0-C1. Migration 0002's complete literal UTF-8 SQL resource is
 `src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql`:
 
 ```text
@@ -45,13 +45,13 @@ acquisition, writable open, transaction start, or target mutation.
 At Slice 1 tranche completion, fresh initialization selected `[0001, 0002]`
 and explicit migration from an exact supported 0001 prefix selected `[0002]`.
 Those are explicitly historical tranche paths. Current generation-2 fresh
-initialization applies the complete catalog `[0001, 0002, 0003]` in one
+initialization applies the complete catalog `[0001, 0002, 0003, 0004]` in one
 `BEGIN IMMEDIATE` transaction with one planned timestamp and one commit attempt.
-Current explicit migration applies `[0002, 0003]` from exact 0001 or `[0003]`
-from exact 0002 in one administrative transaction. Ordinary product or writer
-open never migrates: exact 0001 and exact 0002 are public `UNKNOWN` until
-explicit migration, while only exact generation-2 tip 0003 is managed current
-state.
+Current explicit migration applies `[0002, 0003, 0004]` from exact 0001,
+`[0003, 0004]` from exact 0002, or `[0004]` from exact 0003 in one
+administrative transaction. Ordinary product or writer open never migrates:
+exact 0001, exact 0002, and exact 0003 are public `UNKNOWN` until explicit
+migration, while only exact generation-2 tip 0004 is managed current state.
 
 Migration completion performs sequence-scoped zero-seed verification. After
 0001 on a fresh installation it verifies the original nine ordinary bootstrap
@@ -71,9 +71,9 @@ authority exists.
 The shared tests-only B3/B4 coherent fixture preserves its historical
 schema-0001 coding-work graph, transition, fencing, replay, and global-stop
 meanings. Its temporary physical database is now exact generation 2 / terminal
-migration 0003. The retained tests-only writer session is generation 2, and
+migration 0004. The retained tests-only writer session is generation 2, and
 legacy fixture seeding leaves all nineteen C2B tables and all nine cognitive
-proposal-selection tables empty. The fixture imports no C2B or cognitive
+proposal-selection tables and all twenty-three RW0-C1 tables empty. The fixture imports no C2B or cognitive
 row/value adapter, invokes no C2B private reader, and invokes no C2B mutation
 API.
 
@@ -106,3 +106,14 @@ database, writer, lock, capability, mutation slot, or transaction controller.
 It creates no worker/process/model execution, capsule custody, Git effect,
 direct-local route, Execution Substrate route, Bridge behavior, scheduler,
 queue, reconciler, publication, deployment, or autonomous loop.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**Current catalog after RW0-C1.**
+
+The current generation-2 catalog is
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence]`,
+the short sequence is `[0001, 0002, 0003, 0004]`, and the terminal migration is
+`0004_rw0_c1_durable_evidence`. The current production SQL resource count is
+`4`. Migration 0002 remains an unchanged historical prefix; C2B2 did not
+implement or acquire ownership of migration 0003 or migration 0004.
+<!-- RW0_C1_CURRENT_STATUS_END -->

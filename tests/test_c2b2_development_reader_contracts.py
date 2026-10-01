@@ -14,6 +14,8 @@ from ge_nwp_coordinator import _sqlite_development_reader_contracts as contracts
 from ge_nwp_coordinator import _sqlite_development_readers as readers
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
 from ge_nwp_coordinator.sqlite_transition_select_support import (
+    _MutationReadCapabilityError,
+    _MutationReadCapabilityFailureReason,
     _execute_select_fetch_bounded,
 )
 
@@ -27,6 +29,7 @@ EXPECTED_PRODUCTION_READER_IMPORTERS = (
     "_sqlite_development_author_effect_establishment.py",
     "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_program_initialization.py",
+    "_sqlite_rw0_c1.py",
 )
 EXPECTED_SECTION41_READER_CALLS = (
     "_read_development_attempt_fence_command_effect_aggregate",
@@ -701,6 +704,20 @@ def test_shared_bounded_helper_rejects_invalid_limit_before_borrow_or_sql(
     invalid_limit: object,
 ) -> None:
     stand_in = _BoundedLimitStandIn()
+    if type(invalid_limit) is int and invalid_limit == 3:
+        with pytest.raises(_MutationReadCapabilityError) as capability_error:
+            _execute_select_fetch_bounded(
+                capability=stand_in,
+                sql="SELECT schema_id FROM test_owned_table WHERE test_ref = ? LIMIT 3",
+                parameters=("test-ref",),
+                limit=invalid_limit,
+            )
+        assert (
+            capability_error.value.reason
+            is _MutationReadCapabilityFailureReason.CAPABILITY_UNAVAILABLE
+        )
+        assert stand_in.borrow_count == 1
+        return
     with pytest.raises(SQLiteMutationStoreError) as exc_info:
         _execute_select_fetch_bounded(
             capability=stand_in,
@@ -953,6 +970,7 @@ def test_no_production_caller_public_store_writer_or_c2b3_surface() -> None:
             "_sqlite_development_author_effect_establishment.py",
             "_sqlite_development_pre_execution_plan_disposition.py",
             "_sqlite_development_readers.py",
+            "_sqlite_rw0_c1.py",
         }:
             continue
         source = path.read_text(encoding="utf-8")
@@ -987,19 +1005,22 @@ def _assert_current_migration_0003_documentation(source: object) -> None:
     compacted = " ".join(source.split())
     required = (
         "Slice 3 itself added no schema or migration",
-        "Migration 0003 now exists in the current repository and is the current "
+        "Migration 0004 now exists in the current repository and is the current "
         "packaged migration tip.",
-        "The C2B2 private-reader Slice 3 itself did not implement or own migration "
-        "0003",
-        "that migration does not retroactively widen this contract or its exact "
+        "The C2B2 private-reader Slice 3 itself did not implement or own migrations "
+        "0003 or 0004",
+        "neither migration retroactively widens this contract or its exact "
         "twenty-four-query inventory.",
-        "Sections 41 and 42 own the newer cognitive proposal-selection runtime.",
+        "Sections 41 and 42 own the cognitive proposal-selection runtime; RW0-C1 "
+        "owns its separate durable-evidence runtime.",
         "Generated reports and reader projections remain non-authoritative; neither "
         "becomes durable program state or effect authority.",
     )
     forbidden = (
         "migration 0003 is still absent",
         "migration 0003 remains absent",
+        "migration 0004 is still absent",
+        "migration 0004 remains absent",
         "reader method, every later C2B mutation family, migration 0003,",
     )
     if any(phrase not in compacted for phrase in required) or any(
@@ -1014,9 +1035,9 @@ def test_current_migration_0003_status_preserves_historical_reader_ownership() -
     _assert_current_migration_0003_documentation(source)
 
     counterfactual = source.replace(
-        "Migration 0003 now exists in the current repository and is the current "
+        "Migration 0004 now exists in the current repository and is the current "
         "packaged\nmigration tip.",
-        "Migration 0003 is still absent from the current repository.",
+        "Migration 0004 is still absent from the current repository.",
         1,
     )
     assert counterfactual != source
@@ -1073,25 +1094,29 @@ def _assert_current_private_reader_composition_documentation(
     required_status = (
         "bounded reader layer remains exactly twelve private roles and twenty-four "
         "bounded query contracts",
-        "Present production composition is source-derived and has exactly three "
-        "private importer modules",
+            "Present production composition is source-derived and has exactly four "
+            "private importer modules",
         "_sqlite_development_author_effect_establishment.py",
         "_sqlite_development_program_initialization.py",
-        "_sqlite_development_pre_execution_plan_disposition.py",
+            "_sqlite_development_pre_execution_plan_disposition.py",
+            "_sqlite_rw0_c1.py",
         "All twelve roles now have the bounded private C2B3D author-effect "
         "establishment, replay, and recovery caller",
         "the mutation-receipt reader also retains its bounded private VS1B",
-        "the later Section 41 runtime composes with an exact seven-role subset",
+            "the later Section 41 runtime and RW0-C1 durable-evidence runtime "
+            "compose with the exact seven-role subset",
     )
     required_integration = (
-        "Present production composition is source-derived and has exactly three "
-        "private importer modules",
+            "Present production composition is source-derived and has exactly four "
+            "private importer modules",
         "All twelve roles have the bounded private C2B3D author-effect caller",
         "mutation-receipt role also retains the private VS1B",
-        "later Section 41 selection runtime composes with the bounded seven-role subset",
-        "C2B3D, VS1B, and Section 41 are later consumers",
+            "later Section 41 selection runtime and RW0-C1 durable-evidence runtime "
+            "compose with the bounded seven-role subset",
+            "C2B3D, VS1B, Section 41, and RW0-C1 are later consumers",
         "Their composition does not retroactively make C2B2 the owner of those runtimes",
-        "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+        "C2B2 did not implement or acquire ownership of migrations 0003/0004, "
+        "Section 41, or RW0-C1",
         "does not widen the twenty-four-query reader contract",
         "creates no public package or protocol surface",
         "grants no durable program truth, executable permission, effect authority, or "
@@ -1167,10 +1192,19 @@ def test_current_living_documents_match_source_derived_private_reader_compositio
         "_sqlite_development_pre_execution_plan_disposition.py": set(
             EXPECTED_SECTION41_READER_CALLS
         ),
-        "_sqlite_development_program_initialization.py": {
-            "_read_development_mutation_receipt_by_mutation_ref"
-        },
-    }
+            "_sqlite_development_program_initialization.py": {
+                "_read_development_mutation_receipt_by_mutation_ref"
+            },
+            "_sqlite_rw0_c1.py": {
+                "_read_development_attempt_fence_command_effect_aggregate",
+                "_read_development_authority_evaluation_by_exact_ref",
+                "_read_development_delivery_head",
+                "_read_development_effect_head",
+                "_read_development_program_head_and_current_version",
+                "_read_development_work_item_head_and_revision_by_exact_ref",
+                "_read_development_work_spec_safe_binding",
+            },
+        }
     assert len(EXPECTED_SECTION41_READER_CALLS) == 7
     assert production_usage == expected_production_usage
 
@@ -1181,8 +1215,8 @@ def test_current_living_documents_match_source_derived_private_reader_compositio
         production_usage,
     )
     stale_two_importer_source = reader_status_source.replace(
-        "Present production composition is source-derived and\n"
-        "has exactly three private importer modules:",
+        "Present production composition is source-derived and has exactly four private\n"
+        "importer modules with this exact role mapping:",
         "The only production importers are the bounded private VS1B and C2B3D family "
         "runtimes.",
         1,
@@ -1210,7 +1244,8 @@ def test_current_living_documents_match_source_derived_private_reader_compositio
             "All twelve roles have the bounded private C2B3D author-effect caller",
             "mutation-receipt role also retains the private VS1B",
             "bounded seven-role subset",
-            "C2B2 did not implement or acquire ownership of migration 0003 or Section 41",
+            "C2B2 did not implement or acquire ownership of migrations 0003/0004, "
+            "Section 41, or RW0-C1",
             "reader reports and projections remain neither durable program truth nor effect authority",
         ):
             assert phrase in current

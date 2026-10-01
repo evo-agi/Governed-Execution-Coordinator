@@ -389,10 +389,10 @@ described above. The historical sequence includes:
   ownership, `StateStore` widening, schema-ID bump, migration 0002, worker,
   service, scheduler, publication, or cross-repository authority.
 - a B3 tests-only coherent fixture graph under `tests/` that initializes a
-  temporary current-generation-2 database at terminal migration 0003 while
+  temporary current-generation-2 database at terminal migration 0004 while
   directly seeding only the historical schema-0001 B3/B4 graph. All nineteen
-  C2B core tables and all nine cognitive proposal-selection tables remain
-  empty. The exact physical-versus-semantic and writer
+  C2B core tables, all nine cognitive proposal-selection tables, and all
+  twenty-three RW0-C1 tables remain empty. The exact physical-versus-semantic and writer
   lifecycle contract is owned by `.docs/b3-tests-only-coherent-fixtures.md`;
   the fixture adds no production module, admission, authorization verifier,
   C2B row/value source, reader, mutation, replay, or runtime authority.
@@ -563,7 +563,7 @@ application generation to 2 and introduces
 `0002_development_program_and_effect_state`; the literal migration adds the
 nineteen-table physical C2B core schema while preserving migration 0001 and
 cumulative packaged SQL as schema authority. Current fresh initialization
-applies `[0001, 0002, 0003]`; explicit migration applies the complete suffix to
+applies `[0001, 0002, 0003, 0004]`; explicit migration applies the complete suffix to
 an exact supported older prefix, and ordinary product open never migrates. C2B2
 pure row/value source is now
 implemented only as four private pure no-I/O modules for exact
@@ -616,7 +616,9 @@ readback-only recovery, and bounded current-head verification. The initial
 fresh external verification, invocation, later evidence, Git,
 reliable-submit, and conformance details remain explicit just-in-time design
 questions. Current implementation remains generation 2 and now terminates at
-migration 0003 with the private non-executable pre-execution selection runtime.
+migration 0004 with private immutable RW0 phase establishment and single-member
+evidence admission in addition to the private non-executable pre-execution
+selection runtime.
 
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
 ## Cognitive proposal and selection runtime
@@ -639,3 +641,29 @@ capsule custody, Git effect, Bridge or ES handoff, publication execution,
 service, scheduler, queue, or autonomous loop. The full remote-worker phase is
 not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 durable evidence current status.**
+
+RW0-C1 is now a `CURRENT IMPLEMENTED CONTRACT`. Generation 2 now terminates at
+`0004_rw0_c1_durable_evidence`; migration 0004 adds exactly twenty-three STRICT
+tables, forty-six immutability triggers, four explicit indexes, and zero seed
+rows. The cumulative managed schema is sixty-two user tables, one hundred ten
+triggers, and five explicit indexes.
+
+The private concrete SQLite writer session now delegates phase establishment,
+single-member evidence admission, and their explicit three-way recovery to the
+one existing Coordinator mutation transaction controller. The fixed inventory
+is fifteen evidence kinds. Replay is receipt-first after fencing; fresh writes
+use full in-transaction readback, one commit attempt, and explicit
+`committed_exact` / `definitely_not_committed` / `unresolved` recovery.
+Historical verification uses persisted semantic time and phase-local immutable
+snapshots, never the current clock or later mutable heads.
+
+C1 adds no public `StateStore`, public `WriterSession`, or package API and owns
+no completeness, C2 decision, latch, terminal outcome, source authentication,
+external permission, worker/process/runtime authority, or external contact.
+Any earlier unqualified statement that groups all RW0-C durable mechanics as
+future is historical and superseded only for this bounded C1 boundary; later
+RW0-C closure/decision work and RW0-D/E remain future.
+<!-- RW0_C1_CURRENT_STATUS_END -->

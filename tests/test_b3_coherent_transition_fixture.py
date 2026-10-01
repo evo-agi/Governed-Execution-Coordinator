@@ -22,8 +22,10 @@ from b3_coherent_transition_fixture import (
     transition_event_count_for_test,
     _C2B2_PHYSICAL_TABLES,
     _FIXTURE_EMPTY_PHYSICAL_TABLES,
+    _RW0_C1_PHYSICAL_TABLES,
     _SECTION41_PHYSICAL_TABLES,
     _require_c2b2_physical_tables_empty_for_test,
+    _require_rw0_c1_physical_tables_empty_for_test,
     _require_section41_physical_tables_empty_for_test,
     _replace_work_item_budget_limit_for_test,
     _replace_work_item_lease_for_test,
@@ -78,6 +80,31 @@ EXPECTED_SECTION41_PHYSICAL_TABLES = (
     "development_pre_execution_dispositions",
     "development_pre_execution_selection_heads",
     "development_cognitive_mutation_receipts",
+)
+EXPECTED_RW0_C1_PHYSICAL_TABLES = (
+    "rw0_phase_instances",
+    "rw0_evidence_values",
+    "rw0_evidence_memberships",
+    "rw0_relation_bindings",
+    "rw0_relation_operands",
+    "rw0_c1_mutation_receipts",
+    "rw0_authority_verification_observations",
+    "rw0_subordinate_authorization_proposals",
+    "rw0_custody_availability_observations",
+    "rw0_retrieval_capability_event_observations",
+    "rw0_remote_host_readiness_observations",
+    "rw0_effect_host_qualifications",
+    "rw0_worker_mechanism_capability_declarations",
+    "rw0_worker_mechanism_capability_observations",
+    "rw0_worker_mechanism_capability_qualifications",
+    "rw0_wire_cancellation_request_observations",
+    "rw0_wire_process_observations",
+    "rw0_c2a_worker_observations",
+    "rw0_wire_worker_result_bindings",
+    "rw0_wire_process_result_classification_bindings",
+    "rw0_section41_post_execution_proposal_family_members",
+    "rw0_authority_observation_effect_classes",
+    "rw0_c2a_worker_observation_evidence_refs",
 )
 _PROHIBITED_FIXTURE_DEPENDENCY_SEGMENTS = frozenset(
     {
@@ -210,25 +237,35 @@ def test_fixture_has_no_c2b_row_adapter_reader_or_mutation_dependency() -> None:
     assert "ge_nwp_coordinator.sqlite_migration" in imported_modules
     assert EXPECTED_C2B2_PHYSICAL_TABLES == _C2B2_PHYSICAL_TABLES
     assert EXPECTED_SECTION41_PHYSICAL_TABLES == _SECTION41_PHYSICAL_TABLES
+    assert EXPECTED_RW0_C1_PHYSICAL_TABLES == _RW0_C1_PHYSICAL_TABLES
     assert len(EXPECTED_C2B2_PHYSICAL_TABLES) == 19
     assert len(EXPECTED_SECTION41_PHYSICAL_TABLES) == 9
+    assert len(EXPECTED_RW0_C1_PHYSICAL_TABLES) == 23
     assert len(set(EXPECTED_C2B2_PHYSICAL_TABLES)) == 19
     assert len(set(EXPECTED_SECTION41_PHYSICAL_TABLES)) == 9
+    assert len(set(EXPECTED_RW0_C1_PHYSICAL_TABLES)) == 23
     assert not set(EXPECTED_C2B2_PHYSICAL_TABLES).intersection(
         EXPECTED_SECTION41_PHYSICAL_TABLES
     )
     assert _FIXTURE_EMPTY_PHYSICAL_TABLES == (
         *EXPECTED_C2B2_PHYSICAL_TABLES,
         *EXPECTED_SECTION41_PHYSICAL_TABLES,
+        *EXPECTED_RW0_C1_PHYSICAL_TABLES,
     )
-    assert len(_FIXTURE_EMPTY_PHYSICAL_TABLES) == 28
-    assert len(set(_FIXTURE_EMPTY_PHYSICAL_TABLES)) == 28
+    assert len(_FIXTURE_EMPTY_PHYSICAL_TABLES) == 51
+    assert len(set(_FIXTURE_EMPTY_PHYSICAL_TABLES)) == 51
     empty_guard_source = inspect.getsource(_require_c2b2_physical_tables_empty_for_test)
     section41_guard_source = inspect.getsource(
         _require_section41_physical_tables_empty_for_test
     )
+    rw0_c1_guard_source = inspect.getsource(
+        _require_rw0_c1_physical_tables_empty_for_test
+    )
     assert empty_guard_source.count('connection.execute(f"SELECT COUNT(*) FROM {table_name}")') == 1
     assert section41_guard_source.count(
+        'connection.execute(f"SELECT COUNT(*) FROM {table_name}")'
+    ) == 1
+    assert rw0_c1_guard_source.count(
         'connection.execute(f"SELECT COUNT(*) FROM {table_name}")'
     ) == 1
     fixture_source = inspect.getsource(make_coherent_transition_fixture_for_test)
@@ -237,6 +274,9 @@ def test_fixture_has_no_c2b_row_adapter_reader_or_mutation_dependency() -> None:
     ) == 2
     assert fixture_source.count(
         "_require_section41_physical_tables_empty_for_test(location)"
+    ) == 2
+    assert fixture_source.count(
+        "_require_rw0_c1_physical_tables_empty_for_test(location)"
     ) == 2
     for forbidden in (
         "INSERT INTO development_",
@@ -439,9 +479,9 @@ def test_base_fixture_uses_current_physical_schema_and_builds_historical_exact_g
         assert not fixture.location.state_root.is_relative_to(ROOT)
         inspection = validate_database(fixture.location)
         assert inspection.classification is DatabaseClassification.MANAGED
-        assert inspection.current_sequence == 3
-        assert inspection.latest_sequence == 3
-        assert inspection.current_migration_id == "0003_cognitive_proposal_and_selection_state"
+        assert inspection.current_sequence == 4
+        assert inspection.latest_sequence == 4
+        assert inspection.current_migration_id == "0004_rw0_c1_durable_evidence"
 
         assert fixture.lease_identity_validation.identity_valid is True
         assert fixture.lease_identity_validation.lease_ref == fixture.lease.lease_id
@@ -479,6 +519,7 @@ def test_base_fixture_uses_current_physical_schema_and_builds_historical_exact_g
                 for table_name in (
                     *EXPECTED_C2B2_PHYSICAL_TABLES,
                     *EXPECTED_SECTION41_PHYSICAL_TABLES,
+                    *EXPECTED_RW0_C1_PHYSICAL_TABLES,
                 )
             )
         finally:
@@ -677,12 +718,12 @@ def test_docs_and_static_contracts_record_tests_only_fixture_status() -> None:
         "B3c3 rollback-only dry-run runtime remains private",
         "B3c4b now implements private atomic persistence",
         "current cumulative application generation `2`",
-            "terminal migration `0003_cognitive_proposal_and_selection_state`",
+            "terminal migration `0004_rw0_c1_durable_evidence`",
         "first acquisition has generation `1` and is closed",
         "retains its second acquisition at generation `2`",
         "next downstream acquisition is therefore generation `3`",
-            "All nineteen C2B core tables and all nine cognitive proposal-selection tables remain empty",
-            "does not populate or consume C2B2 or cognitive-selection durable records",
+            "All nineteen C2B core tables, all nine cognitive proposal-selection tables, and all twenty-three RW0-C1 tables remain empty",
+            "does not populate or consume C2B2, cognitive-selection, or RW0-C1 durable records",
         "does not prove C2B2 row/value, reader, mutation, family replay, or recovery behavior",
     ):
         assert phrase in normalized
@@ -699,6 +740,7 @@ def test_migration_boundary_related_surfaces_and_repo_artifacts_remain_frozen() 
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
+        "0004_rw0_c1_durable_evidence.sql",
     ]
 
     source_paths = tuple(

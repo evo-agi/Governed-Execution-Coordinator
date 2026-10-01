@@ -5186,6 +5186,56 @@ def _make_writer_session_mutation_lease(
 
 
 _MUTATION_LEASE_FACTORY = _make_writer_session_mutation_lease
+
+
+def _stabilize_rw0_c1_outer_operation_close(
+    resource: _WriterSessionResource,
+    invocation_correlation: _OperationInvocationCorrelation,
+) -> None:
+    """Prove that the exact C1 invocation is no longer resource-represented."""
+
+    if (
+        type(resource) is not _WriterSessionResource
+        or type(invocation_correlation) is not _OperationInvocationCorrelation
+        or resource._stabilize_operation_exit_for_process_control(
+            invocation_correlation
+        )
+        is not _OperationExitProcessControlDisposition.NOT_CURRENTLY_REPRESENTED
+    ):
+        _raise_safe_mutation_store_error(
+            _new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+            )
+        )
+
+
+def _complete_rw0_c1_writer_post_operation(
+    *,
+    commit_close_witness: object | None,
+    recovery_close_witness: object | None,
+) -> None:
+    """Publish the final private close proof after writer-local cleanup."""
+
+    from ge_nwp_coordinator._rw0_c1_mutation_contracts import (
+        _RW0C1CommitCloseWitness,
+        _RW0C1RecoveryCloseWitness,
+    )
+
+    if (
+        type(commit_close_witness) is _RW0C1CommitCloseWitness
+        and recovery_close_witness is None
+    ):
+        commit_close_witness._mark_close_proof_complete()
+        return
+    if (
+        type(recovery_close_witness) is _RW0C1RecoveryCloseWitness
+        and commit_close_witness is None
+    ):
+        recovery_close_witness._mark_close_proof_complete()
+        return
+    raise ValueError("invalid C1 close witness")
+
+
 class _SQLiteWriterSession(WriterSession):
     """Internal concrete writer session for B2c acquisition only."""
 
@@ -6375,6 +6425,277 @@ class _SQLiteWriterSession(WriterSession):
             if accepted_safe_shape:
                 raise
             raise
+
+    def _establish_rw0_phase(self, command: object) -> object:
+        """Privately establish one immutable RW0-C1 phase family."""
+
+        return self._run_rw0_c1_operation(
+            payload=command,
+            family="establish_rw0_phase",
+            recovery=False,
+        )
+
+    def _resolve_rw0_c1_phase_establishment_commit_outcome(
+        self,
+        probe: object,
+    ) -> object:
+        """Privately resolve one uncertain RW0-C1 phase commit."""
+
+        return self._run_rw0_c1_operation(
+            payload=probe,
+            family="establish_rw0_phase",
+            recovery=True,
+        )
+
+    def _admit_rw0_evidence(self, command: object) -> object:
+        """Privately admit one typed member into one established phase."""
+
+        return self._run_rw0_c1_operation(
+            payload=command,
+            family="admit_rw0_evidence",
+            recovery=False,
+        )
+
+    def _resolve_rw0_c1_evidence_admission_commit_outcome(
+        self,
+        probe: object,
+    ) -> object:
+        """Privately resolve one uncertain RW0-C1 evidence commit."""
+
+        return self._run_rw0_c1_operation(
+            payload=probe,
+            family="admit_rw0_evidence",
+            recovery=True,
+        )
+
+    def _run_rw0_c1_operation(
+        self,
+        *,
+        payload: object,
+        family: str,
+        recovery: bool,
+    ) -> object:
+        if (
+            family not in {"establish_rw0_phase", "admit_rw0_evidence"}
+            or type(recovery) is not bool
+        ):
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        resource_reference = weakref.ref(self._resource)
+        invocation_correlation: _OperationInvocationCorrelation | None = None
+        commit_close_witness: object | None = None
+        recovery_close_witness: object | None = None
+        primary_safe_error: WriterSessionError | SQLiteMutationStoreError | None = None
+        try:
+            from ge_nwp_coordinator._rw0_c1_mutation_contracts import (
+                _RW0C1CommitCloseWitness,
+                _RW0C1RecoveryCloseWitness,
+            )
+
+            if recovery:
+                recovery_close_witness = _RW0C1RecoveryCloseWitness()
+            else:
+                commit_close_witness = _RW0C1CommitCloseWitness()
+        except Exception:
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                )
+            )
+
+        def _guarded_rw0_c1(
+            exact_correlation: _OperationInvocationCorrelation,
+        ) -> object:
+            nonlocal self, payload, primary_safe_error
+            bound_operation_guard = self._resource.operation_guard
+            operation_guard_keywords = (
+                {"_invocation_correlation": exact_correlation}
+                if type(bound_operation_guard) is MethodType
+                else {}
+            )
+            result: object | None = None
+            operation_body_entered = False
+            try:
+                with self._resource.operation_guard(
+                    self,
+                    **operation_guard_keywords,
+                ) as operation_lease:
+                    operation_body_entered = True
+                    try:
+                        try:
+                            from ge_nwp_coordinator.sqlite_transition_transaction import (
+                                _run_atomic_rw0_c1_evidence_admission,
+                                _run_atomic_rw0_c1_phase_establishment,
+                                _run_rw0_c1_evidence_admission_recovery,
+                                _run_rw0_c1_phase_establishment_recovery,
+                            )
+                        except Exception:
+                            primary_safe_error = _new_safe_mutation_store_error(
+                                SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                            )
+                        else:
+                            if family == "establish_rw0_phase":
+                                if recovery:
+                                    result = _run_rw0_c1_phase_establishment_recovery(
+                                        operation_lease=operation_lease,
+                                        probe=payload,
+                                        recovery_close_witness=recovery_close_witness,
+                                    )
+                                else:
+                                    result = _run_atomic_rw0_c1_phase_establishment(
+                                        operation_lease=operation_lease,
+                                        command=payload,
+                                        commit_close_witness=commit_close_witness,
+                                    )
+                            elif recovery:
+                                result = _run_rw0_c1_evidence_admission_recovery(
+                                    operation_lease=operation_lease,
+                                    selector=payload,
+                                    recovery_close_witness=recovery_close_witness,
+                                )
+                            else:
+                                result = _run_atomic_rw0_c1_evidence_admission(
+                                    operation_lease=operation_lease,
+                                    command=payload,
+                                    commit_close_witness=commit_close_witness,
+                                )
+                            if type(result) is _SafeMutationFailureDisposition:
+                                primary_safe_error = _safe_mutation_error_from_disposition(
+                                    result
+                                )
+                                result = None
+                            elif result is None:
+                                primary_safe_error = _new_safe_mutation_store_error(
+                                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                                )
+                    except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+                        primary_safe_error = safe_error
+                        result = None
+                    payload = None
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                raise
+            except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+                if primary_safe_error is None:
+                    primary_safe_error = (
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                        )
+                        if operation_body_entered
+                        else safe_error
+                    )
+            except Exception:
+                if primary_safe_error is None:
+                    raise
+            if primary_safe_error is not None:
+                payload = None
+                self = None  # type: ignore[assignment]
+                raise primary_safe_error from None
+            if result is None:
+                payload = None
+                self = None  # type: ignore[assignment]
+                _raise_safe_mutation_store_error(
+                    _new_safe_mutation_store_error(
+                        SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                    )
+                )
+            return result
+
+        def _normalized_rw0_c1_ordinary_failure() -> object | None:
+            if (
+                type(recovery_close_witness) is _RW0C1RecoveryCloseWitness
+                and recovery_close_witness.result_computed
+            ):
+                return recovery_close_witness._unresolved_result()
+            if (
+                type(commit_close_witness) is _RW0C1CommitCloseWitness
+                and commit_close_witness.ordinary_failure_is_commit_uncertain
+            ):
+                return _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                )
+            return None
+
+        def _clear_rw0_c1_failure_frame() -> None:
+            nonlocal self, payload, invocation_correlation
+            nonlocal resource_reference, commit_close_witness
+            nonlocal recovery_close_witness, primary_safe_error
+            payload = None
+            invocation_correlation = None
+            resource_reference = None  # type: ignore[assignment]
+            commit_close_witness = None
+            recovery_close_witness = None
+            primary_safe_error = None
+            self = None  # type: ignore[assignment]
+
+        try:
+            invocation_correlation = (
+                self._resource._new_operation_invocation_correlation()
+            )
+            result = _guarded_rw0_c1(invocation_correlation)
+            resource = resource_reference()
+            _stabilize_rw0_c1_outer_operation_close(
+                resource,
+                invocation_correlation,
+            )
+            payload = None
+            resource = None
+            _complete_rw0_c1_writer_post_operation(
+                commit_close_witness=commit_close_witness,
+                recovery_close_witness=recovery_close_witness,
+            )
+            return result
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(
+                        invocation_correlation
+                    )
+                except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                    try:
+                        resource._stabilize_operation_exit_for_process_control(
+                            invocation_correlation
+                        )
+                    except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                        pass
+            resource = None
+            _clear_rw0_c1_failure_frame()
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+            normalized = _normalized_rw0_c1_ordinary_failure()
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            _clear_rw0_c1_failure_frame()
+            if type(normalized) is SQLiteMutationStoreError:
+                _raise_safe_mutation_store_error(normalized)
+            if normalized is not None:
+                return normalized
+            raise
+        except Exception as ordinary_error:
+            normalized = _normalized_rw0_c1_ordinary_failure()
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                ordinary_error,
+                _sanitize_exception_traceback_graph,
+            )
+            _clear_rw0_c1_failure_frame()
+            if type(normalized) is SQLiteMutationStoreError:
+                _raise_safe_mutation_store_error(normalized)
+            if normalized is not None:
+                return normalized
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                )
+            )
 
     def close(self) -> None:
         self._resource.close_from_owner()

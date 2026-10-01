@@ -391,7 +391,7 @@ decision, acceptance, effect, publication, or completion truth.
 
 C2B2 Slice 1 introduced this administrative boundary at application generation
 2 and migration `0002_development_program_and_effect_state`. The current
-generation-2 terminal is `0003_cognitive_proposal_and_selection_state`. Slice 1 implements
+generation-2 terminal is `0004_rw0_c1_durable_evidence`. Slice 1 implements
 only physical representability for the frozen nineteen-table core. Slice 2
 adds private pure row/value source for those nineteen tables, with no SQLite or
 SQL in that pure layer. C2B3 now consumes the values for only its exact
@@ -523,3 +523,14 @@ capsule custody, Git effect, Bridge or ES handoff, publication execution,
 service, scheduler, queue, or autonomous loop. The full remote-worker phase is
 not reduced to this private source tranche.
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_END -->
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 progression boundary.**
+
+RW0-C1 now supplies private immutable durable phase/evidence membership and
+explicit recovery at migration tip `0004_rw0_c1_durable_evidence`. It does not
+select work, schedule, dispatch, decide completeness or acceptance, create a C2
+decision/latch/terminal state, issue authority, execute a worker, or contact an
+external system. Existing development progression ownership and public storage
+surfaces are unchanged.
+<!-- RW0_C1_CURRENT_STATUS_END -->

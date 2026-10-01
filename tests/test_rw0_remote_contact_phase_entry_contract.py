@@ -109,7 +109,7 @@ _RW0_REGISTRY_ROW_LINES = (
     "| RW0-B1 | current_implemented | private_pure_no_io_semantics | RW0-B1 | .docs/rw0-b1-pure-phase-values.md | no_executable_authority | implemented_in_this_repository | source_authentication,executable_permission,persistence,semantic_acceptance,acceptance_latch,es_runtime_fact |",
     "| RW0-B2-Wire | current_implemented | private_pure_no_io_semantics | RW0-B2-Wire | .docs/rw0-b2-wire-protocol.md | no_executable_authority | implemented_in_this_repository | physical_transport,stream_process_plumbing,source_authentication,executable_permission,persistence,semantic_acceptance,es_runtime_fact |",
     "| RW0-B2-Capability | current_implemented | private_pure_no_io_semantics | RW0-B2-Capability | .docs/rw0-b2-capability.md | no_executable_authority | implemented_in_this_repository | source_authentication,physical_process_behavior,executable_permission,semantic_acceptance,persistence,provider_runtime_selection,es_runtime_fact |",
-    "| RW0-C | future | durable_semantics_and_recovery | RW0-C | this_document | future_guarded_coordinator_progression_only | not_implemented | external_standing_authority,physical_process,es_runtime_fact |",
+    "| RW0-C | current_partial | c1_durable_evidence_c2_future | RW0-C | .docs/rw0-c1-durable-evidence.md | guarded_private_evidence_only | c1_implemented_c2_not_implemented | completeness,external_standing_authority,executable_permission,physical_process,es_runtime_fact |",
     "| RW0-D | future | physical_custody_transport_process_provider_cancellation_mechanics | RW0-D | this_document | source_owned_physical_facts_no_semantic_progression | not_implemented | executable_authority,semantic_acceptance,es_runtime_fact,live_credentials,network |",
     "| RW0-E | future | separately_authorized_live_proof | RW0-E | this_document | external_standing_authority_required_no_independent_authority | not_implemented | independent_standing_authority,semantic_progression,git,publication,es_runtime_fact |",
     "| Execution Substrate | current_external_owner | route_admission_reliable_submit_runtime | Execution Substrate | external_contract | admission_and_runtime_authority_only | external_contract_not_implemented_here | coordinator_semantic_progression,semantic_acceptance,publication_authority,external_standing_authority |",
@@ -134,7 +134,7 @@ _RW0_EXPECTED_PROJECTION = _RW0RegistryProjection(
         ("RW0-B1", "current_implemented", "private_pure_no_io_semantics", "RW0-B1", ".docs/rw0-b1-pure-phase-values.md", "no_executable_authority", "implemented_in_this_repository", "source_authentication,executable_permission,persistence,semantic_acceptance,acceptance_latch,es_runtime_fact"),
         ("RW0-B2-Wire", "current_implemented", "private_pure_no_io_semantics", "RW0-B2-Wire", ".docs/rw0-b2-wire-protocol.md", "no_executable_authority", "implemented_in_this_repository", "physical_transport,stream_process_plumbing,source_authentication,executable_permission,persistence,semantic_acceptance,es_runtime_fact"),
         ("RW0-B2-Capability", "current_implemented", "private_pure_no_io_semantics", "RW0-B2-Capability", ".docs/rw0-b2-capability.md", "no_executable_authority", "implemented_in_this_repository", "source_authentication,physical_process_behavior,executable_permission,semantic_acceptance,persistence,provider_runtime_selection,es_runtime_fact"),
-        ("RW0-C", "future", "durable_semantics_and_recovery", "RW0-C", "this_document", "future_guarded_coordinator_progression_only", "not_implemented", "external_standing_authority,physical_process,es_runtime_fact"),
+        ("RW0-C", "current_partial", "c1_durable_evidence_c2_future", "RW0-C", ".docs/rw0-c1-durable-evidence.md", "guarded_private_evidence_only", "c1_implemented_c2_not_implemented", "completeness,external_standing_authority,executable_permission,physical_process,es_runtime_fact"),
         ("RW0-D", "future", "physical_custody_transport_process_provider_cancellation_mechanics", "RW0-D", "this_document", "source_owned_physical_facts_no_semantic_progression", "not_implemented", "executable_authority,semantic_acceptance,es_runtime_fact,live_credentials,network"),
         ("RW0-E", "future", "separately_authorized_live_proof", "RW0-E", "this_document", "external_standing_authority_required_no_independent_authority", "not_implemented", "independent_standing_authority,semantic_progression,git,publication,es_runtime_fact"),
         ("Execution Substrate", "current_external_owner", "route_admission_reliable_submit_runtime", "Execution Substrate", "external_contract", "admission_and_runtime_authority_only", "external_contract_not_implemented_here", "coordinator_semantic_progression,semantic_acceptance,publication_authority,external_standing_authority"),
@@ -1285,7 +1285,7 @@ def _assert_complete_rw0_cross_reference_map(documents: dict[str, str]) -> str:
         bodies[0],
         (
             f"{OWNER_PATH} is the sole detailed owner.",
-            "A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
+            "A private no-I/O RW0-B1 semantic value and relation layer is now implemented. RW0-C1 now adds private immutable phase establishment and one-member-at-a-time supplied-evidence admission through the existing mutation controller. No verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. C1 records durable evidence only; the executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
             "RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.",
             "External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.",
             "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.",
@@ -1298,6 +1298,8 @@ def _assert_complete_rw0_cross_reference_map(documents: dict[str, str]) -> str:
             "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
             "Direct-local route-local process and cancellation ownership does not absorb ES-route authority",
             "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
+            "RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery.",
+            "It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.",
         ),
         role="rw0.cross_reference.map",
     )
@@ -1832,10 +1834,10 @@ def _validate_owner(text: str) -> None:
     body = _owner_visible_body(text)
 
     required = (
-        "Classification: ACCEPTED STRATEGIC TARGET; not current implementation.",
+        "Classification: `CURRENT IMPLEMENTED CONTRACT` for bounded RW0-C1 private durable evidence; `ACCEPTED STRATEGIC TARGET` for RW0-C2/D/E and the complete remote-contact operating model.",
         "RW0-A is a docs-and-contract-tests-only freeze.",
         "Current executable authorization remains unsupported and fail-closed.",
-        "No phase-entry, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented.",
+        "No phase-entry external effect, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented.",
         "Reports, model output, topology and readiness profiles, transport receipts, and artifacts remain evidence only.",
         "VS1B route-neutral genesis commits nine physical rows and eight graph entries.",
         "C2B3D author-effect establishment commits ten physical rows and nine graph entries, including one pending authority evaluation and one inert planned initial delivery.",
@@ -1866,7 +1868,7 @@ def _validate_owner(text: str) -> None:
         "Validator and reviewer evidence, model output, reports, IM evidence, and transport receipts are non-authoritative evidence.",
         "The immutable C2B accept decision consumes the productive-direct-local acceptance latch atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that latch mutation.",
         "No Git effect follows the RW0 terminal outcome.",
-        "Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A.",
+        "Migration 0004, its phase/evidence tables and receipts, and its generation-2 catalog treatment are implemented by RW0-C1. Terminal-outcome and acceptance-latch representation remain future RW0-C2 work and are not implemented by RW0-A or RW0-B.",
         "No open decision blocks RW0-A.",
     )
     _require_phrases(body, required, role="rw0.owner")
@@ -2099,12 +2101,12 @@ def _wire_status_visible_body(
     later = tuple(line.strip() for position, line in visible if position > end[0] and line.strip())
     if path == OWNER_PATH:
         assert prior[-1] == (
-            "RW0-B1 pure semantics are implemented. C2B3D and Section 41 remain the complete durable and executable implemented boundary relevant to this target."
+            "RW0-B1 pure semantics and RW0-C1 private durable evidence mechanics are implemented. C2B3D and Section 41 remain the complete executable implemented boundary relevant to this target; RW0-C1 adds no executable authority."
         )
         assert later[0] == "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->"
     else:
         assert prior[-1] == (
-            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred."
+            "RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery. It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future."
         )
         assert later[0] == "<!-- RW0_B2_CAPABILITY_CURRENT_STATUS_BEGIN -->"
     body = tuple(
@@ -2228,10 +2230,11 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
         contacts no worker/provider/host, and selects no CLI, App Server, credential,
         provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
         is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
-        RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
-        durable, transport, process, provider, credential, live-proof, and runtime
-        mechanics remain future; Execution Substrate retains admission and runtime
-        authority.
+        RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
+        durable phase/evidence mechanics are implemented separately behind private
+        mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
+        provider, credential, live-proof, and runtime mechanics remain future.
+        Execution Substrate retains admission and runtime authority.
     """)
     capability_bodies: list[str] = []
     for path, root, heading, level in wire_owners:
@@ -2422,7 +2425,7 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
         bodies[0],
         (
             f"{OWNER_PATH} is the sole detailed owner.",
-            "A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
+            "A private no-I/O RW0-B1 semantic value and relation layer is now implemented. RW0-C1 now adds private immutable phase establishment and one-member-at-a-time supplied-evidence admission through the existing mutation controller. No verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. C1 records durable evidence only; the executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.",
             "RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.",
             "External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.",
             "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.",
@@ -2435,6 +2438,8 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
             "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
             "Direct-local route-local process and cancellation ownership does not absorb ES-route authority",
             "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
+            "RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery.",
+            "It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.",
         ),
         role="rw0.cross_reference",
     )
@@ -2811,7 +2816,7 @@ def test_causal_owner_mutants_fail(case: str, required: str, mutant: str) -> Non
     # Preserve the frozen parameter values and their collected node IDs.
     effective_required = {
         "current_worker_capability": (
-            "No phase-entry, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented."
+            "No phase-entry external effect, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented."
         ),
         "external_subordinate_authorization": (
             "Coordinator derives narrower subordinate authorization bound to "
@@ -2838,9 +2843,12 @@ def test_causal_owner_mutants_fail(case: str, required: str, mutant: str) -> Non
         ),
         "collapse_decision_sources": (
             "Delivery, source invocation, observation, candidate, capsule, validation, review, model proposal, C2B decision, RW0 terminal outcome, and Git effect remain distinct facts."
-        ),
+            ),
             "implemented_migration_runtime": (
-                "Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A."
+                "Migration 0004, its phase/evidence tables and receipts, and its generation-2\n"
+                "catalog treatment are implemented by RW0-C1. Terminal-outcome and\n"
+                "acceptance-latch representation remain future RW0-C2 work and are not\n"
+                "implemented by RW0-A or RW0-B."
             ),
             "length_prefix_frozen": (
                 "RW0-B2-Wire now fixes NWPF representational framing, the closed worker-result grammar, and process/result classification."
@@ -2928,8 +2936,9 @@ def test_causal_owner_mutants_fail(case: str, required: str, mutant: str) -> Non
 def test_rw0_b1_current_status_disambiguates_pure_values_from_durable_boundary() -> None:
     owner = _owner_text()
     corrected = (
-        "Current private RW0-B1 pure semantics are implemented. C2B3D and Section 41 "
-        "remain the complete durable and executable implemented boundary relevant to this target."
+        "Current private RW0-B1 pure semantics and RW0-C1 private durable evidence "
+        "mechanics are implemented. C2B3D and Section 41 remain the complete executable "
+        "implemented boundary relevant to this target; RW0-C1 adds no executable authority."
     )
     corrected_raw = corrected.replace("Current private ", "Current private\n", 1)
     stale = (

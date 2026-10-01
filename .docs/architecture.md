@@ -33,6 +33,18 @@ one private route-neutral program-genesis mutation and one private author-effect
 establishment mutation, with exact replay and private readback-only
 commit-outcome resolution for each family.
 
+RW0-C1 is now a `CURRENT IMPLEMENTED CONTRACT`. Application generation 2
+terminates at `0004_rw0_c1_durable_evidence`; the additive zero-seed migration
+contributes twenty-three STRICT tables, forty-six immutable update/delete
+guards, and four explicit indexes. The private implementation establishes one
+immutable RW0 phase and admits one member at a time from the fixed fifteen-kind
+inventory through the sole existing Coordinator mutation controller. It owns
+receipt-first replay, one commit attempt, guarded readback, and explicit
+`committed_exact` / `definitely_not_committed` / `unresolved` recovery. These
+facts establish neither evidence completeness nor a C2 decision, acceptance
+latch, terminal outcome, source authenticity, executable authority, runtime
+truth, external contact, or a public storage API.
+
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
 operator-decision receipt provisioning, an operational-change domain model,
@@ -330,9 +342,9 @@ non-receipt until B3c4 persists and commits it.
 
 B3 tests-only coherent fixtures now live under `tests/` only. They initialize a
 temporary current-generation-2 database at terminal migration
-`0003_cognitive_proposal_and_selection_state`, while directly seeding only the
-historical schema-0001 B3/B4 graph. All nineteen C2B core tables and all nine
-cognitive proposal-selection tables remain empty. The
+`0004_rw0_c1_durable_evidence`, while directly seeding only the historical
+schema-0001 B3/B4 graph. All nineteen C2B core tables, all nine cognitive
+proposal-selection tables, and all twenty-three RW0-C1 tables remain empty. The
 fixture graph is not production admission, authorization, runtime authority,
 product state initialization, accepted operator-policy authority, an executable
 transition proof, or proof of C2B row/value, reader, mutation, or replay
@@ -462,9 +474,10 @@ execution proofs. The private-reader layer remains exactly twelve private roles
 and twenty-four bounded query contracts with no public surface or reader-created
 durable authority. All twelve roles have the bounded private C2B3D author-effect caller,
 the mutation-receipt role also retains the private VS1B program-initialization
-caller, and the later Section 41 selection runtime composes with a bounded
-seven-role subset. Those later callers do not widen the reader query contract.
-C2B2 did not implement or acquire ownership of migration 0003 or Section 41;
+caller, and the later Section 41 selection and RW0-C1 runtimes compose with a
+bounded seven-role subset. Those later callers do not widen the reader query
+contract. C2B2 did not implement or acquire ownership of migrations 0003/0004,
+Section 41, or RW0-C1;
 reader reports and projections remain neither durable program truth nor effect
 authority. C2B3 provides its private program-genesis and author-effect families,
 and Section 41 provides private pre-execution selection. Other C2B mutation

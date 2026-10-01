@@ -15,7 +15,7 @@ Registry version: 1
 | RW0-B1 | current_implemented | private_pure_no_io_semantics | RW0-B1 | .docs/rw0-b1-pure-phase-values.md | no_executable_authority | implemented_in_this_repository | source_authentication,executable_permission,persistence,semantic_acceptance,acceptance_latch,es_runtime_fact |
 | RW0-B2-Wire | current_implemented | private_pure_no_io_semantics | RW0-B2-Wire | .docs/rw0-b2-wire-protocol.md | no_executable_authority | implemented_in_this_repository | physical_transport,stream_process_plumbing,source_authentication,executable_permission,persistence,semantic_acceptance,es_runtime_fact |
 | RW0-B2-Capability | current_implemented | private_pure_no_io_semantics | RW0-B2-Capability | .docs/rw0-b2-capability.md | no_executable_authority | implemented_in_this_repository | source_authentication,physical_process_behavior,executable_permission,semantic_acceptance,persistence,provider_runtime_selection,es_runtime_fact |
-| RW0-C | future | durable_semantics_and_recovery | RW0-C | this_document | future_guarded_coordinator_progression_only | not_implemented | external_standing_authority,physical_process,es_runtime_fact |
+| RW0-C | current_partial | c1_durable_evidence_c2_future | RW0-C | .docs/rw0-c1-durable-evidence.md | guarded_private_evidence_only | c1_implemented_c2_not_implemented | completeness,external_standing_authority,executable_permission,physical_process,es_runtime_fact |
 | RW0-D | future | physical_custody_transport_process_provider_cancellation_mechanics | RW0-D | this_document | source_owned_physical_facts_no_semantic_progression | not_implemented | executable_authority,semantic_acceptance,es_runtime_fact,live_credentials,network |
 | RW0-E | future | separately_authorized_live_proof | RW0-E | this_document | external_standing_authority_required_no_independent_authority | not_implemented | independent_standing_authority,semantic_progression,git,publication,es_runtime_fact |
 | Execution Substrate | current_external_owner | route_admission_reliable_submit_runtime | Execution Substrate | external_contract | admission_and_runtime_authority_only | external_contract_not_implemented_here | coordinator_semantic_progression,semantic_acceptance,publication_authority,external_standing_authority |
@@ -23,7 +23,9 @@ Registry version: 1
 
 ## Status, scope, and nonimplementation
 
-Classification: ACCEPTED STRATEGIC TARGET; not current implementation.
+Classification: `CURRENT IMPLEMENTED CONTRACT` for bounded RW0-C1 private
+durable evidence; `ACCEPTED STRATEGIC TARGET` for RW0-C2/D/E and the complete
+remote-contact operating model.
 
 RW0-A is a docs-and-contract-tests-only freeze. It defines the bounded target
 operating model for one future author-worker contact through one future
@@ -32,13 +34,13 @@ database representation, transport, process, or external effect.
 
 Current executable authorization remains unsupported and fail-closed.
 
-RW0-B1 now implements only the private pure semantic values and relations governed by `.docs/rw0-b1-pure-phase-values.md`. It adds no phase-entry persistence, verifier authenticity, physical custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop.
+RW0-B1 now implements only the private pure semantic values and relations governed by `.docs/rw0-b1-pure-phase-values.md`; it does not itself persist phase entry. RW0-C1 separately implements private immutable phase establishment and one-member supplied-evidence admission. Neither tranche implements verifier authenticity, physical custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop.
 
-No phase-entry, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented.
+No phase-entry external effect, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented.
 
 Reports, model output, topology and readiness profiles, transport receipts, and artifacts remain evidence only. They are not identity, executable authority,
 acceptance, progression, runtime truth, or publication truth. Current private
-RW0-B1 pure semantics are implemented. C2B3D and Section 41 remain the complete durable and executable implemented boundary relevant to this target.
+RW0-B1 pure semantics and RW0-C1 private durable evidence mechanics are implemented. C2B3D and Section 41 remain the complete executable implemented boundary relevant to this target; RW0-C1 adds no executable authority.
 
 <!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->
 RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. It also implements the separate private, pure, no-I/O cancellation-control evidence profile `rw0-wire-cancellation-control-v1` with digest `4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288`, exact-current author/validation/review cancellation-control relations, and pure `invalid`/`incomplete`/`finite` supplied-control-evidence classification. The additive cancellation-control profile does not replace or enter the fixed NWPF v1 frames, Capability continues to bind only `rw0-wire-nwpf-v1`, and the profile remains distinct from B1 physical host cancellation-mechanism evidence. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts; their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability is implemented separately as private, pure, no-I/O semantics owned by `.docs/rw0-b2-capability.md` and does not widen Wire ownership. RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts; RW0-C/D/E durable, transport, process, provider, credential, live-proof, and runtime mechanics remain future, and Execution Substrate retains admission and runtime ownership.
@@ -57,10 +59,11 @@ behavior, grants no permission or semantic acceptance, persists no fact,
 contacts no worker/provider/host, and selects no CLI, App Server, credential,
 provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
 is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
-RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
-durable, transport, process, provider, credential, live-proof, and runtime
-mechanics remain future; Execution Substrate retains admission and runtime
-authority.
+RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
+durable phase/evidence mechanics are implemented separately behind private
+mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
+provider, credential, live-proof, and runtime mechanics remain future.
+Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 
 ## Current entry lineage
@@ -463,8 +466,10 @@ named future owner tranche or ES phase:
 | ES route implementation, reliable-submit, runtime, cancel, and result APIs | ES phase |
 | direct-local/ES wrapper choice | RW0-D / RW0-E / ES phase |
 
-Migration 0004, its tables and receipts, application-generation treatment, terminal-outcome representation, and acceptance-latch representation are not implemented or selected by RW0-A.
-They remain future RW0-C work and are not implemented by RW0-B.
+Migration 0004, its phase/evidence tables and receipts, and its generation-2
+catalog treatment are implemented by RW0-C1. Terminal-outcome and
+acceptance-latch representation remain future RW0-C2 work and are not
+implemented by RW0-A or RW0-B.
 No open decision blocks RW0-A.
 RW0-B is current and implemented; no unresolved decision blocks it. Each later tranche requires its own bounded
 reconnaissance before source work when its governing decisions remain open.

@@ -368,6 +368,7 @@ def test_package_root_pyproject_schema_and_migration_bytes_remain_exact() -> Non
         "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0002_development_program_and_effect_state.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0003_cognitive_proposal_and_selection_state.sql",
+        "src/ge_nwp_coordinator/sqlite_migrations/0004_rw0_c1_durable_evidence.sql",
     )
     assert _sha256(ROOT / schema_paths[0]) == (
         "e51902dd7e151f32a82b32cef7bbe535489f1558ce78fed63e0207df828f9e73"

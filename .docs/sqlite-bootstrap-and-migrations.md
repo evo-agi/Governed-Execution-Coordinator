@@ -1,10 +1,13 @@
 # SQLite Bootstrap And Migrations
 
 Status: C2B1 is the current owner of the bounded operator-local migration
-framework. C2B2 Slice 1 uses it at current application generation 2 with exact
-production catalog tip `0003_cognitive_proposal_and_selection_state` and exactly
-the `0001_initial.sql`, `0002_development_program_and_effect_state.sql`, and
-`0003_cognitive_proposal_and_selection_state.sql` production SQL resources.
+framework. The current application generation is 2 with exact production
+catalog tip `0004_rw0_c1_durable_evidence` and exactly the
+`0001_initial.sql`, `0002_development_program_and_effect_state.sql`,
+`0003_cognitive_proposal_and_selection_state.sql`, and
+`0004_rw0_c1_durable_evidence.sql` production SQL resources. C2B2 Slice 1
+introduced generation 2 and migration 0002; later owners added migrations 0003
+and 0004 without changing C2B2 ownership.
 B1/B1.1 and B2b remain historical tranche names for bootstrap, observational
 validation, and common-lock integration. B2c implements durable writer issuance
 and internal SQLite `WriterSession` acquisition for managed databases.
@@ -620,3 +623,16 @@ not reduced to this private source tranche.
 
 The earlier C2B0/C2B3 migration-0003 name, inventory, and current-tip statements
 are historical target/tranche snapshots superseded by Sections 41 and 42.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**Current generation-2 tip after RW0-C1.**
+
+The packaged catalog is now exactly
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence]`.
+Fresh initialization applies `[0001, 0002, 0003, 0004]`; an exact supported
+older prefix is eligible only for explicit administrative migration of the
+complete contiguous suffix. Ordinary inspection, validation, writer
+acquisition, and product mutation admit only the exact complete tip. Migration
+0004 remains application generation 2, requires SQLite 3.37.0 before any
+writable activity, is non-destructive, and seeds zero rows.
+<!-- RW0_C1_CURRENT_STATUS_END -->

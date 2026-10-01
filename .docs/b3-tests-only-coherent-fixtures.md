@@ -27,8 +27,8 @@ The fixture's historical semantic scope and its current physical container are
 distinct. The seeded graph retains the existing schema-0001 B3/B4 coding-work
 record, transition, replay, fencing, and global-stop meanings. Its temporary
 database nevertheless uses the current cumulative application generation `2`
-and terminal migration `0003_cognitive_proposal_and_selection_state`.
-Migrations 0002 and 0003 are therefore required for the current physical
+and terminal migration `0004_rw0_c1_durable_evidence`.
+Migrations 0002, 0003, and 0004 are therefore required for the current physical
 fixture; they do not turn the historical graph into C2B or cognitive-selection
 semantics.
 
@@ -98,11 +98,13 @@ acquisition is therefore generation `3`. It retains no writer credential, raw
 proof, proof digest, lock descriptor, raw SQLite connection, or public
 serialization surface.
 
-All nineteen C2B core tables and all nine cognitive proposal-selection tables
-remain empty after fixture seeding. The fixture does not populate or consume
-C2B2 or cognitive-selection durable records and has no C2B
+All nineteen C2B core tables, all nine cognitive proposal-selection tables, and
+all twenty-three RW0-C1 tables remain empty after fixture seeding. The fixture
+does not populate or consume C2B2, cognitive-selection, or RW0-C1 durable
+records and has no C2B
 row/value source, reader, or mutation dependency. It does not prove C2B2
-row/value, reader, mutation, family replay, or recovery behavior.
+row/value, reader, mutation, family replay, or recovery behavior and does not
+prove RW0-C1 admission or recovery behavior.
 
 ## Readback
 
@@ -135,8 +137,15 @@ evidence proves verification, public delegation, and persistence mechanics
 only, not production operator-policy authorization; receipt provisioning
 remains outside the B4 apply transaction.
 
-Migrations 0002 and 0003 are required only as the current generation-2 physical
+Migrations 0002, 0003, and 0004 are required only as the current generation-2 physical
 container for this tests-only fixture. Migration 0001 and the historical B3/B4
 semantic graph remain unchanged. The fixture neither populates nor consumes the
-nineteen C2B core tables or nine cognitive proposal-selection tables and adds
-no C2B runtime authority.
+nineteen C2B core tables, nine cognitive proposal-selection tables, or
+twenty-three RW0-C1 tables and adds no C2B or RW0-C1 runtime authority.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+RW0-C1 migration 0004 changes only the fixture's physical current-tip
+container. The synthetic B3/B4 graph does not seed, admit, read, replay, or
+recover any RW0-C1 family. All twenty-three RW0-C1 tables remain empty, just as
+the nineteen C2B and nine cognitive-selection tables remain empty.
+<!-- RW0_C1_CURRENT_STATUS_END -->

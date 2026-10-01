@@ -331,4 +331,10 @@ report authenticates a source, grants permission, proves physical behavior,
 authorizes contact, supplies semantic acceptance, persists a fact, or becomes
 durable program truth.
 
+RW0-C1 consumes these unchanged Capability contracts as evidence ranks 7, 8,
+and 9. It reconstructs the existing values and invokes the existing
+qualification relation at the persisted rank-9 semantic instant; it neither
+changes Capability schemas/digests nor grants the evidence executable
+authority.
+
 <!-- RW0_B2_CAPABILITY_OWNER_END -->

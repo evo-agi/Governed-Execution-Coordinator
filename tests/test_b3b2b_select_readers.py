@@ -519,6 +519,12 @@ EXPECTED_PRODUCTION_READER_IMPORTS = (
         ("_read_global_stop_current",),
     ),
     (
+        "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",
+        1,
+        "sqlite_transition_read_scope",
+        ("_read_global_stop_current",),
+    ),
+    (
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         0,
         READER_FACADE_MODULE,
@@ -548,6 +554,12 @@ EXPECTED_PRODUCTION_READER_EDGES = (
     (
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "_resolve_development_program_initialization_apply_after_fencing",
+        "_read_global_stop_current",
+        1,
+    ),
+    (
+        "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",
+        "_read_phase_development_owner_rows",
         "_read_global_stop_current",
         1,
     ),
@@ -613,6 +625,8 @@ _INITIALIZER_CONSUMER_PATH = (
 _INITIALIZER_OWNER_NAME = (
     "_resolve_development_program_initialization_apply_after_fencing"
 )
+_RW0_C1_CONSUMER_PATH = "src/ge_nwp_coordinator/_sqlite_rw0_c1.py"
+_RW0_C1_OWNER_NAME = "_read_phase_development_owner_rows"
 _TRANSACTION_CONSUMER_PATH = (
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py"
 )
@@ -667,6 +681,20 @@ _EXPECTED_PRE_EXECUTION_OWNER_HEADER_SHAPE = (
     "ctx=Load()), op=BitOr(), "
     "right=Name(id='PreExecutionPlanDispositionConflictV1', ctx=Load())), "
     "op=BitOr(), right=Name(id='_FreshPreExecutionPlanDisposition', ctx=Load()))",
+    None,
+)
+_EXPECTED_RW0_C1_OWNER_HEADER_SHAPE = (
+    (),
+    (),
+    "arguments(args=[arg(arg='capability', annotation=Name(id='object', "
+    "ctx=Load())), arg(arg='basis', annotation=Name(id='object', "
+    "ctx=Load()))])",
+    "Subscript(value=Name(id='tuple', ctx=Load()), slice=Tuple(elts=["
+    "Name(id='object', ctx=Load()), Name(id='object', ctx=Load()), "
+    "Name(id='object', ctx=Load()), Name(id='object', ctx=Load()), "
+    "Name(id='object', ctx=Load()), Name(id='object', ctx=Load()), "
+    "Name(id='object', ctx=Load()), Name(id='object', ctx=Load()), "
+    "Name(id='object', ctx=Load())], ctx=Load()), ctx=Load())",
     None,
 )
 _EXPECTED_CONTROLLER_OWNER_HEADER_SHAPE = ((), (), (), ())
@@ -851,6 +879,7 @@ def _require_exact_live_authorized_reader_owners(
         _AUTHOR_EFFECT_CONSUMER_PATH,
         _PRE_EXECUTION_CONSUMER_PATH,
         _INITIALIZER_CONSUMER_PATH,
+        _RW0_C1_CONSUMER_PATH,
         _TRANSACTION_CONSUMER_PATH,
     }:
         return {}
@@ -918,6 +947,25 @@ def _require_exact_live_authorized_reader_owners(
         )
         return {_INITIALIZER_OWNER_NAME: selected_owner}
 
+    if relative_path == _RW0_C1_CONSUMER_PATH:
+        selected_owner = _require_direct_definition(
+            tree.body,
+            name=_RW0_C1_OWNER_NAME,
+            expected_type=ast.FunctionDef,
+        )
+        if (
+            type(selected_owner) is not ast.FunctionDef
+            or _function_owner_header_shape(selected_owner)
+            != _EXPECTED_RW0_C1_OWNER_HEADER_SHAPE
+        ):
+            raise AssertionError(_PRIVATE_READER_OWNER_NOT_LIVE)
+        _require_selected_code_object(module_code, selected_owner)
+        _require_single_namespace_definition_binding(
+            module_code,
+            _RW0_C1_OWNER_NAME,
+        )
+        return {_RW0_C1_OWNER_NAME: selected_owner}
+
     selected_controller = _require_direct_definition(
         tree.body,
         name=_CONTROLLER_OWNER_NAME,
@@ -983,12 +1031,15 @@ def _scan_private_reader_bindings(
     observed_definitions: list[tuple[str, str, str]] = []
     observed_reexports: list[tuple[str, int, str, str, str]] = []
     observed_edges: Counter[tuple[str, str, str]] = Counter()
-    approved_consumer_imports = {
-        relative_path: (level, module_name, imported_names)
-        for relative_path, level, module_name, imported_names in (
-            EXPECTED_PRODUCTION_READER_IMPORTS
+    approved_consumer_imports: dict[
+        str, set[tuple[int, str | None, tuple[str, ...]]]
+    ] = {}
+    for relative_path, level, module_name, imported_names in (
+        EXPECTED_PRODUCTION_READER_IMPORTS
+    ):
+        approved_consumer_imports.setdefault(relative_path, set()).add(
+            (level, module_name, imported_names)
         )
-    }
     authorized_owners_by_path: dict[str, set[str]] = {}
     for relative_path, owner_name, _reader_name, _count in (
         EXPECTED_PRODUCTION_READER_EDGES
@@ -1141,7 +1192,7 @@ def _scan_private_reader_bindings(
                         node.level,
                         node.module,
                         imported_names,
-                    ) != approved:
+                    ) not in approved:
                         raise AssertionError(
                             "PRIVATE_READER_IMPORT_NOT_APPROVED_MODULE_SCOPE"
                         )
@@ -3010,6 +3061,7 @@ def test_tests_only_schema_setup_is_not_a_fixture_or_production_capability_progr
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
+        "0004_rw0_c1_durable_evidence.sql",
     ]
     assert json.loads(json.dumps({"capability": "tests-only"})) == {"capability": "tests-only"}
 

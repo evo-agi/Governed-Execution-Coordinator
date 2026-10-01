@@ -468,7 +468,7 @@ not reduced to this private source tranche.
 ### RW0 remote-contact phase-entry target cross-reference
 
 .docs/rw0-remote-worker-contact-phase-entry.md is the sole detailed owner.
-A private no-I/O RW0-B1 semantic value and relation layer is now implemented. No phase-entry persistence, verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. The durable and executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.
+A private no-I/O RW0-B1 semantic value and relation layer is now implemented. RW0-C1 now adds private immutable phase establishment and one-member-at-a-time supplied-evidence admission through the existing mutation controller. No verifier authenticity, custody, transport, process, worker, terminal-outcome runtime, latch, Git, ES route, service, scheduler, queue, or autonomous loop is implemented. C1 records durable evidence only; the executable boundary remains private C2B3D planned author delivery plus Section 41 pre-execution selection.
 RW0 target begins with a receipt-backed no-contact phase-entry fact and fresh authority, host, and custody gates.
 External standing-policy authority owns the parent grant; Coordinator target derives a separate narrower subordinate authorization record only inside that freshly verified grant.
 Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests; the future subordinate record binds each corresponding basis pair and both exact fence identities byte-for-byte without replacement.
@@ -484,6 +484,7 @@ A current compatible cancel basis follows distinct request, acknowledgement, sig
 No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.
 Direct-local route-local process and cancellation ownership does not absorb ES-route authority; no successor, Git, or publication effect follows RW0.
 Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.
+RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery. It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->
 RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. It also implements the separate private, pure, no-I/O cancellation-control evidence profile `rw0-wire-cancellation-control-v1` with digest `4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288`, exact-current author/validation/review cancellation-control relations, and pure `invalid`/`incomplete`/`finite` supplied-control-evidence classification. The additive cancellation-control profile does not replace or enter the fixed NWPF v1 frames, Capability continues to bind only `rw0-wire-nwpf-v1`, and the profile remains distinct from B1 physical host cancellation-mechanism evidence. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts; their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability is implemented separately as private, pure, no-I/O semantics owned by `.docs/rw0-b2-capability.md` and does not widen Wire ownership. RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts; RW0-C/D/E durable, transport, process, provider, credential, live-proof, and runtime mechanics remain future, and Execution Substrate retains admission and runtime ownership.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_END -->
@@ -500,9 +501,10 @@ behavior, grants no permission or semantic acceptance, persists no fact,
 contacts no worker/provider/host, and selects no CLI, App Server, credential,
 provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
 is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
-RW0-B2-Capability private semantics are current implemented contracts. RW0-C/D/E
-durable, transport, process, provider, credential, live-proof, and runtime
-mechanics remain future; Execution Substrate retains admission and runtime
-authority.
+RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
+durable phase/evidence mechanics are implemented separately behind private
+mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
+provider, credential, live-proof, and runtime mechanics remain future.
+Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->

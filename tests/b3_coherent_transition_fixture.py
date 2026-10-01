@@ -4,7 +4,7 @@ This module is not admission, not authorization, not production state initializa
 and not runtime authority. It directly seeds a historical schema-0001 B3/B4 graph
 inside a temporary current-generation managed SQLite database, then validates the
 seeded rows through existing Coordinator row contracts. The cumulative physical
-schema is generation 2 / migration 0003; the seeded graph's meanings remain the
+schema is generation 2 / migration 0004; the seeded graph's meanings remain the
 existing schema-0001 meanings.
 """
 
@@ -86,8 +86,8 @@ _LEASE_ID = "lease-b3-fixture"
 _BACKLOG_ID = "backlog-b3-fixture"
 _WORK_ITEM_ID = "wi-b3-fixture"
 _DEPENDENCY_DECISION_REF = "deps-b3-fixture-ready"
-_CURRENT_PHYSICAL_SEQUENCE = 3
-_CURRENT_PHYSICAL_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
+_CURRENT_PHYSICAL_SEQUENCE = 4
+_CURRENT_PHYSICAL_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
 _FIXTURE_WRITER_GENERATION = 2
 _C2B2_PHYSICAL_TABLES = (
     "development_program_heads",
@@ -121,17 +121,46 @@ _SECTION41_PHYSICAL_TABLES = (
     "development_pre_execution_selection_heads",
     "development_cognitive_mutation_receipts",
 )
+_RW0_C1_PHYSICAL_TABLES = (
+    "rw0_phase_instances",
+    "rw0_evidence_values",
+    "rw0_evidence_memberships",
+    "rw0_relation_bindings",
+    "rw0_relation_operands",
+    "rw0_c1_mutation_receipts",
+    "rw0_authority_verification_observations",
+    "rw0_subordinate_authorization_proposals",
+    "rw0_custody_availability_observations",
+    "rw0_retrieval_capability_event_observations",
+    "rw0_remote_host_readiness_observations",
+    "rw0_effect_host_qualifications",
+    "rw0_worker_mechanism_capability_declarations",
+    "rw0_worker_mechanism_capability_observations",
+    "rw0_worker_mechanism_capability_qualifications",
+    "rw0_wire_cancellation_request_observations",
+    "rw0_wire_process_observations",
+    "rw0_c2a_worker_observations",
+    "rw0_wire_worker_result_bindings",
+    "rw0_wire_process_result_classification_bindings",
+    "rw0_section41_post_execution_proposal_family_members",
+    "rw0_authority_observation_effect_classes",
+    "rw0_c2a_worker_observation_evidence_refs",
+)
 _FIXTURE_EMPTY_PHYSICAL_TABLES = (
     *_C2B2_PHYSICAL_TABLES,
     *_SECTION41_PHYSICAL_TABLES,
+    *_RW0_C1_PHYSICAL_TABLES,
 )
 if not (
     len(_C2B2_PHYSICAL_TABLES) == 19
     and len(_SECTION41_PHYSICAL_TABLES) == 9
+    and len(_RW0_C1_PHYSICAL_TABLES) == 23
     and not set(_C2B2_PHYSICAL_TABLES).intersection(_SECTION41_PHYSICAL_TABLES)
+    and not set(_C2B2_PHYSICAL_TABLES).intersection(_RW0_C1_PHYSICAL_TABLES)
+    and not set(_SECTION41_PHYSICAL_TABLES).intersection(_RW0_C1_PHYSICAL_TABLES)
     and len(_FIXTURE_EMPTY_PHYSICAL_TABLES)
     == len(set(_FIXTURE_EMPTY_PHYSICAL_TABLES))
-    == 28
+    == 51
 ):
     raise RuntimeError("fixture-physical-table-inventory-invalid")
 
@@ -255,6 +284,7 @@ def make_coherent_transition_fixture_for_test(
     _require_current_physical_schema_for_test(location)
     _require_c2b2_physical_tables_empty_for_test(location)
     _require_section41_physical_tables_empty_for_test(location)
+    _require_rw0_c1_physical_tables_empty_for_test(location)
 
     first_writer_session = acquire_sqlite_writer_session(location)
     try:
@@ -271,6 +301,7 @@ def make_coherent_transition_fixture_for_test(
         _require_current_physical_schema_for_test(location)
         _require_c2b2_physical_tables_empty_for_test(location)
         _require_section41_physical_tables_empty_for_test(location)
+        _require_rw0_c1_physical_tables_empty_for_test(location)
         return CoherentTransitionFixture(
             location=location,
             writer_session=writer_session,
@@ -861,6 +892,19 @@ def _require_section41_physical_tables_empty_for_test(
             row = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
             if row != (0,):
                 raise RuntimeError("fixture-section41-physical-table-not-empty")
+    finally:
+        connection.close()
+
+
+def _require_rw0_c1_physical_tables_empty_for_test(
+    location: CoordinatorStateLocation,
+) -> None:
+    connection = open_existing_sqlite_connection(location, read_only=True)
+    try:
+        for table_name in _RW0_C1_PHYSICAL_TABLES:
+            row = connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+            if row != (0,):
+                raise RuntimeError("fixture-rw0-c1-physical-table-not-empty")
     finally:
         connection.close()
 

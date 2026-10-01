@@ -420,9 +420,13 @@ allocation contracts. It executes no SQL and mutates no state.
 
 B3 tests-only coherent fixtures are implemented under `tests/` only for
 historical schema-0001 B3/B4 graphs hosted in temporary current-generation-2
-databases at terminal migration `0003_cognitive_proposal_and_selection_state`.
+databases at terminal migration `0003_cognitive_proposal_and_selection_state`
+when B3c0a landed. The same graphs are now hosted in temporary
+current-generation-2 databases at terminal migration
+`0004_rw0_c1_durable_evidence`.
 All nineteen C2B tables and all nine cognitive proposal-selection tables remain
-empty. Migration 0002 remains the unchanged historical C2B2 prefix; neither
+empty. All twenty-three RW0-C1 tables also remain empty. Migration 0002 remains
+the unchanged historical C2B2 prefix; neither
 B3c0a nor C2B2 implemented or acquired ownership of migration 0003. Fixtures
 are not production admission,
 authorization, runtime authority, accepted operator-policy authority,
@@ -466,3 +470,14 @@ B4b implements private global-stop persistence; public global-stop delegation
 remains future B4c.
 
 Each future stage requires a separate implementation patch and standalone audit.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 compatibility status.**
+
+RW0-C1 is now privately implemented at generation-2 migration tip
+`0004_rw0_c1_durable_evidence`. Its two mutation families enter the same
+operation guard, mutation slot, writer fence, nominal capability, and sole
+Coordinator transaction controller frozen here. C1 does not alter transition
+ordering, global-stop ordering, public mutation methods, or B3 conflict and
+uncertainty semantics.
+<!-- RW0_C1_CURRENT_STATUS_END -->

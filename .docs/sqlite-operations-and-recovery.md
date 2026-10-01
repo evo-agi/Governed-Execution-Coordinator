@@ -227,10 +227,11 @@ cross-process writer may acquire after the kernel applies unlock before H2,
 T1, X, or public close return; these facts are not atomic.
 
 The current migration application generation is 2, the terminal catalog is
-exactly `0003_cognitive_proposal_and_selection_state`, and production migration
-resources are exactly `0001_initial.sql`,
-`0002_development_program_and_effect_state.sql`, and
-`0003_cognitive_proposal_and_selection_state.sql`.
+exactly `0004_rw0_c1_durable_evidence`, and production migration resources are
+exactly `0001_initial.sql`,
+`0002_development_program_and_effect_state.sql`,
+`0003_cognitive_proposal_and_selection_state.sql`, and
+`0004_rw0_c1_durable_evidence.sql`.
 Migration 0002 requires SQLite 3.37.0 or newer before any selected-suffix
 administrative effect. Its physical core schema adds no C2B mutation, reader,
 runtime, or execution authority.
@@ -323,7 +324,8 @@ C2B1 exposes split offline operations:
   and managed current-state invariants;
 - initialize an absent or empty local database with the complete current
   catalog (currently `[0001_initial, 0002_development_program_and_effect_state,
-  0003_cognitive_proposal_and_selection_state]`);
+  0003_cognitive_proposal_and_selection_state,
+  0004_rw0_c1_durable_evidence]`);
 - migrate an exact supported non-empty older prefix through the complete
   contiguous packaged suffix.
 
@@ -576,3 +578,63 @@ identities before returning `definitely_not_committed`. Receipt-present replay a
 recovery execute all thirty exact full-row route queries plus both routes per evidence
 member before disclosing the original receipt-owned result. Any partial, alternate,
 malformed, contradictory, or colliding observation returns no result.
+
+<!-- RW0_C1_CURRENT_STATUS_BEGIN -->
+**RW0-C1 operation and recovery.**
+
+RW0-C1 adds two private mutation families to the one existing Coordinator
+transaction controller: `establish_rw0_phase` and `admit_rw0_evidence`. Both
+fence before receipt disclosure, use receipt-first exact replay, write the
+receipt last, perform complete in-transaction family readback, invalidate the
+capability, and attempt commit exactly once. Commit-attempt failure returns
+`commit_outcome_unknown`; there is no automatic retry. From the start of that
+attempt, a private one-operation commit-close witness is shared across the
+controller, module delegate, and writer wrapper. It records commit-start and a
+normal commit return, but success is publishable only after result publication,
+controller/module return, capability and connection cleanup, mutation-slot and
+operation-lease retirement, process stabilization, and writer post-operation
+cleanup complete. Its `close_proof_complete` state records that internal close,
+not caller receipt. Commit-uncertainty normalization and the exact witness stay
+active through the final result handoff and successful exit of the outer writer
+frame, so every ordinary failure after commit starts and before that exit is
+the same uncertainty result. No durable handoff state is added. Replay and
+conflict paths do not acquire commit uncertainty when they never attempt
+commit; a standalone ordinary operation-retirement failure on such a precommit
+path becomes content-free `mutation_failed` and performs no additional commit.
+
+A fresh fenced writer resolves uncertainty only as `committed_exact`,
+`definitely_not_committed`, or `unresolved`. Partial, contradictory, malformed,
+or orphan family evidence is unresolved. Historical phase recovery reconstructs
+its four admission snapshots from the immutable phase row, and recomputable
+member relations use persisted evaluation time rather than the current clock.
+Evidence admission uses a self-digested pre-apply selector containing only the
+stable command, phase, preassigned-membership, kind/value, prerequisite-member,
+and immutable owner-row identities. It does not contain a membership digest or
+database observation. Receipt-present recovery obtains all commit-created
+identity from durable rows. Receipt-absent `definitely_not_committed` additionally
+requires an exact readable phase and immutable prerequisites, absence of both
+member routes and all deterministic operation relation rows/operands, and a
+registry posture that is either wholly absent or an exact reusable global
+registry/payload family. Ref and digest routes are independently read for the
+registry, kind-specific payload, and rank-1/rank-12 normalized children; child-
+only and alias families are unresolved. Deterministic relation bindings and
+operands are addressed globally by relation ref, so a foreign-phase fragment is
+also unresolved.
+
+Recovery has its own private one-operation close witness and never uses commit
+uncertainty. A computed `committed_exact` or `definitely_not_committed` result
+is released only after the same outer lease and writer cleanup boundary proves
+closed. Recovery normalization remains active after that close proof and until
+the final outer writer return succeeds. An ordinary failure anywhere in that
+post-computation interval returns `unresolved`. Governing process-control keeps
+its existing precedence. An already established pre-result safe
+`WriterSessionError`, `SQLiteMutationStoreError`, or private C1 disposition
+remains primary over a secondary ordinary operation-retirement failure; without
+such a primary, a pre-result ordinary cleanup failure is content-free
+`mutation_failed`.
+
+For fresh evidence admission, actual current program/work reads and the command
+CAS precede registry, member, dependency, relation, and owner collision probes.
+Only an actual `None` from an owner reader becomes `owner_row_missing`; closed
+SQLite reader errors retain their existing safe class.
+<!-- RW0_C1_CURRENT_STATUS_END -->

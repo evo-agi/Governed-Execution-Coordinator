@@ -38,6 +38,13 @@ MIGRATION_0003_PATH = (
     / "sqlite_migrations"
     / "0003_cognitive_proposal_and_selection_state.sql"
 )
+MIGRATION_0004_PATH = (
+    REPOSITORY_ROOT
+    / "src"
+    / "ge_nwp_coordinator"
+    / "sqlite_migrations"
+    / "0004_rw0_c1_durable_evidence.sql"
+)
 MIGRATION_PACKAGE_PATH = MIGRATION_0002_PATH.parent
 
 EXPECTED_MIGRATION_0001_SHA256 = "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148"
@@ -45,10 +52,13 @@ EXPECTED_MIGRATION_ID = "0002_development_program_and_effect_state"
 EXPECTED_SEQUENCE = 2
 EXPECTED_RESOURCE_NAME = "0002_development_program_and_effect_state.sql"
 EXPECTED_SHA256 = "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c"
-CURRENT_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
-CURRENT_SEQUENCE = 3
-CURRENT_RESOURCE_NAME = "0003_cognitive_proposal_and_selection_state.sql"
-CURRENT_SHA256 = "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579"
+SECTION41_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
+SECTION41_RESOURCE_NAME = "0003_cognitive_proposal_and_selection_state.sql"
+SECTION41_SHA256 = "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579"
+CURRENT_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
+CURRENT_SEQUENCE = 4
+CURRENT_RESOURCE_NAME = "0004_rw0_c1_durable_evidence.sql"
+CURRENT_SHA256 = "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec"
 SECTION41_TABLE_NAMES = (
     "development_model_source_invocations",
     "development_pre_execution_planning_contexts",
@@ -74,16 +84,54 @@ SECTION41_TRIGGER_NAMES = tuple(
         )
     )
 )
+RW0_C1_TABLE_NAMES = (
+    "rw0_phase_instances",
+    "rw0_evidence_values",
+    "rw0_evidence_memberships",
+    "rw0_relation_bindings",
+    "rw0_relation_operands",
+    "rw0_c1_mutation_receipts",
+    "rw0_authority_verification_observations",
+    "rw0_subordinate_authorization_proposals",
+    "rw0_custody_availability_observations",
+    "rw0_retrieval_capability_event_observations",
+    "rw0_remote_host_readiness_observations",
+    "rw0_effect_host_qualifications",
+    "rw0_worker_mechanism_capability_declarations",
+    "rw0_worker_mechanism_capability_observations",
+    "rw0_worker_mechanism_capability_qualifications",
+    "rw0_wire_cancellation_request_observations",
+    "rw0_wire_process_observations",
+    "rw0_c2a_worker_observations",
+    "rw0_wire_worker_result_bindings",
+    "rw0_wire_process_result_classification_bindings",
+    "rw0_section41_post_execution_proposal_family_members",
+    "rw0_authority_observation_effect_classes",
+    "rw0_c2a_worker_observation_evidence_refs",
+)
+RW0_C1_TRIGGER_NAMES = tuple(
+    sorted(
+        trigger
+        for table in RW0_C1_TABLE_NAMES
+        for trigger in (f"{table}_no_delete", f"{table}_no_update")
+    )
+)
+RW0_C1_INDEX_NAMES = (
+    "idx_rw0_phase_instances_k8_lookup",
+    "idx_rw0_evidence_memberships_phase_kind_page",
+    "idx_rw0_relation_operands_c1_membership_lookup",
+    "idx_rw0_c1_mutation_receipts_phase_family_lookup",
+)
 EXPECTED_SIZE = 154_434
 EXPECTED_COMPATIBILITY = (2, 2)
 EXPECTED_DESTRUCTIVE = False
 EXPECTED_SQLITE_MINIMUM = (3, 37, 0)
 EXPECTED_STATEMENT_COUNT = 50
-EXPECTED_CUMULATIVE_TABLE_COUNT = 39
-EXPECTED_CUMULATIVE_COLUMN_COUNT = 786
-EXPECTED_CUMULATIVE_TRIGGER_COUNT = 64
-EXPECTED_CUMULATIVE_EXPLICIT_INDEX_COUNT = 1
-EXPECTED_CUMULATIVE_FOREIGN_KEY_COUNT = 140
+EXPECTED_CUMULATIVE_TABLE_COUNT = 62
+EXPECTED_CUMULATIVE_COLUMN_COUNT = 1482
+EXPECTED_CUMULATIVE_TRIGGER_COUNT = 110
+EXPECTED_CUMULATIVE_EXPLICIT_INDEX_COUNT = 5
+EXPECTED_CUMULATIVE_FOREIGN_KEY_COUNT = 190
 EXPECTED_NEW_FOREIGN_KEY_COUNT = 87
 EXPECTED_NEW_DEFERRED_FOREIGN_KEY_COUNT = 6
 EXPECTED_NEW_COLUMN_COUNT = 362
@@ -4388,16 +4436,18 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
     assert tuple(migration.migration_id for migration in catalog.migrations) == (
         "0001_initial",
         EXPECTED_MIGRATION_ID,
+        SECTION41_MIGRATION_ID,
         CURRENT_MIGRATION_ID,
     )
-    assert tuple(migration.sequence for migration in catalog.migrations) == (1, 2, 3)
+    assert tuple(migration.sequence for migration in catalog.migrations) == (1, 2, 3, 4)
     assert tuple(migration.resource_name for migration in catalog.migrations) == (
         "0001_initial.sql",
         EXPECTED_RESOURCE_NAME,
+        SECTION41_RESOURCE_NAME,
         CURRENT_RESOURCE_NAME,
     )
     assert hashlib.sha256(MIGRATION_0001_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_SHA256
-    first, second, third = catalog.migrations
+    first, second, third, fourth = catalog.migrations
     assert (first.min_app_schema, first.max_app_schema, first.destructive) == (1, 1, False)
     assert (
         second.migration_id,
@@ -4425,6 +4475,24 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         third.max_app_schema,
         third.destructive,
     ) == (
+        SECTION41_MIGRATION_ID,
+        3,
+        SECTION41_RESOURCE_NAME,
+        SECTION41_SHA256,
+        2,
+        2,
+        False,
+    )
+    assert third.sql_bytes == MIGRATION_0003_PATH.read_bytes()
+    assert (
+        fourth.migration_id,
+        fourth.sequence,
+        fourth.resource_name,
+        fourth.checksum,
+        fourth.min_app_schema,
+        fourth.max_app_schema,
+        fourth.destructive,
+    ) == (
         CURRENT_MIGRATION_ID,
         CURRENT_SEQUENCE,
         CURRENT_RESOURCE_NAME,
@@ -4433,10 +4501,11 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         2,
         False,
     )
-    assert third.sql_bytes == MIGRATION_0003_PATH.read_bytes()
+    assert fourth.sql_bytes == MIGRATION_0004_PATH.read_bytes()
     assert tuple(sorted(path.name for path in MIGRATION_PACKAGE_PATH.glob("*.sql"))) == (
         "0001_initial.sql",
         EXPECTED_RESOURCE_NAME,
+        SECTION41_RESOURCE_NAME,
         CURRENT_RESOURCE_NAME,
     )
 
@@ -4458,9 +4527,10 @@ def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_current
     assert tuple(row[:3] + row[4:] for row in history) == (
         ("0001_initial", 1, EXPECTED_MIGRATION_0001_SHA256, 1, 1),
         (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256, 2, 2),
-        (CURRENT_MIGRATION_ID, 3, CURRENT_SHA256, 2, 2),
+        (SECTION41_MIGRATION_ID, 3, SECTION41_SHA256, 2, 2),
+        (CURRENT_MIGRATION_ID, 4, CURRENT_SHA256, 2, 2),
     )
-    assert history[0][3] == history[1][3] == history[2][3]
+    assert len({row[3] for row in history}) == 1
     with closing(sqlite3.connect(location.database_path)) as connection, connection:
         counts = _schema_counts(connection)
         assert counts == {
@@ -4506,17 +4576,19 @@ def test_exact_0001_is_observationally_unknown_then_explicitly_migrates_complete
     assert history[0] == before_history[0]
     assert history[1][0:3] == (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256)
     assert history[1][4:] == (2, 2)
-    assert history[2][0:3] == (CURRENT_MIGRATION_ID, 3, CURRENT_SHA256)
+    assert history[2][0:3] == (SECTION41_MIGRATION_ID, 3, SECTION41_SHA256)
     assert history[2][4:] == (2, 2)
-    assert history[1][3] == history[2][3]
+    assert history[3][0:3] == (CURRENT_MIGRATION_ID, 4, CURRENT_SHA256)
+    assert history[3][4:] == (2, 2)
+    assert history[1][3] == history[2][3] == history[3][3]
     with closing(sqlite3.connect(location.database_path)) as connection, connection:
         assert _schema_counts(connection) == {
-            "tables": 39,
-            "columns": 786,
-            "triggers": 64,
-            "indexes": 1,
+            "tables": 62,
+            "columns": 1482,
+            "triggers": 110,
+            "indexes": 5,
             "views": 0,
-            "foreign_keys": 140,
+            "foreign_keys": 190,
         }
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
 
@@ -4530,7 +4602,12 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
     production_catalog = migration_module.load_migration_catalog()
     assert tuple(
         migration.migration_id for migration in production_catalog.migrations
-    ) == ("0001_initial", EXPECTED_MIGRATION_ID, CURRENT_MIGRATION_ID)
+    ) == (
+        "0001_initial",
+        EXPECTED_MIGRATION_ID,
+        SECTION41_MIGRATION_ID,
+        CURRENT_MIGRATION_ID,
+    )
     prefix_catalog = migration_module.MigrationCatalog(
         migrations=production_catalog.migrations[:2]
     )
@@ -4620,7 +4697,7 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
         real_apply,
     )
 
-    assert applied_migration_ids == [CURRENT_MIGRATION_ID]
+    assert applied_migration_ids == [SECTION41_MIGRATION_ID, CURRENT_MIGRATION_ID]
     assert migrated == migration_module.DatabaseInspection(
         classification=migration_module.DatabaseClassification.MANAGED,
         current_sequence=CURRENT_SEQUENCE,
@@ -4630,13 +4707,19 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
     after_history = tuple(_history_rows(upgrade))
     assert after_history[:2] == before_history
     assert _canonical_snapshot_bytes(after_history[:2]) == before_history_bytes
-    assert len(after_history) == 3
+    assert len(after_history) == 4
     assert after_history[2][:3] == (
+        SECTION41_MIGRATION_ID,
+        3,
+        SECTION41_SHA256,
+    )
+    assert after_history[2][4:] == (2, 2)
+    assert after_history[3][:3] == (
         CURRENT_MIGRATION_ID,
         CURRENT_SEQUENCE,
         CURRENT_SHA256,
     )
-    assert after_history[2][4:] == (2, 2)
+    assert after_history[3][4:] == (2, 2)
 
     with closing(sqlite3.connect(upgrade.database_path)) as connection:
         after_tables = _user_table_names(connection)
@@ -4649,18 +4732,23 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
             (object_type, name)
             for object_type, name, _table_name, _sql in before_schema
         }
-        assert set(after_tables) - set(before_tables) == set(SECTION41_TABLE_NAMES)
+        assert set(after_tables) - set(before_tables) == set(
+            (*SECTION41_TABLE_NAMES, *RW0_C1_TABLE_NAMES)
+        )
         assert set(before_tables) <= set(after_tables)
         assert new_schema_objects == {
             *(("table", table) for table in SECTION41_TABLE_NAMES),
             *(("trigger", trigger) for trigger in SECTION41_TRIGGER_NAMES),
+            *(("table", table) for table in RW0_C1_TABLE_NAMES),
+            *(("trigger", trigger) for trigger in RW0_C1_TRIGGER_NAMES),
+            *(("index", index) for index in RW0_C1_INDEX_NAMES),
         }
-        assert len(new_schema_objects) == 27
+        assert len(new_schema_objects) == 100
         assert _canonical_snapshot_bytes(after_rows) == before_rows_bytes
         assert all(
             connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
             == (0,)
-            for table in SECTION41_TABLE_NAMES
+            for table in (*SECTION41_TABLE_NAMES, *RW0_C1_TABLE_NAMES)
         )
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)]

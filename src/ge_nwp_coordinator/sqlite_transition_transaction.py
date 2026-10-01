@@ -66,6 +66,37 @@ from ge_nwp_coordinator._sqlite_development_program_initialization import (
     _recover_development_program_initialization_after_fencing,
     _resolve_development_program_initialization_apply_after_fencing,
 )
+from ge_nwp_coordinator._rw0_c1_mutation_contracts import (
+    INSERT_SPEC_BY_TABLE as _RW0_C1_INSERT_SPEC_BY_TABLE,
+    RW0C1WritePlan,
+    _RW0C1CommitCloseWitness,
+    _RW0C1RecoveryCloseWitness,
+)
+from ge_nwp_coordinator._rw0_c1_semantic_values import (
+    RW0C1AdmitEvidenceCommandV1,
+    RW0C1AdmitEvidenceResultV1,
+    RW0C1ConflictReasonV1,
+    RW0C1ConflictV1,
+    RW0C1EstablishPhaseCommandV1,
+    RW0C1EstablishPhaseResultV1,
+    RW0C1EvidenceAdmissionRecoverySelectorV1,
+    RW0C1RecoveryDispositionV1,
+    RW0C1RecoveryProbeV1,
+    RW0C1RecoveryResultV1,
+)
+from ge_nwp_coordinator._sqlite_rw0_c1 import (
+    _RW0C1EvidencePreparation,
+    _RW0C1PhasePreparation,
+    _complete_rw0_c1_evidence_admission_preparation,
+    _complete_rw0_c1_phase_establishment_preparation,
+    _probe_rw0_c1_relation_identity_collisions,
+    _readback_rw0_c1_evidence_admission,
+    _readback_rw0_c1_phase_establishment,
+    _recover_rw0_c1_evidence_admission_after_fencing,
+    _recover_rw0_c1_phase_establishment_after_fencing,
+    _resolve_rw0_c1_evidence_admission_after_fencing,
+    _resolve_rw0_c1_phase_establishment_after_fencing,
+)
 from ge_nwp_coordinator.lease import derive_lease_runtime_decision
 from ge_nwp_coordinator.persistence_contracts import (
     AdmittedBacklogRecordEnvelope,
@@ -753,6 +784,8 @@ class _CoordinatorMutationTransactionController:
         "_owner_pid",
         "_owner_thread",
         "_resolution_state",
+        "_rw0_c1_commit_close_witness",
+        "_rw0_c1_recovery_close_witness",
         "_state",
         "_transaction_began",
     )
@@ -763,16 +796,40 @@ class _CoordinatorMutationTransactionController:
         *,
         key: object,
         operation_lease: _WriterSessionOperationLease,
+        rw0_c1_commit_close_witness: _RW0C1CommitCloseWitness | None = None,
+        rw0_c1_recovery_close_witness: _RW0C1RecoveryCloseWitness | None = None,
     ) -> None:
         if key is not _CONTROLLER_CONSTRUCTION_KEY:
             raise _mutation_failed()
         if type(operation_lease) is not _WriterSessionOperationLease:
             raise _mutation_failed()
+        if (
+            rw0_c1_commit_close_witness is not None
+            and type(rw0_c1_commit_close_witness)
+            is not _RW0C1CommitCloseWitness
+        ) or (
+            rw0_c1_recovery_close_witness is not None
+            and type(rw0_c1_recovery_close_witness)
+            is not _RW0C1RecoveryCloseWitness
+        ) or (
+            rw0_c1_commit_close_witness is not None
+            and rw0_c1_recovery_close_witness is not None
+        ):
+            raise _mutation_failed()
+        try:
+            if rw0_c1_commit_close_witness is not None:
+                rw0_c1_commit_close_witness._claim_controller()
+            if rw0_c1_recovery_close_witness is not None:
+                rw0_c1_recovery_close_witness._claim_controller()
+        except Exception:
+            raise _mutation_failed() from None
         self._operation_lease = operation_lease
         self._owner_pid = os.getpid()
         self._owner_thread = get_ident()
         self._state = _CONTROLLER_NEW
         self._resolution_state = _MutationCommitResolutionState.NEW
+        self._rw0_c1_commit_close_witness = rw0_c1_commit_close_witness
+        self._rw0_c1_recovery_close_witness = rw0_c1_recovery_close_witness
         self._commit_attempt_started = False
         self._connection: sqlite3.Connection | None = None
         self._connection_scope: _ControllerConnectionScope | None = None
@@ -936,6 +993,65 @@ class _CoordinatorMutationTransactionController:
             probe=probe
         )
         if type(result) is not PreExecutionPlanDispositionRecoveryResultV1:
+            raise _mutation_failed()
+        return result
+
+    def run_atomic_rw0_c1_phase_establishment(
+        self,
+        *,
+        command: RW0C1EstablishPhaseCommandV1,
+    ) -> RW0C1EstablishPhaseResultV1 | RW0C1ConflictV1:
+        if type(command) is not RW0C1EstablishPhaseCommandV1:
+            raise _mutation_failed()
+        result = self._run_atomic_rw0_c1_phase_establishment_transaction(
+            command=command
+        )
+        if type(result) not in (RW0C1EstablishPhaseResultV1, RW0C1ConflictV1):
+            raise _mutation_failed()
+        return result
+
+    def run_rw0_c1_phase_establishment_recovery(
+        self,
+        *,
+        probe: RW0C1RecoveryProbeV1,
+    ) -> RW0C1RecoveryResultV1:
+        if (
+            type(probe) is not RW0C1RecoveryProbeV1
+            or probe.mutation_family != "establish_rw0_phase"
+        ):
+            raise _mutation_failed()
+        result = self._run_rw0_c1_phase_establishment_recovery_transaction(
+            probe=probe
+        )
+        if type(result) is not RW0C1RecoveryResultV1:
+            raise _mutation_failed()
+        return result
+
+    def run_atomic_rw0_c1_evidence_admission(
+        self,
+        *,
+        command: RW0C1AdmitEvidenceCommandV1,
+    ) -> RW0C1AdmitEvidenceResultV1 | RW0C1ConflictV1:
+        if type(command) is not RW0C1AdmitEvidenceCommandV1:
+            raise _mutation_failed()
+        result = self._run_atomic_rw0_c1_evidence_admission_transaction(
+            command=command
+        )
+        if type(result) not in (RW0C1AdmitEvidenceResultV1, RW0C1ConflictV1):
+            raise _mutation_failed()
+        return result
+
+    def run_rw0_c1_evidence_admission_recovery(
+        self,
+        *,
+        selector: RW0C1EvidenceAdmissionRecoverySelectorV1,
+    ) -> RW0C1RecoveryResultV1:
+        if type(selector) is not RW0C1EvidenceAdmissionRecoverySelectorV1:
+            raise _mutation_failed()
+        result = self._run_rw0_c1_evidence_admission_recovery_transaction(
+            selector=selector
+        )
+        if type(result) is not RW0C1RecoveryResultV1:
             raise _mutation_failed()
         return result
 
@@ -1472,6 +1588,361 @@ class _CoordinatorMutationTransactionController:
             )
         return result
 
+    def _run_atomic_rw0_c1_phase_establishment_transaction(
+        self,
+        *,
+        command: RW0C1EstablishPhaseCommandV1,
+    ) -> RW0C1EstablishPhaseResultV1 | RW0C1ConflictV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: RW0C1EstablishPhaseResultV1 | RW0C1ConflictV1 | None = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is _WriterIssuanceMatch.STALE_WRITER:
+                    planned_result = RW0C1ConflictV1(
+                        RW0C1ConflictReasonV1.STALE_WRITER_TOKEN
+                    )
+                    cleanup_exception = self._resolve_rollback_before_commit()
+                elif fencing is _WriterIssuanceMatch.MATCH:
+                    resolution = _resolve_rw0_c1_phase_establishment_after_fencing(
+                        capability=self._capability,
+                        command=command,
+                    )
+                    if type(resolution) is _RW0C1PhasePreparation:
+                        completed = _complete_rw0_c1_phase_establishment_preparation(
+                            resolution,
+                            operation_timestamp=_capture_transaction_timestamp(),
+                        )
+                        if type(completed) is RW0C1WritePlan:
+                            collision = _probe_rw0_c1_relation_identity_collisions(
+                                capability=self._capability,
+                                plan=completed,
+                            )
+                            if collision is None:
+                                planned_result = self._commit_fresh_rw0_c1_plan(
+                                    completed
+                                )
+                            else:
+                                planned_result = collision
+                                cleanup_exception = (
+                                    self._resolve_rollback_before_commit()
+                                )
+                        elif type(completed) is RW0C1ConflictV1:
+                            planned_result = completed
+                            cleanup_exception = self._resolve_rollback_before_commit()
+                        else:
+                            planned_exception = _database_integrity_failure()
+                    elif type(resolution) in (
+                        RW0C1EstablishPhaseResultV1,
+                        RW0C1ConflictV1,
+                    ):
+                        planned_result = resolution
+                        cleanup_exception = self._resolve_rollback_before_commit()
+                    else:
+                        planned_exception = _database_integrity_failure()
+                else:
+                    planned_exception = _mutation_failed()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    planned_result = None
+                    cleanup_exception = None
+                    planned_exception = _commit_outcome_unknown()
+                else:
+                    cleanup_exception = cleanup_exception or _mutation_failed()
+            command = None  # type: ignore[assignment]
+        commit_close_witness = self._rw0_c1_commit_close_witness
+        if (
+            type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            and (
+                cleanup_exception is not None
+                or planned_exception is not None
+                or planned_result is None
+            )
+        ):
+            planned_result = None
+            cleanup_exception = None
+            planned_exception = _commit_outcome_unknown()
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _run_rw0_c1_phase_establishment_recovery_transaction(
+        self,
+        *,
+        probe: RW0C1RecoveryProbeV1,
+    ) -> RW0C1RecoveryResultV1:
+        return self._run_rw0_c1_recovery_transaction(
+            probe=probe,
+            phase=True,
+        )
+
+    def _run_atomic_rw0_c1_evidence_admission_transaction(
+        self,
+        *,
+        command: RW0C1AdmitEvidenceCommandV1,
+    ) -> RW0C1AdmitEvidenceResultV1 | RW0C1ConflictV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: RW0C1AdmitEvidenceResultV1 | RW0C1ConflictV1 | None = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is _WriterIssuanceMatch.STALE_WRITER:
+                    planned_result = RW0C1ConflictV1(
+                        RW0C1ConflictReasonV1.STALE_WRITER_TOKEN
+                    )
+                    cleanup_exception = self._resolve_rollback_before_commit()
+                elif fencing is _WriterIssuanceMatch.MATCH:
+                    resolution = _resolve_rw0_c1_evidence_admission_after_fencing(
+                        capability=self._capability,
+                        command=command,
+                    )
+                    if type(resolution) is _RW0C1EvidencePreparation:
+                        completed = _complete_rw0_c1_evidence_admission_preparation(
+                            resolution,
+                            operation_timestamp=_capture_transaction_timestamp(),
+                        )
+                        if type(completed) is RW0C1WritePlan:
+                            collision = _probe_rw0_c1_relation_identity_collisions(
+                                capability=self._capability,
+                                plan=completed,
+                            )
+                            if collision is None:
+                                planned_result = self._commit_fresh_rw0_c1_plan(
+                                    completed
+                                )
+                            else:
+                                planned_result = collision
+                                cleanup_exception = (
+                                    self._resolve_rollback_before_commit()
+                                )
+                        elif type(completed) is RW0C1ConflictV1:
+                            planned_result = completed
+                            cleanup_exception = self._resolve_rollback_before_commit()
+                        else:
+                            planned_exception = _database_integrity_failure()
+                    elif type(resolution) in (
+                        RW0C1AdmitEvidenceResultV1,
+                        RW0C1ConflictV1,
+                    ):
+                        planned_result = resolution
+                        cleanup_exception = self._resolve_rollback_before_commit()
+                    else:
+                        planned_exception = _database_integrity_failure()
+                else:
+                    planned_exception = _mutation_failed()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as exc:
+                planned_exception = exc
+            except SQLiteMutationStoreError as exc:
+                planned_exception = exc
+            except Exception:
+                planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    planned_result = None
+                    cleanup_exception = None
+                    planned_exception = _commit_outcome_unknown()
+                else:
+                    cleanup_exception = cleanup_exception or _mutation_failed()
+            command = None  # type: ignore[assignment]
+        commit_close_witness = self._rw0_c1_commit_close_witness
+        if (
+            type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            and (
+                cleanup_exception is not None
+                or planned_exception is not None
+                or planned_result is None
+            )
+        ):
+            planned_result = None
+            cleanup_exception = None
+            planned_exception = _commit_outcome_unknown()
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _run_rw0_c1_evidence_admission_recovery_transaction(
+        self,
+        *,
+        selector: RW0C1EvidenceAdmissionRecoverySelectorV1,
+    ) -> RW0C1RecoveryResultV1:
+        return self._run_rw0_c1_recovery_transaction(
+            probe=selector,
+            phase=False,
+        )
+
+    def _run_rw0_c1_recovery_transaction(
+        self,
+        *,
+        probe: RW0C1RecoveryProbeV1 | RW0C1EvidenceAdmissionRecoverySelectorV1,
+        phase: bool,
+    ) -> RW0C1RecoveryResultV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result = RW0C1RecoveryResultV1(
+            probe.mutation_family,
+            probe.mutation_ref,
+            probe.command_digest,
+            RW0C1RecoveryDispositionV1.UNRESOLVED,
+        )
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        recovery_close_witness = self._rw0_c1_recovery_close_witness
+        if type(recovery_close_witness) is not _RW0C1RecoveryCloseWitness:
+            raise _mutation_failed()
+        try:
+            try:
+                fencing = self._run_until_writer_fencing_resolution()
+                if fencing is _WriterIssuanceMatch.MATCH:
+                    if phase:
+                        result = _recover_rw0_c1_phase_establishment_after_fencing(
+                            capability=self._capability,
+                            probe=probe,
+                        )
+                    else:
+                        result = _recover_rw0_c1_evidence_admission_after_fencing(
+                            capability=self._capability,
+                            selector=probe,
+                        )
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                try:
+                    self._resolve_rollback_before_commit()
+                except BaseException:
+                    pass
+                raise
+            except Exception:
+                result = RW0C1RecoveryResultV1(
+                    probe.mutation_family,
+                    probe.mutation_ref,
+                    probe.command_digest,
+                    RW0C1RecoveryDispositionV1.UNRESOLVED,
+                )
+            cleanup_exception = self._resolve_rollback_before_commit()
+            if cleanup_exception is not None:
+                result = RW0C1RecoveryResultV1(
+                    result.mutation_family,
+                    result.mutation_ref,
+                    result.command_digest,
+                    RW0C1RecoveryDispositionV1.UNRESOLVED,
+                )
+            recovery_close_witness._mark_result_computed(result)
+        finally:
+            try:
+                mutation_lease._close()
+            except (KeyboardInterrupt, SystemExit, GeneratorExit):
+                raise
+            except Exception:
+                if recovery_close_witness.result_computed:
+                    result = recovery_close_witness._unresolved_result()
+                else:
+                    raise
+            probe = None  # type: ignore[assignment]
+        return result
+
+    def _commit_fresh_rw0_c1_plan(
+        self,
+        plan: RW0C1WritePlan,
+    ) -> RW0C1EstablishPhaseResultV1 | RW0C1AdmitEvidenceResultV1:
+        if type(plan) is not RW0C1WritePlan:
+            raise _database_integrity_failure()
+        connection = self._connection
+        capability = self._capability
+        if (
+            type(connection) is not sqlite3.Connection
+            or type(capability) is not _SQLiteMutationReadCapability
+            or self._resolution_state
+            is not _MutationCommitResolutionState.CAPABILITY_ACTIVE
+        ):
+            raise _mutation_failed()
+        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+        for row in plan.rows:
+            try:
+                specification = _RW0_C1_INSERT_SPEC_BY_TABLE[row.table_name]
+                cursor = connection.execute(specification.sql, row.as_tuple())
+                cursor.close()
+            except sqlite3.Error as raw_sqlite_error:
+                raise _classify_sqlite_write_error(raw_sqlite_error) from None
+            except SQLiteMutationStoreError:
+                raise
+            except Exception:
+                raise _mutation_failed() from None
+        if plan.mutation_family == "establish_rw0_phase":
+            observed = _readback_rw0_c1_phase_establishment(
+                capability=capability,
+                plan=plan,
+            )
+        elif plan.mutation_family == "admit_rw0_evidence":
+            observed = _readback_rw0_c1_evidence_admission(
+                capability=capability,
+                plan=plan,
+            )
+        else:
+            raise _database_integrity_failure()
+        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+        del connection, capability
+        committed = self._commit_after_fresh_writes(
+            observed,
+            force_cleanup_on_uncertainty=True,
+        )
+        if type(committed) not in (
+            RW0C1EstablishPhaseResultV1,
+            RW0C1AdmitEvidenceResultV1,
+        ):
+            raise _database_integrity_failure()
+        return committed
+
     def _acquire_controller_mutation_lease(self) -> Any:
         mutation_lease_failed = False
         mutation_lease_exception: SQLiteMutationStoreError | None = None
@@ -1883,6 +2354,15 @@ class _CoordinatorMutationTransactionController:
         )
         self._prepare_controller_scope()
         commit_observation: object = _SQLITE_COMMIT_NOT_RETURNED
+        require_complete_close_proof = type(planned_result) in (
+            RW0C1EstablishPhaseResultV1,
+            RW0C1AdmitEvidenceResultV1,
+        )
+        commit_close_witness = self._rw0_c1_commit_close_witness
+        if require_complete_close_proof and type(
+            commit_close_witness
+        ) is not _RW0C1CommitCloseWitness:
+            raise _mutation_failed()
         try:
             self._set_resolution_state(
                 _MutationCommitResolutionState.COMMIT_ATTEMPT_STARTED
@@ -1892,7 +2372,11 @@ class _CoordinatorMutationTransactionController:
             if type(scope) is not _ControllerConnectionScope:
                 raise _mutation_failed()
             try:
+                if require_complete_close_proof:
+                    commit_close_witness._mark_commit_attempt_started()
                 commit_observation = scope.commit()
+                if require_complete_close_proof and commit_observation is None:
+                    commit_close_witness._mark_commit_returned_success()
             except Exception:
                 commit_observation = _commit_outcome_unknown()
             if commit_observation is not None:
@@ -1919,28 +2403,48 @@ class _CoordinatorMutationTransactionController:
                     )
                 except SQLiteMutationStoreError:
                     pass
-                self._close_after_commit_resolution(
-                    commit_succeeded=False,
-                    force_cleanup=force_cleanup_on_uncertainty,
-                )
+                if require_complete_close_proof:
+                    self._close_after_commit_resolution_exact(
+                        commit_succeeded=False,
+                        force_cleanup=force_cleanup_on_uncertainty,
+                    )
+                else:
+                    self._close_after_commit_resolution(
+                        commit_succeeded=False,
+                        force_cleanup=force_cleanup_on_uncertainty,
+                    )
                 raise commit_observation from None
 
-            try:
+            if require_complete_close_proof:
                 self._set_resolution_state(
                     _MutationCommitResolutionState.COMMIT_SUCCEEDED
                 )
-            except SQLiteMutationStoreError:
+                self._close_after_commit_resolution_exact(
+                    commit_succeeded=True,
+                    force_cleanup=False,
+                )
+            else:
+                try:
+                    self._set_resolution_state(
+                        _MutationCommitResolutionState.COMMIT_SUCCEEDED
+                    )
+                except SQLiteMutationStoreError:
+                    self._close_after_commit_resolution(
+                        commit_succeeded=True,
+                        force_cleanup=False,
+                    )
+                    return planned_result
                 self._close_after_commit_resolution(
                     commit_succeeded=True,
                     force_cleanup=False,
                 )
-                return planned_result
-            self._close_after_commit_resolution(
-                commit_succeeded=True,
-                force_cleanup=False,
-            )
             return planned_result
         except Exception:
+            if require_complete_close_proof and self._commit_attempt_started:
+                self._stabilize_process_control_commit_resolution(
+                    commit_succeeded=commit_observation is None,
+                )
+                raise _commit_outcome_unknown() from None
             raise
         except BaseException:
             if not self._commit_attempt_started:
@@ -2166,6 +2670,44 @@ class _CoordinatorMutationTransactionController:
                 )
             except SQLiteMutationStoreError:
                 pass
+
+    def _close_after_commit_resolution_exact(
+        self,
+        *,
+        commit_succeeded: bool,
+        force_cleanup: bool,
+    ) -> None:
+        scope = self._connection_scope
+        if type(scope) is not _ControllerConnectionScope:
+            raise _mutation_failed()
+        close_proved = False
+        try:
+            close_proved = scope.close_after_commit(
+                commit_succeeded=commit_succeeded,
+                force_cleanup=force_cleanup,
+            )
+        finally:
+            if scope._resolved:
+                close_proved = scope._close_proved
+                if close_proved:
+                    if force_cleanup:
+                        self._state = (
+                            _CONTROLLER_COMMIT_SUCCEEDED_CONNECTION_CLOSED_CLEANUP_PENDING
+                            if commit_succeeded
+                            else _CONTROLLER_COMMIT_UNCERTAIN_CONNECTION_CLOSED_CLEANUP_PENDING
+                        )
+                    else:
+                        self._state = _CONTROLLER_CLOSED
+                else:
+                    self._state = (
+                        _CONTROLLER_COMMIT_SUCCEEDED_QUARANTINED
+                        if commit_succeeded
+                        else _CONTROLLER_COMMIT_UNCERTAIN_QUARANTINED
+                    )
+        if not close_proved:
+            raise _commit_outcome_unknown() from None
+        self._set_resolution_state(_MutationCommitResolutionState.CLOSED)
+
     def _set_resolution_state(self, state: _MutationCommitResolutionState) -> None:
         current_state = self._resolution_state
         if type(current_state) is not _MutationCommitResolutionState:
@@ -2536,6 +3078,184 @@ def _run_pre_execution_plan_disposition_recovery(
     probe = None  # type: ignore[assignment]
     checked_probe = None
     operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_atomic_rw0_c1_phase_establishment(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    command: RW0C1EstablishPhaseCommandV1,
+    commit_close_witness: _RW0C1CommitCloseWitness,
+) -> (
+    RW0C1EstablishPhaseResultV1
+    | RW0C1ConflictV1
+    | _SafeMutationFailureDisposition
+):
+    if (
+        type(operation_lease) is not _WriterSessionOperationLease
+        or type(commit_close_witness) is not _RW0C1CommitCloseWitness
+    ):
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        result = controller.run_atomic_rw0_c1_phase_establishment(command=command)
+    except SQLiteMutationStoreError as error:
+        if commit_close_witness.ordinary_failure_is_commit_uncertain:
+            return _new_safe_mutation_failure_disposition(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            )
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if commit_close_witness.ordinary_failure_is_commit_uncertain:
+            return _new_safe_mutation_failure_disposition(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            )
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_rw0_c1_phase_establishment_recovery(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    probe: RW0C1RecoveryProbeV1,
+    recovery_close_witness: _RW0C1RecoveryCloseWitness,
+) -> RW0C1RecoveryResultV1 | _SafeMutationFailureDisposition:
+    if (
+        type(operation_lease) is not _WriterSessionOperationLease
+        or type(recovery_close_witness) is not _RW0C1RecoveryCloseWitness
+    ):
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_recovery_close_witness=recovery_close_witness,
+        )
+        result = controller.run_rw0_c1_phase_establishment_recovery(probe=probe)
+    except SQLiteMutationStoreError as error:
+        if recovery_close_witness.result_computed:
+            return recovery_close_witness._unresolved_result()
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if recovery_close_witness.result_computed:
+            return recovery_close_witness._unresolved_result()
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        probe = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_atomic_rw0_c1_evidence_admission(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    command: RW0C1AdmitEvidenceCommandV1,
+    commit_close_witness: _RW0C1CommitCloseWitness,
+) -> (
+    RW0C1AdmitEvidenceResultV1
+    | RW0C1ConflictV1
+    | _SafeMutationFailureDisposition
+):
+    if (
+        type(operation_lease) is not _WriterSessionOperationLease
+        or type(commit_close_witness) is not _RW0C1CommitCloseWitness
+    ):
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        result = controller.run_atomic_rw0_c1_evidence_admission(command=command)
+    except SQLiteMutationStoreError as error:
+        if commit_close_witness.ordinary_failure_is_commit_uncertain:
+            return _new_safe_mutation_failure_disposition(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            )
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if commit_close_witness.ordinary_failure_is_commit_uncertain:
+            return _new_safe_mutation_failure_disposition(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            )
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        command = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_rw0_c1_evidence_admission_recovery(
+    *,
+    operation_lease: _WriterSessionOperationLease,
+    selector: RW0C1EvidenceAdmissionRecoverySelectorV1,
+    recovery_close_witness: _RW0C1RecoveryCloseWitness,
+) -> RW0C1RecoveryResultV1 | _SafeMutationFailureDisposition:
+    if (
+        type(operation_lease) is not _WriterSessionOperationLease
+        or type(recovery_close_witness) is not _RW0C1RecoveryCloseWitness
+    ):
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_recovery_close_witness=recovery_close_witness,
+        )
+        result = controller.run_rw0_c1_evidence_admission_recovery(
+            selector=selector
+        )
+    except SQLiteMutationStoreError as error:
+        if recovery_close_witness.result_computed:
+            return recovery_close_witness._unresolved_result()
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if recovery_close_witness.result_computed:
+            return recovery_close_witness._unresolved_result()
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        selector = None  # type: ignore[assignment]
+        operation_lease = None  # type: ignore[assignment]
     return result
 
 

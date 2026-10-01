@@ -1008,6 +1008,7 @@ def test_b3c0b_boundary_files_and_migrations_remain_frozen() -> None:
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
+        "0004_rw0_c1_durable_evidence.sql",
     ]
     assert hashlib.sha256(MIGRATION_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()
