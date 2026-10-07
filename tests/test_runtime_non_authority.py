@@ -10,6 +10,7 @@ outside these finite contracts.
 import ast
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import symtable
@@ -33,9 +34,15 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_development_effect_row_values.py",
         "src/ge_nwp_coordinator/_development_program_row_values.py",
         "src/ge_nwp_coordinator/_development_row_value_support.py",
+        "src/ge_nwp_coordinator/_finite_backlog_risk_source_adapter.py",
+        "src/ge_nwp_coordinator/_post_execution_evidence_values.py",
+        "src/ge_nwp_coordinator/_post_execution_policy_values.py",
         "src/ge_nwp_coordinator/_rw0_c1_mutation_contracts.py",
         "src/ge_nwp_coordinator/_rw0_c1_row_values.py",
         "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py",
+        "src/ge_nwp_coordinator/_rw0_c_decision_input_values.py",
+        "src/ge_nwp_coordinator/_section41_post_execution_proposal_family_projection.py",
+        "src/ge_nwp_coordinator/_section41_post_execution_role_resolution.py",
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
@@ -129,6 +136,12 @@ NON_PRODUCTION_SOURCE_ROOTS = frozenset({".codex", ".docs", "tests"})
 ALL_MUTATING_METHODS = frozenset(
     {"append", "clear", "extend", "insert", "pop", "remove", "reverse", "sort"}
 )
+_AUTHORIZED_CACHE_RELATIVE = Path("src/ge_nwp_coordinator/__pycache__")
+_INTERPRETER_CACHE_NAME = re.compile(
+    r"(?P<source>[A-Za-z_][A-Za-z0-9_]*)\.cpython-[0-9]{2,3}"
+    r"(?:\.opt-[1-9][0-9]*)?\.(?:pyc|pyo)\Z",
+    re.ASCII,
+)
 
 
 def _read(path: str) -> str:
@@ -154,6 +167,34 @@ def _production_surface_paths(root: Path) -> frozenset[str]:
             mode = entry.stat(follow_symlinks=False).st_mode
             assert not stat.S_ISLNK(mode), path
             if stat.S_ISDIR(mode):
+                if entry.name == "__pycache__":
+                    assert path.relative_to(root) == _AUTHORIZED_CACHE_RELATIVE, path
+                    _assert_real_directory(path)
+                    with os.scandir(path) as cache_entries:
+                        cache_artifacts = sorted(
+                            cache_entries,
+                            key=lambda cache_entry: cache_entry.name,
+                        )
+                    for cache_artifact in cache_artifacts:
+                        cache_path = Path(cache_artifact.path)
+                        cache_mode = cache_artifact.stat(
+                            follow_symlinks=False,
+                        ).st_mode
+                        assert not stat.S_ISLNK(cache_mode), cache_path
+                        assert stat.S_ISREG(cache_mode), cache_path
+                        match = _INTERPRETER_CACHE_NAME.fullmatch(cache_path.name)
+                        assert match is not None, cache_path
+                        source_relative = (
+                            _AUTHORIZED_CACHE_RELATIVE.parent
+                            / f"{match.group('source')}.py"
+                        ).as_posix()
+                        assert source_relative in EXPECTED_PRODUCTION_PATHS, cache_path
+                        source_path = root / source_relative
+                        assert source_path.exists(), source_path
+                        source_mode = source_path.lstat().st_mode
+                        assert stat.S_ISREG(source_mode), source_path
+                        assert not stat.S_ISLNK(source_mode), source_path
+                    continue
                 walk(path)
             elif stat.S_ISREG(mode):
                 paths.add(path.relative_to(root).as_posix())
@@ -816,6 +857,61 @@ def test_production_inventory_rejects_files_symlinks_and_missing_paths(tmp_path:
         symlinked_directory,
     ):
         with pytest.raises(AssertionError):
+            assert _production_surface_paths(mutation) == EXPECTED_PRODUCTION_PATHS
+
+
+def test_production_inventory_bytecode_exception_is_exact_and_source_bound(tmp_path: Path) -> None:
+    def copied_surface(name: str) -> tuple[Path, Path]:
+        target = tmp_path / name
+        target.mkdir()
+        shutil.copytree(ROOT / "src", target / "src", symlinks=True)
+        shutil.copytree(ROOT / "schemas", target / "schemas", symlinks=True)
+        cache = target / _AUTHORIZED_CACHE_RELATIVE
+        cache.mkdir(exist_ok=True)
+        assert _production_surface_paths(target) == EXPECTED_PRODUCTION_PATHS
+        return target, cache
+
+    mutations: list[Path] = []
+
+    unexpected_location, _ = copied_surface("unexpected-location")
+    wrong_cache = unexpected_location / "src" / "__pycache__"
+    wrong_cache.mkdir()
+    (wrong_cache / "backlog.cpython-313.pyc").write_bytes(b"bytecode")
+    mutations.append(unexpected_location)
+
+    nested_cache, cache = copied_surface("nested-cache")
+    nested = cache / "nested"
+    nested.mkdir()
+    (nested / "backlog.cpython-313.pyc").write_bytes(b"bytecode")
+    mutations.append(nested_cache)
+
+    unexpected_name, cache = copied_surface("unexpected-name")
+    (cache / "backlog.unexpected.pyc").write_bytes(b"bytecode")
+    mutations.append(unexpected_name)
+
+    orphaned_pyo, cache = copied_surface("orphaned-pyo")
+    (cache / "orphaned.cpython-313.pyo").write_bytes(b"bytecode")
+    mutations.append(orphaned_pyo)
+
+    orphaned_pyc, cache = copied_surface("orphaned-pyc")
+    (cache / "orphaned.cpython-313.pyc").write_bytes(b"bytecode")
+    mutations.append(orphaned_pyc)
+
+    symlinked_bytecode, cache = copied_surface("symlinked-bytecode")
+    bytecode_target = symlinked_bytecode / "bytecode-target"
+    bytecode_target.write_bytes(b"bytecode")
+    (cache / "backlog.cpython-999.pyc").symlink_to(bytecode_target)
+    mutations.append(symlinked_bytecode)
+
+    bytecode_only_path, _ = copied_surface("bytecode-only-path")
+    (bytecode_only_path / "src" / "ge_nwp_coordinator" / "alternate.pyc").write_bytes(
+        b"bytecode"
+    )
+    mutations.append(bytecode_only_path)
+
+    assert len(mutations) == 7
+    for mutation in mutations:
+        with pytest.raises((AssertionError, FileNotFoundError)):
             assert _production_surface_paths(mutation) == EXPECTED_PRODUCTION_PATHS
 
 

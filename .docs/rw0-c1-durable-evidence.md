@@ -251,3 +251,13 @@ user tables, 110 triggers, and five explicit indexes.
 
 No C2 decision, closure, completeness row, latch, terminal outcome, worker,
 runtime, transport, capsule custody, or external integration is part of C1.
+
+The separate post-execution decision-input owner is implemented only as
+private, pure, no-I/O values, projections, evaluators, and bounded helpers. It
+may consume safe C1 evidence projections but neither changes C1's fixed
+fifteen-kind inventory nor converts that evidence into a durable decision. The
+complete tranche has no production caller; performs no runtime or I/O; makes
+and writes no durable post-execution decision; adds no migration or SQLite
+widening; creates no public export; and acquires no external authority or
+custody. It implements no C2B progression, terminal outcome, RW0-D/E, or
+Execution Substrate work; C2 persistence and runtime remain absent.

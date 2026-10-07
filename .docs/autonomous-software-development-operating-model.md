@@ -62,6 +62,13 @@ client, capsule builder or store, observation-ingest loop, validation executor,
 review executor, repair executor, Git effect handler, publisher,
 service/API/IPC surface, autonomous loop, or subordinate-authorization runtime.
 
+The post-execution pure-owner tranche implements only private, pure, no-I/O
+values, projections, evaluators, and bounded helpers. It has no production
+caller; performs no runtime or I/O; makes and writes no durable post-execution
+decision; adds no migration or SQLite widening; creates no public export; and
+acquires no external authority or custody. It implements no C2B progression,
+terminal outcome, RW0-D/E, or Execution Substrate work.
+
 Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and

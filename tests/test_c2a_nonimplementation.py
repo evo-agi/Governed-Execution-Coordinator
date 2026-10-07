@@ -31,9 +31,15 @@ EXPECTED_PRODUCTION_FILES = (
     "_development_effect_row_values.py",
     "_development_program_row_values.py",
     "_development_row_value_support.py",
+    "_finite_backlog_risk_source_adapter.py",
+    "_post_execution_evidence_values.py",
+    "_post_execution_policy_values.py",
     "_rw0_c1_mutation_contracts.py",
     "_rw0_c1_row_values.py",
     "_rw0_c1_semantic_values.py",
+    "_rw0_c_decision_input_values.py",
+    "_section41_post_execution_proposal_family_projection.py",
+    "_section41_post_execution_role_resolution.py",
     "_sqlite_development_author_effect_establishment.py",
     "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_reader_contracts.py",
@@ -513,6 +519,7 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
     semantic_path = package_dir / "_worker_execution_semantic_values.py"
     effect_row_path = package_dir / "_development_effect_row_values.py"
     program_row_path = package_dir / "_development_program_row_values.py"
+    post_execution_evidence_path = package_dir / "_post_execution_evidence_values.py"
     source_paths = tuple(path for path in package_dir.rglob("*.py") if path.is_file())
     source_text_by_path = {
         path: path.read_text(encoding="utf-8") for path in source_paths
@@ -537,11 +544,19 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
             "CandidateCapsuleManifestV1",
         }:
             expected_sources.add(package_dir / "_rw0_c1_mutation_contracts.py")
+        if model in {
+            "AttemptFenceV1",
+            "EffectFenceV1",
+            "CandidateCapsuleManifestV1",
+        }:
+            expected_sources.add(post_execution_evidence_path)
         if model == "WorkerObservationV1":
             expected_sources.update(
                 {
                     package_dir / "_rw0_c1_semantic_values.py",
                     package_dir / "_rw0_c1_row_values.py",
+                    post_execution_evidence_path,
+                    package_dir / "_rw0_c_decision_input_values.py",
                 }
             )
         if model == "CandidateCapsuleManifestV1":
