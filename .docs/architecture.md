@@ -45,6 +45,13 @@ facts establish neither evidence completeness nor a C2 decision, acceptance
 latch, terminal outcome, source authenticity, executable authority, runtime
 truth, external contact, or a public storage API.
 
+A separate post-execution pure-owner tranche now implements only private,
+pure, no-I/O values, projections, evaluators, and bounded helpers. It has no
+production caller; performs no runtime or I/O; makes and writes no durable
+post-execution decision; adds no migration or SQLite widening; creates no
+public export; and acquires no external authority or custody. It implements no
+C2B progression, terminal outcome, RW0-D/E, or Execution Substrate work.
+
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
 operator-decision receipt provisioning, an operational-change domain model,

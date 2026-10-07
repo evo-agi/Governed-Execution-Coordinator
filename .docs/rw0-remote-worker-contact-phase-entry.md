@@ -38,6 +38,14 @@ RW0-B1 now implements only the private pure semantic values and relations govern
 
 No phase-entry external effect, verifier, custody, adapter, supervisor, worker, Codex invocation, capsule store, validation or review executor, model invocation, post-execution decision or terminal-outcome runtime, acceptance latch, Git effect, ES route, service, queue, scheduler, or autonomous loop is implemented.
 
+The bounded post-execution pure-owner tranche implements only private, pure,
+no-I/O values, projections, evaluators, and helpers. It has no production
+caller; performs no runtime or I/O; makes and writes no durable post-execution
+decision; adds no migration or SQLite widening; creates no public export; and
+acquires no external authority or custody. It implements no C2B progression,
+terminal outcome, RW0-D/E, or Execution Substrate work. RW0-C2 durable
+decision writing and runtime remain future.
+
 Reports, model output, topology and readiness profiles, transport receipts, and artifacts remain evidence only. They are not identity, executable authority,
 acceptance, progression, runtime truth, or publication truth. Current private
 RW0-B1 pure semantics and RW0-C1 private durable evidence mechanics are implemented. C2B3D and Section 41 remain the complete executable implemented boundary relevant to this target; RW0-C1 adds no executable authority.

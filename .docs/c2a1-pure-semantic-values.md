@@ -28,6 +28,15 @@ C2B3D author-effect reducer/verifier are its production consumers. The C2A1
 module is not imported or re-exported by `ge_nwp_coordinator.__init__`, and no
 consumer transfers C2A semantic ownership.
 
+The post-execution evidence-value layer is an additional bounded private,
+pure, no-I/O consumer of current C2A semantic values; C2A fields, identities,
+relations, and authority remain unchanged. The complete post-execution
+pure-owner tranche has no production caller; performs no runtime or I/O; makes
+and writes no durable post-execution decision; adds no migration or SQLite
+widening; creates no public export; and acquires no external authority or
+custody. It implements no C2B progression, terminal outcome, RW0-D/E, or
+Execution Substrate work.
+
 The implemented immutable values are:
 
 | Value | Role | Exact field count |

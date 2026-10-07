@@ -24866,3 +24866,12 @@ terminal outcome, bound-effect progression, observation ingest, worker/runtime
 truth, or external effect. Existing C2B tables, row semantics, readers, and
 mutation families are unchanged.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+The Section 42 successor status now also records only the private, pure, no-I/O
+post-execution projections, role resolution, decision-input values, evaluators,
+and bounded helpers. They have no production caller; perform no runtime or I/O;
+make and write no durable post-execution decision; add no migration or SQLite
+widening; create no public export; and acquire no external authority or custody.
+They implement no C2B progression, terminal outcome, RW0-D/E, or Execution
+Substrate work. Sections 1 through 41 and the Section 41 semantic owner remain
+unchanged.

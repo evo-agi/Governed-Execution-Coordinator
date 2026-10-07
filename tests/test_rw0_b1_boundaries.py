@@ -480,7 +480,13 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
     capability_path = PACKAGE / "_rw0_worker_mechanism_capability_values.py"
     c1_values_path = PACKAGE / "_rw0_c1_semantic_values.py"
     c1_runtime_path = PACKAGE / "_sqlite_rw0_c1.py"
-    expected_importers = {capability_path, c1_values_path, c1_runtime_path}
+    post_execution_values_path = PACKAGE / "_post_execution_evidence_values.py"
+    expected_importers = {
+        capability_path,
+        c1_values_path,
+        c1_runtime_path,
+        post_execution_values_path,
+    }
     importers = []
     for path in PACKAGE.rglob("*.py"):
         if path == SOURCE:
@@ -522,7 +528,7 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
                 "RW0RetrievalCapabilityEventObservationV1",
                 "RW0SubordinateAuthorizationProposalV1",
             }
-        else:
+        elif path == c1_runtime_path:
             assert path == c1_runtime_path
             owner_imports = [
                 node for node in imports
@@ -531,6 +537,16 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
                 == [("_rw0_phase_entry_semantic_values", "_b1")]
             ]
             assert len(owner_imports) == 1
+        else:
+            assert path == post_execution_values_path
+            owner_imports = [
+                node for node in imports
+                if node.module is None
+                and [(alias.name, alias.asname) for alias in node.names]
+                == [("_rw0_phase_entry_semantic_values", "_phase_values")]
+            ]
+            assert len(owner_imports) == 1
+            assert "_validate_host_qualification_with_snapshots" not in source
     assert set(importers) == expected_importers
     assert "_rw0_worker_mechanism_capability_values" not in SOURCE.read_text()
 
