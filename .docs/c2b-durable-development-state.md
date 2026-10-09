@@ -24875,3 +24875,24 @@ widening; create no public export; and acquire no external authority or custody.
 They implement no C2B progression, terminal outcome, RW0-D/E, or Execution
 Substrate work. Sections 1 through 41 and the Section 41 semantic owner remain
 unchanged.
+
+<!-- RW0_C2_DURABLE_DECISION_SEMANTIC_STATUS_BEGIN -->
+### RW0-C2 durable progression-decision semantic successor
+
+Classification: `ACCEPTED STRATEGIC TARGET` and `DEFERRED OR BLOCKED EFFECT`.
+
+`.docs/rw0-c2-durable-progression-decision-semantic-contract.md` is the sole
+semantic owner for the future RW0-C2 durable decision reducer. It freezes only
+the no-write/block/recovery-unresolved distinction, finite evidence and matrix
+reducer, five migration-0002 branch mappings, model non-authority, abstract
+result/receipt/replay/recovery duties, and abstract acceptance-latch dependency.
+
+This append-only successor does not revise Sections 1 through 42 or select a
+physical decision family. Migration 0002 decision/version/head/receipt facts
+remain canonical, migrations 0001 through 0004 remain unchanged, and a later
+bounded-hybrid physical freeze must decide whether supplemental immutable
+basis/currentness/graph/result/recovery relations require migration 0005. No
+SQL, migration, application-generation change, reader, writer, latch owner,
+terminal-outcome owner, production caller, public export, runtime, RW0-D/E, or
+Execution Substrate behavior is implemented or authorized here.
+<!-- RW0_C2_DURABLE_DECISION_SEMANTIC_STATUS_END -->
