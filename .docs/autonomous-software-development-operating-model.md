@@ -482,15 +482,16 @@ external I/O.
 
 For the C2B target, active coding global stop blocks initialization,
 author/validation/review effects, productive delivery or redelivery,
-acceptance, repair, productive replan, publication eligibility, latch
-consumption, and Git eligibility. It permits source evidence retention,
+acceptance, repair, productive replan, publication eligibility, acceptance-fact
+creation, and Git eligibility. It permits source evidence retention,
 terminal reject/block decisions, a cancel decision, cancellation-effect
 planning and cancellation delivery, and cancellation evidence ingest. This is
 a C2B target selection, not a retroactive C1 invariant.
 
 C2B5 owns source-observation ingest, cancel/redeliver decisions, and bound
 validation/review/cancellation effects. C2B6 owns remaining program
-progression, publication eligibility, and the first-slice latch. C2B0
+progression and publication eligibility; the bootstrap guard owner owns the
+lineage-scoped one-shot ceiling. C2B0
 implements neither tranche and adds no schema, migration, runtime, worker,
 Bridge change, or ES change.
 
@@ -546,7 +547,7 @@ The only frozen dependency order is:
 1. pre-I/O Coordinator progression;
 2. remote worker contact through semantic decision;
 3. a separate local-Git effect and stop;
-4. migration to ES before another productive bootstrap slice.
+4. migration to ES without replenishing the direct-local allowance.
 
 This is not a mandatory program or tranche count. Future prompts may divide or
 combine internal checkpoints while preserving authority, validation, and
@@ -610,12 +611,13 @@ Direct-local permits one qualified remote Linux host, exactly the existing autho
 No replacement author attempt, effect, command, candidate, or candidate-authoring invocation occurs; no author relaunch or redelivery, fallback, or third adapter is permitted.
 The existing C2B `cancel` decision commits before the cancellation effect, preassigns its effect, fence, first delivery, and target, and is that effect's exact basis_decision_ref.
 A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run; it is not a development_decision, effect basis, or second C2B cancel or block decision.
-Non-cancel terminal outcomes bind one earlier same-kind C2B decision. The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.
+Non-cancel terminal outcomes bind one earlier same-kind C2B decision. The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and acceptance-fact identity/digest without mutating guard truth.
+The bootstrap guard owner `.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md` binds one permanently non-replenishable scope to an explicitly standing-policy-admitted Coordinator authority lineage, requires positive continuity and sole-active authority, and supersedes mutable-latch target requirements. Local absence, replacement, restore, cloning, grants, and later ES routing create no allowance.
 After exact cancel-decision commit readback and current-head, stop-version, and authority verification, an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.
 A current compatible cancel basis follows distinct request, acknowledgement, signal, exit, teardown, and source reconciliation facts, yielding terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision.
 No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.
 Direct-local route-local process and cancellation ownership does not absorb ES-route authority; no successor, Git, or publication effect follows RW0.
-Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.
+Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, guard values, storage, provisioning, readers, writers, migration treatment, and runtime remain deferred.
 RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery. It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.
 <!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->
 RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. It also implements the separate private, pure, no-I/O cancellation-control evidence profile `rw0-wire-cancellation-control-v1` with digest `4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288`, exact-current author/validation/review cancellation-control relations, and pure `invalid`/`incomplete`/`finite` supplied-control-evidence classification. The additive cancellation-control profile does not replace or enter the fixed NWPF v1 frames, Capability continues to bind only `rw0-wire-nwpf-v1`, and the profile remains distinct from B1 physical host cancellation-mechanism evidence. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts; their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability is implemented separately as private, pure, no-I/O semantics owned by `.docs/rw0-b2-capability.md` and does not widen Wire ownership. RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts; RW0-C/D/E durable, transport, process, provider, credential, live-proof, and runtime mechanics remain future, and Execution Substrate retains admission and runtime ownership.

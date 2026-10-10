@@ -318,7 +318,7 @@ def _assert_b1_projects_rw0(
     expected = (
         (b1_rows["lifecycle_status"][1], rw0_rows["RW0-B1"][1]),
         (b1_rows["contract_class"][1], rw0_rows["RW0-B1"][2]),
-        (b1_rows["future_acceptance_latch_owner"][1], rw0_rows["RW0-C"][3]),
+        (b1_rows["future_bootstrap_acceptance_guard_owner"][1], rw0_rows["RW0-C"][3]),
         (b1_rows["future_durable_ingest_completeness_recovery_terminal_owner"][1], rw0_rows["RW0-C"][3]),
         (b1_rows["future_physical_custody_transport_process_cancellation_owner"][1], rw0_rows["RW0-D"][3]),
         (b1_rows["future_separately_authorized_live_proof_owner"][1], rw0_rows["RW0-E"][3]),
@@ -690,10 +690,10 @@ _B1_INDEPENDENT_PROJECTION_OUTCOME = (
         ("durable_persistence", "none", "authority", "this_document"),
         ("semantic_acceptance", "none", "authority", "this_document"),
         (
-            "future_acceptance_latch_owner",
+            "future_bootstrap_acceptance_guard_owner",
             "RW0-C",
             "projection",
-            ".docs/rw0-remote-worker-contact-phase-entry.md",
+            ".docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md",
         ),
         (
             "future_durable_ingest_completeness_recovery_terminal_owner",
@@ -905,7 +905,7 @@ _OPEN_DECISION_ASSIGNMENTS = {
         "RW0-C / RW0-D / RW0-E",
     (
         "phase-entry claim, retrieval-event, host-observation, terminal-outcome, "
-        "latch schema, receipt, and idempotency design"
+        "guard physical representation and decision-family receipt/idempotency design"
     ): "RW0-C",
     (
         "supervisor/process-group strategy, fake CLI transcript protocol, and "
@@ -1293,11 +1293,11 @@ def _assert_complete_rw0_cross_reference_map(documents: dict[str, str]) -> str:
             "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
             "The existing C2B `cancel` decision commits before the cancellation effect",
             "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
-            "The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.",
+            "The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and acceptance-fact identity/digest without mutating guard truth.",
             "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
             "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
             "Direct-local route-local process and cancellation ownership does not absorb ES-route authority",
-            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
+            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, guard values, storage, provisioning, readers, writers, migration treatment, and runtime remain deferred.",
             "RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery.",
             "It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.",
         ),
@@ -1507,7 +1507,7 @@ REPAIR_SEMANTIC_REQUIREMENTS = (
     ),
     (
         "early_cancel_not_terminal",
-        "The pre-effect decision does not terminate RW0 or consume the latch.",
+        "The pre-effect decision does not terminate RW0 or create a bootstrap-acceptance fact.",
     ),
     (
         "cancel_effect_before_request",
@@ -1656,22 +1656,22 @@ RW0_TERMINAL_OUTCOME_REQUIREMENTS = (
     ),
     (
         "accept_decision_atomic_latch",
-        "The immutable C2B accept decision consumes the productive-direct-local acceptance latch atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that latch mutation.",
+        "The immutable C2B accept decision creates the bootstrap-acceptance fact atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that fact creation.",
         "Latch consumption waits for the terminal-outcome fact after the accept decision commits.",
     ),
     (
         "accept_outcome_binds_postimage",
-        "The later terminal-outcome accept binds the exact accepted decision ref and digest and the committed latch postimage from that decision transaction; it never consumes, advances, reopens, repairs, or otherwise mutates the latch.",
+        "The later terminal-outcome accept binds the exact accepted decision ref and digest and the immutable bootstrap-acceptance fact identity and digest from that decision transaction; it never creates, updates, deletes, resets, renews, repairs, or replenishes guard truth.",
         "The terminal-outcome accept consumes the latch and binds a different postimage.",
     ),
     (
         "accept_uncertainty_no_second_mutation",
-        "If the accepted decision committed while the terminal-outcome commit is uncertain, the latch remains consumed; exact guarded-writer readback precedes any new effect or successor, and recovery creates neither a second accept decision nor a second latch mutation.",
+        "If the accepted decision committed while the terminal-outcome commit is uncertain, the acceptance fact remains permanent; exact guarded-writer readback precedes any new effect or successor, and recovery creates neither a second accept decision nor a second acceptance fact.",
         "An uncertain terminal outcome permits a second accept decision, latch mutation, and successor.",
     ),
     (
         "nonaccept_no_latch_mutation",
-        "Repair, replan, terminal_reject, ordinary block, and cancel decisions do not consume the productive-direct-local acceptance latch.",
+        "Repair, replan, terminal_reject, ordinary block, and cancel decisions create no bootstrap-acceptance fact and never reset, renew, or replenish guard truth.",
         "Repair, replan, terminal_reject, block, and cancel decisions may consume the latch.",
     ),
     (
@@ -1736,12 +1736,12 @@ RW0_TERMINAL_OUTCOME_REQUIREMENTS = (
     ),
     (
         "outcome_commit_recovery",
-        "Terminal-outcome commit uncertainty requires exact guarded-writer readback; unresolved outcome prevents new effect or successor and recovery never fabricates another accept, cancel, or block decision or latch mutation. A committed accept decision retains its consumed latch during unresolved outcome recovery.",
+        "Terminal-outcome commit uncertainty requires exact guarded-writer readback; unresolved outcome prevents new effect or successor and recovery never fabricates another accept, cancel, or block decision or acceptance fact. A committed accept decision retains its permanent acceptance fact during unresolved outcome recovery.",
         "Unresolved terminal-outcome commit permits a new effect and another cancel decision.",
     ),
     (
         "exact_outcome_lineage",
-        "The terminal-outcome fact binds the exact phase-entry identity, C2B3D and Section 41 lineage, applicable decision refs and digests, effect/delivery/source evidence, reached capsule/validation/review/model evidence, current global-stop and head state, and any acceptance-latch postimage.",
+        "The terminal-outcome fact binds the exact phase-entry identity, C2B3D and Section 41 lineage, applicable decision refs and digests, effect/delivery/source evidence, reached capsule/validation/review/model evidence, current global-stop and head state, and any immutable bootstrap-acceptance fact identity and digest.",
         "The terminal-outcome fact binds only an unversioned report identifier.",
     ),
     (
@@ -1795,7 +1795,7 @@ def _assert_c2b_cancel_source_contract(source: str) -> None:
         "cancel_effect:\n  exact cancel decision that preassigned the cancellation effect, fence, and\n  first delivery and named the exact target"
     ) in source, "rw0.c2b: exact pre-effect cancel basis"
     assert "Consumption is atomic with the first accepted productive direct-local\ndecision." in source, (
-        "rw0.c2b: accept decision owns atomic latch consumption"
+        "rw0.c2b: historical precursor retained without current physical authority"
     )
     assert "A recorded but unestablished cancel\ndecision bound to an older version remains immutable history but cannot\nestablish its effect; a new current-version decision is required." in source, (
         "rw0.c2b: stale cancel decision cannot establish effect"
@@ -1866,9 +1866,9 @@ def _validate_owner(text: str) -> None:
         "No adapter, supervisor, worker, builder, store, validator, reviewer, or model adapter receives Coordinator SQLite or writer authority.",
         "Delivery, source invocation, observation, candidate, capsule, validation, review, model proposal, C2B decision, RW0 terminal outcome, and Git effect remain distinct facts.",
         "Validator and reviewer evidence, model output, reports, IM evidence, and transport receipts are non-authoritative evidence.",
-        "The immutable C2B accept decision consumes the productive-direct-local acceptance latch atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that latch mutation.",
+        "The immutable C2B accept decision creates the bootstrap-acceptance fact atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that fact creation.",
         "No Git effect follows the RW0 terminal outcome.",
-        "Migration 0004, its phase/evidence tables and receipts, and its generation-2 catalog treatment are implemented by RW0-C1. Terminal-outcome and acceptance-latch representation remain future RW0-C2 work and are not implemented by RW0-A or RW0-B.",
+        "Migration 0004, its phase/evidence tables and receipts, and its generation-2 catalog treatment are implemented by RW0-C1. Terminal-outcome and immutable bootstrap-guard representation remain future RW0-C2 work and are not implemented by RW0-A or RW0-B.",
         "No open decision blocks RW0-A.",
     )
     _require_phrases(body, required, role="rw0.owner")
@@ -1893,7 +1893,7 @@ def _validate_owner(text: str) -> None:
         "validation/review",
         "model proposal",
         "C2B development decision",
-        "RW0 terminal outcome and one-way acceptance latch",
+        "RW0 terminal outcome and immutable bootstrap acceptance guard",
     ):
         assert identity in body, f"rw0.owner: missing identity role {identity}"
 
@@ -1910,7 +1910,7 @@ def _validate_owner(text: str) -> None:
         "independent review observation",
         "typed model proposal",
         "Coordinator semantic decision",
-        "possible latch consumption",
+        "possible acceptance-fact creation",
         "RW0 terminal outcome",
         "teardown and custody terminal facts",
     ):
@@ -1954,7 +1954,7 @@ def _validate_owner(text: str) -> None:
     for open_decision in (
         "authority verifier deployment, trust roots, grant encoding, and revocation transport",
         "custodian implementation, capability issuance, and revocation enforcement",
-        "phase-entry claim, retrieval-event, host-observation, terminal-outcome, latch schema, receipt, and idempotency design",
+        "phase-entry claim, retrieval-event, host-observation, terminal-outcome, guard physical representation and decision-family receipt/idempotency design",
         "supervisor/process-group strategy, fake CLI transcript protocol, and capsule/tool implementation",
         "live credential/account selection and qualified-host evidence",
         "ES route implementation, reliable-submit, runtime, cancel, and result APIs",
@@ -2433,11 +2433,11 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
             "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
             "The existing C2B `cancel` decision commits before the cancellation effect",
             "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
-            "The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.",
+            "The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and acceptance-fact identity/digest without mutating guard truth.",
             "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
             "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
             "Direct-local route-local process and cancellation ownership does not absorb ES-route authority",
-            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, latch, and physical backends remain deferred.",
+            "Exact custodian, physical transport framing, stream/process plumbing, Codex seam, schema, terminal-outcome representation, guard values, storage, provisioning, readers, writers, migration treatment, and runtime remain deferred.",
             "RW0-C1 uses the fixed fifteen-kind inventory, same-phase membership operands, receipt-first replay, one commit attempt, guarded readback, and explicit three-way recovery.",
             "It claims no completeness, acceptance, C2 decision, current authority, source authenticity, permission, runtime truth, or external contact; RW0-C2 closure/decision and RW0-D/E remain future.",
         ),
@@ -2847,7 +2847,7 @@ def test_causal_owner_mutants_fail(case: str, required: str, mutant: str) -> Non
             "implemented_migration_runtime": (
                 "Migration 0004, its phase/evidence tables and receipts, and its generation-2\n"
                 "catalog treatment are implemented by RW0-C1. Terminal-outcome and\n"
-                "acceptance-latch representation remain future RW0-C2 work and are not\n"
+                "immutable bootstrap-guard representation remain future RW0-C2 work and are not\n"
                 "implemented by RW0-A or RW0-B."
             ),
             "length_prefix_frozen": (

@@ -130,17 +130,17 @@ PROTECTED_CONTENT_ROWS = (
      ('private_module_export',), 'protected package exports'),
     ('P07', 'pyproject.toml', 330, 'c59ff8c0005b063636ff161002f1b1c45a81227b4ed30a988412f01a474e0ac9',
      ('dependency_schema_migration',), 'protected dependency metadata'),
-    ('P08', 'tests/c2a_contract_support.py', 154329, '4952d25086220632c969a29e44b9abe29b966fbb031d2305c11d4bf13d39c4f1',
+    ('P08', 'tests/c2a_contract_support.py', 154372, '58be92ddffae6f4b901ae3632521481ab8d9ce0e02a819ef9421408d08eedd85',
      ('authority_non_effect',), 'protected C2A support'),
     ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 17823, '4c892136f8c6fd629eb44e95bc8dd7a9aa1a5250e97cc61499171f2835bb4f42',
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 60530, 'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6',
+    ('P11', 'AGENTS.md', 61466, '001595cdec75b176abbfb99b91b2b06c45f2f2ff1a28c704ded7054c27c7e74e',
      ('authority_non_effect',), 'protected repository governance'),
-    ('P12', 'README.md', 44919, '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb',
+    ('P12', 'README.md', 45849, 'b66fb689d9f0849eee1d62f12dda93d83dcc9f4cce2fa008696878b44256ad1a',
      ('authority_non_effect',), 'protected public claims'),
-    ('P13', '.docs/software-development-progression-boundary.md', 27704, 'ab5c686211065eee0d9ad603b11eb32d61f1744a92660104108ead673ae9f4b4',
+    ('P13', '.docs/software-development-progression-boundary.md', 28654, 'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419',
      ('state_store_writer_session',), 'protected progression authority'),
 )
 
@@ -640,6 +640,8 @@ def test_required_candidate_surface_is_literal_unique_regular_and_mode_0644() ->
 
 
 def test_protected_content_surface_has_exact_literal_identities() -> None:
+    observed = _guard_replacement_semantic_evidence()
+    _assert_capability_semantic_integrity(observed, CAPABILITY_REPLACEMENT_EXPECTED)
     if type(PROTECTED_CONTENT_ROWS) is not tuple:
         raise AssertionError("protected_rows:shape")
     if not all(type(row) is tuple and len(row) == 6 for row in PROTECTED_CONTENT_ROWS):
@@ -795,3 +797,136 @@ def test_error_and_value_surface_is_exactly_private_semantics() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     for forbidden in ("StateStore", "WriterSession", "acceptance", "permission_granted"):
         assert forbidden not in source
+
+
+CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.py',
+         'contract_classes': ('authority_non_effect',),
+         'old_identity': (154329,
+                          '4952d25086220632c969a29e44b9abe29b966fbb031d2305c11d4bf13d39c4f1'),
+         'old_identity_changed': True,
+         'replacement_identity': (154372,
+                                  '58be92ddffae6f4b901ae3632521481ab8d9ce0e02a819ef9421408d08eedd85'),
+         'semantic_markers': ('Expansion beyond the first accepted slice without immutable '
+                              'admitted-lineage scope and bootstrap-acceptance facts under the '
+                              'guard owner and a separately accepted migration review.',),
+         'purpose': 'protected C2A support'},
+ 'P11': {'path': 'AGENTS.md',
+         'contract_classes': ('authority_non_effect',),
+         'old_identity': (60530,
+                          'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
+         'old_identity_changed': True,
+         'replacement_identity': (61466,
+                                  '001595cdec75b176abbfb99b91b2b06c45f2f2ff1a28c704ded7054c27c7e74e'),
+         'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
+                              'at most one distinct productive acceptance may commit',
+                              'Later ES operation is separately governed and non-replenishing',
+                              'Mutable-latch target requirements are explicitly superseded',
+                              'none is implemented'),
+         'purpose': 'protected repository governance'},
+ 'P12': {'path': 'README.md',
+         'contract_classes': ('authority_non_effect',),
+         'old_identity': (44919,
+                          '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
+         'old_identity_changed': True,
+         'replacement_identity': (45849,
+                                  'b66fb689d9f0849eee1d62f12dda93d83dcc9f4cce2fa008696878b44256ad1a'),
+         'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
+                              'at most one distinct productive acceptance may commit',
+                              'Later ES operation is separately governed and non-replenishing',
+                              'Mutable-latch target requirements are explicitly superseded',
+                              'none is implemented'),
+         'purpose': 'protected public claims'},
+ 'P13': {'path': '.docs/software-development-progression-boundary.md',
+         'contract_classes': ('state_store_writer_session',),
+         'old_identity': (27704,
+                          'ab5c686211065eee0d9ad603b11eb32d61f1744a92660104108ead673ae9f4b4'),
+         'old_identity_changed': True,
+         'replacement_identity': (28654,
+                                  'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419'),
+         'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
+                              'at most one distinct productive acceptance may commit',
+                              'Later ES operation is separately governed and non-replenishing',
+                              'Mutable-latch target requirements are explicitly superseded',
+                              'none is implemented'),
+         'purpose': 'protected progression authority'}}
+
+
+CAPABILITY_OLD_IDENTITIES = {'P08': (154329, '4952d25086220632c969a29e44b9abe29b966fbb031d2305c11d4bf13d39c4f1'),
+ 'P11': (60530, 'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
+ 'P12': (44919, '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
+ 'P13': (27704, 'ab5c686211065eee0d9ad603b11eb32d61f1744a92660104108ead673ae9f4b4')}
+CAPABILITY_SEMANTIC_MARKERS = {'P08': ('Expansion beyond the first accepted slice without immutable admitted-lineage scope and '
+         'bootstrap-acceptance facts under the guard owner and a separately accepted migration '
+         'review.',),
+ 'P11': ('explicitly standing-policy-admitted Coordinator authority lineage',
+         'at most one distinct productive acceptance may commit',
+         'Later ES operation is separately governed and non-replenishing',
+         'Mutable-latch target requirements are explicitly superseded',
+         'none is implemented'),
+ 'P12': ('explicitly standing-policy-admitted Coordinator authority lineage',
+         'at most one distinct productive acceptance may commit',
+         'Later ES operation is separately governed and non-replenishing',
+         'Mutable-latch target requirements are explicitly superseded',
+         'none is implemented'),
+ 'P13': ('explicitly standing-policy-admitted Coordinator authority lineage',
+         'at most one distinct productive acceptance may commit',
+         'Later ES operation is separately governed and non-replenishing',
+         'Mutable-latch target requirements are explicitly superseded',
+         'none is implemented')}
+
+def _guard_replacement_semantic_evidence():
+    """Observed document semantics and protected ownership, not assertion side effects."""
+    evidence = {}
+    for row in PROTECTED_CONTENT_ROWS:
+        pid, path, _size, _sha, classes, purpose = row
+        if pid not in ('P08', 'P11', 'P12', 'P13'):
+            continue
+        data = (ROOT / path).read_bytes()
+        identity = (len(data), hashlib.sha256(data).hexdigest())
+        compact = ' '.join(data.decode('utf-8').split())
+        evidence[pid] = {
+            'path': path, 'contract_classes': classes,
+            'old_identity': CAPABILITY_OLD_IDENTITIES[pid],
+            'old_identity_changed': identity != CAPABILITY_OLD_IDENTITIES[pid],
+            'replacement_identity': identity,
+            'semantic_markers': tuple(marker for marker in CAPABILITY_SEMANTIC_MARKERS[pid] if marker in compact),
+            'purpose': purpose,
+        }
+    return evidence
+
+
+def _assert_capability_semantic_integrity(observed, expected, path=''):
+    location = path or '/'
+    if type(observed) is not type(expected):
+        raise AssertionError('capability_semantic_integrity:' + location + ':type')
+    if type(expected) is dict:
+        if set(observed) != set(expected):
+            raise AssertionError('capability_semantic_integrity:' + location + ':keys')
+        for key, value in expected.items():
+            _assert_capability_semantic_integrity(observed[key], value, path + '/' + key)
+    elif type(expected) is tuple:
+        if len(observed) != len(expected):
+            raise AssertionError('capability_semantic_integrity:' + location + ':length')
+        for index, (actual, wanted) in enumerate(zip(observed, expected, strict=True)):
+            _assert_capability_semantic_integrity(actual, wanted, path + '/' + str(index))
+    elif observed != expected:
+        raise AssertionError('capability_semantic_integrity:' + location + ':value')
+
+
+@pytest.mark.parametrize('case', ['none', 'empty', 'missing_P08', 'missing_markers'])
+def test_capability_semantic_integrity_hostile(case):
+    from copy import deepcopy
+    observed = deepcopy(CAPABILITY_REPLACEMENT_EXPECTED)
+    boundary = 'capability_semantic_integrity:/:keys'
+    if case == 'none':
+        observed = None; boundary = 'capability_semantic_integrity:/:type'
+    elif case == 'empty':
+        observed = {}
+    elif case == 'missing_P08':
+        observed.pop('P08')
+    else:
+        observed['P11']['semantic_markers'] = ()
+        boundary = 'capability_semantic_integrity:/P11/semantic_markers:length'
+    import re
+    with pytest.raises(AssertionError, match='^' + re.escape(boundary) + '$'):
+        _assert_capability_semantic_integrity(observed, CAPABILITY_REPLACEMENT_EXPECTED)

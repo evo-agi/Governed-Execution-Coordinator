@@ -764,7 +764,7 @@ BOOTSTRAP_STOPS = (
     "Unknown process or delivery outcome without authoritative reconciliation.",
     "Blind redelivery after an unknown outcome.",
     "Stale validation, review, model, decision, or Git-effect binding.",
-    "Expansion beyond the first accepted slice without a Coordinator-owned durable one-shot latch and a separately accepted migration review.",
+    "Expansion beyond the first accepted slice without immutable admitted-lineage scope and bootstrap-acceptance facts under the guard owner and a separately accepted migration review.",
 )
 
 

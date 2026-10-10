@@ -304,7 +304,7 @@ def _assert_complete_rw0_architecture_map(documents: dict[str, str]) -> str:
         "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
         "The existing C2B `cancel` decision commits before the cancellation effect",
         "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
-        "The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.",
+        "The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and acceptance-fact identity/digest without mutating guard truth.",
         "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
         "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
         "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists.",
@@ -836,14 +836,14 @@ def test_docs_pin_authority_boundaries() -> None:
             "Validation, independent review, and cancellation each require a distinct current effect intent, current effect fence, and initial delivery under the same originating semantic attempt and author-command lineage.",
             "The future guarded Coordinator writer commits exactly one durable RW0 terminal-outcome fact per run after outcome-specific evidence and current-head checks; it is not a development_decision, effect basis, executable permission, source observation, report, or projection.",
             "The existing immutable C2B cancel decision commits before the cancellation effect, preassigns its effect intent, fence, first delivery, and exact target, and is the cancellation effect's exact basis_decision_ref.",
-            "The immutable C2B accept decision consumes the productive-direct-local acceptance latch atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that latch mutation.",
-            "The later terminal-outcome accept binds the exact accepted decision ref and digest and the committed latch postimage from that decision transaction; it never consumes, advances, reopens, repairs, or otherwise mutates the latch.",
+            "The immutable C2B accept decision creates the bootstrap-acceptance fact atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that fact creation.",
+            "The later terminal-outcome accept binds the exact accepted decision ref and digest and the immutable bootstrap-acceptance fact identity and digest from that decision transaction; it never creates, updates, deletes, resets, renews, repairs, or replenishes guard truth.",
             "The pre_effect_cancel_basis_unusable sub-branch commits one RW0 terminal-outcome block bound to the unusable cancel decision and exact current-head, stop, and verification mismatch evidence, without a C2B block decision, successor, Git effect, or publication.",
             "If active-cancel reconciliation is incomplete, contradictory, stale, or ambiguous, terminal-outcome block binds the same pre-effect cancel decision and unresolved evidence without a C2B block decision.",
             "Validator and reviewer evidence, model output, reports, IM evidence, and transport receipts are non-authoritative evidence.",
             "The direct-local supervisor owns only route-local process control, cancellation-request delivery, route receipts, and source-native reconciliation facts.",
             "Direct-local never claims ES-route facts or creates a parallel ES lifecycle store.",
-                "Migration 0004, its phase/evidence tables and receipts, and its generation-2 catalog treatment are implemented by RW0-C1. Terminal-outcome and acceptance-latch representation remain future RW0-C2 work and are not implemented by RW0-A or RW0-B.",
+                "Migration 0004, its phase/evidence tables and receipts, and its generation-2 catalog treatment are implemented by RW0-C1. Terminal-outcome and immutable bootstrap-guard representation remain future RW0-C2 work and are not implemented by RW0-A or RW0-B.",
         ):
             assert required in compact
         for forbidden in (
@@ -876,7 +876,7 @@ def test_docs_pin_authority_boundaries() -> None:
             owner.replace(
                 "Migration 0004, its phase/evidence tables and receipts, and its generation-2\n"
                 "catalog treatment are implemented by RW0-C1. Terminal-outcome and\n"
-                "acceptance-latch representation remain future RW0-C2 work and are not\n"
+                "immutable bootstrap-guard representation remain future RW0-C2 work and are not\n"
                 "implemented by RW0-A or RW0-B.",
                 "RW0 runtime is currently implemented and a public StateStore method is added.",
                 1,
@@ -1001,7 +1001,7 @@ def test_docs_pin_authority_boundaries() -> None:
     assert "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests" in normalized_cross_references[0]
     assert "The existing C2B `cancel` decision commits before the cancellation effect" in normalized_cross_references[0]
     assert "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run" in normalized_cross_references[0]
-    assert "The accepted direct-local C2B decision alone atomically consumes the one-way latch" in normalized_cross_references[0]
+    assert "The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact" in normalized_cross_references[0]
     assert "an unusable pre-effect cancel basis establishes no effect" in normalized_cross_references[0]
     assert "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision" in normalized_cross_references[0]
     assert "No current custody, adapter, supervisor, worker, capsule, validation, review, model, post-execution decision, terminal-outcome, latch, Git, or publication runtime exists." in normalized_cross_references[0]

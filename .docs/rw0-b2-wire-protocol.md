@@ -13,8 +13,8 @@ for fail-closed Capability composition.
 
 RW0-A remains the target phase-entry model; RW0-B1, RW0-B2-Wire, and
 RW0-B2-Capability private semantics are current implemented contracts. RW0-C
-owns future durable facts, evidence membership, recovery, terminal outcome,
-and acceptance latch. RW0-D/E own future offline process proof and separately
+owns future durable facts, evidence membership, recovery, and terminal outcome;
+the bootstrap guard owner owns admitted-lineage scope and immutable acceptance-fact semantics. RW0-D/E own future offline process proof and separately
 authorized live proof. Execution Substrate owns admission and runtime lifecycle
 on the ES route. Direct-local and ES use the same semantic protocol without
 selecting transport or provider. The separate Capability semantics are
@@ -144,3 +144,8 @@ handles, or cancellation-control classification. Earlier statements that RW0-C
 persistence was wholly future are superseded only for this bounded evidence
 surface; physical transport and RW0-D/E remain future.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+Bootstrap guard target routing belongs to
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. Wire remains pure
+representation/classification and owns no admission, guard, B1 schema, acceptance,
+durable decision, replay, recovery, or runtime truth.

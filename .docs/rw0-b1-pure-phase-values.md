@@ -18,7 +18,8 @@ revocation, expiry, and source authenticity. The physical custodian owns byte
 availability and retrieval events. The host owner owns readiness claims.
 Coordinator owns only the inert subordinate proposal and pure qualification.
 RW0-C owns guarded persistence, evidence membership and completeness, terminal
-facts, readback, and the acceptance latch. RW0-B2-Wire owns representational
+facts and readback. The bootstrap guard owner owns admitted-lineage scope and
+immutable acceptance-fact semantics. RW0-B2-Wire owns representational
 framing and process/result classification. RW0-B2-Capability owns only
 provider- and mechanism-neutral declaration, supplied observation, and pure
 qualification semantics. RW0-D/E own concrete CLI, App Server, provider,
@@ -55,7 +56,7 @@ Registry version: 1
 | executable_permission | none | authority | this_document |
 | durable_persistence | none | authority | this_document |
 | semantic_acceptance | none | authority | this_document |
-| future_acceptance_latch_owner | RW0-C | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
+| future_bootstrap_acceptance_guard_owner | RW0-C | projection | .docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md |
 | future_durable_ingest_completeness_recovery_terminal_owner | RW0-C | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
 | future_physical_custody_transport_process_cancellation_owner | RW0-D | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
 | future_separately_authorized_live_proof_owner | RW0-E | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
@@ -169,7 +170,7 @@ other twelve reasons.
 Terminal branches are `normal`, `active_cancel_reconciled`,
 `active_cancel_unresolved`, and `pre_effect_cancel_basis_unusable`. Outcomes
 and decision kinds are `accept`, `repair`, `replan`, `terminal_reject`, `block`,
-or `cancel`. The normal accept branch requires a latch pair; normal same-kind
+or `cancel`. The normal accept branch requires the legacy pair; normal same-kind
 repair, replan, terminal reject, or block forbids all optional pairs. Reconciled
 cancel maps cancel to cancel with reconciliation. Unresolved active cancel maps
 cancel to block with reconciliation. Unusable pre-effect cancel basis maps
@@ -387,7 +388,7 @@ negative inputs and never accepted B1 values.
 
 RW0-B2-Capability is the sole current cross-module production consumer of B1;
 no other production module currently consumes these values or relations. C may
-persist projections and prove evidence completeness/latch behavior; D may
+persist projections and prove evidence completeness under separately accepted guard and decision contracts; D may
 consume values for offline worker/custody proof; E may consume them for
 live-host proof. ES owns ES-route admission, reliable submit, lifecycle,
 cancellation, runtime identity, and retained results. None of B1's assertions
@@ -420,3 +421,20 @@ widening; creates no public export; and acquires no external authority or
 custody. It implements no C2B progression, terminal outcome, RW0-D/E, or
 Execution Substrate work.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+## Bootstrap guard legacy compatibility edge
+
+Classification: `BOUNDED COMPATIBILITY EDGE`; explicit target semantic supersession.
+The exact v1 names `latch_postimage_ref` and `latch_postimage_digest` remain legacy
+representation names. Their replacement-target binding is the immutable
+bootstrap-acceptance fact identity/digest under
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. They imply no mutable
+preimage, available/consumed state, transition, revision, or separate classifier.
+Current B1 validates pair presence/absence and supplied-value coherence only.
+It proves no lineage scope, standing-policy admission, uniqueness, commitment,
+atomic family membership, or recovery truth. No new target implementation may
+consume the pair as durable guard proof until a separately accepted safe-value
+compatibility/versioning decision. Source, schema ID, field order, nullability,
+canonical bytes, digest domain, and budgets are unchanged. Rename/removal, new
+field grammar, or proof responsibility requires a separate private safe-value
+versioning tranche.

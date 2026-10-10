@@ -43,7 +43,7 @@ _B1_REGISTRY_ROW_LINES = (
     "| executable_permission | none | authority | this_document |",
     "| durable_persistence | none | authority | this_document |",
     "| semantic_acceptance | none | authority | this_document |",
-    "| future_acceptance_latch_owner | RW0-C | projection | .docs/rw0-remote-worker-contact-phase-entry.md |",
+    "| future_bootstrap_acceptance_guard_owner | RW0-C | projection | .docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md |",
     "| future_durable_ingest_completeness_recovery_terminal_owner | RW0-C | projection | .docs/rw0-remote-worker-contact-phase-entry.md |",
     "| future_physical_custody_transport_process_cancellation_owner | RW0-D | projection | .docs/rw0-remote-worker-contact-phase-entry.md |",
     "| future_separately_authorized_live_proof_owner | RW0-E | projection | .docs/rw0-remote-worker-contact-phase-entry.md |",
@@ -75,7 +75,7 @@ _B1_EXPECTED_PROJECTION = _B1RegistryProjection(
         ("executable_permission", "none", "authority", "this_document"),
         ("durable_persistence", "none", "authority", "this_document"),
         ("semantic_acceptance", "none", "authority", "this_document"),
-        ("future_acceptance_latch_owner", "RW0-C", "projection", ".docs/rw0-remote-worker-contact-phase-entry.md"),
+        ("future_bootstrap_acceptance_guard_owner", "RW0-C", "projection", ".docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md"),
         ("future_durable_ingest_completeness_recovery_terminal_owner", "RW0-C", "projection", ".docs/rw0-remote-worker-contact-phase-entry.md"),
         ("future_physical_custody_transport_process_cancellation_owner", "RW0-D", "projection", ".docs/rw0-remote-worker-contact-phase-entry.md"),
         ("future_separately_authorized_live_proof_owner", "RW0-E", "projection", ".docs/rw0-remote-worker-contact-phase-entry.md"),
@@ -791,3 +791,35 @@ def test_b1_generated_registry_documents_have_unique_bytes_and_purposes() -> Non
     digests = tuple(hashlib.sha256(document).hexdigest() for _purpose, document in documents)
     assert len(purposes) == len(set(purposes))
     assert len(digests) == len(set(digests))
+
+
+def _assert_bootstrap_legacy_compatibility(text):
+    compact = ' '.join(text.split())
+    required = (
+        'The exact v1 names `latch_postimage_ref` and `latch_postimage_digest` remain legacy representation names.',
+        'Their replacement-target binding is the immutable bootstrap-acceptance fact identity/digest',
+        'They imply no mutable preimage, available/consumed state, transition, revision, or separate classifier.',
+        'Current B1 validates pair presence/absence and supplied-value coherence only.',
+        'It proves no lineage scope, standing-policy admission, uniqueness, commitment, atomic family membership, or recovery truth.',
+        'No new target implementation may consume the pair as durable guard proof until a separately accepted safe-value compatibility/versioning decision.',
+        'Source, schema ID, field order, nullability, canonical bytes, digest domain, and budgets are unchanged.',
+    )
+    for sentence in required:
+        if sentence not in compact:
+            raise AssertionError('b1:legacy_compatibility:' + sentence)
+
+
+def test_bootstrap_legacy_pair_is_representation_nonproof_only():
+    _assert_bootstrap_legacy_compatibility(OWNER.read_text())
+    assert hashlib.sha256(SOURCE.read_bytes()).hexdigest() == '4be365d3a494088d5353592f6f689682d59217ac211072f6b27edc874dd2df36', 'b1:unchanged_source_schema_fields_domains_budgets'
+
+    for name in ('latch_postimage_ref', 'latch_postimage_digest'):
+        assert name in SOURCE.read_text(), 'b1:legacy_field_preserved:' + name
+    source = SOURCE.read_text()
+    assert 'bootstrap_acceptance_guard' not in source, 'b1:no_guard_consumer'
+
+
+def test_bootstrap_legacy_proof_overclaim_is_rejected():
+    text = OWNER.read_text().replace('Current B1 validates pair presence/absence and supplied-value coherence only.', 'Current B1 proves durable guard commitment.')
+    with pytest.raises(AssertionError, match='^b1:legacy_compatibility:Current B1'):
+        _assert_bootstrap_legacy_compatibility(text)
