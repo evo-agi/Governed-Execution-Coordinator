@@ -612,7 +612,7 @@ def test_required_before_source_gates_preserve_c0_non_implementation_scope() -> 
             "It adds no caller, package-root export, transport, source authentication",
             "RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts",
             "their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition",
-            "RW0-C owns future durable facts, evidence membership, recovery, terminal outcome, and acceptance latch",
+            "RW0-C owns future durable facts, evidence membership, recovery, and terminal outcome; the bootstrap guard owner owns admitted-lineage scope and immutable acceptance-fact semantics",
             "RW0-D/E own future offline process proof and separately authorized live proof",
             "Execution Substrate owns admission and runtime lifecycle",
             "The separate Capability semantics are implemented under `.docs/rw0-b2-capability.md` and do not widen Wire ownership",

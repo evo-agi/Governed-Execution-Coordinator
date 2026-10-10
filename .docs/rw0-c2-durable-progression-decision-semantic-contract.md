@@ -39,9 +39,9 @@ The future owner must preserve three disjoint outcomes:
 
 | Outcome | Meaning | Durable effects |
 | --- | --- | --- |
-| command rejection / no durable write | The command or basis cannot be admitted as one complete, nonconflicting mutation | no decision, version, head mutation, receipt, latch mutation, or terminal fact |
+| command rejection / no durable write | The command or basis cannot be admitted as one complete, nonconflicting mutation | no decision, version, head mutation, receipt, acceptance fact, or terminal fact |
 | durable progression decision | Exactly one of the five closed branches is derived from an admitted basis | one version-advancing migration-0002 decision family, subject to future atomic-writer and recovery contracts |
-| committed-recovery `unresolved` | A commit was attempted and guarded readback cannot prove either the exact committed family or definite absence | no new or fabricated decision, result, receipt, latch postimage, or terminal fact |
+| committed-recovery `unresolved` | A commit was attempted and guarded readback cannot prove either the exact committed family or definite absence | no new or fabricated decision, result, receipt, acceptance fact, or terminal fact |
 
 `post_execution_program_block` is a real durable decision. It is never a
 synonym for command rejection. Recovery `unresolved` is neither a branch nor a
@@ -61,11 +61,11 @@ The closed rejection classes are:
 | `matrix_conflict` | an applicable selected matrix entry reports `conflict` or its owner/profile binding conflicts |
 | `expected_branch_mismatch` | the optional caller assertion differs from the branch derived by the Coordinator |
 | `halt_only_matrix_contract_conflict` | any matrix does not return its exact profile-owned `permit` for the selected halt-only branch |
-| `acceptance_latch_precondition_conflict` | derived acceptance cannot verify one exact available latch preimage and preassigned consumed postimage |
+| `bootstrap_acceptance_guard_conflict` | applicable command lacks exact admitted-lineage posture or derived acceptance lacks exhaustive unclaimed-scope proof |
 
 These classes are operation results, not durable branch reasons. Every
 rejection returns before a durable mutation. Later-discovered rejection
-conditions, including expected-branch mismatch and acceptance-latch conflict,
+conditions, including expected-branch mismatch and bootstrap-guard conflict,
 still prohibit the entire write; they do not convert to a durable block.
 
 ## Decision-time currentness
@@ -341,8 +341,9 @@ migration-0002 nullability and branch constraints remain authoritative.
 The future owner must perform one deterministic reduction while retaining the
 complete admitted basis:
 
-1. Reconstruct all required facts and reject malformed, incomplete, foreign,
-   contradictory, stale-caller, replay-conflicting, or colliding input.
+1. Reconstruct all required facts, including the every-command admitted-lineage
+   relation and universal authority posture, and reject malformed, incomplete,
+   foreign, contradictory, stale-caller, replay-conflicting, or colliding input.
 2. Validate the exact five-owner inventory, every canonical branch profile,
    and every owner-specific result/reason pair. Owner, profile, pair, and exact
    conflict failures are no-write before any block reason can control output.
@@ -360,10 +361,12 @@ complete admitted basis:
    mandatory for direct terminal, native block, and converted block paths.
 6. Compare the optional expected-branch assertion to that authoritative final
    branch. Mismatch is no-write.
-7. If and only if acceptance was derived, verify the future latch precondition.
-   Failure is no-write; success makes decision and latch consumption one future
-   atomic write family.
-8. Only after all authoritative no-write gates, including the acceptance latch,
+7. Retain the exact admitted-lineage relation and universal posture already
+   established in the command/writer admission prefix. If and only if acceptance
+   was derived, prove the scope exhaustively unclaimed.
+   Failure is no-write; success creates one immutable acceptance-fact member
+   of the future atomic decision family.
+8. Only after all authoritative no-write gates, including the bootstrap guard,
    evaluate model-recommendation consistency. Retain that evidence without
    changing the branch. This is always the last evaluation stage while the
    basis remains valid.
@@ -380,7 +383,7 @@ applicable stages are reached: `basis_validated`,
 `matrix_grammar_validated`, `currentness_reduced`,
 `validation_review_reduced`, `productive_matrix_evaluated`,
 `branch_selected`, `halt_only_matrix_evaluated`,
-`acceptance_latch_checked`, and `model_consistency_evaluated`. Productive
+`bootstrap_acceptance_guard_checked`, and `model_consistency_evaluated`. Productive
 evaluation records the provisional productive branch plus all five canonical
 owner entries and their exact result/reason pairs. It is performed after a
 stale or unknown currentness block has been recorded whenever V14/V15 still
@@ -388,7 +391,7 @@ produces a conclusive productive candidate. The block-summary precedence
 chooses only the summary reason; it never suppresses evidence evaluation.
 Matrix conflict remains global no-write. Model consistency is always the last
 trace stage while the basis remains valid, and it is absent when an earlier
-gate, including the acceptance-latch gate, rejects the operation.
+gate, including the bootstrap-guard gate, rejects the operation.
 
 ## Command and model non-authority
 
@@ -398,7 +401,7 @@ digest. It does not request or select that branch.
 
 The command must not carry a caller-authored authoritative branch,
 decision-time currentness conclusion, matrix conclusion, durable decision,
-durable result, receipt, latch postimage, terminal outcome, or commit/recovery
+durable result, receipt, admission fact, acceptance fact, terminal outcome, or commit/recovery
 classification. The model likewise cannot author any of those values. Model
 recommendation consistency is evaluated only after reduction and is retained
 as non-authoritative evidence. A recognized recommendation that maps to the
@@ -423,7 +426,7 @@ and readback-only resolution of commit uncertainty.
 
 Same-`mutation_ref`, same-command replay returns the exact committed decision,
 result, receipt, version/head postimages, and, for acceptance, the committed
-latch postimage without another mutation. Same-`mutation_ref` with a different
+immutable bootstrap-acceptance fact without another mutation. Same-`mutation_ref` with a different
 command digest is `mutation_ref_reuse_conflict`. A fresh command colliding with
 any preassigned identity or family route is
 `preassigned_identity_or_family_route_collision`.
@@ -432,41 +435,51 @@ After a commit-attempt exception, recovery must use a command-covered selector
 and classify only:
 
 - `committed_exact` when the whole expected family is present and exact;
-- `definitely_not_committed` when the whole family is provably absent and a
-  clean retry is separately allowed; or
+- `definitely_not_committed` when the original command's newly created family is exhaustively absent,
+  without fragments, aliases, collisions, or read faults; fresh retry eligibility
+  is a separate question; or
 - `unresolved` when neither proposition can be proved.
 
 Recovery never completes a partial family, invents a result or receipt,
 re-evaluates the reducer, changes a branch, or retries automatically after
 `unresolved`.
 
-## Acceptance-latch dependency
+## Bootstrap acceptance-guard dependency
 
-This contract deliberately does not select latch storage, table, migration,
-schema, key, digest domain, or final field names. It freezes only this semantic
-interface:
+The sole admitted-lineage, admission, eligibility, and acceptance-fact owner is
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. This explicitly
+supersedes the former mutable-latch target; `acceptance_latch_precondition_conflict`
+is superseded terminology, not another active rejection owner.
 
-- every future decision command binds a future-owner-defined selector that is
-  sufficient to identify one exact expected available preimage and one
-  preassigned consumed postimage;
-- the selector is covered by both the command digest and recovery selector,
-  grants no authority, and does not request acceptance;
-- if acceptance is derived, the guarded writer verifies the exact available
-  preimage and atomically commits the accept decision plus consumed postimage;
-- missing, duplicate, malformed, ambiguous, mismatched, or already-consumed
-  state is `acceptance_latch_precondition_conflict`, never fallback block;
-- exact acceptance replay returns the committed latch postimage without a
-  second mutation, and recovery verifies decision and latch as one family; and
-- every nonaccept branch creates no latch mutation and no latch postimage.
+Every applicable direct-local command binds canonical admitted lineage and scope expectations.
+The non-authoritative relation is command-digest and recovery-selector covered,
+selects no scope or branch, requests no acceptance, and cannot admit, mint,
+renew, or replenish a scope. Admission, positive continuity, sole-active
+posture, and absence of foreign/conflicting lineage claims must be exact for
+every command. Acceptance alone additionally requires exhaustive unclaimed-scope
+proof under the guard owner. Unknown claimed status may permit a nonaccept
+branch only when derivation makes no unclaimed assertion and all other
+preconditions are exact. Failure is `bootstrap_acceptance_guard_conflict`,
+never fallback block. This owner projects the guard interface, not guard tables.
 
-No accept writer may become callable until a separate contract freezes the
-complete latch owner and the later physical family proves this interface.
+Acceptance creates exactly one immutable fact in the same decision/version/head/
+result/receipt family; the four nonaccept branches create none. Receipt-first
+replay/collision checks precede fresh eligibility. Exact replay returns the
+original complete family and fact without reevaluation, new timestamp, or
+historical mutable-head freshness. There is one whole-family recovery classifier:
+all expected immutable members exact means `committed_exact`; exhaustive original-
+family absence means `definitely_not_committed`; any partial family or unprovable
+proposition means `unresolved`. A competing complete winner may prove original-
+family absence while independently prohibiting fresh retry in that claimed scope.
+Decision without fact or fact without decision is unresolved; no fragment repair
+is permitted. Physical guard values, provisioning, storage, and transaction
+integration remain future and no accept writer is callable.
 
 ## Terminal outcome and RW0-D/E separation
 
 The later terminal-outcome fact binds the exact committed decision, result,
-and receipt. On acceptance it also binds the already-committed latch postimage.
-It never consumes or mutates the latch and is neither a development decision
+and receipt. On acceptance it also binds the immutable bootstrap-acceptance fact identity/digest.
+It never creates, updates, deletes, resets, renews, repairs, or replenishes guard truth and is neither a development decision
 nor an effect basis. Existing pure terminal-binding validation does not create
 a terminal-outcome durable owner.
 
@@ -489,11 +502,11 @@ created by this tranche.
 
 Implementation must stop and obtain a separately authorized contract before
 any of the following: source or SQL creation; migration 0005; a durable writer;
-a callable accept path; latch or terminal storage; transaction/controller,
+a callable accept path; guard or terminal storage; transaction/controller,
 reader, replay, or recovery integration; public/API/package widening; worker,
 process, transport, cancellation, Git, ES, publication, RW0-D, or RW0-E work.
 
-A later source tranche is blocked until it freezes the complete latch owner,
+A later source tranche is blocked until it freezes exact guard safe values and provisioning,
 the bounded-hybrid physical family, exact safe command/result/receipt/recovery
 values, mutation-authority integration, and causal implementation tests. If
 those owners cannot preserve the three-way no-write/block/unresolved
@@ -537,10 +550,10 @@ unreachability-boundary proofs, and current-source AST evidence.
 <!-- RW0_C2_DURABLE_DECISION_HUMAN_CONTRACT_BEGIN -->
 | Field | JSON value |
 | --- | --- |
-| `contract_id` | `"rw0-c2-durable-progression-decision-semantic-contract-v1"` |
+| `contract_id` | `"rw0-c2-durable-progression-decision-semantic-contract-v2"` |
 | `status` | `"accepted_strategic_target_not_implemented"` |
 | `outcome_classes` | `["no_write","durable_decision","recovery_unresolved"]` |
-| `rejection_classes` | `["required_fact_invalid","basis_identity_lineage_profile_provenance_conflict","stale_caller_expectation","mutation_ref_reuse_conflict","preassigned_identity_or_family_route_collision","matrix_conflict","expected_branch_mismatch","halt_only_matrix_contract_conflict","acceptance_latch_precondition_conflict"]` |
+| `rejection_classes` | `["required_fact_invalid","basis_identity_lineage_profile_provenance_conflict","stale_caller_expectation","mutation_ref_reuse_conflict","preassigned_identity_or_family_route_collision","matrix_conflict","expected_branch_mismatch","halt_only_matrix_contract_conflict","bootstrap_acceptance_guard_conflict"]` |
 | `admission_fault_to_rejection` | `{"malformed_required_fact":"required_fact_invalid","missing_required_fact":"required_fact_invalid","duplicate_required_fact":"required_fact_invalid","partial_required_fact":"required_fact_invalid","foreign_required_fact":"required_fact_invalid","contradictory_required_fact":"required_fact_invalid","owner_conflict":"basis_identity_lineage_profile_provenance_conflict","identity_conflict":"basis_identity_lineage_profile_provenance_conflict","lineage_conflict":"basis_identity_lineage_profile_provenance_conflict","profile_conflict":"basis_identity_lineage_profile_provenance_conflict","provenance_conflict":"basis_identity_lineage_profile_provenance_conflict","stale_caller_head":"stale_caller_expectation","stale_caller_expectation":"stale_caller_expectation","mutation_ref_reused_with_different_digest":"mutation_ref_reuse_conflict","preassigned_identity_collision":"preassigned_identity_or_family_route_collision","family_route_collision":"preassigned_identity_or_family_route_collision"}` |
 | `validation_projection` | `[{"source_outcome":"passed","result":"passed","repairability":"not_applicable","reason":"validation_passed","normalized_class":"accept"},{"source_outcome":"failed","result":"repairable_failure","repairability":"repairable","reason":"validation_failed_repairable","normalized_class":"repair"},{"source_outcome":"failed","result":"replan_required","repairability":"same_attempt_insufficient","reason":"validation_failed_replan_required","normalized_class":"replan"},{"source_outcome":"failed","result":"terminal_failure","repairability":"nonrepairable","reason":"validation_failed_terminal","normalized_class":"terminal"},{"source_outcome":"failed","result":"unknown","repairability":"unknown","reason":"validation_failed_unclassified","normalized_class":"nonconclusive"},{"source_outcome":"inconclusive","result":"unknown","repairability":"unknown","reason":"validation_inconclusive","normalized_class":"nonconclusive"},{"source_outcome":"not_run","result":"not_run","repairability":"not_applicable","reason":"validation_not_run","normalized_class":"nonconclusive"}]` |
 | `validation_conflict_projection` | `{"source_outcome":"any_v14_allowed_source_outcome","result":"basis_conflict","repairability":"conflict","reason":"source_observation_mismatch","normalized_class":"conflict"}` |
@@ -559,21 +572,21 @@ unreachability-boundary proofs, and current-source AST evidence.
 | `branch_mapping` | `{"candidate_acceptance":{"decision_kind":"accept","decision_variant":"candidate_acceptance","version_advancing":true},"candidate_repair":{"decision_kind":"repair","decision_variant":"candidate_repair","version_advancing":true},"attempt_selecting_replan":{"decision_kind":"replan","decision_variant":"attempt_selecting_replan","version_advancing":true},"program_terminal_reject":{"decision_kind":"terminal_reject","decision_variant":"program_terminal_reject","version_advancing":true},"post_execution_program_block":{"decision_kind":"block","decision_variant":"program_block","version_advancing":true}}` |
 | `excluded_reducer_decision_kinds` | `["cancel","redeliver"]` |
 | `expected_branch` | `{"role":"conflict_assertion_only","mismatch":"expected_branch_mismatch"}` |
-| `model` | `{"recommendation_to_branch":{"accept_candidate":"candidate_acceptance","repair_candidate":"candidate_repair","replan":"attempt_selecting_replan","terminal_reject":"program_terminal_reject","block":"post_execution_program_block"},"evaluation_order":"after_acceptance_latch_gate","may_change_branch":false,"retention":"non_authoritative_evidence","recognized_equal":{"status":"consistent","reason":"mapped_branch_equals_authoritative_branch"},"recognized_unequal":{"status":"inconsistent","reason":"mapped_branch_differs_from_authoritative_branch"},"unrecognized":{"status":"inconsistent","reason":"model_recommendation_unrecognized"}}` |
-| `evaluation_trace` | `{"ordered_stages":["basis_validated","matrix_grammar_validated","currentness_reduced","validation_review_reduced","productive_matrix_evaluated","branch_selected","halt_only_matrix_evaluated","acceptance_latch_checked","model_consistency_evaluated"],"productive_matrix_evidence_fields":["provisional_productive_branch","owner_entries"],"model_last":true}` |
-| `latch` | `{"selector_in_command_digest":true,"selector_in_recovery_selector":true,"selector_grants_authority":false,"selector_requests_acceptance":false,"accept_required_preimage":"available","accept_postimage":"consumed","accept_invalid_states":["mismatch","missing","duplicate","malformed","ambiguous","consumed"],"accept_invalid_result":"acceptance_latch_precondition_conflict","accept_effect":"consume_preassigned_postimage","nonaccept_effect":"none","replay_mutates":false,"recovery_family":"decision_and_latch_together","accept_writer_callable_before_owner_freeze":false}` |
+| `model` | `{"recommendation_to_branch":{"accept_candidate":"candidate_acceptance","repair_candidate":"candidate_repair","replan":"attempt_selecting_replan","terminal_reject":"program_terminal_reject","block":"post_execution_program_block"},"evaluation_order":"after_bootstrap_guard_gate","may_change_branch":false,"retention":"non_authoritative_evidence","recognized_equal":{"status":"consistent","reason":"mapped_branch_equals_authoritative_branch"},"recognized_unequal":{"status":"inconsistent","reason":"mapped_branch_differs_from_authoritative_branch"},"unrecognized":{"status":"inconsistent","reason":"model_recommendation_unrecognized"}}` |
+| `evaluation_trace` | `{"ordered_stages":["basis_validated","matrix_grammar_validated","currentness_reduced","validation_review_reduced","productive_matrix_evaluated","branch_selected","halt_only_matrix_evaluated","bootstrap_acceptance_guard_checked","model_consistency_evaluated"],"productive_matrix_evidence_fields":["provisional_productive_branch","owner_entries"],"model_last":true}` |
+| `guard` | `{"owner":".docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md","relation_in_command_digest":true,"relation_in_recovery_selector":true,"relation_grants_authority":false,"relation_requests_acceptance":false,"relation_required_every_applicable_command":true,"universal_exact_roles":["lineage","scope","admission","continuity","sole_active","no_foreign_claim"],"accept_required_evidence":"exhaustively_unclaimed","accept_invalid_states":["mismatch","missing","duplicate","malformed","ambiguous","claimed"],"accept_invalid_result":"bootstrap_acceptance_guard_conflict","accept_effect":"create_one_immutable_acceptance_fact","nonaccept_effect":"none","replay_mutates":false,"recovery_family":"complete_decision_family_including_acceptance_fact","accept_writer_callable_before_physical_freeze":false}` |
 | `recovery` | `{"requires_commit_attempt_uncertainty":true,"readback":{"exact_family":"committed_exact","provably_absent":"definitely_not_committed","ambiguous":"unresolved"},"unresolved_creates_decision":false,"unresolved_is_branch":false,"automatic_retry_after_unresolved":false}` |
-| `terminal` | `{"later_immutable_fact":true,"binds_committed_decision_result_receipt":true,"acceptance_binds_committed_latch_postimage":true,"mutates_latch":false,"is_development_decision":false,"is_effect_basis":false}` |
+| `terminal` | `{"later_immutable_fact":true,"binds_committed_decision_result_receipt":true,"acceptance_binds_immutable_bootstrap_acceptance_fact":true,"mutates_guard":false,"is_development_decision":false,"is_effect_basis":false}` |
 | `physical` | `{"application_generation":2,"current_terminal_migration":"0004_rw0_c1_durable_evidence","canonical_decision_representation_migration":"0002_development_program_and_effect_state","migration_0005_exists":false,"migration_0005_selected":false,"later_freeze":"bounded_hybrid_physical_contract"}` |
 | `excluded_effect_domains` | `["worker","process","transport","cancellation","git","execution_substrate","publication","rw0_d","rw0_e"]` |
-| `implementation` | `{"durable_decision_writer":false,"acceptance_latch_owner":false,"terminal_outcome_owner":false,"production_caller":false,"public_export":false,"runtime_active":false,"rw0_d":false,"rw0_e":false,"execution_substrate_change":false}` |
+| `implementation` | `{"durable_decision_writer":false,"bootstrap_acceptance_guard":false,"terminal_outcome_owner":false,"production_caller":false,"public_export":false,"runtime_active":false,"rw0_d":false,"rw0_e":false,"execution_substrate_change":false}` |
 | `temporary_source_nonimplementation_guard` | `{"source_root":"src/ge_nwp_coordinator","manifest_count":66,"manifest_payload_bytes":10877,"manifest_sha256":"f069130c33d68ebf4d83a2d4d3a3f6aca7d1f1b583decc6138c772bd4ddd721d","supersession":"future_authorized_source_tranche"}` |
 <!-- RW0_C2_DURABLE_DECISION_HUMAN_CONTRACT_END -->
 
 <!-- RW0_C2_DURABLE_DECISION_FINITE_ORACLE_BEGIN -->
 ```json
 {
-  "contract_id": "rw0-c2-durable-progression-decision-semantic-contract-v1",
+  "contract_id": "rw0-c2-durable-progression-decision-semantic-contract-v2",
   "status": "accepted_strategic_target_not_implemented",
   "outcome_classes": [
     "no_write",
@@ -589,7 +602,7 @@ unreachability-boundary proofs, and current-source AST evidence.
     "matrix_conflict",
     "expected_branch_mismatch",
     "halt_only_matrix_contract_conflict",
-    "acceptance_latch_precondition_conflict"
+    "bootstrap_acceptance_guard_conflict"
   ],
   "admission_fault_to_rejection": {
     "malformed_required_fact": "required_fact_invalid",
@@ -1218,7 +1231,7 @@ unreachability-boundary proofs, and current-source AST evidence.
       "terminal_reject": "program_terminal_reject",
       "block": "post_execution_program_block"
     },
-    "evaluation_order": "after_acceptance_latch_gate",
+    "evaluation_order": "after_bootstrap_guard_gate",
     "may_change_branch": false,
     "retention": "non_authoritative_evidence",
     "recognized_equal": {
@@ -1243,7 +1256,7 @@ unreachability-boundary proofs, and current-source AST evidence.
       "productive_matrix_evaluated",
       "branch_selected",
       "halt_only_matrix_evaluated",
-      "acceptance_latch_checked",
+      "bootstrap_acceptance_guard_checked",
       "model_consistency_evaluated"
     ],
     "productive_matrix_evidence_fields": [
@@ -1252,27 +1265,36 @@ unreachability-boundary proofs, and current-source AST evidence.
     ],
     "model_last": true
   },
-  "latch": {
-    "selector_in_command_digest": true,
-    "selector_in_recovery_selector": true,
-    "selector_grants_authority": false,
-    "selector_requests_acceptance": false,
-    "accept_required_preimage": "available",
-    "accept_postimage": "consumed",
+  "guard": {
+    "owner": ".docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md",
+    "relation_in_command_digest": true,
+    "relation_in_recovery_selector": true,
+    "relation_grants_authority": false,
+    "relation_requests_acceptance": false,
+    "relation_required_every_applicable_command": true,
+    "universal_exact_roles": [
+      "lineage",
+      "scope",
+      "admission",
+      "continuity",
+      "sole_active",
+      "no_foreign_claim"
+    ],
+    "accept_required_evidence": "exhaustively_unclaimed",
     "accept_invalid_states": [
       "mismatch",
       "missing",
       "duplicate",
       "malformed",
       "ambiguous",
-      "consumed"
+      "claimed"
     ],
-    "accept_invalid_result": "acceptance_latch_precondition_conflict",
-    "accept_effect": "consume_preassigned_postimage",
+    "accept_invalid_result": "bootstrap_acceptance_guard_conflict",
+    "accept_effect": "create_one_immutable_acceptance_fact",
     "nonaccept_effect": "none",
     "replay_mutates": false,
-    "recovery_family": "decision_and_latch_together",
-    "accept_writer_callable_before_owner_freeze": false
+    "recovery_family": "complete_decision_family_including_acceptance_fact",
+    "accept_writer_callable_before_physical_freeze": false
   },
   "recovery": {
     "requires_commit_attempt_uncertainty": true,
@@ -1288,8 +1310,8 @@ unreachability-boundary proofs, and current-source AST evidence.
   "terminal": {
     "later_immutable_fact": true,
     "binds_committed_decision_result_receipt": true,
-    "acceptance_binds_committed_latch_postimage": true,
-    "mutates_latch": false,
+    "acceptance_binds_immutable_bootstrap_acceptance_fact": true,
+    "mutates_guard": false,
     "is_development_decision": false,
     "is_effect_basis": false
   },
@@ -1314,7 +1336,7 @@ unreachability-boundary proofs, and current-source AST evidence.
   ],
   "implementation": {
     "durable_decision_writer": false,
-    "acceptance_latch_owner": false,
+    "bootstrap_acceptance_guard": false,
     "terminal_outcome_owner": false,
     "production_caller": false,
     "public_export": false,

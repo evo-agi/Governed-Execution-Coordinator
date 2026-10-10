@@ -4,6 +4,7 @@ from copy import deepcopy
 from functools import partial
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 import stat
@@ -88,7 +89,7 @@ def _strict_json_loads(raw: str) -> object:
 
 
 EXPECTED_CONTRACT = _strict_json_loads(r"""{
-  "contract_id": "rw0-c2-durable-progression-decision-semantic-contract-v1",
+  "contract_id": "rw0-c2-durable-progression-decision-semantic-contract-v2",
   "status": "accepted_strategic_target_not_implemented",
   "outcome_classes": [
     "no_write",
@@ -104,7 +105,7 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
     "matrix_conflict",
     "expected_branch_mismatch",
     "halt_only_matrix_contract_conflict",
-    "acceptance_latch_precondition_conflict"
+    "bootstrap_acceptance_guard_conflict"
   ],
   "admission_fault_to_rejection": {
     "malformed_required_fact": "required_fact_invalid",
@@ -367,94 +368,322 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
   },
   "accepted_emittable_pairs": {
     "standing_policy": [
-      {"result": "permit", "reason": "halt_only_policy_not_applicable"},
-      {"result": "deny", "reason": "policy_revoked"},
-      {"result": "deny", "reason": "branch_not_allowed"},
-      {"result": "deny", "reason": "risk_lane_not_allowed"},
-      {"result": "deny", "reason": "effect_class_not_allowed"},
-      {"result": "unknown", "reason": "policy_status_unknown"},
-      {"result": "unknown", "reason": "policy_currentness_unknown"},
-      {"result": "permit", "reason": "policy_permits"}
+      {
+        "result": "permit",
+        "reason": "halt_only_policy_not_applicable"
+      },
+      {
+        "result": "deny",
+        "reason": "policy_revoked"
+      },
+      {
+        "result": "deny",
+        "reason": "branch_not_allowed"
+      },
+      {
+        "result": "deny",
+        "reason": "risk_lane_not_allowed"
+      },
+      {
+        "result": "deny",
+        "reason": "effect_class_not_allowed"
+      },
+      {
+        "result": "unknown",
+        "reason": "policy_status_unknown"
+      },
+      {
+        "result": "unknown",
+        "reason": "policy_currentness_unknown"
+      },
+      {
+        "result": "permit",
+        "reason": "policy_permits"
+      }
     ],
     "risk_lane": [
-      {"result": "permit", "reason": "halt_only_risk_not_applicable"},
-      {"result": "deny", "reason": "policy_revoked"},
-      {"result": "deny", "reason": "required_lane_mismatch"},
-      {"result": "unknown", "reason": "policy_status_unknown"},
-      {"result": "permit", "reason": "risk_lane_permits"}
+      {
+        "result": "permit",
+        "reason": "halt_only_risk_not_applicable"
+      },
+      {
+        "result": "deny",
+        "reason": "policy_revoked"
+      },
+      {
+        "result": "deny",
+        "reason": "required_lane_mismatch"
+      },
+      {
+        "result": "unknown",
+        "reason": "policy_status_unknown"
+      },
+      {
+        "result": "permit",
+        "reason": "risk_lane_permits"
+      }
     ],
     "decision_time_authority": [
-      {"result": "conflict", "reason": "snapshot_or_phase_mismatch"},
-      {"result": "conflict", "reason": "parent_or_fence_identity_mismatch"},
-      {"result": "conflict", "reason": "support_conflict"},
-      {"result": "permit", "reason": "halt_only_authority_not_applicable"},
-      {"result": "deny", "reason": "authority_denied"},
-      {"result": "deny", "reason": "authority_revoked"},
-      {"result": "deny", "reason": "attempt_fence_expired"},
-      {"result": "deny", "reason": "effect_fence_expired"},
-      {"result": "deny", "reason": "authority_grant_expired"},
-      {"result": "deny", "reason": "authority_observation_expired"},
-      {"result": "deny", "reason": "effect_class_not_allowed"},
-      {"result": "unknown", "reason": "authority_status_unknown"},
-      {"result": "unknown", "reason": "family_status_unknown"},
-      {"result": "unknown", "reason": "revocation_status_unknown"},
-      {"result": "permit", "reason": "authority_verified_current"}
+      {
+        "result": "conflict",
+        "reason": "snapshot_or_phase_mismatch"
+      },
+      {
+        "result": "conflict",
+        "reason": "parent_or_fence_identity_mismatch"
+      },
+      {
+        "result": "conflict",
+        "reason": "support_conflict"
+      },
+      {
+        "result": "permit",
+        "reason": "halt_only_authority_not_applicable"
+      },
+      {
+        "result": "deny",
+        "reason": "authority_denied"
+      },
+      {
+        "result": "deny",
+        "reason": "authority_revoked"
+      },
+      {
+        "result": "deny",
+        "reason": "attempt_fence_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "effect_fence_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "authority_grant_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "authority_observation_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "effect_class_not_allowed"
+      },
+      {
+        "result": "unknown",
+        "reason": "authority_status_unknown"
+      },
+      {
+        "result": "unknown",
+        "reason": "family_status_unknown"
+      },
+      {
+        "result": "unknown",
+        "reason": "revocation_status_unknown"
+      },
+      {
+        "result": "permit",
+        "reason": "authority_verified_current"
+      }
     ],
     "global_stop": [
-      {"result": "permit", "reason": "halt_only_stop_checked"},
-      {"result": "deny", "reason": "global_stop_active"},
-      {"result": "permit", "reason": "global_stop_clear"}
+      {
+        "result": "permit",
+        "reason": "halt_only_stop_checked"
+      },
+      {
+        "result": "deny",
+        "reason": "global_stop_active"
+      },
+      {
+        "result": "permit",
+        "reason": "global_stop_clear"
+      }
     ],
     "source_effect_ceiling": [
-      {"result": "conflict", "reason": "snapshot_lineage_or_fence_mismatch"},
-      {"result": "conflict", "reason": "proposal_evidence_conflict"},
-      {"result": "permit", "reason": "halt_only_ceiling_not_applicable"},
-      {"result": "deny", "reason": "proposal_evidence_noncompliant"},
-      {"result": "deny", "reason": "attempt_fence_expired"},
-      {"result": "deny", "reason": "effect_fence_expired"},
-      {"result": "deny", "reason": "authority_grant_expired"},
-      {"result": "deny", "reason": "authority_observation_expired"},
-      {"result": "deny", "reason": "effect_class_not_allowed"},
-      {"result": "deny", "reason": "source_effect_exceeds_current_attempt"},
-      {"result": "deny", "reason": "source_effect_exceeds_current_authority"},
-      {"result": "unknown", "reason": "current_authority_unknown"},
-      {"result": "permit", "reason": "source_effect_within_current_ceilings"}
+      {
+        "result": "conflict",
+        "reason": "snapshot_lineage_or_fence_mismatch"
+      },
+      {
+        "result": "conflict",
+        "reason": "proposal_evidence_conflict"
+      },
+      {
+        "result": "permit",
+        "reason": "halt_only_ceiling_not_applicable"
+      },
+      {
+        "result": "deny",
+        "reason": "proposal_evidence_noncompliant"
+      },
+      {
+        "result": "deny",
+        "reason": "attempt_fence_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "effect_fence_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "authority_grant_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "authority_observation_expired"
+      },
+      {
+        "result": "deny",
+        "reason": "effect_class_not_allowed"
+      },
+      {
+        "result": "deny",
+        "reason": "source_effect_exceeds_current_attempt"
+      },
+      {
+        "result": "deny",
+        "reason": "source_effect_exceeds_current_authority"
+      },
+      {
+        "result": "unknown",
+        "reason": "current_authority_unknown"
+      },
+      {
+        "result": "permit",
+        "reason": "source_effect_within_current_ceilings"
+      }
     ]
   },
   "metadata_only_unreachable_pairs": {
     "standing_policy": [
-      {"result": "conflict", "reason": "policy_identity_conflict", "classification": "no_evaluator_branch"},
-      {"result": "conflict", "reason": "evaluator_profile_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "conflict", "reason": "support_conflict", "classification": "no_evaluator_branch"},
-      {"result": "deny", "reason": "policy_not_yet_valid", "classification": "accepted_relation_precludes"},
-      {"result": "deny", "reason": "policy_expired", "classification": "valid_construction_precludes"},
-      {"result": "deny", "reason": "audience_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "deny", "reason": "repository_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "deny", "reason": "path_scope_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "deny", "reason": "ceilings_exceeded", "classification": "no_evaluator_branch"}
+      {
+        "result": "conflict",
+        "reason": "policy_identity_conflict",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "conflict",
+        "reason": "evaluator_profile_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "conflict",
+        "reason": "support_conflict",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "deny",
+        "reason": "policy_not_yet_valid",
+        "classification": "accepted_relation_precludes"
+      },
+      {
+        "result": "deny",
+        "reason": "policy_expired",
+        "classification": "valid_construction_precludes"
+      },
+      {
+        "result": "deny",
+        "reason": "audience_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "deny",
+        "reason": "repository_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "deny",
+        "reason": "path_scope_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "deny",
+        "reason": "ceilings_exceeded",
+        "classification": "no_evaluator_branch"
+      }
     ],
     "risk_lane": [
-      {"result": "conflict", "reason": "risk_source_conflict", "classification": "no_evaluator_branch"},
-      {"result": "conflict", "reason": "policy_identity_conflict", "classification": "no_evaluator_branch"},
-      {"result": "conflict", "reason": "evaluator_profile_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "conflict", "reason": "support_conflict", "classification": "no_evaluator_branch"},
-      {"result": "deny", "reason": "policy_not_yet_valid", "classification": "accepted_relation_precludes"},
-      {"result": "deny", "reason": "policy_expired", "classification": "valid_construction_precludes"},
-      {"result": "deny", "reason": "risk_lane_not_allowed", "classification": "accepted_relation_precludes"}
+      {
+        "result": "conflict",
+        "reason": "risk_source_conflict",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "conflict",
+        "reason": "policy_identity_conflict",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "conflict",
+        "reason": "evaluator_profile_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "conflict",
+        "reason": "support_conflict",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "deny",
+        "reason": "policy_not_yet_valid",
+        "classification": "accepted_relation_precludes"
+      },
+      {
+        "result": "deny",
+        "reason": "policy_expired",
+        "classification": "valid_construction_precludes"
+      },
+      {
+        "result": "deny",
+        "reason": "risk_lane_not_allowed",
+        "classification": "accepted_relation_precludes"
+      }
     ],
     "decision_time_authority": [
-      {"result": "conflict", "reason": "profile_mismatch", "classification": "no_evaluator_branch"}
+      {
+        "result": "conflict",
+        "reason": "profile_mismatch",
+        "classification": "no_evaluator_branch"
+      }
     ],
     "global_stop": [
-      {"result": "conflict", "reason": "snapshot_or_stop_identity_mismatch", "classification": "valid_construction_precludes"},
-      {"result": "conflict", "reason": "profile_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "unknown", "reason": "global_stop_unknown", "classification": "valid_construction_precludes"}
+      {
+        "result": "conflict",
+        "reason": "snapshot_or_stop_identity_mismatch",
+        "classification": "valid_construction_precludes"
+      },
+      {
+        "result": "conflict",
+        "reason": "profile_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "unknown",
+        "reason": "global_stop_unknown",
+        "classification": "valid_construction_precludes"
+      }
     ],
     "source_effect_ceiling": [
-      {"result": "conflict", "reason": "profile_mismatch", "classification": "no_evaluator_branch"},
-      {"result": "conflict", "reason": "support_conflict", "classification": "valid_construction_precludes"},
-      {"result": "unknown", "reason": "proposal_evidence_unknown", "classification": "valid_construction_precludes"},
-      {"result": "deny", "reason": "source_effect_exceeds_current_effect", "classification": "accepted_relation_precludes"}
+      {
+        "result": "conflict",
+        "reason": "profile_mismatch",
+        "classification": "no_evaluator_branch"
+      },
+      {
+        "result": "conflict",
+        "reason": "support_conflict",
+        "classification": "valid_construction_precludes"
+      },
+      {
+        "result": "unknown",
+        "reason": "proposal_evidence_unknown",
+        "classification": "valid_construction_precludes"
+      },
+      {
+        "result": "deny",
+        "reason": "source_effect_exceeds_current_effect",
+        "classification": "accepted_relation_precludes"
+      }
     ]
   },
   "block_reason_precedence": [
@@ -505,7 +734,7 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
       "terminal_reject": "program_terminal_reject",
       "block": "post_execution_program_block"
     },
-    "evaluation_order": "after_acceptance_latch_gate",
+    "evaluation_order": "after_bootstrap_guard_gate",
     "may_change_branch": false,
     "retention": "non_authoritative_evidence",
     "recognized_equal": {
@@ -530,7 +759,7 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
       "productive_matrix_evaluated",
       "branch_selected",
       "halt_only_matrix_evaluated",
-      "acceptance_latch_checked",
+      "bootstrap_acceptance_guard_checked",
       "model_consistency_evaluated"
     ],
     "productive_matrix_evidence_fields": [
@@ -539,27 +768,36 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
     ],
     "model_last": true
   },
-  "latch": {
-    "selector_in_command_digest": true,
-    "selector_in_recovery_selector": true,
-    "selector_grants_authority": false,
-    "selector_requests_acceptance": false,
-    "accept_required_preimage": "available",
-    "accept_postimage": "consumed",
+  "guard": {
+    "owner": ".docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md",
+    "relation_in_command_digest": true,
+    "relation_in_recovery_selector": true,
+    "relation_grants_authority": false,
+    "relation_requests_acceptance": false,
+    "relation_required_every_applicable_command": true,
+    "universal_exact_roles": [
+      "lineage",
+      "scope",
+      "admission",
+      "continuity",
+      "sole_active",
+      "no_foreign_claim"
+    ],
+    "accept_required_evidence": "exhaustively_unclaimed",
     "accept_invalid_states": [
       "mismatch",
       "missing",
       "duplicate",
       "malformed",
       "ambiguous",
-      "consumed"
+      "claimed"
     ],
-    "accept_invalid_result": "acceptance_latch_precondition_conflict",
-    "accept_effect": "consume_preassigned_postimage",
+    "accept_invalid_result": "bootstrap_acceptance_guard_conflict",
+    "accept_effect": "create_one_immutable_acceptance_fact",
     "nonaccept_effect": "none",
     "replay_mutates": false,
-    "recovery_family": "decision_and_latch_together",
-    "accept_writer_callable_before_owner_freeze": false
+    "recovery_family": "complete_decision_family_including_acceptance_fact",
+    "accept_writer_callable_before_physical_freeze": false
   },
   "recovery": {
     "requires_commit_attempt_uncertainty": true,
@@ -575,8 +813,8 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
   "terminal": {
     "later_immutable_fact": true,
     "binds_committed_decision_result_receipt": true,
-    "acceptance_binds_committed_latch_postimage": true,
-    "mutates_latch": false,
+    "acceptance_binds_immutable_bootstrap_acceptance_fact": true,
+    "mutates_guard": false,
     "is_development_decision": false,
     "is_effect_basis": false
   },
@@ -601,7 +839,7 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
   ],
   "implementation": {
     "durable_decision_writer": false,
-    "acceptance_latch_owner": false,
+    "bootstrap_acceptance_guard": false,
     "terminal_outcome_owner": false,
     "production_caller": false,
     "public_export": false,
@@ -1025,16 +1263,37 @@ def _validate_expanded_tables(text: str, contract: dict[str, object]) -> None:
     assert branch_mapping == contract["branch_mapping"]
 
 
+
+def _type_exact(observed, expected, path='', *, boundary='c2:human_machine_equivalence', ordered_keys=False):
+    """Closed built-in values; no coercion or subclass equivalence."""
+    location = path or '/'
+    if type(expected) not in (dict, list, tuple, bool, int, str, type(None)) or type(observed) is not type(expected):
+        raise AssertionError(boundary + ':' + location + ':type')
+    if type(expected) is dict:
+        if any(type(key) is not str for key in observed) or set(observed) != set(expected):
+            raise AssertionError(boundary + ':' + location + ':keys')
+        if ordered_keys and tuple(observed) != tuple(expected):
+            raise AssertionError(boundary + ':' + location + ':order')
+        for key, value in expected.items():
+            escaped = key.replace('~', '~0').replace('/', '~1')
+            _type_exact(observed[key], value, path + '/' + escaped, boundary=boundary, ordered_keys=ordered_keys)
+    elif type(expected) in (list, tuple):
+        if len(observed) != len(expected):
+            raise AssertionError(boundary + ':' + location + ':length')
+        for index, (actual, wanted) in enumerate(zip(observed, expected, strict=True)):
+            _type_exact(actual, wanted, path + '/' + str(index), boundary=boundary, ordered_keys=ordered_keys)
+    elif observed != expected:
+        raise AssertionError(boundary + ':' + location + ':value')
+
 def _validate_document_text(text: str) -> dict[str, object]:
     human = _parse_human_contract(text)
     machine = _parse_machine_contract(text)
-    _require_exact(
-        human == machine,
-        "human and machine contract representations differ",
-    )
+    _type_exact(human, machine)
     _assert_fixed_contract(machine)
     _validate_expanded_tables(text, machine)
     compact = " ".join(text.split())
+    _require_exact("## Bootstrap acceptance-guard dependency" in text and "Every applicable direct-local command binds canonical admitted lineage and scope expectations" in compact, "c2:guard_dependency_prose")
+    _require_exact(not any(phrase in compact for phrase in ("verify the exact available preimage", "preassigned consumed postimage", "accept decision plus consumed postimage", "verify the future latch precondition")), "c2:mutable_latch_requirement")
     assert "single semantic owner for the future RW0-C2" in compact
     assert "The productive-to-block path is necessarily two-stage." in compact
     assert "Source and migrations implement current behavior" in compact
@@ -1306,7 +1565,7 @@ def _no_write(
         "version_advanced": False,
         "head_mutated": False,
         "receipt_created": False,
-        "latch_effect": "none",
+        "acceptance_fact_effect": "none",
         "terminal_fact_created": False,
         "audit_trace": audit_trace,
     }
@@ -1336,7 +1595,7 @@ def _assert_no_write(result: dict[str, object], rejection: str) -> None:
         result["receipt_created"] is False,
         "no_write:receipt_created",
     )
-    _require_exact(result["latch_effect"] == "none", "no_write:latch_effect")
+    _require_exact(result["acceptance_fact_effect"] == "none", "no_write:acceptance_fact_effect")
     _require_exact(
         result["terminal_fact_created"] is False,
         "no_write:terminal_fact_created",
@@ -1367,7 +1626,8 @@ def _baseline(contract: dict[str, object]) -> dict[str, object]:
         "matrices": matrices,
         "expected_branch": None,
         "model_recommendation": "accept_candidate",
-        "latch_state": "available",
+        "guard_state": "exhaustively_unclaimed",
+        "guard_relation": {role: "exact" for role in contract["guard"]["universal_exact_roles"]},
     }
 
 
@@ -1454,11 +1714,14 @@ def _entry_result(
     return None, result
 
 
-def _interpret(
+def _interpret_pre_model(
     contract: dict[str, object],
     state: dict[str, object],
 ) -> dict[str, object]:
     trace: list[str] = []
+    relation = state.get("guard_relation")
+    if type(relation) is not dict or set(relation) != set(contract["guard"]["universal_exact_roles"]) or any(value != "exact" for value in relation.values()):
+        return _no_write("bootstrap_acceptance_guard_conflict", tuple(trace))
     fault = state.get("admission_fault")
     if fault is not None:
         rejection = contract["admission_fault_to_rejection"].get(
@@ -1611,52 +1874,69 @@ def _interpret(
         if expected_branch != branch:
             return _no_write(contract["expected_branch"]["mismatch"], tuple(trace))
 
-    if branch == "candidate_acceptance":
-        trace.append("acceptance_latch_checked")
-        if state.get("latch_state") != contract["latch"]["accept_required_preimage"]:
-            return _no_write(contract["latch"]["accept_invalid_result"], tuple(trace))
-        latch_effect = contract["latch"]["accept_effect"]
-    else:
-        latch_effect = contract["latch"]["nonaccept_effect"]
-
-    recommendation = state.get("model_recommendation")
-    trace.append("model_consistency_evaluated")
-    if type(recommendation) is not str:
-        return _no_write(contract["invalid_projection_rejection"], tuple(trace))
-    recommendation_map = contract["model"]["recommendation_to_branch"]
-    if recommendation not in recommendation_map:
-        model_evidence = contract["model"]["unrecognized"]
-    elif recommendation_map[recommendation] == branch:
-        model_evidence = contract["model"]["recognized_equal"]
-    else:
-        model_evidence = contract["model"]["recognized_unequal"]
-    model_consistent = model_evidence["status"] == "consistent"
-
-    mapping = contract["branch_mapping"][branch]
     return {
-        "outcome": "durable_decision",
-        "branch": branch,
-        "decision_kind": mapping["decision_kind"],
-        "decision_variant": mapping["decision_variant"],
-        "reason": reason,
-        "candidate_reason": candidate_reason,
-        "decision_created": True,
-        "version_advanced": mapping["version_advancing"],
-        "head_mutated": True,
-        "receipt_created": True,
-        "latch_effect": latch_effect,
-        "terminal_fact_created": False,
-        "model_consistent": model_consistent,
-        "model_consistency": model_evidence["status"],
-        "model_consistency_reason": model_evidence["reason"],
-        "retained_basis": deepcopy(state),
-        "audit_trace": tuple(trace),
-        **(
-            {"productive_matrix_evidence": productive_evidence}
-            if productive_evidence is not None
-            else {}
-        ),
+        'outcome': 'pre_model', 'branch': branch, 'reason': reason,
+        'candidate_reason': candidate_reason, 'retained_basis': deepcopy(state),
+        'deferred_model_inputs': state.get('model_recommendation'),
+        'audit_trace': tuple(trace),
+        **({'productive_matrix_evidence': productive_evidence} if productive_evidence is not None else {}),
     }
+
+
+def _c2_guard_gate(contract, prepared):
+    """The existing supplied guard-evidence gate, before any model projection."""
+    if prepared['outcome'] == 'no_write':
+        return prepared
+    result = deepcopy(prepared)
+    branch = result['branch']
+    if branch == 'candidate_acceptance':
+        result['audit_trace'] += ('bootstrap_acceptance_guard_checked',)
+        if result['retained_basis'].get('guard_state') != contract['guard']['accept_required_evidence']:
+            return _no_write(contract['guard']['accept_invalid_result'], result['audit_trace'])
+        result['acceptance_fact_effect'] = contract['guard']['accept_effect']
+    else:
+        result['acceptance_fact_effect'] = contract['guard']['nonaccept_effect']
+    result['_guard_gates_passed'] = True
+    return result
+
+
+def _model_consistency_phase(contract, prepared):
+    """One final model phase; it cannot precede the authoritative guard gates."""
+    if prepared['outcome'] == 'no_write':
+        return prepared
+    _require_exact(prepared.get('_guard_gates_passed') is True, 'c2:model_after_guard:guard_gate')
+    branch = prepared['branch']
+    trace = list(prepared['audit_trace'])
+    recommendation = prepared['deferred_model_inputs']
+    trace.append('model_consistency_evaluated')
+    if type(recommendation) is not str:
+        return _no_write(contract['invalid_projection_rejection'], tuple(trace))
+    recommendation_map = contract['model']['recommendation_to_branch']
+    if recommendation not in recommendation_map:
+        model_evidence = contract['model']['unrecognized']
+    elif recommendation_map[recommendation] == branch:
+        model_evidence = contract['model']['recognized_equal']
+    else:
+        model_evidence = contract['model']['recognized_unequal']
+    mapping = contract['branch_mapping'][branch]
+    return {
+        'outcome': 'durable_decision', 'branch': branch,
+        'decision_kind': mapping['decision_kind'], 'decision_variant': mapping['decision_variant'],
+        'reason': prepared['reason'], 'candidate_reason': prepared['candidate_reason'],
+        'decision_created': True, 'version_advanced': mapping['version_advancing'],
+        'head_mutated': True, 'receipt_created': True,
+        'acceptance_fact_effect': prepared['acceptance_fact_effect'], 'terminal_fact_created': False,
+        'model_consistent': model_evidence['status'] == 'consistent',
+        'model_consistency': model_evidence['status'], 'model_consistency_reason': model_evidence['reason'],
+        'retained_basis': prepared['retained_basis'], 'audit_trace': tuple(trace),
+        **({'productive_matrix_evidence': prepared['productive_matrix_evidence']}
+           if 'productive_matrix_evidence' in prepared else {}),
+    }
+
+
+def _interpret(contract: dict[str, object], state: dict[str, object]) -> dict[str, object]:
+    """Standalone composition retains the original C2 output and trace semantics."""
+    return _model_consistency_phase(contract, _c2_guard_gate(contract, _interpret_pre_model(contract, state)))
 
 
 def _set_matrix_result(
@@ -1735,16 +2015,27 @@ def _recover(
     contract: dict[str, object],
     *,
     commit_attempted: bool,
-    readback: str,
+    readback: str | None = None,
+    expected_family: dict[str, object] | None = None,
+    observed_family: dict[str, object] | None = None,
+    exhaustive: bool = True,
+    collision_or_read_fault: bool = False,
 ) -> dict[str, object]:
     if not commit_attempted:
         raise ValueError("recovery classification requires commit-attempt uncertainty")
+    if expected_family is not None:
+        if exhaustive and not collision_or_read_fault and observed_family == expected_family:
+            readback = "exact_family"
+        elif exhaustive and not collision_or_read_fault and observed_family == {}:
+            readback = "provably_absent"
+        else:
+            readback = "ambiguous"
     classification = contract["recovery"]["readback"][readback]
     return {
         "outcome": "recovery_unresolved" if classification == "unresolved" else classification,
         "classification": classification,
         "decision_created_by_recovery": False,
-        "latch_mutated_by_recovery": False,
+        "guard_mutated_by_recovery": False,
     }
 
 
@@ -3370,7 +3661,7 @@ def test_human_machine_expanded_and_fixed_contract_representations_are_identical
         "expected_branch",
         "model",
         "evaluation_trace",
-        "latch",
+        "guard",
         "recovery",
         "terminal",
         "physical",
@@ -5065,18 +5356,18 @@ def test_model_authority_exhaustive_recommendation_evidence_never_changes_branch
 
 
 @pytest.mark.parametrize("recommendation", MODEL_RECOMMENDATION_CASES)
-def test_model_authority_acceptance_latch_no_write_precedes_all_recommendations(
+def test_model_authority_bootstrap_guard_no_write_precedes_all_recommendations(
     contract: dict[str, object],
     recommendation: str,
 ) -> None:
     state = _baseline(contract)
-    state["latch_state"] = "missing"
+    state["guard_state"] = "missing"
     state["model_recommendation"] = recommendation
     result = _interpret(contract, state)
-    _assert_no_write(result, "acceptance_latch_precondition_conflict")
+    _assert_no_write(result, "bootstrap_acceptance_guard_conflict")
     _require_exact(
-        result["audit_trace"][-1] == "acceptance_latch_checked",
-        f"model_authority:latch_precedes_model:{recommendation}",
+        result["audit_trace"][-1] == "bootstrap_acceptance_guard_checked",
+        f"model_authority:guard_precedes_model:{recommendation}",
     )
     _require_exact(
         "model_consistency_evaluated" not in result["audit_trace"],
@@ -5106,7 +5397,7 @@ def test_model_recommendation_changes_only_consistency_evidence(
     assert changed_result["model_consistency_reason"] == (
         "mapped_branch_differs_from_authoritative_branch"
     )
-    assert contract["model"]["evaluation_order"] == "after_acceptance_latch_gate"
+    assert contract["model"]["evaluation_order"] == "after_bootstrap_guard_gate"
     assert contract["model"]["may_change_branch"] is False
     assert contract["model"]["retention"] == "non_authoritative_evidence"
 
@@ -5178,19 +5469,19 @@ def test_each_admission_fault_is_independently_fixed_and_no_write(
 
 
 @pytest.mark.parametrize(
-    "latch_state",
-    tuple(EXPECTED_CONTRACT["latch"]["accept_invalid_states"]),
+    "guard_state",
+    tuple(EXPECTED_CONTRACT["guard"]["accept_invalid_states"]),
 )
-def test_acceptance_latch_dependency_is_abstract_exact_and_nonaccept_does_not_mutate(
+def test_bootstrap_guard_dependency_is_abstract_exact_and_nonaccept_does_not_mutate(
     contract: dict[str, object],
     source_contract: dict[str, object],
-    latch_state: str,
+    guard_state: str,
 ) -> None:
     acceptance = _baseline(contract)
-    acceptance["latch_state"] = latch_state
+    acceptance["guard_state"] = guard_state
     _assert_no_write(
         _interpret(contract, acceptance),
-        "acceptance_latch_precondition_conflict",
+        "bootstrap_acceptance_guard_conflict",
     )
 
     repair = _baseline(contract)
@@ -5200,10 +5491,10 @@ def test_acceptance_latch_dependency_is_abstract_exact_and_nonaccept_does_not_mu
         "repairability": "repairable",
         "reason": "validation_failed_repairable",
     }
-    repair["latch_state"] = latch_state
+    repair["guard_state"] = guard_state
     result = _interpret(contract, repair)
     assert result["branch"] == "candidate_repair"
-    assert result["latch_effect"] == "none"
+    assert result["acceptance_fact_effect"] == "none"
 
 
 def test_no_write_block_and_recovery_unresolved_remain_disjoint(
@@ -5224,7 +5515,7 @@ def test_no_write_block_and_recovery_unresolved_remain_disjoint(
         "outcome": "recovery_unresolved",
         "classification": "unresolved",
         "decision_created_by_recovery": False,
-        "latch_mutated_by_recovery": False,
+        "guard_mutated_by_recovery": False,
     }
     with pytest.raises(ValueError, match="commit-attempt uncertainty"):
         _recover(contract, commit_attempted=False, readback="ambiguous")
@@ -5236,8 +5527,8 @@ def test_terminal_physical_and_implementation_nonclaims_are_exact(
     assert contract["terminal"] == {
         "later_immutable_fact": True,
         "binds_committed_decision_result_receipt": True,
-        "acceptance_binds_committed_latch_postimage": True,
-        "mutates_latch": False,
+        "acceptance_binds_immutable_bootstrap_acceptance_fact": True,
+        "mutates_guard": False,
         "is_development_decision": False,
         "is_effect_basis": False,
     }
@@ -5331,7 +5622,7 @@ def _mutate_leaf(
 
 
 NORMATIVE_LEAF_PATHS = _leaf_paths(EXPECTED_CONTRACT)
-FIXED_NORMATIVE_SCALAR_LEAF_COUNT = 453
+FIXED_NORMATIVE_SCALAR_LEAF_COUNT = 460
 
 
 def _json_pointer(path: tuple[str | int, ...]) -> str:
@@ -5470,7 +5761,7 @@ def test_hostile_machine_projection_drift_fails_human_machine_boundary(
     )
     with pytest.raises(
         AssertionError,
-        match="^human and machine contract representations differ$",
+        match="^c2:human_machine_equivalence:/validation_projection/0/normalized_class:value$",
     ):
         _validate_document_text(hostile)
 
@@ -5808,7 +6099,7 @@ def test_hostile_adding_excluded_reducer_branch_fails_fixed_boundary(
     "claim",
     (
         "durable_decision_writer",
-        "acceptance_latch_owner",
+        "bootstrap_acceptance_guard",
         "terminal_outcome_owner",
         "production_caller",
         "public_export",
@@ -6606,3 +6897,57 @@ def test_migration_inventory_and_bytes_are_exactly_0001_through_0004() -> None:
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sql_paths
     } == MIGRATION_SHA256
+
+
+def _replay_family(original, mutation_ref, command_digest):
+    """Receipt-first, branch-neutral conformance operation; never reevaluates a reducer."""
+    if original["mutation_ref"] != mutation_ref:
+        return None
+    if original["command_digest"] != command_digest:
+        return _no_write("mutation_ref_reuse_conflict")
+    required = {"mutation_ref", "command_digest", "decision", "version", "head", "result", "receipt", "timestamp"}
+    if not required.issubset(original) or (original.get("branch") == "candidate_acceptance" and "acceptance_fact" not in original):
+        return _no_write("required_fact_invalid")
+    return deepcopy(original)
+
+
+@pytest.mark.parametrize("role", ("lineage", "scope", "admission", "continuity", "sole_active", "no_foreign_claim"))
+@pytest.mark.parametrize("branch", ("candidate_acceptance", "candidate_repair", "attempt_selecting_replan", "program_terminal_reject", "post_execution_program_block"))
+def test_admitted_lineage_relation_is_required_for_every_applicable_command(contract, role, branch):
+    state = _baseline(contract)
+    state["guard_relation"][role] = "unreadable"
+    state["expected_branch"] = branch
+    _assert_no_write(_interpret(contract, state), "bootstrap_acceptance_guard_conflict")
+
+
+def test_one_classifier_includes_the_acceptance_fact(contract):
+    family = {"decision": "d", "version": "v", "head": "h", "acceptance_fact": "f", "result": "r", "receipt": "q"}
+    exact = _recover(contract, commit_attempted=True, expected_family=family, observed_family=family)
+    assert exact["classification"] == "committed_exact", "c2:whole_family_exact"
+    for missing in ("decision", "acceptance_fact"):
+        partial = dict(family)
+        del partial[missing]
+        assert _recover(contract, commit_attempted=True, expected_family=family, observed_family=partial)["classification"] == "unresolved", "c2:partial_family_unresolved"
+
+
+@pytest.mark.parametrize('human,machine,kind', [
+    (True, 1, 'type'), (1, True, 'type'), (False, 0, 'type'), (0, False, 'type'),
+    ('sibling', 'original', 'value'), (None, 'value', 'type'),
+    ([True], [1], 'type'), ((1,), [1], 'type'),
+])
+def test_typed_human_machine_equivalence_c2_scalars(human, machine, kind):
+    pointer = '/role/0' if type(human) is list and type(machine) is list else '/role'
+    with pytest.raises(AssertionError, match='^' + re.escape('c2:human_machine_equivalence:' + pointer + ':' + kind) + '$'):
+        _type_exact({'role': human}, {'role': machine})
+
+
+def test_typed_human_machine_equivalence_c2_document(owner_text):
+    changed = _replace_in_region(owner_text, HUMAN_BEGIN, HUMAN_END, '"mutates_guard":false', '"mutates_guard":0')
+    with pytest.raises(AssertionError, match='^c2:human_machine_equivalence:/terminal/mutates_guard:type$'):
+        _validate_document_text(changed)
+
+
+def test_model_after_guard_c2_phase_cannot_be_called_early(contract):
+    prepared = _interpret_pre_model(contract, _baseline(contract))
+    with pytest.raises(AssertionError, match='^c2:model_after_guard:guard_gate$'):
+        _model_consistency_phase(contract, prepared)

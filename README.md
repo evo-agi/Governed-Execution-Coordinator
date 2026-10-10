@@ -601,8 +601,8 @@ route-neutral; first author-effect delivery uses the existing
 Linux host, not the user's Mac or Coordinator host. No third adapter is added.
 
 The dependency order is pre-I/O Coordinator progression, remote contact through
-semantic decision, a separate local-Git effect and stop, then ES migration
-before another productive bootstrap slice. This is not a mandatory program or
+semantic decision, a separate local-Git effect and stop, then separately governed ES migration
+that never replenishes the direct-local allowance. This is not a mandatory program or
 tranche count. The bootstrap route permits at most one productive acceptance;
 local Git later permits at most one isolated feature-branch commit and no push,
 remote-ref mutation, PR, merge, deployment, or publication.
@@ -667,3 +667,15 @@ Any earlier unqualified statement that groups all RW0-C durable mechanics as
 future is historical and superseded only for this bounded C1 boundary; later
 RW0-C closure/decision work and RW0-D/E remain future.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+Accepted target reset: `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`
+owns five-branch reduction, exact replay, and one whole-family recovery classifier.
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md` solely owns immutable
+scope admission and acceptance-fact semantics. One scope belongs to an explicitly
+standing-policy-admitted Coordinator authority lineage. Across all participating
+direct-local programs at most one distinct productive acceptance may commit.
+Machine/database replacement, restore, rollback, clone, passive backup, relocation,
+a new grant or policy epoch never replenishes it. Later ES operation is separately
+governed and non-replenishing. Mutable-latch target requirements are explicitly
+superseded. Guard values, physical storage, migration treatment, provisioner,
+reader, writer, public export, and runtime remain future; none is implemented.

@@ -1508,10 +1508,10 @@ def _assert_c2b0_composition_overlay(text: str) -> None:
         "immutable `initialize` decision",
         "distinct risk-reducing `cancel` decision",
         "Author-effect establishment is separate from bound validation, review, and cancellation-effect establishment",
-        "active coding global stop blocks initialization, author/validation/review effects, productive delivery or redelivery, acceptance, repair, productive replan, publication eligibility, latch consumption, and Git eligibility",
+        "active coding global stop blocks initialization, author/validation/review effects, productive delivery or redelivery, acceptance, repair, productive replan, publication eligibility, acceptance-fact creation, and Git eligibility",
         "permits source evidence retention, terminal reject/block decisions, a cancel decision, cancellation-effect planning and cancellation delivery, and cancellation evidence ingest",
         "C2B5 owns source-observation ingest, cancel/redeliver decisions, and bound validation/review/cancellation effects",
-        "C2B6 owns remaining program progression, publication eligibility, and the first-slice latch",
+        "C2B6 owns remaining program progression and publication eligibility; the bootstrap guard owner owns the lineage-scoped one-shot ceiling",
         "adds no schema, migration, runtime, worker, Bridge change, or ES change",
     ):
         _require(
@@ -1706,7 +1706,7 @@ def test_narrowed_vertical_slice_order_and_jit_ledger_are_exact() -> None:
         "1. pre-I/O Coordinator progression;",
         "2. remote worker contact through semantic decision;",
         "3. a separate local-Git effect and stop;",
-        "4. migration to ES before another productive bootstrap slice.",
+        "4. migration to ES without replenishing the direct-local allowance.",
     )
     positions = tuple(document.index(item) for item in ordered)
     assert positions == tuple(sorted(positions))

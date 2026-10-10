@@ -644,7 +644,7 @@ recovery. C2B3D now privately establishes the ten-row/nine-entry author-effect
 family and verifies its original graph plus bounded current effect/delivery
 heads. Its pending authority and planned delivery are not execution permission.
 Custody, fresh external verification, invocation, later evidence, Git,
-migration, latch, reliable-submit, and conformance designs remain deferred to
+migration, bootstrap-guard physical representation, reliable-submit, and conformance designs remain deferred to
 the phase that first needs them. Do not infer external-effect authorization.
 
 ## Pre-I/O VS1A cleanup invariant
@@ -929,3 +929,15 @@ Any earlier unqualified statement that groups all RW0-C durable mechanics as
 future is historical and superseded only for this bounded C1 boundary; later
 RW0-C closure/decision work and RW0-D/E remain future.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+Accepted target reset: `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`
+owns five-branch reduction, exact replay, and one whole-family recovery classifier.
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md` solely owns immutable
+scope admission and acceptance-fact semantics. One scope belongs to an explicitly
+standing-policy-admitted Coordinator authority lineage. Across all participating
+direct-local programs at most one distinct productive acceptance may commit.
+Machine/database replacement, restore, rollback, clone, passive backup, relocation,
+a new grant or policy epoch never replenishes it. Later ES operation is separately
+governed and non-replenishing. Mutable-latch target requirements are explicitly
+superseded. Guard values, physical storage, migration treatment, provisioner,
+reader, writer, public export, and runtime remain future; none is implemented.

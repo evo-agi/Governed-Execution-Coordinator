@@ -457,4 +457,18 @@ retry after uncertainty, or restart-safe raw-input custody. Pending authority
 and planned delivery remain durable intent and bounds only, never execution
 permission.
 
+
+### Immutable bootstrap guard target projection
+<!-- C2B3_BOOTSTRAP_GUARD_TARGET_BEGIN -->
+Classification: `ACCEPTED TARGET CONTRACT`; all preceding planning/genesis/status
+bytes remain historical or current within their declared scope. Initialization
+remains route-neutral and provides no scope admission. The sole guard owner is
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`: explicitly admitted
+Coordinator authority lineage, immutable scope admission, positive continuity,
+sole-active authority, and one permanent acceptance across participating programs.
+Mutable-latch target representation is superseded, with physical provisioning
+reopened. No current scope provisioner, guard reader/writer, or runtime exists.
+The decision family, replay, and recovery remain C2-owned. No reset, deletion,
+renewal, reuse, restore, clone, grant, or later ES route replenishes the allowance.
+<!-- C2B3_BOOTSTRAP_GUARD_TARGET_END -->
 <!-- COORDINATOR_C2B3D_COMMITTED_CURRENT_STATUS_END -->

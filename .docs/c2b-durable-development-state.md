@@ -24896,3 +24896,33 @@ SQL, migration, application-generation change, reader, writer, latch owner,
 terminal-outcome owner, production caller, public export, runtime, RW0-D/E, or
 Execution Substrate behavior is implemented or authorized here.
 <!-- RW0_C2_DURABLE_DECISION_SEMANTIC_STATUS_END -->
+
+### RW0-C2 immutable bootstrap guard current successor
+<!-- RW0_C2_BOOTSTRAP_GUARD_CURRENT_SUCCESSOR_BEGIN -->
+
+Classification: `ACCEPTED TARGET CONTRACT`; this bounded successor supersedes
+only mutable-latch accepted-target representation. Historical mutable-latch
+sections and their physical selections remain historical/proof precursors or
+reopened choices. Later committed current-status successors, current migration
+facts, current owner routing, and current-family statements retain their existing
+authority. The complete opening document is preserved byte-for-byte; this successor
+does not supersede it as a whole. The one-shot cross-program ceiling and no reset,
+deletion, renewal, or reuse remain. One scope belongs to one explicitly
+standing-policy-admitted Coordinator authority lineage; at most one distinct
+productive candidate acceptance may commit across its participating programs.
+Mutable-latch tables, seed rows, migration allocations, SQL, triggers, indexes,
+state/revision transitions, and consumed-postimage representation are historical
+proof precursors; physical selections for the immutable guard are reopened.
+Current accepted-target lineage, scope admission, continuity, sole-active authority,
+eligibility, and immutable acceptance-fact semantics belong solely to
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. C2 decision,
+result/receipt, exact replay, and one complete-family recovery classifier remain
+owned by `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`.
+Infrastructure replacement, restore, rollback, cloning, passive backup, relocation,
+new grants or policy epochs, and ES route transition never replenish the allowance.
+Migrations 0001–0004 and current implemented families are unchanged; migration
+0005 remains absent. No physical guard schema, provisioning, reader, writer,
+public surface, runtime, RW0-D/E, or ES behavior is implemented. Historical tests
+preserve historical evidence and do not promote old SQL/migration/table choices
+to current physical authority.
+<!-- RW0_C2_BOOTSTRAP_GUARD_CURRENT_SUCCESSOR_END -->

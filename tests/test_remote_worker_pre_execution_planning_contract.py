@@ -4530,7 +4530,7 @@ def _assert_complete_rw0_cross_reference_map(owners: dict[str, bytes]) -> str:
         "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests",
         "The existing C2B `cancel` decision commits before the cancellation effect",
         "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run",
-        "The accepted direct-local C2B decision alone atomically consumes the one-way latch in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and committed latch postimage without another latch mutation.",
+        "The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact in its guarded writer transaction; the later terminal-outcome `accept` binds that exact decision ref/digest and acceptance-fact identity/digest without mutating guard truth.",
         "an unusable pre-effect cancel basis establishes no effect, fence, delivery, request, or signal and commits terminal-outcome `block` bound to the exact unusable decision and mismatch evidence, without another C2B decision.",
         "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision",
     ):
@@ -4711,7 +4711,7 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
     assert "Existing author attempt/effect fences retain exact externally authored per-fence authorization-basis refs/digests" in rw0_bodies[0]
     assert "The existing C2B `cancel` decision commits before the cancellation effect" in rw0_bodies[0]
     assert "A separate future Coordinator-owned durable RW0 terminal-outcome fact closes each run" in rw0_bodies[0]
-    assert "The accepted direct-local C2B decision alone atomically consumes the one-way latch" in rw0_bodies[0]
+    assert "The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact" in rw0_bodies[0]
     assert "an unusable pre-effect cancel basis establishes no effect" in rw0_bodies[0]
     assert "terminal-outcome `cancel` only when complete and unambiguous or terminal-outcome `block` otherwise without another C2B decision" in rw0_bodies[0]
 

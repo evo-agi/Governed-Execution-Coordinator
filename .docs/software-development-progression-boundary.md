@@ -1,5 +1,18 @@
 # Software-Development Progression Boundary
 
+
+Accepted target reset: `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`
+owns five-branch reduction, exact replay, and one whole-family recovery classifier.
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md` solely owns immutable
+scope admission and acceptance-fact semantics. One scope belongs to an explicitly
+standing-policy-admitted Coordinator authority lineage. Across all participating
+direct-local programs at most one distinct productive acceptance may commit.
+Machine/database replacement, restore, rollback, clone, passive backup, relocation,
+a new grant or policy epoch never replenishes it. Later ES operation is separately
+governed and non-replenishing. Mutable-latch target requirements are explicitly
+superseded. Guard values, physical storage, migration treatment, provisioner,
+reader, writer, public export, and runtime remain future; none is implemented.
+
 This document records the C0 software-development progression boundary for the
 Coordinator repository. It is a documentation and contract-test tranche for the
 accepted strategic target only. Current owning-repository contracts remain
@@ -452,8 +465,8 @@ evidence, not semantic identity or authority. No Mac fallback or third adapter
 kind exists.
 
 The governing dependency order is pre-I/O progression, remote worker contact
-through semantic decision, separate local-Git effect and stop, then ES
-migration before another productive bootstrap slice. It is not a frozen
+through semantic decision, separate local-Git effect and stop, then separately governed ES
+migration; ES never replenishes the direct-local allowance. It is not a frozen
 program/tranche count.
 
 The bootstrap path permits at most one productive acceptance. Local Git remains
@@ -488,7 +501,7 @@ cannot substitute for either intrinsic gate.
 Section 38 of `.docs/c2b-durable-development-state.md` now owns the exact
 route-neutral initialization, nine-row/eight-entry graph, verification, and
 replay/recovery representation implemented by VS1B. Custody, source invocation,
-later evidence, Git, ES migration, and latch representations remain
+later evidence, Git, ES migration, and immutable bootstrap-guard representations remain
 just-in-time questions. Sections 39 and 40 now govern the private C2B3D
 implementation, introduced and committed at
 `5e544622e5f46ddc78294322471b4fcbd2ad9172`, which durably establishes the

@@ -266,7 +266,8 @@ the CLI/App Server/provider choice, credentials, sessions, invocation,
 supervision, physical observation, process limits, and live proof. Execution
 Substrate retains admission and runtime authority on the ES route. RW0-C
 retains durable evidence membership and completeness, recovery, terminal
-facts, and the acceptance latch.
+facts. The bootstrap guard owner owns admitted-lineage scope and immutable
+acceptance-fact semantics; Capability supplies no durable guard authority.
 
 ### Closure, privacy, freshness, and failures
 
@@ -336,5 +337,19 @@ and 9. It reconstructs the existing values and invokes the existing
 qualification relation at the persisted rank-9 semantic instant; it neither
 changes Capability schemas/digests nor grants the evidence executable
 authority.
+
+
+
+### Governing-reset identity review
+
+P08/P11/P12/P13 protected identities are deliberately superseded only for the
+bootstrap guard governing reset: C2A support retains the ordered expansion and
+migration-review gate; AGENTS retains repository authority and nonimplementation;
+README retains product/status nonclaims; progression retains pure/non-authorizing
+boundaries. Their replacement guards verify admitted lineage, cross-program
+one-shot permanence, explicit mutable-target supersession, separate non-replenishing
+ES operation, and absence of implementation. P01–P07/P09–P10 remain exact.
+Wire and Capability own no admission, durable guard, acceptance, B1 schema,
+decision, replay/recovery, or runtime truth.
 
 <!-- RW0_B2_CAPABILITY_OWNER_END -->

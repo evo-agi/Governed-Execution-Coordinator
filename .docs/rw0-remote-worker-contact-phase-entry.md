@@ -23,6 +23,18 @@ Registry version: 1
 
 ## Status, scope, and nonimplementation
 
+Accepted target reset: `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`
+owns five-branch reduction, exact replay, and one whole-family recovery classifier.
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md` solely owns immutable
+scope admission and acceptance-fact semantics. One scope belongs to an explicitly
+standing-policy-admitted Coordinator authority lineage. Across all participating
+direct-local programs at most one distinct productive acceptance may commit.
+Machine/database replacement, restore, rollback, clone, passive backup, relocation,
+a new grant or policy epoch never replenishes it. Later ES operation is separately
+governed and non-replenishing. Mutable-latch target requirements are explicitly
+superseded. Guard values, physical storage, migration treatment, provisioner,
+reader, writer, public export, and runtime remain future; none is implemented.
+
 Classification: `CURRENT IMPLEMENTED CONTRACT` for bounded RW0-C1 private
 durable evidence; `ACCEPTED STRATEGIC TARGET` for RW0-C2/D/E and the complete
 remote-contact operating model.
@@ -51,7 +63,7 @@ implemented, in
 `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`, its sole
 semantic owner. It selects the no-write/block/recovery-unresolved distinction,
 finite branch reducer, migration-0002 branch mapping, model non-authority, and
-abstract acceptance-latch dependency. It selects no physical representation or
+immutable bootstrap-guard dependency. It selects no physical representation or
 terminal-outcome design and creates no RW0-D/E or Execution Substrate behavior.
 
 Reports, model output, topology and readiness profiles, transport receipts, and artifacts remain evidence only. They are not identity, executable authority,
@@ -144,10 +156,10 @@ The exact C2B decision-kind inventory remains initialize, accept, repair, replan
 The future guarded Coordinator writer commits exactly one durable RW0 terminal-outcome fact per run after outcome-specific evidence and current-head checks; it is not a development_decision, effect basis, executable permission, source observation, report, or projection.
 The terminal-outcome fact has the finite values accept, repair, replan, terminal_reject, block, cancel; it creates no program version or effect authority by itself.
 On a non-cancel branch, exactly one corresponding immutable C2B development_decision of the same kind commits first, and the terminal-outcome fact binds its exact ref and digest without contradicting kind or lineage.
-The immutable C2B accept decision consumes the productive-direct-local acceptance latch atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that latch mutation.
-The later terminal-outcome accept binds the exact accepted decision ref and digest and the committed latch postimage from that decision transaction; it never consumes, advances, reopens, repairs, or otherwise mutates the latch.
-If the accepted decision committed while the terminal-outcome commit is uncertain, the latch remains consumed; exact guarded-writer readback precedes any new effect or successor, and recovery creates neither a second accept decision nor a second latch mutation.
-Repair, replan, terminal_reject, ordinary block, and cancel decisions do not consume the productive-direct-local acceptance latch.
+The immutable C2B accept decision creates the bootstrap-acceptance fact atomically in the same guarded Coordinator writer transaction; no terminal-outcome fact is a prerequisite for that fact creation.
+The later terminal-outcome accept binds the exact accepted decision ref and digest and the immutable bootstrap-acceptance fact identity and digest from that decision transaction; it never creates, updates, deletes, resets, renews, repairs, or replenishes guard truth.
+If the accepted decision committed while the terminal-outcome commit is uncertain, the acceptance fact remains permanent; exact guarded-writer readback precedes any new effect or successor, and recovery creates neither a second accept decision nor a second acceptance fact.
+Repair, replan, terminal_reject, ordinary block, and cancel decisions create no bootstrap-acceptance fact and never reset, renew, or replenish guard truth.
 On the active-cancel branch, exactly one pre-effect C2B cancel decision bases the cancel effect; terminal-outcome cancel binds that decision and complete post-teardown reconciliation without a second cancel decision.
 If active-cancel reconciliation is incomplete, contradictory, stale, or ambiguous, terminal-outcome block binds the same pre-effect cancel decision and unresolved evidence without a C2B block decision.
 After exact cancel-decision commit readback and before cancel-effect establishment, the guarded Coordinator writer and current verifier recheck the decision ref/digest, current program/version/attempt/target head, stop version/state, parent grant, subordinate authorization, attempt/effect fences and authorization bases, expiry, revocation, repository, base, path, audience, and preassigned effect/fence/first delivery/target.
@@ -284,8 +296,8 @@ custodian. A safe Coordinator projection never takes over source truth.
 | capsule manifest/portable digest/custody | Capsule builder and private immutable store | Retain safe manifest/portable/custody bindings | Portable identity excludes storage path, host, bearer, and backend metadata. |
 | validation/review | Validator and independent reviewer | Retain bounded exact-capsule observations | Successful evidence is not acceptance. |
 | model proposal | Model adapter and configured model invocation | Retain typed proposal and safe evidence bindings | Proposal, provider response, and Coordinator decision are distinct. |
-| C2B development decision | Guarded Coordinator writer | Bind one same-kind pre-outcome decision on a non-cancel branch, or the exact pre-effect `cancel` decision on active cancellation; an accepted direct-local decision atomically consumes the one-way latch | A pre-effect cancel decision bases its effect only while current and compatible; neither a stale cancel decision nor a later outcome can consume the latch. |
-| RW0 terminal outcome and one-way acceptance latch | Future guarded Coordinator writer | Commit one separate durable terminal-outcome fact bound to current lineage, decision, evidence, and heads; terminal `accept` binds the exact already-committed latch postimage | Outcome is not a development decision, effect basis, or latch mutation; no external source consumes the latch or decides progression. |
+| C2B development decision | Guarded Coordinator writer | Bind one same-kind pre-outcome decision on a non-cancel branch, or the exact pre-effect `cancel` decision on active cancellation; an accepted direct-local decision atomically creates the immutable acceptance fact | A pre-effect cancel decision bases its effect only while current and compatible; neither a stale cancel decision nor a later outcome can create an acceptance fact. |
+| RW0 terminal outcome and immutable bootstrap acceptance guard | Future guarded Coordinator writer | Commit one separate durable terminal-outcome fact bound to current lineage, decision, evidence, and heads; terminal `accept` binds the exact committed acceptance-fact identity/digest | Outcome is not a development decision, effect basis, or guard mutation; no external source creates acceptance truth or decides progression. |
 
 Delivery, source invocation, observation, candidate, capsule, validation, review, model proposal, C2B decision, RW0 terminal outcome, and Git effect remain distinct facts.
 Validator and reviewer evidence, model output, reports, IM evidence, and transport receipts are non-authoritative evidence.
@@ -305,16 +317,16 @@ This is a target causal timeline, not an implemented schema or process:
 9. **validation observation** — if reached, a distinct `validate_candidate` intent, current fence, and initial delivery precede the validator invocation on an exact-base-plus-capsule reconstruction. The validator authors its observation.
 10. **independent review observation** — if reached, a distinct `review_candidate` intent, current fence, and initial delivery precede a reviewer invocation that reads the immutable reconstruction without author write authority.
 11. **typed model proposal** — a separate source invocation receives bounded safe context and emits one non-authoritative typed proposal, not a DeliveryEnvelopeV1 current-effect delivery.
-12. **Coordinator semantic decision and possible latch consumption** — on the normal branch, the guarded writer rereads current evidence, authority, global stop, fences, and heads and commits exactly one C2B accept, repair, replan, terminal_reject, or block decision of the eventual outcome's kind. The productive-direct-local `accept` decision atomically consumes the one-way latch in that decision transaction; every non-accept decision leaves it unchanged.
-13. **RW0 terminal outcome** — only after that decision commits does the future guarded writer commit the separate matching terminal-outcome fact. Terminal `accept` binds the exact decision ref/digest and already-consumed latch postimage without another latch mutation. Until the outcome commits or exact readback resolves uncertainty, RW0 is not terminally closed and permits no new effect or successor.
+12. **Coordinator semantic decision and possible acceptance-fact creation** — on the normal branch, the guarded writer rereads current evidence, authority, global stop, fences, and heads and commits exactly one C2B accept, repair, replan, terminal_reject, or block decision of the eventual outcome's kind. The productive-direct-local `accept` decision atomically creates the immutable acceptance fact in that decision family; every nonaccept decision creates no fact.
+13. **RW0 terminal outcome** — only after that decision commits does the future guarded writer commit the separate matching terminal-outcome fact. Terminal `accept` binds the exact decision ref/digest and acceptance-fact identity/digest without guard mutation. Until the outcome commits or exact readback resolves uncertainty, RW0 is not terminally closed and permits no new effect or successor.
 14. **teardown and custody terminal facts** — the supervisor and custodians author process reap, workspace teardown, retained-capsule, and unresolved-cleanup facts without erasing the normal-branch terminal outcome.
 
-On the normal branch, Coordinator commits one C2B accept, repair, replan, terminal_reject, or block decision after validation, review, and model proposal complete or become conclusively unavailable. The accepted direct-local decision alone atomically consumes the one-way latch and binds its postimage; non-accept decisions never mutate it. The matching RW0 terminal-outcome fact follows the decision and binds its exact ref, digest, kind, lineage, and the committed latch postimage when accepting, without consuming the latch again. Cleanup and custody facts follow without changing the terminal outcome.
+On the normal branch, Coordinator commits one C2B accept, repair, replan, terminal_reject, or block decision after validation, review, and model proposal complete or become conclusively unavailable. The accepted direct-local decision alone atomically creates the immutable acceptance fact; nonaccept decisions create none. The matching RW0 terminal-outcome fact follows the decision and binds its exact ref, digest, kind, lineage, and the immutable acceptance-fact identity/digest when accepting, without mutating guard truth. Cleanup and custody facts follow without changing the terminal outcome.
 No successor launches, and no Git or publication effect follows.
 
 The active-cancellation branch is separate from that normal sequence. The existing immutable C2B cancel decision commits before the cancellation effect, preassigns its effect intent, fence, first delivery, and exact target, and is the cancellation effect's exact basis_decision_ref.
 Commit uncertainty for that pre-effect decision is resolved by exact guarded-writer readback before currentness verification or effect establishment. The guarded writer and current verifier then recheck the exact decision, target head, stop version/state, parent/basis/fence family, authority freshness, and preassigned effect/fence/first delivery/target. A stale, changed, missing, incompatible, or ambiguous basis enters `pre_effect_cancel_basis_unusable`: no cancel effect, fence, delivery, request, or signal is established or emitted, and no replacement cancel or block C2B decision is made. The guarded writer commits one terminal-outcome `block` bound to that unusable decision and exact mismatch evidence, even before teardown; source-owned supervision and cleanup facts may continue, but the outcome never asserts process exit or semantic cancellation. No successor, Git effect, or publication follows.
-Only a current compatible basis permits this path. Coordinator establishes the distinct `cancel_effect` intent, current effect fence, subordinate authorization binding, and initial cancellation delivery before an external request. It creates no second cancel decision after the effect. The pre-effect decision does not terminate RW0 or consume the latch.
+Only a current compatible basis permits this path. Coordinator establishes the distinct `cancel_effect` intent, current effect fence, subordinate authorization binding, and initial cancellation delivery before an external request. It creates no second cancel decision after the effect. The pre-effect decision does not terminate RW0 or create a bootstrap-acceptance fact.
 The C2B cancel decision is neither a cancellation request, acknowledgement, signal, process exit, workspace teardown, source reconciliation, semantic abandonment, semantic cancellation, nor RW0 terminal closure.
 Request, acknowledgement, signal delivery, process exit, and mutable workspace teardown remain distinct source facts in that order; each may be absent or unknown and none implies the next.
 Post-teardown source-native reconciliation covers process-group and descendant state, worker observations, request, acknowledgement, signal, exit, workspace cleanup, capsule custody, and applicable delivery and source receipts.
@@ -343,8 +355,8 @@ state.
 | validation, review, or model inconclusive outcome | Validator, reviewer, or model adapter | No accept and no blind reinvocation; reconcile the source or commit a nonaccepting decision. | Stop prevents the next phase. Capsule remains retained. |
 | C2B decision commit uncertainty | Coordinator SQLite and exact recovery probe | Resolve the pre-effect `cancel` decision before cancel-effect establishment, or resolve a non-cancel same-kind decision before its terminal-outcome fact. Never fabricate a second cancel or block decision. | Fresh-writer readback only; unresolved C2B decision blocks further contact. |
 | pre-effect cancel basis unusable after decision readback | Guarded writer and current verifier compare the exact decision, current target head and stop version/state, parent/basis/fence relation, and preassigned effect/fence/delivery/target | Establish no cancel effect, delivery, request, or signal; create no replacement C2B cancel/block decision or author lineage. Commit one `pre_effect_cancel_basis_unusable` RW0 terminal-outcome `block` bound to the unusable decision and exact mismatch evidence, even before teardown. | Source-owned supervision and cleanup may continue without implying cancellation. RW0 launches no successor and performs no Git or publication effect. |
-| accepted decision committed, terminal outcome uncertain | Coordinator SQLite and exact guarded-writer readback | The accept decision and its atomic latch consumption remain committed. Resolve the separate terminal-outcome fact without another accept decision or latch mutation. | Until exact outcome resolution, no new effect, successor, Git, or publication occurs. |
-| RW0 terminal-outcome commit uncertainty | Future guarded Coordinator writer and exact recovery probe | Resolve the exact terminal-outcome fact through guarded-writer readback; do not emit a second fact, decision, effect, or latch consumption speculatively. | Unresolved terminal outcome permits no new effect or successor; committed accept is not erased. |
+| accepted decision committed, terminal outcome uncertain | Coordinator SQLite and exact guarded-writer readback | The accept decision and its atomic acceptance fact remain committed. Resolve the separate terminal-outcome fact without another accept decision or acceptance fact. | Until exact outcome resolution, no new effect, successor, Git, or publication occurs. |
+| RW0 terminal-outcome commit uncertainty | Future guarded Coordinator writer and exact recovery probe | Resolve the exact terminal-outcome fact through guarded-writer readback; do not emit a second fact, decision, effect, or acceptance-fact creation speculatively. | Unresolved terminal outcome permits no new effect or successor; committed accept is not erased. |
 | cleanup or custody ambiguity | Supervisor, workspace custodian, and capsule store | Perform only source-owned idempotent cleanup/reconciliation; never infer semantic cancellation. Unresolved process or workspace cleanup blocks terminal-outcome `cancel`. | Restart reconciles processes and custody. Candidate/capsule may persist. |
 | post-teardown source reconciliation incomplete or contradictory | Supervisor/OS, worker, workspace and capsule custodians, and delivery sources retain their own facts | After teardown, reconcile descendants, worker observations, request/ack/signal/exit, workspace cleanup, custody, and receipts. Commit terminal-outcome `cancel` only when all required terminal relations are complete and unambiguous; otherwise commit terminal-outcome `block` without a second C2B decision. | No source fact or reconciliation alone commits an outcome; no successor, Git, or publication follows. |
 
@@ -401,7 +413,7 @@ Coordinator alone commits the applicable C2B decision and the distinct future
 RW0 terminal-outcome fact through guarded writer authority. The former obeys
 the unchanged C2B decision grammar; the latter is durable RW0 terminal closure,
 not a `development_decision`, an effect basis, permission, or a source fact.
-The terminal-outcome fact binds the exact phase-entry identity, C2B3D and Section 41 lineage, applicable decision refs and digests, effect/delivery/source evidence, reached capsule/validation/review/model evidence, current global-stop and head state, and any acceptance-latch postimage.
+The terminal-outcome fact binds the exact phase-entry identity, C2B3D and Section 41 lineage, applicable decision refs and digests, effect/delivery/source evidence, reached capsule/validation/review/model evidence, current global-stop and head state, and any immutable bootstrap-acceptance fact identity and digest.
 The terminal-outcome semantic role is frozen here, while its identity, digest, row, receipt, graph, table, migration, application generation, and public API representation remain deferred.
 Terminal outcomes: accept, repair, replan, terminal_reject, block, cancel.
 Every listed terminal outcome ends RW0, launches no successor in RW0, and permits no Git or publication effect.
@@ -414,11 +426,11 @@ decision nor a C2B block decision. The pre-effect cancel decision alone proves
 neither terminal value. A stale or incompatible pre-effect cancel basis instead
 commits one terminal-outcome `block` before effect establishment, with no
 replacement C2B decision or cancellation request. Only the committed
-productive-direct-local `accept` decision consumes the future one-way latch,
-atomically with that decision; the matching terminal-outcome fact binds the
-exact accepted decision and consumed latch postimage without mutating the latch.
+productive-direct-local `accept` decision creates the immutable acceptance fact,
+atomically with that decision family; the matching terminal-outcome fact binds
+the exact decision and acceptance-fact identity/digest without guard mutation.
 No terminal-outcome value permits a successor, Git effect, or publication inside RW0.
-Terminal-outcome commit uncertainty requires exact guarded-writer readback; unresolved outcome prevents new effect or successor and recovery never fabricates another accept, cancel, or block decision or latch mutation. A committed accept decision retains its consumed latch during unresolved outcome recovery.
+Terminal-outcome commit uncertainty requires exact guarded-writer readback; unresolved outcome prevents new effect or successor and recovery never fabricates another accept, cancel, or block decision or acceptance fact. A committed accept decision retains its permanent acceptance fact during unresolved outcome recovery.
 Commit uncertainty must be resolved before any later contact. No Git effect
 follows the RW0 terminal outcome.
 
@@ -459,7 +471,7 @@ The bounded sequence is:
 1. **RW0-A — phase-entry contract freeze** — docs and direct contract tests only; no source, schema, I/O, runtime, worker, or external contact.
 2. **RW0-B — current private pure protocol, value, Wire, and Capability contracts** — B1, NWPF representational framing, worker-result grammar, process/result classification, and Capability composition are current; no SQLite, filesystem, process, network, or model effect.
 3. **RW0-C — durable phase-entry and observation state** — future RW0-C2
-   durable progression decision, acceptance latch, terminal outcome, and any
+   durable progression decision, immutable bootstrap guard, terminal outcome, and any
    later physical suffix remain separate from current RW0-C1 private durable
    phase establishment and one-member supplied-evidence admission; no external
    contact.
@@ -480,7 +492,7 @@ named future owner tranche or ES phase:
 | --- | --- |
 | authority verifier deployment, trust roots, grant encoding, and revocation transport | RW0-C / RW0-E |
 | custodian implementation, capability issuance, and revocation enforcement | RW0-C / RW0-D / RW0-E |
-| phase-entry claim, retrieval-event, host-observation, terminal-outcome, latch schema, receipt, and idempotency design | RW0-C |
+| phase-entry claim, retrieval-event, host-observation, terminal-outcome, guard physical representation and decision-family receipt/idempotency design | RW0-C |
 | supervisor/process-group strategy, fake CLI transcript protocol, and capsule/tool implementation | RW0-D |
 | live credential/account selection and qualified-host evidence | RW0-E |
 | ES route implementation, reliable-submit, runtime, cancel, and result APIs | ES phase |
@@ -488,12 +500,13 @@ named future owner tranche or ES phase:
 
 Migration 0004, its phase/evidence tables and receipts, and its generation-2
 catalog treatment are implemented by RW0-C1. Terminal-outcome and
-acceptance-latch representation remain future RW0-C2 work and are not
+immutable bootstrap-guard representation remain future RW0-C2 work and are not
 implemented by RW0-A or RW0-B.
 The separate RW0-C2 semantic contract resolves the progression-decision branch
 algebra only. A later bounded-hybrid physical freeze still owns the migration-
-0005 question, and a separate complete latch-owner freeze remains mandatory
-before any accept writer can become callable.
+0005 question, and the accepted bootstrap guard owner now freezes lineage/admission/acceptance
+semantics. Physical representation, provisioning, safe values, and mutation
+integration remain mandatory future freezes before any accept writer is callable.
 No open decision blocks RW0-A.
 RW0-B is current and implemented; no unresolved decision blocks it. Each later tranche requires its own bounded
 reconnaissance before source work when its governing decisions remain open.

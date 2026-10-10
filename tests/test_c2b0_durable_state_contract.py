@@ -4282,6 +4282,10 @@ def _c2b3a_planning_regions(text: str) -> tuple[str, str, str, str]:
     historical_end = "<!-- C2B3A_PLANNING_PROJECTION_END -->"
     if type(text) is not str:
         raise AssertionError(diagnostic)
+    if "<!-- C2B3_BOOTSTRAP_GUARD_TARGET_BEGIN -->" in text:
+        if text.count(C2B3_GUARD_TARGET_PROJECTION) != 1 or not text.endswith(C2B3_GUARD_TARGET_PROJECTION + C2B3D_COMMITTED_STATUS_END_MARKER + "\n"):
+            raise AssertionError(diagnostic)
+        text = text.replace(C2B3_GUARD_TARGET_PROJECTION, "", 1)
     for marker in (
         historical_begin,
         historical_end,
@@ -13002,6 +13006,8 @@ def test_c2b3a_status_is_frozen_without_initialization_or_author_source(
                 C2B3A_VS1B_STATUS_BEGIN_MARKER + current_status_remainder
             )
             assert historical_projection_mutant != historical_planning
+            assert mutant_current_status.count(C2B3_GUARD_TARGET_PROJECTION) == 1
+            mutant_current_status = mutant_current_status.replace(C2B3_GUARD_TARGET_PROJECTION, "", 1)
             assert mutant_current_status == current_status
             assert mutant_current_status == (
                 C2B3A_VS1B_CURRENT_STATUS_APPROVED_TEXT
@@ -16938,7 +16944,7 @@ def test_c2b3a_planning_status_baseline_scans_complete_document() -> None:
             1,
         ),
         planning.replace(C2B3D_CURRENT_STATUS_APPROVED_TEXT, "", 1),
-        planning.replace(C2B3D_COMMITTED_STATUS_APPROVED_TEXT, "", 1),
+        planning.replace(C2B3D_COMMITTED_STATUS_APPROVED_TEXT.replace(C2B3D_COMMITTED_STATUS_END_MARKER, C2B3_GUARD_TARGET_PROJECTION + C2B3D_COMMITTED_STATUS_END_MARKER), "", 1),
         planning.replace(
             "5e544622e5f46ddc78294322471b4fcbd2ad9172",
             "394d625aa63935140eeaf88ecff6f59f0547cb7e",
@@ -19130,3 +19136,58 @@ def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementatio
         "commit": "4ffbc5f8881339dce210a50b05200e3f8e837284",
         "subject": "implement pre-I/O VS1A cleanup foundation",
     }
+
+
+C2B3_GUARD_TARGET_PROJECTION = '\n### Immutable bootstrap guard target projection\n<!-- C2B3_BOOTSTRAP_GUARD_TARGET_BEGIN -->\nClassification: `ACCEPTED TARGET CONTRACT`; all preceding planning/genesis/status\nbytes remain historical or current within their declared scope. Initialization\nremains route-neutral and provides no scope admission. The sole guard owner is\n`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`: explicitly admitted\nCoordinator authority lineage, immutable scope admission, positive continuity,\nsole-active authority, and one permanent acceptance across participating programs.\nMutable-latch target representation is superseded, with physical provisioning\nreopened. No current scope provisioner, guard reader/writer, or runtime exists.\nThe decision family, replay, and recovery remain C2-owned. No reset, deletion,\nrenewal, reuse, restore, clone, grant, or later ES route replenishes the allowance.\n<!-- C2B3_BOOTSTRAP_GUARD_TARGET_END -->\n'
+C2B_GUARD_CURRENT_SUCCESSOR = '\n### RW0-C2 immutable bootstrap guard current successor\n<!-- RW0_C2_BOOTSTRAP_GUARD_CURRENT_SUCCESSOR_BEGIN -->\n\nClassification: `ACCEPTED TARGET CONTRACT`; this bounded successor supersedes\nonly mutable-latch accepted-target representation. Historical mutable-latch\nsections and their physical selections remain historical/proof precursors or\nreopened choices. Later committed current-status successors, current migration\nfacts, current owner routing, and current-family statements retain their existing\nauthority. The complete opening document is preserved byte-for-byte; this successor\ndoes not supersede it as a whole. The one-shot cross-program ceiling and no reset,\ndeletion, renewal, or reuse remain. One scope belongs to one explicitly\nstanding-policy-admitted Coordinator authority lineage; at most one distinct\nproductive candidate acceptance may commit across its participating programs.\nMutable-latch tables, seed rows, migration allocations, SQL, triggers, indexes,\nstate/revision transitions, and consumed-postimage representation are historical\nproof precursors; physical selections for the immutable guard are reopened.\nCurrent accepted-target lineage, scope admission, continuity, sole-active authority,\neligibility, and immutable acceptance-fact semantics belong solely to\n`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. C2 decision,\nresult/receipt, exact replay, and one complete-family recovery classifier remain\nowned by `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`.\nInfrastructure replacement, restore, rollback, cloning, passive backup, relocation,\nnew grants or policy epochs, and ES route transition never replenish the allowance.\nMigrations 0001–0004 and current implemented families are unchanged; migration\n0005 remains absent. No physical guard schema, provisioning, reader, writer,\npublic surface, runtime, RW0-D/E, or ES behavior is implemented. Historical tests\npreserve historical evidence and do not promote old SQL/migration/table choices\nto current physical authority.\n<!-- RW0_C2_BOOTSTRAP_GUARD_CURRENT_SUCCESSOR_END -->\n'
+
+C2B_CURRENT_STATUS_AUTHORITY = 'Classification: `ACCEPTED TARGET CONTRACT`; this bounded successor supersedes only mutable-latch accepted-target representation. Historical mutable-latch sections and their physical selections remain historical/proof precursors or reopened choices. Later committed current-status successors, current migration facts, current owner routing, and current-family statements retain their existing authority. The complete opening document is preserved byte-for-byte; this successor does not supersede it as a whole.'
+
+
+def _assert_c2b_current_status_authority(successor):
+    marker = 'Classification: `ACCEPTED TARGET CONTRACT`;'
+    if successor.count(marker) != 1 or 'The one-shot cross-program ceiling' not in successor:
+        raise AssertionError('c2b:current_status_authority')
+    paragraph = successor[successor.index(marker):].split('The one-shot cross-program ceiling', 1)[0]
+    if ' '.join(paragraph.split()) != C2B_CURRENT_STATUS_AUTHORITY:
+        raise AssertionError('c2b:current_status_authority')
+
+
+@pytest.mark.parametrize('replacement', [
+    'The complete opening document, including all current-status successors, is historical/proof evidence.',
+    'Later committed current-status successors have no current authority.',
+])
+def test_c2b_current_status_authority_hostile(replacement):
+    start = C2B_GUARD_CURRENT_SUCCESSOR.index('Classification:')
+    end = C2B_GUARD_CURRENT_SUCCESSOR.index('The one-shot cross-program ceiling')
+    changed = C2B_GUARD_CURRENT_SUCCESSOR[:start] + replacement + '\n' + C2B_GUARD_CURRENT_SUCCESSOR[end:]
+    with pytest.raises(AssertionError, match='^c2b:current_status_authority$'):
+        _assert_c2b_current_status_authority(changed)
+
+
+def test_c2b_current_status_authority_positive():
+    _assert_c2b_current_status_authority((ROOT / '.docs/c2b-durable-development-state.md').read_bytes()[1887232:].decode())
+
+
+def test_immutable_guard_successor_preserves_historical_evidence():
+    import hashlib
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    data = (root / '.docs/c2b-durable-development-state.md').read_bytes()
+    opening_size = 1887232
+    if hashlib.sha256(data[:opening_size]).hexdigest() != '77bf3d3c6ed710da669db7fa4353f46f3d1e9b4e09636918046d16d94ed962e5':
+        raise AssertionError('c2b:complete_opening_prefix')
+    _assert_c2b_current_status_authority(data[opening_size:].decode())
+    if data[opening_size:].decode() != C2B_GUARD_CURRENT_SUCCESSOR:
+        raise AssertionError('c2b:guard_current_successor')
+    initialization = (root / '.docs/c2b3-program-initialization.md').read_bytes()
+    size = 26691
+    if hashlib.sha256(initialization[:size]).hexdigest() != '6e330065c389db9b6ffb5d33c66c410dc4b7cb48afcfaacff1faeb21efb8d4e0':
+        raise AssertionError('c2b3:historical_prefix')
+    expected = C2B3_GUARD_TARGET_PROJECTION.encode()
+    if initialization[size:size + len(expected)] != expected:
+        raise AssertionError('c2b3:guard_projection')
+    restored = initialization[:size] + initialization[size + len(expected):]
+    if len(restored) != 26747 or hashlib.sha256(restored).hexdigest() != '3d93195ab570e96f8f535feb38f83ebcd6b6ba112ca1db2a47d04b19258ef567':
+        raise AssertionError('c2b3:all_original_bytes')
+    _c2b3a_planning_regions(initialization.decode())

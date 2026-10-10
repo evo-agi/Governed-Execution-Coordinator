@@ -1443,11 +1443,13 @@ this exact order:
 12. Unknown process or delivery outcome without authoritative reconciliation.
 13. Blind redelivery after an unknown outcome.
 14. Stale validation, review, model, decision, or Git-effect binding.
-15. Expansion beyond the first accepted slice without a Coordinator-owned
-    durable one-shot latch and a separately accepted migration review.
+15. Expansion beyond the first accepted slice without immutable admitted-lineage scope and
+    bootstrap-acceptance facts under the guard owner and a separately accepted
+    migration review.
 
 Marker files, reports, adapter memory, chat state, Bridge ledgers, and capsule
-records are not sufficient to satisfy the expansion latch.
+records are not sufficient to satisfy the immutable guard expansion gate.
+The sole guard owner is `.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`.
 
 ## C2A-PROTO-015 — Tranche Gates, No-Schema Posture, And Deferred Mechanics
 

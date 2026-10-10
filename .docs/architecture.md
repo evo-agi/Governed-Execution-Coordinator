@@ -1,5 +1,18 @@
 # NWP Coordinator Architecture
 
+
+Accepted target reset: `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`
+owns five-branch reduction, exact replay, and one whole-family recovery classifier.
+`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md` solely owns immutable
+scope admission and acceptance-fact semantics. One scope belongs to an explicitly
+standing-policy-admitted Coordinator authority lineage. Across all participating
+direct-local programs at most one distinct productive acceptance may commit.
+Machine/database replacement, restore, rollback, clone, passive backup, relocation,
+a new grant or policy epoch never replenishes it. Later ES operation is separately
+governed and non-replenishing. Mutable-latch target requirements are explicitly
+superseded. Guard values, physical storage, migration treatment, provisioner,
+reader, writer, public export, and runtime remain future; none is implemented.
+
 The canonical component name is NWP Coordinator.
 
 Current repository name: Governed Execution Coordinator. This operational
