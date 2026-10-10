@@ -46,6 +46,14 @@ acquires no external authority or custody. It implements no C2B progression,
 terminal outcome, RW0-D/E, or Execution Substrate work. RW0-C2 durable
 decision writing and runtime remain future.
 
+The RW0-C2 durable progression-decision semantic target is now frozen, but not
+implemented, in
+`.docs/rw0-c2-durable-progression-decision-semantic-contract.md`, its sole
+semantic owner. It selects the no-write/block/recovery-unresolved distinction,
+finite branch reducer, migration-0002 branch mapping, model non-authority, and
+abstract acceptance-latch dependency. It selects no physical representation or
+terminal-outcome design and creates no RW0-D/E or Execution Substrate behavior.
+
 Reports, model output, topology and readiness profiles, transport receipts, and artifacts remain evidence only. They are not identity, executable authority,
 acceptance, progression, runtime truth, or publication truth. Current private
 RW0-B1 pure semantics and RW0-C1 private durable evidence mechanics are implemented. C2B3D and Section 41 remain the complete executable implemented boundary relevant to this target; RW0-C1 adds no executable authority.
@@ -450,7 +458,11 @@ The bounded sequence is:
 
 1. **RW0-A — phase-entry contract freeze** — docs and direct contract tests only; no source, schema, I/O, runtime, worker, or external contact.
 2. **RW0-B — current private pure protocol, value, Wire, and Capability contracts** — B1, NWPF representational framing, worker-result grammar, process/result classification, and Capability composition are current; no SQLite, filesystem, process, network, or model effect.
-3. **RW0-C — durable phase-entry and observation state** — future immutable schema suffix and private guarded mutation/recovery using supplied fake observations only; no external contact.
+3. **RW0-C — durable phase-entry and observation state** — future RW0-C2
+   durable progression decision, acceptance latch, terminal outcome, and any
+   later physical suffix remain separate from current RW0-C1 private durable
+   phase establishment and one-member supplied-evidence admission; no external
+   contact.
 4. **RW0-D — offline worker, supervisor, and capsule proof** — future separate process/package proof using fake transport, fake Codex/model executables, temporary workspaces, and no network or live credentials.
 5. **RW0-E — one live qualified-host proof** — one future externally authorized bounded author-candidate contact with separately bounded later current-effect deliveries if reached, through exactly one separate durable RW0 terminal-outcome fact and stop; the active-cancel branch first commits the existing C2B `cancel` decision as its cancel-effect basis, never a second cancel or block decision; no Git or publication.
 
@@ -478,6 +490,10 @@ Migration 0004, its phase/evidence tables and receipts, and its generation-2
 catalog treatment are implemented by RW0-C1. Terminal-outcome and
 acceptance-latch representation remain future RW0-C2 work and are not
 implemented by RW0-A or RW0-B.
+The separate RW0-C2 semantic contract resolves the progression-decision branch
+algebra only. A later bounded-hybrid physical freeze still owns the migration-
+0005 question, and a separate complete latch-owner freeze remains mandatory
+before any accept writer can become callable.
 No open decision blocks RW0-A.
 RW0-B is current and implemented; no unresolved decision blocks it. Each later tranche requires its own bounded
 reconnaissance before source work when its governing decisions remain open.

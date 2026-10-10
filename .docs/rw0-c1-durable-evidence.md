@@ -2,7 +2,8 @@
 
 Status: `CURRENT IMPLEMENTED CONTRACT`. Migration 0004, the private mutation
 and recovery paths, permanent tests, and repository status synchronization are
-implemented together in this candidate.
+already implemented in the merged baseline and remain unchanged by this
+documentation-and-contract-tests-only RW0-C2 semantic tranche.
 
 RW0-C1 is the Coordinator-owned private durable boundary for establishing one
 immutable RW0 phase basis and admitting one typed supplied-evidence member at a
@@ -261,3 +262,14 @@ and writes no durable post-execution decision; adds no migration or SQLite
 widening; creates no public export; and acquires no external authority or
 custody. It implements no C2B progression, terminal outcome, RW0-D/E, or
 Execution Substrate work; C2 persistence and runtime remain absent.
+
+## RW0-C2 semantic successor status
+
+Classification: `ACCEPTED STRATEGIC TARGET`, not current implementation.
+
+`.docs/rw0-c2-durable-progression-decision-semantic-contract.md` is the sole
+semantic owner for the future C2 durable decision reducer. It consumes a future
+complete C1 closure without changing C1 evidence membership, admission,
+receipts, replay, or recovery. Its adoption adds no completeness reader,
+decision writer, latch owner, terminal-outcome owner, migration 0005,
+production caller, public export, runtime, or external contact.

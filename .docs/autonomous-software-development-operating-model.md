@@ -69,6 +69,15 @@ decision; adds no migration or SQLite widening; creates no public export; and
 acquires no external authority or custody. It implements no C2B progression,
 terminal outcome, RW0-D/E, or Execution Substrate work.
 
+RW0-C1 private durable phase/evidence mechanics are also current and unchanged.
+The future RW0-C2 durable progression-decision reducer is now an `ACCEPTED
+STRATEGIC TARGET` semantically frozen in
+`.docs/rw0-c2-durable-progression-decision-semantic-contract.md`, its sole
+semantic owner. That freeze distinguishes command rejection/no-write, durable
+program block, and commit-recovery unresolved; it does not implement a command,
+writer, acceptance latch, terminal outcome, migration 0005, production caller,
+public export, or runtime.
+
 Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and

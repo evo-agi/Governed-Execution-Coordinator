@@ -52,6 +52,14 @@ post-execution decision; adds no migration or SQLite widening; creates no
 public export; and acquires no external authority or custody. It implements no
 C2B progression, terminal outcome, RW0-D/E, or Execution Substrate work.
 
+The future RW0-C2 durable progression-decision semantics are an `ACCEPTED
+STRATEGIC TARGET` owned solely by
+`.docs/rw0-c2-durable-progression-decision-semantic-contract.md`. The selected
+semantics add no current behavior: migration 0002 remains the canonical generic
+decision representation, migration 0005 is absent, and durable writer,
+acceptance-latch, terminal-outcome, public, and runtime ownership remain
+unimplemented.
+
 The Coordinator still does not own or implement work-item production
 provisioning, coding-work lease issuance, executable authorization issuance,
 operator-decision receipt provisioning, an operational-change domain model,
