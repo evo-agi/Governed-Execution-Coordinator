@@ -438,3 +438,12 @@ compatibility/versioning decision. Source, schema ID, field order, nullability,
 canonical bytes, digest domain, and budgets are unchanged. Rename/removal, new
 field grammar, or proof responsibility requires a separate private safe-value
 versioning tranche.
+
+The accepted-target `.docs/rw0-c2-private-value-versioning.md` fixes the
+guarded decision boundary: its future writer must not read or consume either
+`latch_postimage_ref` or `latch_postimage_digest`. This pair proves supplied
+representation and pair coherence only; it is not admission, acceptance,
+uniqueness, family membership, continuity, replay, or recovery proof. Current
+names, order, nullability, bytes, domains, and budgets remain exactly as they
+are. A later terminal consumer requires its own separately accepted safe-value
+compatibility/versioning contract; this tranche defines no B1 successor value.

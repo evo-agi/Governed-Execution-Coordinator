@@ -78,6 +78,13 @@ program block, and commit-recovery unresolved; it does not implement a command,
 writer, acceptance latch, terminal outcome, migration 0005, production caller,
 public export, or runtime.
 
+The RW0-C2 private value/versioning and receipt-graph profile is an accepted
+target owned by `.docs/rw0-c2-private-value-versioning.md`. It adds no source,
+migration, provisioner, writer, reader, production caller, public export, or
+runtime. Admission/continuity physical contracts, a bounded-hybrid migration
+contract, and a transaction/recovery contract remain separate prerequisites;
+migration 0005 does not exist.
+
 Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and

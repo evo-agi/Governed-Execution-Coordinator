@@ -19,6 +19,12 @@ continuity, sole-active authority, cross-program ceiling, eligibility, immutable
 acceptance-fact membership, non-replenishment, and guard-facing terminal/ES edges.
 It owns no full future DTO schemas, separate receipt/replay/recovery, physical
 storage, standing-policy issuance, execution admission/runtime, Git, or publication.
+The accepted-target private schema IDs, canonicalization, identity/digest DAG,
+branch graph roles, and versioned receipt profile are owned only by
+`.docs/rw0-c2-private-value-versioning.md`. That value owner is subordinate to
+this guard's lineage/admission/current external continuity and sole-active
+semantics; it selects no physical representation and does not make the B1
+legacy pair guard proof or a terminal consumer.
 
 ## Lineage, admission, and permanence
 
