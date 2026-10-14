@@ -20,7 +20,9 @@ An externally authenticated standing-policy admission act is external evidence,
 not Coordinator durable authority or execution permission. A later separate
 provisioner records an immutable admitted-lineage/scope fact after
 verification. The guarded decision writer reads a previously provisioned admission fact;
-the separate provisioner owns its creation and repair. Positive lineage continuity and one
+the separate provisioner owns exact authorized recording and owner-governed
+readback/recovery, with no replacement, renewal, orphan repair, or implicit
+retry. Positive lineage continuity and one
 active authority remain fresh external/current evidence composed with local
 writer/session fencing. A local row, its absence, a supplied digest, lock,
 writer row, database, machine, or process is insufficient evidence of either
@@ -30,6 +32,13 @@ current standing permission. Historical
 evidence in a committed family records what was checked; protected replay and
 recovery use positive current external continuity and sole-active posture
 under their owners.
+
+The first-live support profile
+`.docs/rw0-c2-first-live-proof-posture.md` selects one non-reissuable
+incarnation and continuous original process/storage custody for its initial
+RW0-E proof. It does not change this owner's eleven schemas, closed fields,
+canonical bytes, digest domains, or graph meanings. A later proof-source
+envelope requires separate versioning.
 
 ## Closed private value family
 
