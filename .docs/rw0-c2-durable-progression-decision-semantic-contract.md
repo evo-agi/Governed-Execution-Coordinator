@@ -475,6 +475,14 @@ Decision without fact or fact without decision is unresolved; no fragment repair
 is permitted. Physical guard values, provisioning, storage, and transaction
 integration remain future and no accept writer is callable.
 
+The accepted-target private value/versioning and receipt-graph profile owner is
+`.docs/rw0-c2-private-value-versioning.md`. Its supplemental guarded relation,
+result composite, and required-role profile preserve the generic migration-0002
+v1 decision/version/head/result/receipt meanings. This decision owner retains
+the reducer, five branches, one result/receipt, exact replay, collisions, and
+one whole-family recovery classifier. The private profile chooses no physical
+layout or transaction mechanics; those remain later bounded-hybrid freezes.
+
 ## Terminal outcome and RW0-D/E separation
 
 The later terminal-outcome fact binds the exact committed decision, result,
