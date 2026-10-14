@@ -26,6 +26,13 @@ this guard's lineage/admission/current external continuity and sole-active
 semantics; it selects no physical representation and does not make the B1
 legacy pair guard proof or a terminal consumer.
 
+The restricted, unimplemented first RW0-E live support profile is
+`.docs/rw0-c2-first-live-proof-posture.md` (`rw0-c2-single-realization-proof-v1`).
+It owns the external incarnation-enrollment and managed-custody obligations
+for that proof only. It neither changes this guard's universal current-posture
+or acceptance-only unclaimed-scope rules nor makes single-realization custody
+a permanent Coordinator architecture requirement.
+
 ## Lineage, admission, and permanence
 
 One scope belongs to one explicitly standing-policy-admitted Coordinator authority lineage.

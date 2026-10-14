@@ -901,8 +901,13 @@ def _compact(value: str) -> str:
 _OPEN_DECISION_ASSIGNMENTS = {
     "authority verifier deployment, trust roots, grant encoding, and revocation transport":
         "RW0-C / RW0-E",
-    "custodian implementation, capability issuance, and revocation enforcement":
-        "RW0-C / RW0-D / RW0-E",
+    "C2 current-posture verification and guard physical integration":
+        "RW0-C / RW0-E",
+    "offline process/custody mechanics and fake capability behavior": "RW0-D",
+    (
+        "first-live independent enrollment supplier, continuous original "
+        "process/storage custody, and complete fencing conformance"
+    ): "RW0-E",
     (
         "phase-entry claim, retrieval-event, host-observation, terminal-outcome, "
         "guard physical representation and decision-family receipt/idempotency design"
@@ -1953,7 +1958,9 @@ def _validate_owner(text: str) -> None:
 
     for open_decision in (
         "authority verifier deployment, trust roots, grant encoding, and revocation transport",
-        "custodian implementation, capability issuance, and revocation enforcement",
+        "C2 current-posture verification and guard physical integration",
+        "offline process/custody mechanics and fake capability behavior",
+        "first-live independent enrollment supplier, continuous original process/storage custody, and complete fencing conformance",
         "phase-entry claim, retrieval-event, host-observation, terminal-outcome, guard physical representation and decision-family receipt/idempotency design",
         "supervisor/process-group strategy, fake CLI transcript protocol, and capsule/tool implementation",
         "live credential/account selection and qualified-host evidence",

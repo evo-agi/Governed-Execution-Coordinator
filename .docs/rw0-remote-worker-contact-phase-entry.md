@@ -491,7 +491,9 @@ named future owner tranche or ES phase:
 | Deferred decision | Earliest blocked tranche |
 | --- | --- |
 | authority verifier deployment, trust roots, grant encoding, and revocation transport | RW0-C / RW0-E |
-| custodian implementation, capability issuance, and revocation enforcement | RW0-C / RW0-D / RW0-E |
+| C2 current-posture verification and guard physical integration | RW0-C / RW0-E |
+| offline process/custody mechanics and fake capability behavior | RW0-D |
+| first-live independent enrollment supplier, continuous original process/storage custody, and complete fencing conformance | RW0-E |
 | phase-entry claim, retrieval-event, host-observation, terminal-outcome, guard physical representation and decision-family receipt/idempotency design | RW0-C |
 | supervisor/process-group strategy, fake CLI transcript protocol, and capsule/tool implementation | RW0-D |
 | live credential/account selection and qualified-host evidence | RW0-E |
@@ -510,6 +512,16 @@ integration remain mandatory future freezes before any accept writer is callable
 No open decision blocks RW0-A.
 RW0-B is current and implemented; no unresolved decision blocks it. Each later tranche requires its own bounded
 reconnaissance before source work when its governing decisions remain open.
+The `rw0-c2-single-realization-proof-v1` target in
+`.docs/rw0-c2-first-live-proof-posture.md` selects the first RW0-E support
+conditions only. RW0-D uses artificial source observations and disposable
+state without a production continuity supplier, while still requiring its
+own offline process/custody implementation. RW0-E requires a concrete
+independent enrollment and privileged custody supplier to prove launch
+uniqueness, nontransferability, original-storage isolation, denied
+restore/clone/restart paths, complete fencing, and supervisor fail closure.
+Full-custodian and acceptance-focused checkpoint protocols are unselected
+successor options, not first-live entry requirements.
 
 ## Non-authoritative initial proof fixture candidate
 

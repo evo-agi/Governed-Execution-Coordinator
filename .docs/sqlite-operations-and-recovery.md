@@ -462,8 +462,8 @@ compatibility bounds—not a destructive column or raw backup path.
 
 ## Restore
 
-Restore requires explicit operator action. A restored database becomes
-authoritative only after:
+Restore requires explicit operator action. For ordinary local SQLite
+administration, a restored database becomes locally authoritative only after:
 
 - schema migration checksum validation;
 - migration-history/catalog equality validation;
@@ -474,6 +474,12 @@ authoritative only after:
 - replay snapshot digest validation;
 - event/current-state reconciliation;
 - global-stop current-state validation.
+
+These local integrity checks do not establish external lineage continuity or
+reactivate the unimplemented first-live RW0-E single-realization proof in
+`.docs/rw0-c2-first-live-proof-posture.md`. That profile forbids productive
+continuation after database replacement or rollback, even when the restored
+bytes pass every local check. Ordinary B1 administration is unaffected.
 
 Automatic repair is not allowed. Corrupt active databases are quarantined and
 reported with safe evidence only.

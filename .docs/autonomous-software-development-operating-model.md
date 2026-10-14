@@ -85,6 +85,19 @@ runtime. Admission/continuity physical contracts, a bounded-hybrid migration
 contract, and a transaction/recovery contract remain separate prerequisites;
 migration 0005 does not exist.
 
+The unimplemented accepted target / first-live support profile
+`.docs/rw0-c2-first-live-proof-posture.md` selects only the
+single-realization custody posture for the first RW0-E live proof. One
+standing-policy-admitted lineage receives one independently durable,
+non-reissuable incarnation enrollment before activation; continuous original
+process/storage custody and fresh external posture gate protected commands.
+Loss of custody permanently ends this proof's productive continuation.
+This profile adds no per-command external checkpoint, C2 branch or recovery
+owner, physical supplier, source, migration, or RW0-D/E runtime. RW0-D remains
+offline with artificial sources and disposable state; RW0-E needs a concrete
+platform-conformance gate and separately authorized execution. Other
+continuity profiles remain later choices.
+
 Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and
