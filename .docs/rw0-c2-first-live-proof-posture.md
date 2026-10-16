@@ -56,12 +56,15 @@ consumed allowance, C2 classifier, or guarantee of eventual availability.
 Failure after enrollment and before acceptance can retire proof availability
 without asserting that the allowance was consumed.
 
-The separate future admission provisioner may record an exact verified,
-program-independent immutable scope-admission fact before a program exists;
+The separate target admission-recording semantics are owned by
+`.docs/rw0-c2-scope-admission-provisioning-contract.md`. A future provisioner
+may record an exact verified, program-independent immutable scope-admission
+fact before a program exists;
 the guarded decision writer may only read it. Migration-0002 development
 mutation receipts are program-bound and cannot record this act by inventing a
 dummy program or repurposing a v1 field. Admission recording and its
-owner-governed readback/recovery need a later physical contract. Neither
+owner-governed readback/recovery still need later physical and runtime
+contracts. Neither
 enrollment nor admission recording creates a C2 acceptance fact.
 
 ## Continuous managed custody and current permission

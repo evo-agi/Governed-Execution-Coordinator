@@ -17,9 +17,11 @@ private schemas are neither public protocol nor an independent reducer,
 provisioner, writer, replay owner, or recovery owner.
 
 An externally authenticated standing-policy admission act is external evidence,
-not Coordinator durable authority or execution permission. A later separate
-provisioner records an immutable admitted-lineage/scope fact after
-verification. The guarded decision writer reads a previously provisioned admission fact;
+not Coordinator durable authority or execution permission. The separate target
+recording semantics are owned by
+`.docs/rw0-c2-scope-admission-provisioning-contract.md`; a future provisioner
+records an immutable admitted-lineage/scope fact after verification. The
+guarded decision writer reads a previously provisioned admission fact;
 the separate provisioner owns exact authorized recording and owner-governed
 readback/recovery, with no replacement, renewal, orphan repair, or implicit
 retry. Positive lineage continuity and one
@@ -557,8 +559,9 @@ A later bounded-hybrid physical contract is the seam for these logical values
 through an additive migration `0005` while preserving migrations 0001–0004.
 This document does not choose any SQL table, column, index, trigger, row,
 reader, query, transaction, collision query, writer entry signature, or
-recovery implementation. Admission provisioning and continuity issuer,
-transport, transfer, and currentness protocols require their own contracts.
+recovery implementation. Admission provisioning now has a separate semantic
+owner; its physical representation/runtime and continuity issuer, transport,
+transfer, and currentness protocols require later contracts.
 No migration `0005`, source module, reader, writer, provisioner, production
 caller, package export, public method, runtime, RW0-D/E, or ES behavior is
 implemented by this tranche.
