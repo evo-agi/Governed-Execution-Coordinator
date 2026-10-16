@@ -54,8 +54,9 @@ restore, rollback, clone, passive backup, and relocation never replenish allowan
 Independently admitted lineages may each have one distinct scope.
 
 One immutable scope-admission fact binds the finite roles below. External standing
-policy authors the admission act. Coordinator may later record that exact binding
-only under separately accepted provisioning/physical contracts. Decision writer,
+policy authors the admission act. The target recording operation is owned by
+`.docs/rw0-c2-scope-admission-provisioning-contract.md`; physical and runtime
+contracts remain future. Decision writer,
 reducer, caller, model, replay, and recovery cannot admit, create, replace, renew,
 or repair admission. Schema installation, empty or copied databases, and missing
 local rows do not admit scope. Admission grants no branch, execution, runtime,

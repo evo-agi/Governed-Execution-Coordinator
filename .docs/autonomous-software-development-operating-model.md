@@ -98,6 +98,16 @@ offline with artificial sources and disposable state; RW0-E needs a concrete
 platform-conformance gate and separately authorized execution. Other
 continuity profiles remain later choices.
 
+The accepted target recording semantics for one program-independent
+scope-admission fact are owned separately by
+`.docs/rw0-c2-scope-admission-provisioning-contract.md`. Its operation family,
+exact replay, no-write conflicts, and readback-only recovery record an already
+externally authorized admission under the first-live custody profile. This
+semantic contract implements no provisioner, source verifier, enrollment,
+schema, migration 0005, writer, C2 acceptance, or RW0-D/E runtime. The guard
+and decision owners keep their existing C2 roles; supplier conformance and
+physical/transaction implementation remain later gates.
+
 Classification: `CURRENT COMPATIBILITY EDGE`. `FiniteBacklog`, current standing
 lease, zero-only budget, READY-only dependency, disabled-stage, coding
 `global_stop`, current `WriterSession`, schema-0001 compatibility meanings, and
