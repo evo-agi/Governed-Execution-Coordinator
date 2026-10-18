@@ -149,3 +149,7 @@ Bootstrap guard target routing belongs to
 `.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. Wire remains pure
 representation/classification and owns no admission, guard, B1 schema, acceptance,
 durable decision, replay, recovery, or runtime truth.
+
+<!-- RW0_D1_CURRENT_STATUS_BEGIN -->
+RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
+<!-- RW0_D1_CURRENT_STATUS_END -->

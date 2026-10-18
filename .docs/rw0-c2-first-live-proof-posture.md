@@ -199,14 +199,13 @@ Three distinct gates remain:
 
 ## RW0-D, RW0-E, and successor options
 
-RW0-D remains future offline engineering. It may repeat and reset disposable
+RW0-D1 is implemented as a bounded artificial offline proof; RW0-D2 remains future offline engineering. The offline program may repeat and reset disposable
 fixtures with explicitly artificial source observations, fake transport and
 model processes, and isolated temporary state. It requires no real enrollment,
 grant, continuity service, production credential, network access, or
 consumption of the live allowance. Such fixtures create no production
-admission, acceptance, continuity, or permission. RW0-D still must later
-implement and test its actual offline process and custody mechanics; freezing
-this support profile does not make RW0-D runnable.
+admission, acceptance, continuity, or permission. RW0-D2 still must implement validation/review/model closure and the later
+RW0-C2 physical decision; this support profile grants no live runnable route.
 
 RW0-E remains blocked until this contract is accepted, a concrete supplier
 passes gate B, program-independent admission provisioning and the necessary
@@ -240,3 +239,7 @@ platform evidence or a new C2 reducer.
 | Preaccept-failure | Proof availability can end before acceptance without claiming acceptance consumed. |
 | Normal-close | Normal terminal closure does not renew the enrollment. |
 | ES-later | Later ES policy does not replenish direct-local allowance. |
+
+<!-- RW0_D1_CURRENT_STATUS_BEGIN -->
+RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
+<!-- RW0_D1_CURRENT_STATUS_END -->

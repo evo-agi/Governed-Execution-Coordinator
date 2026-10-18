@@ -588,7 +588,7 @@ unreachability-boundary proofs, and current-source AST evidence.
 | `physical` | `{"application_generation":2,"current_terminal_migration":"0004_rw0_c1_durable_evidence","canonical_decision_representation_migration":"0002_development_program_and_effect_state","migration_0005_exists":false,"migration_0005_selected":false,"later_freeze":"bounded_hybrid_physical_contract"}` |
 | `excluded_effect_domains` | `["worker","process","transport","cancellation","git","execution_substrate","publication","rw0_d","rw0_e"]` |
 | `implementation` | `{"durable_decision_writer":false,"bootstrap_acceptance_guard":false,"terminal_outcome_owner":false,"production_caller":false,"public_export":false,"runtime_active":false,"rw0_d":false,"rw0_e":false,"execution_substrate_change":false}` |
-| `temporary_source_nonimplementation_guard` | `{"source_root":"src/ge_nwp_coordinator","manifest_count":66,"manifest_payload_bytes":10877,"manifest_sha256":"f069130c33d68ebf4d83a2d4d3a3f6aca7d1f1b583decc6138c772bd4ddd721d","supersession":"future_authorized_source_tranche"}` |
+| `temporary_source_nonimplementation_guard` | `{"source_root":"src/ge_nwp_coordinator","complete_tree_manifest_status":"superseded_by_authorized_rw0_d1_source_tranche","bounded_scope":"rw0_c2_physical_decision_acceptance_terminal_runtime_only","forbidden_modules_calls_exports_enforced":true,"migration_0005_exists":false,"production_caller_exists":false,"public_export_exists":false,"runtime_active":false}` |
 <!-- RW0_C2_DURABLE_DECISION_HUMAN_CONTRACT_END -->
 
 <!-- RW0_C2_DURABLE_DECISION_FINITE_ORACLE_BEGIN -->
@@ -1355,11 +1355,16 @@ unreachability-boundary proofs, and current-source AST evidence.
   },
   "temporary_source_nonimplementation_guard": {
     "source_root": "src/ge_nwp_coordinator",
-    "manifest_count": 66,
-    "manifest_payload_bytes": 10877,
-    "manifest_sha256": "f069130c33d68ebf4d83a2d4d3a3f6aca7d1f1b583decc6138c772bd4ddd721d",
-    "supersession": "future_authorized_source_tranche"
+    "complete_tree_manifest_status": "superseded_by_authorized_rw0_d1_source_tranche",
+    "bounded_scope": "rw0_c2_physical_decision_acceptance_terminal_runtime_only",
+    "forbidden_modules_calls_exports_enforced": true,
+    "migration_0005_exists": false,
+    "production_caller_exists": false,
+    "public_export_exists": false,
+    "runtime_active": false
   }
 }
 ```
 <!-- RW0_C2_DURABLE_DECISION_FINITE_ORACLE_END -->
+
+RW0-D1 now implements only the separately owned artificial offline process/capsule spine. The boolean `rw0_d = false` above continues to mean that complete RW0-D and D2 closure are not implemented. The temporary complete-tree source manifest is superseded by the scoped C2 nonimplementation guard; C2 branch, recovery, immutable scope admission, and acceptance semantics remain unchanged.

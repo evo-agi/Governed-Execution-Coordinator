@@ -850,10 +850,13 @@ EXPECTED_CONTRACT = _strict_json_loads(r"""{
   },
   "temporary_source_nonimplementation_guard": {
     "source_root": "src/ge_nwp_coordinator",
-    "manifest_count": 66,
-    "manifest_payload_bytes": 10877,
-    "manifest_sha256": "f069130c33d68ebf4d83a2d4d3a3f6aca7d1f1b583decc6138c772bd4ddd721d",
-    "supersession": "future_authorized_source_tranche"
+    "complete_tree_manifest_status": "superseded_by_authorized_rw0_d1_source_tranche",
+    "bounded_scope": "rw0_c2_physical_decision_acceptance_terminal_runtime_only",
+    "forbidden_modules_calls_exports_enforced": true,
+    "migration_0005_exists": false,
+    "production_caller_exists": false,
+    "public_export_exists": false,
+    "runtime_active": false
   }
 }""")
 CLASS_ORDER = ("accept", "repair", "replan", "terminal", "nonconclusive", "conflict")
@@ -5622,7 +5625,7 @@ def _mutate_leaf(
 
 
 NORMATIVE_LEAF_PATHS = _leaf_paths(EXPECTED_CONTRACT)
-FIXED_NORMATIVE_SCALAR_LEAF_COUNT = 460
+FIXED_NORMATIVE_SCALAR_LEAF_COUNT = 463
 
 
 def _json_pointer(path: tuple[str | int, ...]) -> str:
@@ -6509,69 +6512,20 @@ def _scan_production_source_tree(source_root: Path) -> dict[str, object]:
     }
 
 
-def _complete_source_manifest(source_root: Path) -> dict[str, object]:
-    records: list[dict[str, object]] = []
-    paths = sorted(
-        source_root.rglob("*"),
-        key=lambda path: path.relative_to(source_root).as_posix().encode(),
-    )
-    for path in paths:
-        if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
-            continue
-        relative = path.relative_to(source_root).as_posix()
-        metadata = path.lstat()
-        if stat.S_ISDIR(metadata.st_mode):
-            continue
-        kind = (
-            "regular"
-            if stat.S_ISREG(metadata.st_mode)
-            else "symlink"
-            if stat.S_ISLNK(metadata.st_mode)
-            else "unsupported"
-        )
-        records.append(
-            {
-                "path": relative,
-                "type": kind,
-                "mode": f"{stat.S_IMODE(metadata.st_mode):04o}",
-                "bytes": metadata.st_size,
-                "sha256": (
-                    hashlib.sha256(path.read_bytes()).hexdigest()
-                    if kind == "regular"
-                    else None
-                ),
-            }
-        )
-    payload = (
-        json.dumps(records, sort_keys=True, separators=(",", ":")) + "\n"
-    ).encode()
-    return {
-        "records": tuple(records),
-        "count": len(records),
-        "payload_bytes": len(payload),
-        "sha256": hashlib.sha256(payload).hexdigest(),
-    }
-
-
-def _assert_fixed_source_nonimplementation_manifest(source_root: Path) -> None:
-    manifest = _complete_source_manifest(source_root)
+def _assert_bounded_source_nonimplementation_status(source_root: Path) -> None:
     expected = EXPECTED_CONTRACT["temporary_source_nonimplementation_guard"]
-    _require_exact(
-        all(record["type"] == "regular" for record in manifest["records"]),
-        "source_manifest:regular_files_only",
-    )
-    _require_exact(
-        manifest["count"] == expected["manifest_count"],
-        "source_manifest:count",
-    )
-    _require_exact(
-        manifest["payload_bytes"] == expected["manifest_payload_bytes"],
-        "source_manifest:payload_bytes",
-    )
-    _require_exact(
-        manifest["sha256"] == expected["manifest_sha256"],
-        "source_manifest:sha256",
-    )
+    assert expected == {
+        "source_root": "src/ge_nwp_coordinator",
+        "complete_tree_manifest_status": "superseded_by_authorized_rw0_d1_source_tranche",
+        "bounded_scope": "rw0_c2_physical_decision_acceptance_terminal_runtime_only",
+        "forbidden_modules_calls_exports_enforced": True,
+        "migration_0005_exists": False,
+        "production_caller_exists": False,
+        "public_export_exists": False,
+        "runtime_active": False,
+    }
+    assert not (ROOT / "src/ge_nwp_coordinator/migrations/0005_rw0_c2_decision.sql").exists()
+    assert source_root.is_dir()
 
 
 def test_ast_import_guard_uses_importfrom_module_and_import_alias_targets() -> None:
@@ -6697,7 +6651,7 @@ def test_hostile_structural_nonimplementation_resolves_package_reexport_symbol_a
 
 def test_structural_nonimplementation_manifest_and_semantic_absence_are_exact() -> None:
     source_root = ROOT / "src" / "ge_nwp_coordinator"
-    _assert_fixed_source_nonimplementation_manifest(source_root)
+    _assert_bounded_source_nonimplementation_status(source_root)
     scan = _scan_production_source_tree(source_root)
     assert scan["prohibited_inventory"] == ()
     assert not any(
@@ -6795,45 +6749,20 @@ def test_hostile_structural_nonimplementation_named_nested_module_is_detected(
     assert "persist_rw0_c2_durable_progression_decision" in scan["definitions"]
 
 
-@pytest.mark.parametrize(
-    ("hostile", "expected_boundary"),
-    (
-        ("neutral_nested_module", "source_manifest:count"),
-        ("differently_named_writer", "source_manifest:count"),
-        (
-            "modified_existing_neutral_module",
-            "source_manifest:sha256",
-        ),
-        ("symlink", "source_manifest:regular_files_only"),
-    ),
-)
-def test_hostile_structural_nonimplementation_complete_source_manifest_rejects_change(
-    tmp_path: Path,
-    hostile: str,
-    expected_boundary: str,
-) -> None:
-    source_root = tmp_path / "src" / "ge_nwp_coordinator"
-    shutil.copytree(ROOT / "src" / "ge_nwp_coordinator", source_root)
-    if hostile == "neutral_nested_module":
-        target = source_root / "internal" / "worker.py"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("WORKER_MARKER = 'neutral-name'\n", encoding="utf-8")
-    elif hostile == "differently_named_writer":
-        target = source_root / "internal" / "_sqlite_rw0_c2_writer.py"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("WRITER_MARKER = 'differently-named'\n", encoding="utf-8")
-    elif hostile == "modified_existing_neutral_module":
-        target = source_root / "__init__.py"
-        target.write_text(
-            target.read_text(encoding="utf-8") + "\nSOURCE_MANIFEST_HOSTILE = True\n",
-            encoding="utf-8",
-        )
-    else:
-        (source_root / "source-manifest-hostile-link.py").symlink_to(
-            source_root / "__init__.py"
-        )
-    with pytest.raises(AssertionError, match=f"^{expected_boundary}$"):
-        _assert_fixed_source_nonimplementation_manifest(source_root)
+def test_authorized_d1_is_neutral_to_scoped_c2_nonimplementation() -> None:
+    source_root = ROOT / "src" / "ge_nwp_coordinator"
+    expected = {
+        "_rw0_d1_process_frames.py", "_rw0_d1_process_supervisor.py",
+        "_rw0_d1_fake_planner.py", "_rw0_d1_fake_worker.py",
+        "_rw0_d1_workspace.py", "_rw0_d1_capsule.py",
+        "_rw0_d1_pre_execution.py", "_rw0_d1_handback.py",
+        "_rw0_d1_offline.py",
+    }
+    assert {path.name for path in source_root.glob("_rw0_d1_*.py")} == expected
+    scan = _scan_production_source_tree(source_root)
+    assert scan["prohibited_inventory"] == ()
+    assert scan["owner_boundary_violations"] == ()
+    assert scan["calls"].isdisjoint(FORBIDDEN_RW0_C2_CALLS)
 
 
 def test_state_store_and_writer_session_public_method_inventories_are_unchanged() -> None:

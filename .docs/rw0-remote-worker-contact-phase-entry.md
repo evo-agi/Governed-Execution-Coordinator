@@ -89,8 +89,10 @@ provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
 is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
 RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
 durable phase/evidence mechanics are implemented separately behind private
-mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
-provider, credential, live-proof, and runtime mechanics remain future.
+mutation authority; RW0-D1 artificial offline planner/worker process and capsule mechanics are
+implemented separately under the D1 owner. RW0-D2 evidence/review/model
+closure, RW0-C2 physical decision persistence, live provider/credential/custody,
+and RW0-E runtime mechanics remain future.
 Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 
@@ -475,7 +477,7 @@ The bounded sequence is:
    later physical suffix remain separate from current RW0-C1 private durable
    phase establishment and one-member supplied-evidence admission; no external
    contact.
-4. **RW0-D — offline worker, supervisor, and capsule proof** — future separate process/package proof using fake transport, fake Codex/model executables, temporary workspaces, and no network or live credentials.
+4. **RW0-D — offline worker, supervisor, and capsule proof** — D1 now implements the bounded artificial fake-planner/fake-worker process and capsule spine; D2 evidence/review/model closure remains future, with no network or live credentials.
 5. **RW0-E — one live qualified-host proof** — one future externally authorized bounded author-candidate contact with separately bounded later current-effect deliveries if reached, through exactly one separate durable RW0 terminal-outcome fact and stop; the active-cancel branch first commits the existing C2B `cancel` decision as its cancel-effect basis, never a second cancel or block decision; no Git or publication.
 
 The authority-authorship decision is resolved: external standing policy owns
@@ -533,5 +535,9 @@ Substrate commit `b92bd9884106154d25342e1573dcc4c312311436` and candidate paths
 This is stale-able evidence only. It is not a durable Coordinator contract, not execution permission, and not a required future base or path set. It carries no
 authority merely because the commit or paths appear here. Immediately before RW0-E, the exact base and paths must be selected and verified again. Any drift
 requires replan and a new WorkSpec under the scenario-class ceiling.
+
+<!-- RW0_D1_CURRENT_STATUS_BEGIN -->
+RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
+<!-- RW0_D1_CURRENT_STATUS_END -->
 
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_END -->

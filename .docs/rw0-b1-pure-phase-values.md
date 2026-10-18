@@ -43,7 +43,7 @@ Only the bounded registry below is machine-authoritative for the facts that it
 owns. Projection rows consume their named owner and create no second authority.
 
 <!-- RW0_B1_CURRENT_CONTRACT_REGISTRY_BEGIN -->
-Registry version: 1
+Registry version: 3
 
 | Fact | Value | Role | Source |
 | --- | --- | --- | --- |
@@ -51,7 +51,9 @@ Registry version: 1
 | lifecycle_status | current_implemented | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
 | contract_class | private_pure_no_io_semantics | projection | .docs/rw0-remote-worker-contact-phase-entry.md |
 | retrieval_event_sequence_work_maximum | 1285 | authority | this_document |
-| sole_current_cross_module_production_consumer | RW0-B2-Capability | authority | this_document |
+| sole_current_pure_cross_module_production_consumer | RW0-B2-Capability | authority | this_document |
+| current_bounded_runtime_phase_construction_consumer | RW0-D1-pre-execution | authority | this_document |
+| current_bounded_runtime_phase_evidence_consumer | RW0-D1-handback | authority | this_document |
 | source_authentication | none | authority | this_document |
 | executable_permission | none | authority | this_document |
 | durable_persistence | none | authority | this_document |
@@ -386,8 +388,9 @@ outside the current C2A safe-ref grammar where prohibited by that owner;
 B1 does not widen it. Synthetic address-shaped rejection probes are test-only
 negative inputs and never accepted B1 values.
 
-RW0-B2-Capability is the sole current cross-module production consumer of B1;
-no other production module currently consumes these values or relations. C may
+The registry's RW0-B2-Capability pure-consumer row names its bounded
+host-qualification snapshot seam. It does not enumerate the separate C1,
+post-execution, or D1 consumers described below. C may
 persist projections and prove evidence completeness under separately accepted guard and decision contracts; D may
 consume values for offline worker/custody proof; E may consume them for
 live-host proof. ES owns ES-route admission, reliable submit, lifecycle,
@@ -402,6 +405,17 @@ surface, alters an existing owner identity, or widens the frozen budget.
 
 <!-- RW0_C1_CURRENT_STATUS_BEGIN -->
 **RW0-C1 consumer status.**
+
+RW0-D1 pre-execution and handback are bounded current runtime consumers of
+`RW0PhaseEntryBasisV1`. Pre-execution alone constructs the basis for the
+existing guarded C1 phase command. Handback directly imports only that B1
+class to validate and retain the exact already constructed, C1-established
+phase evidence; forming the handback constructs no basis and performs no C1
+write. Neither D1 consumer calls `_validate_host_qualification_with_snapshots`,
+authenticates source, grants executable permission, persists B1 state, or
+decides semantic acceptance. C1 remains the sole durable phase establishment
+and verification owner. The Capability pure cross-module consumer remains the
+sole owner of its host-validation snapshot seam.
 
 RW0-C1 now privately reconstructs B1 phase and supplied-evidence values and
 invokes the existing B1 owner relations without altering this module. Phase

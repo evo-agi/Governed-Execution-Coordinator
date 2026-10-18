@@ -518,7 +518,6 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
         "class SqliteStateStore",
         "CoordinatorService",
         "while True",
-        "subprocess",
         "socket",
         "urllib",
     )
@@ -615,3 +614,42 @@ def test_no_persistent_database_or_journal_artifacts_exist() -> None:
             assert not name.endswith(forbidden_suffixes)
             assert not name.endswith(forbidden_exact_suffixes)
             assert "journal" not in name.lower()
+
+def _d1_subprocess_owners(sources: tuple[tuple[Path, str], ...]) -> set[str]:
+    owners: set[str] = set()
+    for path, source in sources:
+        tree = ast.parse(source, filename=str(path))
+        imported = any(
+            (isinstance(node, ast.Import)
+             and any(alias.name == "subprocess" for alias in node.names))
+            or (isinstance(node, ast.ImportFrom) and node.module == "subprocess")
+            for node in ast.walk(tree)
+        )
+        called = any(
+            isinstance(node, ast.Call)
+            and (
+                (isinstance(node.func, ast.Attribute)
+                 and node.func.attr == "Popen"
+                 and isinstance(node.func.value, ast.Name)
+                 and node.func.value.id == "subprocess")
+                or (isinstance(node.func, ast.Name) and node.func.id == "Popen")
+            )
+            for node in ast.walk(tree)
+        )
+        if imported or called or "subprocess" in source or "Popen" in source:
+            owners.add(path.name)
+    return owners
+
+
+def test_d1_supervisor_is_the_only_production_subprocess_owner() -> None:
+    package = ROOT / "src/ge_nwp_coordinator"
+    sources = tuple(
+        (path, path.read_text(encoding="utf-8"))
+        for path in sorted(package.rglob("*.py"))
+    )
+    assert _d1_subprocess_owners(sources) == {"_rw0_d1_process_supervisor.py"}
+    hostile = tuple(
+        (path, source + ("\nimport subprocess\n" if path.name == "_rw0_d1_fake_planner.py" else ""))
+        for path, source in sources
+    )
+    assert _d1_subprocess_owners(hostile) != {"_rw0_d1_process_supervisor.py"}

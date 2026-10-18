@@ -98,16 +98,20 @@ Bridge and Bridge Core are not worker owners. Direct-local is not the target
 production path and becomes disabled by default after accepted ES routing,
 surviving only under a distinct proof/recovery policy.
 
-This repository currently implements no direct-local adapter, worker
-supervisor, worker process, dispatcher, reconciler, service/API/IPC, ES call,
-Bridge widening, Codex invocation, model/provider client, capsule builder or
-store, validation/review/repair executor, Git effect handler, runtime-profile
-integration, outbox/inbox, schema or migration for dispatch, connector
-dependency, or autonomous loop. Future adapter and supervisor mechanics may own
-only bounded protocol, process, ephemeral correlation, redaction, and evidence
-shaping. They must not own durable work selection, scheduling policy, semantic
-retry or repair authority, acceptance, ES admission, runtime lifecycle truth,
-Git truth, validation truth, or hidden program state.
+RW0-D1 now implements only a private offline proof supervisor, separate fake
+planner and coding-worker processes, bounded temporary workspace, parent-built
+and independently verified capsule, and typed transient handback. The guarded
+Coordinator program, author-effect, Section 41, and C1 paths remain the sole
+durable owners. The repository still implements no production direct-local
+adapter, dispatcher, reconciler, service/API/IPC, ES call, Bridge widening,
+Codex invocation, live model/provider client, capsule store,
+validation/review/repair executor, Git effect handler, runtime-profile
+integration, outbox/inbox, dispatch schema or migration, connector dependency,
+or autonomous loop. D1 process mechanics own only bounded protocol, process,
+ephemeral correlation, redaction, and evidence shaping. They do not own durable
+work selection, scheduling policy, semantic retry or repair authority,
+acceptance, ES admission, runtime lifecycle truth, Git truth, validation
+truth, or hidden program state.
 
 The bounded operational-change progression target is separate, target-only
 documentation. First operational work is docs/docs-contracts only. The Worker
@@ -941,3 +945,7 @@ a new grant or policy epoch never replenishes it. Later ES operation is separate
 governed and non-replenishing. Mutable-latch target requirements are explicitly
 superseded. Guard values, physical storage, migration treatment, provisioner,
 reader, writer, public export, and runtime remain future; none is implemented.
+
+<!-- RW0_D1_CURRENT_STATUS_BEGIN -->
+RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
+<!-- RW0_D1_CURRENT_STATUS_END -->
