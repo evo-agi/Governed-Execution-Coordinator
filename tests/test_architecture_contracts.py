@@ -1063,7 +1063,8 @@ def test_worker_boundary_separates_current_implementation_from_target() -> None:
     assert "C2A freezes the first-slice semantic schemas" in architecture
     assert "C2A1 now implements the nine internal immutable values and six named pure coherence validators" in architecture
     assert "This pure layer adds no durable schema, process, adapter, worker, executable authorization, ingest, capsule custody, Git effect, direct-local behavior, or ES routing." in architecture
-    assert "This repository currently implements no direct-local adapter, worker supervisor, worker process, dispatcher, reconciler, service/API/IPC, ES call" in agents
+    assert "RW0-D1 now implements only a private offline proof supervisor, separate fake planner and coding-worker processes" in agents
+    assert "The repository still implements no production direct-local adapter, dispatcher, reconciler, service/API/IPC, ES call" in agents
     assert "The current finite-backlog, standing-lease, zero-only budget, READY-only dependency, and disabled-stage contracts remain current v1 compatibility behavior but are not frozen as the target model." in durable
     assert "C2A freezes the semantic field, identity, digest, and relation contracts and creates no durable state." in durable
     assert "C2A1 implements only internal immutable no-I/O values and the six named pure coherence validators" in durable

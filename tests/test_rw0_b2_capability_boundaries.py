@@ -48,8 +48,10 @@ provider-session, transport, or runtime mechanism. `.docs/rw0-b2-capability.md`
 is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
 RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
 durable phase/evidence mechanics are implemented separately behind private
-mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
-provider, credential, live-proof, and runtime mechanics remain future.
+mutation authority; RW0-D1 artificial offline planner/worker process and capsule mechanics are
+implemented separately under the D1 owner. RW0-D2 evidence/review/model
+closure, RW0-C2 physical decision persistence, live provider/credential/custody,
+and RW0-E runtime mechanics remain future.
 Execution Substrate retains admission and runtime authority."""
 
 REQUIRED_CANDIDATE_ROWS = (
@@ -136,13 +138,58 @@ PROTECTED_CONTENT_ROWS = (
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 61466, '001595cdec75b176abbfb99b91b2b06c45f2f2ff1a28c704ded7054c27c7e74e',
+    ('P11', 'AGENTS.md', 62778, '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6',
      ('authority_non_effect',), 'protected repository governance'),
-    ('P12', 'README.md', 45849, 'b66fb689d9f0849eee1d62f12dda93d83dcc9f4cce2fa008696878b44256ad1a',
+    ('P12', 'README.md', 46898, 'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff',
      ('authority_non_effect',), 'protected public claims'),
     ('P13', '.docs/software-development-progression-boundary.md', 28654, 'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419',
      ('state_store_writer_session',), 'protected progression authority'),
 )
+
+
+def _assert_single_literal_protected_rows_source(source: str) -> tuple:
+    tree = ast.parse(source)
+    bindings: list[ast.AST] = []
+
+    def visit_module_execution(node: ast.AST) -> None:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+                             ast.Lambda)):
+            return
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign,
+                             ast.NamedExpr)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            if any(isinstance(name, ast.Name) and name.id == "PROTECTED_CONTENT_ROWS"
+                   and isinstance(name.ctx, ast.Store)
+                   for target in targets for name in ast.walk(target)):
+                bindings.append(node)
+        for child in ast.iter_child_nodes(node):
+            visit_module_execution(child)
+
+    visit_module_execution(tree)
+    if len(bindings) != 1:
+        raise AssertionError("protected_rows:single_literal_binding")
+    initializer = bindings[0]
+    if (not isinstance(initializer, ast.Assign) or len(initializer.targets) != 1
+            or not isinstance(initializer.targets[0], ast.Name)
+            or initializer.targets[0].id != "PROTECTED_CONTENT_ROWS"):
+        raise AssertionError("protected_rows:single_literal_binding")
+    try:
+        rows = ast.literal_eval(initializer.value)
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        raise AssertionError("protected_rows:single_literal_binding") from None
+    if type(rows) is not tuple or len(rows) != 13 or rows != PROTECTED_CONTENT_ROWS:
+        raise AssertionError("protected_rows:literal_identity")
+    for pid, reference in CAPABILITY_REPLACEMENT_EXPECTED.items():
+        matches = [row for row in rows if type(row) is tuple and row[0] == pid]
+        if len(matches) != 1:
+            raise AssertionError("protected_rows:literal_identity")
+        row = matches[0]
+        if (len(row) != 6 or (row[1], (row[2], row[3]), row[4], row[5]) != (
+                reference["path"], reference["replacement_identity"],
+                reference["contract_classes"], reference["purpose"],
+        )):
+            raise AssertionError("protected_rows:literal_identity")
+    return rows
 
 def _assert_regular_mode_0644(row_id: str, relative_path: str) -> None:
     try:
@@ -642,6 +689,7 @@ def test_required_candidate_surface_is_literal_unique_regular_and_mode_0644() ->
 def test_protected_content_surface_has_exact_literal_identities() -> None:
     observed = _guard_replacement_semantic_evidence()
     _assert_capability_semantic_integrity(observed, CAPABILITY_REPLACEMENT_EXPECTED)
+    _assert_single_literal_protected_rows_source(Path(__file__).read_text(encoding="utf-8"))
     if type(PROTECTED_CONTENT_ROWS) is not tuple:
         raise AssertionError("protected_rows:shape")
     if not all(type(row) is tuple and len(row) == 6 for row in PROTECTED_CONTENT_ROWS):
@@ -703,6 +751,41 @@ def test_protected_content_surface_has_exact_literal_identities() -> None:
         _assert_exact_content_identity(
             row_id, relative_path, expected_size, expected_sha256
         )
+
+
+@pytest.mark.parametrize("case", (
+    "comment", "string", "readonly", "second_direct", "second_annotated",
+    "second_augmented", "inside_if", "inside_for", "nonliteral", "missing",
+))
+def test_protected_table_source_binding_variants(case: str) -> None:
+    source = Path(__file__).read_text(encoding="utf-8")
+    if case in {"nonliteral", "missing"}:
+        node = next(node for node in ast.parse(source).body
+                    if isinstance(node, ast.Assign) and any(
+                        isinstance(target, ast.Name) and target.id == "PROTECTED_CONTENT_ROWS"
+                        for target in node.targets))
+        lines = source.splitlines(keepends=True)
+        replacement = ([] if case == "missing" else
+                       ["PROTECTED_CONTENT_ROWS = CAPABILITY_REPLACEMENT_EXPECTED\n"])
+        lines[node.lineno - 1:node.end_lineno] = replacement
+        variant = "".join(lines)
+    else:
+        additions = {
+            "comment": "\n# PROTECTED_CONTENT_ROWS = dynamic_example\n",
+            "string": "\nexample_text = 'PROTECTED_CONTENT_ROWS = dynamic_example'\n",
+            "readonly": "\nfor observed_row in PROTECTED_CONTENT_ROWS:\n    pass\n",
+            "second_direct": "\nPROTECTED_CONTENT_ROWS = tuple(PROTECTED_CONTENT_ROWS)\n",
+            "second_annotated": "\nPROTECTED_CONTENT_ROWS: tuple = tuple(PROTECTED_CONTENT_ROWS)\n",
+            "second_augmented": "\nPROTECTED_CONTENT_ROWS += ()\n",
+            "inside_if": "\nif True:\n    PROTECTED_CONTENT_ROWS = tuple(PROTECTED_CONTENT_ROWS)\n",
+            "inside_for": "\nfor _ in (0,):\n    PROTECTED_CONTENT_ROWS = tuple(PROTECTED_CONTENT_ROWS)\n",
+        }
+        variant = source + additions[case]
+    if case in {"comment", "string", "readonly"}:
+        assert _assert_single_literal_protected_rows_source(variant) == PROTECTED_CONTENT_ROWS
+    else:
+        with pytest.raises(AssertionError, match="^protected_rows:single_literal_binding$"):
+            _assert_single_literal_protected_rows_source(variant)
 
 
 def test_boundary_contract_rows_are_literal_complete_unique_and_consistent() -> None:
@@ -815,8 +898,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (61466,
-                                  '001595cdec75b176abbfb99b91b2b06c45f2f2ff1a28c704ded7054c27c7e74e'),
+         'replacement_identity': (62778,
+                                  '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -828,8 +911,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (44919,
                           '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
          'old_identity_changed': True,
-         'replacement_identity': (45849,
-                                  'b66fb689d9f0849eee1d62f12dda93d83dcc9f4cce2fa008696878b44256ad1a'),
+         'replacement_identity': (46898,
+                                  'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',

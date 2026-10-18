@@ -313,8 +313,17 @@ def test_each_of_8_remaining_seams_is_concretely_absent_and_non_authorizing(reco
     elif seam_id == "S004":
         assert all(name not in CLASS_BY_V for name in ("V35", "V36", "V37"))
         assert "RW0CTerminal" not in combined
-        assert not tuple(SOURCE.glob("_rw0_d*.py"))
+        assert {path.name for path in SOURCE.glob("_rw0_d1_*.py")} == {
+            "_rw0_d1_process_frames.py", "_rw0_d1_process_supervisor.py",
+            "_rw0_d1_fake_planner.py", "_rw0_d1_fake_worker.py",
+            "_rw0_d1_workspace.py", "_rw0_d1_capsule.py",
+            "_rw0_d1_pre_execution.py", "_rw0_d1_handback.py",
+            "_rw0_d1_offline.py",
+        }
+        assert not tuple(SOURCE.glob("_rw0_d2*.py"))
         assert not tuple(SOURCE.glob("_rw0_e*.py"))
+        assert "_rw0_d1_" not in combined
+        assert "_rw0_d1_" not in (SOURCE / "__init__.py").read_text()
     elif seam_id == "S005":
         tree = ast.parse(combined)
         imported = {

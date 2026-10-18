@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import replace
 import hashlib
 from pathlib import Path
 from typing import NamedTuple
@@ -30,7 +31,7 @@ _B1_REGISTRY_POLICY = (
 )
 _B1_REGISTRY_BEGIN = "<!-- RW0_B1_CURRENT_CONTRACT_REGISTRY_BEGIN -->"
 _B1_REGISTRY_END = "<!-- RW0_B1_CURRENT_CONTRACT_REGISTRY_END -->"
-_B1_REGISTRY_VERSION = "Registry version: 1"
+_B1_REGISTRY_VERSION = "Registry version: 3"
 _B1_REGISTRY_HEADER = "| Fact | Value | Role | Source |"
 _B1_REGISTRY_SEPARATOR = "| --- | --- | --- | --- |"
 _B1_REGISTRY_ROW_LINES = (
@@ -38,7 +39,9 @@ _B1_REGISTRY_ROW_LINES = (
     "| lifecycle_status | current_implemented | projection | .docs/rw0-remote-worker-contact-phase-entry.md |",
     "| contract_class | private_pure_no_io_semantics | projection | .docs/rw0-remote-worker-contact-phase-entry.md |",
     "| retrieval_event_sequence_work_maximum | 1285 | authority | this_document |",
-    "| sole_current_cross_module_production_consumer | RW0-B2-Capability | authority | this_document |",
+    "| sole_current_pure_cross_module_production_consumer | RW0-B2-Capability | authority | this_document |",
+    "| current_bounded_runtime_phase_construction_consumer | RW0-D1-pre-execution | authority | this_document |",
+    "| current_bounded_runtime_phase_evidence_consumer | RW0-D1-handback | authority | this_document |",
     "| source_authentication | none | authority | this_document |",
     "| executable_permission | none | authority | this_document |",
     "| durable_persistence | none | authority | this_document |",
@@ -64,13 +67,15 @@ _B1_CANONICAL_BLOCK_LINES = (
 )
 _B1_CANONICAL_BLOCK = "\n".join(_B1_CANONICAL_BLOCK_LINES)
 _B1_EXPECTED_PROJECTION = _B1RegistryProjection(
-    1,
+    3,
     (
         ("component", "RW0-B1", "authority", "this_document"),
         ("lifecycle_status", "current_implemented", "projection", ".docs/rw0-remote-worker-contact-phase-entry.md"),
         ("contract_class", "private_pure_no_io_semantics", "projection", ".docs/rw0-remote-worker-contact-phase-entry.md"),
         ("retrieval_event_sequence_work_maximum", 1285, "authority", "this_document"),
-        ("sole_current_cross_module_production_consumer", "RW0-B2-Capability", "authority", "this_document"),
+        ("sole_current_pure_cross_module_production_consumer", "RW0-B2-Capability", "authority", "this_document"),
+        ("current_bounded_runtime_phase_construction_consumer", "RW0-D1-pre-execution", "authority", "this_document"),
+        ("current_bounded_runtime_phase_evidence_consumer", "RW0-D1-handback", "authority", "this_document"),
         ("source_authentication", "none", "authority", "this_document"),
         ("executable_permission", "none", "authority", "this_document"),
         ("durable_persistence", "none", "authority", "this_document"),
@@ -265,6 +270,39 @@ def _parse_b1_registry(raw: bytes) -> _B1RegistryProjection:
 def _b1_replace_once(text: str, old: str, new: str) -> str:
     assert text.count(old) == 1
     return text.replace(old, new, 1)
+
+
+@pytest.mark.parametrize("case", (
+    "singular_claim", "missing_evidence", "handback_as_constructor",
+    "handback_as_authority", "stale_version",
+))
+def test_b1_d1_consumer_registry_roles_fail_closed(case: str) -> None:
+    raw = OWNER.read_bytes()
+    text = raw.decode("utf-8")
+    construction = _B1_REGISTRY_ROW_LINES[5]
+    evidence = _B1_REGISTRY_ROW_LINES[6]
+    if case == "singular_claim":
+        text = _b1_replace_once(
+            text, construction + "\n" + evidence,
+            "| current_bounded_runtime_consumer | RW0-D1-pre-execution | authority | this_document |",
+        )
+    elif case == "missing_evidence":
+        text = _b1_replace_once(text, evidence + "\n", "")
+    elif case == "handback_as_constructor":
+        text = _b1_replace_once(
+            text, evidence,
+            "| current_bounded_runtime_phase_construction_consumer | RW0-D1-handback | authority | this_document |",
+        )
+    elif case == "handback_as_authority":
+        text = _b1_replace_once(
+            text, evidence,
+            "| current_bounded_runtime_phase_evidence_consumer | RW0-D1-handback | phase_authority | this_document |",
+        )
+    else:
+        assert case == "stale_version"
+        text = _b1_replace_once(text, _B1_REGISTRY_VERSION, "Registry version: 2")
+    with pytest.raises(AssertionError, match=r"^b1\.registry\.[a-z_]+$"):
+        _parse_b1_registry(text.encode("utf-8"))
 
 
 _B1_STRUCTURE_CASES = (
@@ -473,30 +511,37 @@ def _b1_location_document(raw: bytes, insertion: str) -> bytes:
     ).encode("utf-8")
 
 
-def test_private_module_has_no_package_exports_or_production_importer() -> None:
-    assert b1.__all__ == ()
-    import ge_nwp_coordinator
-    assert not any(name.startswith("RW0") for name in ge_nwp_coordinator.__dict__)
+def _b1_consumer_sources() -> dict[Path, str]:
+    return {
+        path: source
+        for path in PACKAGE.rglob("*.py")
+        if path != SOURCE
+        for source in (path.read_text(),)
+        if "_rw0_phase_entry_semantic_values" in source
+    }
+
+
+def _assert_private_b1_consumers(sources: dict[Path, str]) -> None:
     capability_path = PACKAGE / "_rw0_worker_mechanism_capability_values.py"
     c1_values_path = PACKAGE / "_rw0_c1_semantic_values.py"
     c1_runtime_path = PACKAGE / "_sqlite_rw0_c1.py"
     post_execution_values_path = PACKAGE / "_post_execution_evidence_values.py"
+    d1_pre_execution_path = PACKAGE / "_rw0_d1_pre_execution.py"
+    d1_handback_path = PACKAGE / "_rw0_d1_handback.py"
     expected_importers = {
         capability_path,
         c1_values_path,
         c1_runtime_path,
         post_execution_values_path,
+        d1_pre_execution_path,
+        d1_handback_path,
     }
     importers = []
-    for path in PACKAGE.rglob("*.py"):
-        if path == SOURCE:
-            continue
-        source = path.read_text()
-        if "_rw0_phase_entry_semantic_values" not in source:
-            continue
+    for path, source in sources.items():
         importers.append(path)
+        tree = ast.parse(source)
         imports = [
-            node for node in ast.parse(source).body
+            node for node in tree.body
             if isinstance(node, ast.ImportFrom)
             and node.level == 1
         ]
@@ -537,6 +582,81 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
                 == [("_rw0_phase_entry_semantic_values", "_b1")]
             ]
             assert len(owner_imports) == 1
+        elif path == d1_pre_execution_path:
+            owner_imports = [
+                node for node in imports
+                if node.module == "_rw0_phase_entry_semantic_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == {
+                "RW0PhaseEntryBasisV1",
+            }
+            assert "_validate_host_qualification_with_snapshots" not in source
+        elif path == d1_handback_path:
+            owner_imports = [
+                node for node in imports
+                if node.module == "_rw0_phase_entry_semantic_values"
+            ]
+            assert len(owner_imports) == 1
+            assert [(alias.name, alias.asname) for alias in owner_imports[0].names] == [
+                ("RW0PhaseEntryBasisV1", None),
+            ]
+            b1_imports = [
+                node for node in ast.walk(tree)
+                if (
+                    isinstance(node, ast.Import)
+                    and any(alias.name.split(".")[-1] == "_rw0_phase_entry_semantic_values"
+                            for alias in node.names)
+                ) or (
+                    isinstance(node, ast.ImportFrom)
+                    and (node.module == "_rw0_phase_entry_semantic_values"
+                         or node.module == "ge_nwp_coordinator._rw0_phase_entry_semantic_values"
+                         or (node.module in (None, "ge_nwp_coordinator")
+                             and any(alias.name == "_rw0_phase_entry_semantic_values"
+                                     for alias in node.names)))
+                )
+            ]
+            assert b1_imports == owner_imports
+            if any(
+                (isinstance(node, ast.Import)
+                 and any(alias.name.split(".")[0] == "importlib" for alias in node.names))
+                or (isinstance(node, ast.ImportFrom) and node.module == "importlib")
+                or (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "__import__")
+                for node in ast.walk(tree)
+            ):
+                raise AssertionError("b1.handback.dynamic_import_acquisition")
+            if any(
+                isinstance(node, ast.ImportFrom)
+                and node.module == "builtins"
+                and any(alias.name == "__import__" for alias in node.names)
+                for node in ast.walk(tree)
+            ):
+                raise AssertionError("b1.handback.dynamic_import_acquisition")
+            if any(
+                isinstance(node, ast.Attribute) and node.attr == "__import__"
+                for node in ast.walk(tree)
+            ):
+                raise AssertionError("b1.handback.dynamic_import_acquisition")
+            if any(
+                isinstance(node, ast.Name) and node.id == "__import__"
+                and isinstance(node.ctx, ast.Load)
+                for node in ast.walk(tree)
+            ):
+                raise AssertionError("b1.handback.dynamic_import_acquisition")
+            # The only class references are the phase_basis annotation and its
+            # exact-type evidence check. Extra use could construct or re-export it.
+            assert sum(
+                isinstance(node, ast.Name) and node.id == "RW0PhaseEntryBasisV1"
+                for node in ast.walk(tree)
+            ) == 2
+            assert not any(
+                isinstance(node, (ast.Assign, ast.AnnAssign))
+                and any(isinstance(target, ast.Name) and target.id == "__all__"
+                        for target in (node.targets if isinstance(node, ast.Assign)
+                                       else (node.target,)))
+                for node in tree.body
+            )
         else:
             assert path == post_execution_values_path
             owner_imports = [
@@ -549,6 +669,176 @@ def test_private_module_has_no_package_exports_or_production_importer() -> None:
             assert "_validate_host_qualification_with_snapshots" not in source
     assert set(importers) == expected_importers
     assert "_rw0_worker_mechanism_capability_values" not in SOURCE.read_text()
+
+
+def test_private_module_has_no_package_exports_or_production_importer() -> None:
+    assert b1.__all__ == ()
+    import ge_nwp_coordinator
+    assert not any(name.startswith("RW0") for name in ge_nwp_coordinator.__dict__)
+    _assert_private_b1_consumers(_b1_consumer_sources())
+
+
+@pytest.mark.parametrize("replacement", (
+    "from ._rw0_phase_entry_semantic_values import (\n"
+    "    RW0PhaseEntryBasisV1, RW0EffectHostQualificationV1,\n)\n",
+    "from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1\n"
+    "def _unexpected_b1_consumer():\n"
+    "    from ._rw0_phase_entry_semantic_values import RW0EffectHostQualificationV1\n",
+    "from ._rw0_phase_entry_semantic_values import *\n",
+    "from . import _rw0_phase_entry_semantic_values as phase_values\n",
+    "from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1 as Basis\n",
+    "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n"
+    "    from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1\n",
+    "from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1\n"
+    "import importlib\nimportlib.import_module('ge_nwp_coordinator._rw0_phase_entry_semantic_values')\n",
+    "from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1\n"
+    "PhaseBasisExport = RW0PhaseEntryBasisV1\n",
+))
+def test_handback_b1_import_is_exact_and_not_indirect(replacement: str) -> None:
+    sources = _b1_consumer_sources()
+    handback_path = PACKAGE / "_rw0_d1_handback.py"
+    original = "from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1\n"
+    assert sources[handback_path].count(original) == 1
+    sources[handback_path] = sources[handback_path].replace(original, replacement, 1)
+    with pytest.raises(AssertionError):
+        _assert_private_b1_consumers(sources)
+
+
+_B1_HANDBACK_DYNAMIC_ACQUISITION_CASES = (
+    (
+        "imported_alias",
+        "from builtins import __import__ as _phase_loader\n"
+        "_phase_module = _phase_loader("
+        "'ge_nwp_coordinator._rw0_phase_entry_semantic_values', "
+        "fromlist=('RW0PhaseEntryBasisV1',))\n"
+        "_phase_value = _phase_module.RW0PhaseEntryBasisV1\n",
+    ),
+    ("imported_unaliased", "from builtins import __import__\n"),
+    (
+        "module_alias",
+        "import builtins as _runtime_builtins\n"
+        "_phase_module = _runtime_builtins.__import__("
+        "'ge_nwp_coordinator._rw0_phase_entry_semantic_values', "
+        "fromlist=('RW0PhaseEntryBasisV1',))\n"
+        "_phase_value = _phase_module.RW0PhaseEntryBasisV1\n",
+    ),
+    (
+        "module_unaliased",
+        "import builtins\n"
+        "_phase_loader = builtins.__import__\n",
+    ),
+    (
+        "assignment_alias",
+        "import builtins as _loader_module\n"
+        "_saved_loader = _loader_module.__import__\n",
+    ),
+    (
+        "nested_imported_alias",
+        "def _nested_loader():\n"
+        "    from builtins import __import__ as _inside_load\n"
+        "    return _inside_load('ge_nwp_coordinator._rw0_phase_entry_semantic_values')\n",
+    ),
+    (
+        "nested_module_alias",
+        "def _nested_module_loader():\n"
+        "    import builtins as _inside_builtins\n"
+        "    return _inside_builtins.__import__("
+        "'ge_nwp_coordinator._rw0_phase_entry_semantic_values')\n",
+    ),
+    ("direct_reference", "_saved_builtin_loader = __import__\n"),
+    (
+        "direct_call",
+        "_phase_module = __import__("
+        "'ge_nwp_coordinator._rw0_phase_entry_semantic_values')\n",
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    ("case_id", "addition"), _B1_HANDBACK_DYNAMIC_ACQUISITION_CASES,
+    ids=tuple(case[0] for case in _B1_HANDBACK_DYNAMIC_ACQUISITION_CASES),
+)
+def test_handback_b1_dynamic_import_acquisition_is_rejected(
+    case_id: str, addition: str,
+) -> None:
+    sources = _b1_consumer_sources()
+    handback_path = PACKAGE / "_rw0_d1_handback.py"
+    sources[handback_path] += "\n" + addition
+    with pytest.raises(AssertionError, match="^b1\\.handback\\.dynamic_import_acquisition$"):
+        _assert_private_b1_consumers(sources)
+
+
+def test_handback_b1_dynamic_import_mentions_are_nonexecuting() -> None:
+    sources = _b1_consumer_sources()
+    _assert_private_b1_consumers(sources)
+    handback_path = PACKAGE / "_rw0_d1_handback.py"
+    sources[handback_path] += (
+        "\n# __import__ is mentioned only in this comment.\n"
+        "_harmless_loader_text = '__import__'\n"
+    )
+    _assert_private_b1_consumers(sources)
+
+
+def test_unapproved_d1_b1_importer_is_rejected() -> None:
+    sources = _b1_consumer_sources()
+    sources[PACKAGE / "_rw0_d1_capsule.py"] = (
+        "from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1\n"
+    )
+    with pytest.raises(AssertionError):
+        _assert_private_b1_consumers(sources)
+
+
+def test_existing_b1_consumer_symbol_constraint_is_preserved() -> None:
+    sources = _b1_consumer_sources()
+    pre_execution_path = PACKAGE / "_rw0_d1_pre_execution.py"
+    sources[pre_execution_path] += (
+        "\nfrom ._rw0_phase_entry_semantic_values import "
+        "RW0EffectHostQualificationV1\n"
+    )
+    with pytest.raises(AssertionError):
+        _assert_private_b1_consumers(sources)
+
+
+def test_real_d1_handback_retains_established_b1_evidence_without_new_write(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ge_nwp_coordinator._rw0_d1_offline import artificial_fixture, run_rw0_d1_offline
+    from ge_nwp_coordinator._rw0_d1_handback import RW0D1HandbackV1
+    from ge_nwp_coordinator._rw0_wire_protocol_values import (
+        RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,
+    )
+    from ge_nwp_coordinator.sqlite_writer_session import _SQLiteWriterSession
+    from test_rw0_d1_offline_integration import work_spec
+
+    work = work_spec()
+    with run_rw0_d1_offline(work, artificial_fixture(work)) as run:
+        original = run.handback
+        basis = original.phase_basis
+        assert original.status == "capsule_ready"
+        assert type(basis) is b1.RW0PhaseEntryBasisV1
+        assert basis.basis_ref == original.phase_result.phase_basis_ref
+        assert basis.basis_digest == original.phase_result.phase_basis_digest
+        assert type(original.wire_result) is RW0WireWorkerResultV1
+        assert type(original.wire_classification) is RW0WireProcessResultClassificationV1
+        calls = {"basis_construction": 0, "c1_write": 0}
+
+        def reject_basis_construction(*_args: object, **_kwargs: object) -> None:
+            calls["basis_construction"] += 1
+            raise AssertionError("handback_must_not_construct_basis")
+
+        def reject_c1_write(*_args: object, **_kwargs: object) -> None:
+            calls["c1_write"] += 1
+            raise AssertionError("handback_must_not_write_c1")
+
+        monkeypatch.setattr(b1.RW0PhaseEntryBasisV1, "from_mapping", reject_basis_construction)
+        monkeypatch.setattr(_SQLiteWriterSession, "_establish_rw0_phase", reject_c1_write)
+        formed = replace(original)
+        assert type(formed) is RW0D1HandbackV1
+        assert formed.phase_basis is basis
+        assert formed.phase_result is original.phase_result
+        assert formed.wire_result is original.wire_result
+        assert formed.wire_classification is original.wire_classification
+        assert calls == {"basis_construction": 0, "c1_write": 0}
 
 
 def test_pure_import_and_ast_boundary() -> None:

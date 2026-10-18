@@ -658,7 +658,7 @@ def _b1_cross_document_projection(raw: bytes) -> object:
 
 _B1_INDEPENDENT_PROJECTION_OUTCOME = (
     "projection",
-    1,
+    3,
     (
         ("component", "RW0-B1", "authority", "this_document"),
         (
@@ -680,8 +680,20 @@ _B1_INDEPENDENT_PROJECTION_OUTCOME = (
             "this_document",
         ),
         (
-            "sole_current_cross_module_production_consumer",
+            "sole_current_pure_cross_module_production_consumer",
             "RW0-B2-Capability",
+            "authority",
+            "this_document",
+        ),
+        (
+            "current_bounded_runtime_phase_construction_consumer",
+            "RW0-D1-pre-execution",
+            "authority",
+            "this_document",
+        ),
+        (
+            "current_bounded_runtime_phase_evidence_consumer",
+            "RW0-D1-handback",
             "authority",
             "this_document",
         ),
@@ -969,7 +981,7 @@ def _assert_current_open_decision_ownership(text: str) -> None:
     assert normalized_owner.count(current_row) == 1
     for later_row in (
         "3. **RW0-C — durable phase-entry and observation state** — future",
-        "4. **RW0-D — offline worker, supervisor, and capsule proof** — future",
+        "4. **RW0-D — offline worker, supervisor, and capsule proof** — D1 now implements the bounded artificial fake-planner/fake-worker process and capsule spine; D2 evidence/review/model closure remains future, with no network or live credentials.",
         "5. **RW0-E — one live qualified-host proof** — one future",
     ):
         assert normalized_owner.count(later_row) == 1
@@ -2239,8 +2251,10 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
         is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
         RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
         durable phase/evidence mechanics are implemented separately behind private
-        mutation authority; RW0-C2 closure/decision and RW0-D/E transport, process,
-        provider, credential, live-proof, and runtime mechanics remain future.
+        mutation authority; RW0-D1 artificial offline planner/worker process and capsule mechanics are
+        implemented separately under the D1 owner. RW0-D2 evidence/review/model
+        closure, RW0-C2 physical decision persistence, live provider/credential/custody,
+        and RW0-E runtime mechanics remain future.
         Execution Substrate retains admission and runtime authority.
     """)
     capability_bodies: list[str] = []
@@ -3031,14 +3045,68 @@ def test_b1_registry_projects_rw0_composition() -> None:
     assert b1_rows["retrieval_event_sequence_work_maximum"] == (
         "retrieval_event_sequence_work_maximum", 1285, "authority", "this_document",
     )
-    assert b1_rows["sole_current_cross_module_production_consumer"] == (
-        "sole_current_cross_module_production_consumer", "RW0-B2-Capability",
+    assert b1_rows["sole_current_pure_cross_module_production_consumer"] == (
+        "sole_current_pure_cross_module_production_consumer", "RW0-B2-Capability",
+        "authority", "this_document",
+    )
+    assert b1_rows["current_bounded_runtime_phase_construction_consumer"] == (
+        "current_bounded_runtime_phase_construction_consumer", "RW0-D1-pre-execution",
+        "authority", "this_document",
+    )
+    assert b1_rows["current_bounded_runtime_phase_evidence_consumer"] == (
+        "current_bounded_runtime_phase_evidence_consumer", "RW0-D1-handback",
         "authority", "this_document",
     )
     assert tuple(b1_rows[fact][1] for fact in (
         "source_authentication", "executable_permission", "durable_persistence",
         "semantic_acceptance",
     )) == ("none", "none", "none", "none")
+
+
+@pytest.mark.parametrize("case", (
+    "stale_version", "singular_consumer", "missing_handback",
+    "handback_as_constructor", "handback_as_authority",
+))
+def test_independent_b1_consumer_projection_rejects_drift(case: str) -> None:
+    raw = (ROOT / ".docs/rw0-b1-pure-phase-values.md").read_bytes()
+    assert _b1_registry_outcome(_b1_cross_document_projection, raw) == (
+        _B1_INDEPENDENT_PROJECTION_OUTCOME
+    )
+    text = raw.decode("utf-8")
+    construction = (
+        "| current_bounded_runtime_phase_construction_consumer | "
+        "RW0-D1-pre-execution | authority | this_document |"
+    )
+    evidence = (
+        "| current_bounded_runtime_phase_evidence_consumer | "
+        "RW0-D1-handback | authority | this_document |"
+    )
+    if case == "stale_version":
+        text = _rw0_replace_once(text, "Registry version: 3", "Registry version: 2")
+    elif case == "singular_consumer":
+        text = _rw0_replace_once(
+            text, construction + "\n" + evidence,
+            "| current_bounded_runtime_consumer | RW0-D1-pre-execution | authority | this_document |",
+        )
+    elif case == "missing_handback":
+        text = _rw0_replace_once(text, evidence + "\n", "")
+    elif case == "handback_as_constructor":
+        text = _rw0_replace_once(
+            text, evidence,
+            "| current_bounded_runtime_phase_construction_consumer | RW0-D1-handback | authority | this_document |",
+        )
+    else:
+        assert case == "handback_as_authority"
+        text = _rw0_replace_once(
+            text, evidence,
+            "| current_bounded_runtime_phase_evidence_consumer | RW0-D1-handback | phase_authority | this_document |",
+        )
+    changed = text.encode("utf-8")
+    assert changed != raw
+    assert _b1_registry_outcome(
+        _b1_owner_test_module._parse_b1_registry, changed,
+    )[0] == "diagnostic"
+    assert _b1_registry_outcome(_b1_cross_document_projection, changed)[0] == "diagnostic"
 
 
 def test_b1_primary_and_cross_registry_parsers_are_equivalent() -> None:

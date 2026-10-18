@@ -548,32 +548,31 @@ def test_visible_status_parser_rejects_duplicate_relocation_and_hidden_controls(
                    root, heading, 3)
 
 
-def test_private_import_and_public_boundary() -> None:
-    path = ROOT / "src/ge_nwp_coordinator/_rw0_wire_protocol_values.py"
-    tree = ast.parse(path.read_text())
-    imports = [node for node in tree.body if isinstance(node, (ast.Import, ast.ImportFrom))]
-    assert {alias.name for node in imports if isinstance(node, ast.Import) for alias in node.names} == {
-        "datetime", "hashlib", "json", "re", "typing"}
-    local = [node for node in imports if isinstance(node, ast.ImportFrom) and node.level]
-    assert len(local) == 1 and local[0].module == "_worker_execution_semantic_values"
-    assert not any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                   and node.func.id in {"open", "exec", "eval", "__import__"} for node in ast.walk(tree))
-    import ge_nwp_coordinator as package
-    assert not hasattr(package, "RW0WireWorkerResultV1")
-    assert not hasattr(package, "wire_profile_mapping")
+def _wire_consumer_sources() -> dict[Path, str]:
+    owner = ROOT / "src/ge_nwp_coordinator/_rw0_wire_protocol_values.py"
+    sources = {}
+    for candidate in (ROOT / "src/ge_nwp_coordinator").rglob("*.py"):
+        if candidate == owner:
+            continue
+        source = candidate.read_text()
+        if "_rw0_wire_protocol_values" in source:
+            sources[candidate] = source
+    return sources
+
+
+def _assert_private_wire_consumers(sources: dict[Path, str]) -> None:
     capability_path = ROOT / "src/ge_nwp_coordinator/_rw0_worker_mechanism_capability_values.py"
     c1_values_path = ROOT / "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py"
     c1_runtime_path = ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c1.py"
+    d1_worker_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_fake_worker.py"
+    d1_offline_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_offline.py"
+    d1_handback_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_handback.py"
     production_importers = []
-    for candidate in (ROOT / "src/ge_nwp_coordinator").rglob("*.py"):
-        if candidate == path:
-            continue
-        source = candidate.read_text()
-        if "_rw0_wire_protocol_values" not in source:
-            continue
+    for candidate, source in sources.items():
         production_importers.append(candidate)
+        tree = ast.parse(source)
         relative_imports = [
-            node for node in ast.parse(source).body
+            node for node in tree.body
             if isinstance(node, ast.ImportFrom)
             and node.level == 1
         ]
@@ -597,6 +596,77 @@ def test_private_import_and_public_boundary() -> None:
                 "RW0WireProcessObservationV1",
                 "RW0WireProtocolError",
             }
+        elif candidate in {d1_worker_path, d1_offline_path}:
+            owner_imports = [
+                node for node in relative_imports
+                if node.module == "_rw0_wire_protocol_values"
+            ]
+            assert len(owner_imports) == 1
+            assert {alias.name for alias in owner_imports[0].names} == (
+                {"RW0WireWorkerResultV1", "decode_wire_command_frame",
+                 "encode_wire_result_frame"}
+                if candidate == d1_worker_path else
+                {"classify_wire_process_result", "decode_wire_result_frame",
+                 "encode_wire_command_frame"}
+            )
+        elif candidate == d1_handback_path:
+            owner_imports = [
+                node for node in relative_imports
+                if node.module == "_rw0_wire_protocol_values"
+            ]
+            assert len(owner_imports) == 1
+            assert [(alias.name, alias.asname) for alias in owner_imports[0].names] == [
+                ("RW0WireProcessResultClassificationV1", None),
+                ("RW0WireWorkerResultV1", None),
+            ]
+            wire_imports = [
+                node for node in ast.walk(tree)
+                if (
+                    isinstance(node, ast.Import)
+                    and any(alias.name.split(".")[-1] == "_rw0_wire_protocol_values"
+                            for alias in node.names)
+                ) or (
+                    isinstance(node, ast.ImportFrom)
+                    and (node.module == "_rw0_wire_protocol_values"
+                         or node.module == "ge_nwp_coordinator._rw0_wire_protocol_values"
+                         or (node.module in (None, "ge_nwp_coordinator")
+                             and any(alias.name == "_rw0_wire_protocol_values"
+                                     for alias in node.names)))
+                )
+            ]
+            assert wire_imports == owner_imports
+            # These two names are used only as field annotations and exact
+            # evidence types.  They must not become module values/exports.
+            assert all(
+                sum(isinstance(node, ast.Name) and node.id == name
+                    for node in ast.walk(tree)) == 2
+                for name in (
+                    "RW0WireProcessResultClassificationV1", "RW0WireWorkerResultV1",
+                )
+            )
+            assert not any(
+                isinstance(node, (ast.Assign, ast.AnnAssign))
+                and any(isinstance(target, ast.Name) and target.id == "__all__"
+                        for target in (node.targets if isinstance(node, ast.Assign)
+                                       else (node.target,)))
+                for node in tree.body
+            )
+            assert not any(
+                (isinstance(node, ast.Import)
+                 and any(alias.name.split(".")[0] == "importlib"
+                         for alias in node.names))
+                or (isinstance(node, ast.ImportFrom)
+                    and (node.module == "importlib"
+                         or any(alias.name == "__import__" for alias in node.names)))
+                or (isinstance(node, ast.Name) and node.id == "__import__")
+                or (isinstance(node, ast.Attribute) and node.attr == "__import__")
+                or (isinstance(node, ast.Call)
+                    and ((isinstance(node.func, ast.Name)
+                          and node.func.id == "import_module")
+                         or (isinstance(node.func, ast.Attribute)
+                             and node.func.attr == "import_module")))
+                for node in ast.walk(tree)
+            )
         else:
             assert candidate == c1_runtime_path
             owner_imports = [
@@ -607,10 +677,108 @@ def test_private_import_and_public_boundary() -> None:
             ]
             assert len(owner_imports) == 1
     assert set(production_importers) == {
-        capability_path, c1_values_path, c1_runtime_path
+        capability_path, c1_values_path, c1_runtime_path,
+        d1_worker_path, d1_offline_path, d1_handback_path,
     }
+
+
+def test_private_import_and_public_boundary() -> None:
+    path = ROOT / "src/ge_nwp_coordinator/_rw0_wire_protocol_values.py"
+    tree = ast.parse(path.read_text())
+    imports = [node for node in tree.body if isinstance(node, (ast.Import, ast.ImportFrom))]
+    assert {alias.name for node in imports if isinstance(node, ast.Import) for alias in node.names} == {
+        "datetime", "hashlib", "json", "re", "typing"}
+    local = [node for node in imports if isinstance(node, ast.ImportFrom) and node.level]
+    assert len(local) == 1 and local[0].module == "_worker_execution_semantic_values"
+    assert not any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                   and node.func.id in {"open", "exec", "eval", "__import__"} for node in ast.walk(tree))
+    import ge_nwp_coordinator as package
+    assert not hasattr(package, "RW0WireWorkerResultV1")
+    assert not hasattr(package, "wire_profile_mapping")
+    _assert_private_wire_consumers(_wire_consumer_sources())
     assert "_rw0_worker_mechanism_capability_values" not in path.read_text()
     capability_owner = (ROOT / ".docs/rw0-b2-capability.md").read_text()
     assert capability_owner.count("<!-- RW0_B2_CAPABILITY_OWNER_BEGIN -->") == 1
     assert capability_owner.count("<!-- RW0_B2_CAPABILITY_OWNER_END -->") == 1
     assert "sole detailed owner" in capability_owner
+
+
+@pytest.mark.parametrize("replacement", (
+    "from ._rw0_wire_protocol_values import (\n"
+    "    RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,\n"
+    "    classify_wire_process_result,\n"
+    ")\n",
+    "from ._rw0_wire_protocol_values import *\n",
+    "from . import _rw0_wire_protocol_values as wire\n",
+    "from ._rw0_wire_protocol_values import (\n"
+    "    RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,\n"
+    ")\n"
+    "def _unexpected_wire_consumer():\n"
+    "    from ._rw0_wire_protocol_values import classify_wire_process_result\n",
+))
+def test_handback_rejects_extra_or_indirect_wire_imports(replacement: str) -> None:
+    sources = _wire_consumer_sources()
+    handback_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_handback.py"
+    original = (
+        "from ._rw0_wire_protocol_values import (\n"
+        "    RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,\n"
+        ")\n"
+    )
+    assert sources[handback_path].count(original) == 1
+    sources[handback_path] = sources[handback_path].replace(original, replacement, 1)
+    with pytest.raises(AssertionError):
+        _assert_private_wire_consumers(sources)
+
+
+@pytest.mark.parametrize("addition", (
+    "D1WireExport = RW0WireWorkerResultV1\n",
+    "D1WireExport: object = RW0WireProcessResultClassificationV1\n",
+    "__all__ = ('RW0WireWorkerResultV1',)\n",
+    "import importlib\nD1WireModule = importlib.import_module("
+    "'ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "import importlib as loader\nD1WireModule = loader.import_module("
+    "'ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "from importlib import import_module as load\n"
+    "D1WireModule = load('ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "D1WireModule = __import__('ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "load = __import__\nD1WireModule = load("
+    "'ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "from builtins import __import__ as load\n"
+    "D1WireModule = load('ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "import builtins as loader\n"
+    "D1WireModule = loader.__import__("
+    "'ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "def _nested_wire_loader():\n"
+    "    import importlib as loader\n"
+    "    return loader.import_module('ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+    "def _nested_builtin_loader():\n"
+    "    load = __import__\n"
+    "    return load('ge_nwp_coordinator._rw0_wire_protocol_values')\n",
+))
+def test_handback_wire_guard_rejects_value_exports_and_dynamic_loads(addition: str) -> None:
+    sources = _wire_consumer_sources()
+    handback_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_handback.py"
+    sources[handback_path] += "\n" + addition
+    with pytest.raises(AssertionError):
+        _assert_private_wire_consumers(sources)
+
+
+def test_unapproved_d1_wire_consumer_is_rejected() -> None:
+    sources = _wire_consumer_sources()
+    sources[ROOT / "src/ge_nwp_coordinator/_rw0_d1_capsule.py"] = (
+        "from ._rw0_wire_protocol_values import (\n"
+        "    RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,\n"
+        ")\n"
+    )
+    with pytest.raises(AssertionError):
+        _assert_private_wire_consumers(sources)
+
+
+def test_existing_wire_consumer_symbol_constraint_is_preserved() -> None:
+    sources = _wire_consumer_sources()
+    c1_values_path = ROOT / "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py"
+    original = "    RW0WireProtocolError,\n"
+    assert sources[c1_values_path].count(original) == 1
+    sources[c1_values_path] = sources[c1_values_path].replace(original, "", 1)
+    with pytest.raises(AssertionError):
+        _assert_private_wire_consumers(sources)

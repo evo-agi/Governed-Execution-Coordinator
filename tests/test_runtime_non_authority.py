@@ -37,6 +37,15 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_finite_backlog_risk_source_adapter.py",
         "src/ge_nwp_coordinator/_post_execution_evidence_values.py",
         "src/ge_nwp_coordinator/_post_execution_policy_values.py",
+        "src/ge_nwp_coordinator/_rw0_d1_capsule.py",
+        "src/ge_nwp_coordinator/_rw0_d1_fake_planner.py",
+        "src/ge_nwp_coordinator/_rw0_d1_fake_worker.py",
+        "src/ge_nwp_coordinator/_rw0_d1_handback.py",
+        "src/ge_nwp_coordinator/_rw0_d1_offline.py",
+        "src/ge_nwp_coordinator/_rw0_d1_pre_execution.py",
+        "src/ge_nwp_coordinator/_rw0_d1_process_frames.py",
+        "src/ge_nwp_coordinator/_rw0_d1_process_supervisor.py",
+        "src/ge_nwp_coordinator/_rw0_d1_workspace.py",
         "src/ge_nwp_coordinator/_rw0_c1_mutation_contracts.py",
         "src/ge_nwp_coordinator/_rw0_c1_row_values.py",
         "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py",
@@ -916,6 +925,10 @@ def test_production_inventory_bytecode_exception_is_exact_and_source_bound(tmp_p
 
 
 def test_production_python_has_no_module_scope_dunder_name_entry_surface() -> None:
+    allowed_children = {
+        "src/ge_nwp_coordinator/_rw0_d1_fake_planner.py",
+        "src/ge_nwp_coordinator/_rw0_d1_fake_worker.py",
+    }
     findings: list[str] = []
     for relative_path in sorted(EXPECTED_PRODUCTION_PATHS):
         if not relative_path.endswith(".py"):
@@ -923,7 +936,7 @@ def test_production_python_has_no_module_scope_dunder_name_entry_surface() -> No
         source = _read(relative_path)
         if _has_module_scope_dunder_name_load(source, relative_path):
             findings.append(relative_path)
-    assert findings == []
+    assert set(findings) == allowed_children
 
 
 def test_sqlite_import_surface_is_exact() -> None:

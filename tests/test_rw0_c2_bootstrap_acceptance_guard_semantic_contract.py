@@ -140,8 +140,8 @@ GUARD_CAPABILITY_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.py',
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (61466,
-                                  '001595cdec75b176abbfb99b91b2b06c45f2f2ff1a28c704ded7054c27c7e74e'),
+         'replacement_identity': (62778,
+                                  '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -153,8 +153,8 @@ GUARD_CAPABILITY_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.py',
          'old_identity': (44919,
                           '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
          'old_identity_changed': True,
-         'replacement_identity': (45849,
-                                  'b66fb689d9f0849eee1d62f12dda93d83dcc9f4cce2fa008696878b44256ad1a'),
+         'replacement_identity': (46898,
+                                  'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -800,13 +800,46 @@ def _assert_capability_semantic_source(text):
     _require(len(assignments) == 1, 'guard:capability_semantic_integrity:fixed_expectation')
     _type_exact(ast.literal_eval(assignments[0].value), GUARD_CAPABILITY_EXPECTED,
                 boundary='guard:capability_semantic_integrity:fixed_expectation')
-    protected = next(node for node in tree.body if isinstance(node, ast.Assign) and
-                     any(isinstance(target, ast.Name) and target.id == 'PROTECTED_CONTENT_ROWS' for target in node.targets))
-    rows = {row[0]: row for row in ast.literal_eval(protected.value)}
+    protected_bindings = []
+
+    def inspect_module_execution(node):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+                             ast.Lambda)):
+            return
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign,
+                             ast.NamedExpr)):
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            if any(isinstance(name, ast.Name) and name.id == 'PROTECTED_CONTENT_ROWS'
+                   and isinstance(name.ctx, ast.Store)
+                   for target in targets for name in ast.walk(target)):
+                protected_bindings.append(node)
+        for child in ast.iter_child_nodes(node):
+            inspect_module_execution(child)
+
+    inspect_module_execution(tree)
+    _require(len(protected_bindings) == 1,
+             'guard:capability_semantic_integrity:protected_single_literal')
+    protected = protected_bindings[0]
+    _require(isinstance(protected, ast.Assign) and len(protected.targets) == 1 and
+             isinstance(protected.targets[0], ast.Name) and
+             protected.targets[0].id == 'PROTECTED_CONTENT_ROWS',
+             'guard:capability_semantic_integrity:protected_single_literal')
+    try:
+        literal_rows = ast.literal_eval(protected.value)
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        raise AssertionError('guard:capability_semantic_integrity:protected_single_literal') from None
+    _require(type(literal_rows) is tuple and len(literal_rows) == 13 and
+             all(type(row) is tuple and len(row) == 6 for row in literal_rows),
+             'guard:capability_semantic_integrity:protected_literal_rows')
+    rows = {row[0]: row for row in literal_rows}
+    _require(len(rows) == 13,
+             'guard:capability_semantic_integrity:protected_literal_rows')
     for pid, reference in GUARD_CAPABILITY_EXPECTED.items():
         _require(pid in rows, 'guard:capability_semantic_integrity:protected:' + pid)
         row = rows[pid]
-        _type_exact((row[1], row[4], row[5]), (reference['path'], reference['contract_classes'], reference['purpose']),
+        _type_exact((row[1], (row[2], row[3]), row[4], row[5]),
+                    (reference['path'], reference['replacement_identity'],
+                     reference['contract_classes'], reference['purpose']),
                     boundary='guard:capability_semantic_integrity:ownership:' + pid)
 
 
@@ -842,6 +875,45 @@ def test_capability_semantic_integrity_source_hostile(case, boundary):
         changed = text.replace(old, new, 1)
     with pytest.raises(AssertionError, match='^' + re.escape(boundary) + '$'):
         _assert_capability_semantic_source(changed)
+
+
+@pytest.mark.parametrize('case', (
+    'comment', 'string', 'readonly', 'second_dynamic', 'second_annotated',
+    'inside_if', 'nonliteral', 'missing',
+))
+def test_capability_protected_literal_source_variants(case):
+    source = (ROOT / 'tests/test_rw0_b2_capability_boundaries.py').read_text()
+    if case in ('nonliteral', 'missing'):
+        node = next(node for node in ast.parse(source).body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == 'PROTECTED_CONTENT_ROWS'
+                            for target in node.targets))
+        lines = source.splitlines(keepends=True)
+        lines[node.lineno - 1:node.end_lineno] = (
+            [] if case == 'missing' else
+            ['PROTECTED_CONTENT_ROWS = CAPABILITY_REPLACEMENT_EXPECTED\n']
+        )
+        variant = ''.join(lines)
+    else:
+        additions = {
+            'comment': '\n# PROTECTED_CONTENT_ROWS = dynamic_example\n',
+            'string': "\nexample_text = 'PROTECTED_CONTENT_ROWS = dynamic_example'\n",
+            'readonly': '\nfor observed_row in PROTECTED_CONTENT_ROWS:\n    pass\n',
+            'second_dynamic': (
+                '\nPROTECTED_CONTENT_ROWS = tuple('
+                'tuple((row[0], row[1], len((ROOT / row[1]).read_bytes()), '
+                'hashlib.sha256((ROOT / row[1]).read_bytes()).hexdigest(), row[4], row[5])) '
+                'if row[0] in ("P11", "P12") else row for row in PROTECTED_CONTENT_ROWS)\n'
+            ),
+            'second_annotated': '\nPROTECTED_CONTENT_ROWS: tuple = tuple(PROTECTED_CONTENT_ROWS)\n',
+            'inside_if': '\nif True:\n    PROTECTED_CONTENT_ROWS = tuple(PROTECTED_CONTENT_ROWS)\n',
+        }
+        variant = source + additions[case]
+    if case in ('comment', 'string', 'readonly'):
+        _assert_capability_semantic_source(variant)
+    else:
+        with pytest.raises(AssertionError,
+                           match='^guard:capability_semantic_integrity:protected_single_literal$'):
+            _assert_capability_semantic_source(variant)
 
 
 @pytest.mark.parametrize('case,boundary', [
