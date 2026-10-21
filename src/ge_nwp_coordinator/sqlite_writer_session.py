@@ -6049,6 +6049,361 @@ class _SQLiteWriterSession(WriterSession):
                 raise
             raise
 
+    def _read_rw0_c1_checked_family(self, selector: object) -> object:
+        """Read one detached, fully checked admitted C1 member under fencing."""
+        resource_reference = weakref.ref(self._resource)
+        invocation_correlation: _OperationInvocationCorrelation | None = None
+
+        def _guarded_checked_family(
+            exact_correlation: _OperationInvocationCorrelation,
+        ) -> object:
+            nonlocal self, selector
+            bound_operation_guard = self._resource.operation_guard
+            operation_guard_keywords = (
+                {"_invocation_correlation": exact_correlation}
+                if type(bound_operation_guard) is MethodType
+                else {}
+            )
+            with self._resource.operation_guard(
+                self, **operation_guard_keywords,
+            ) as operation_lease:
+                import_failed = False
+                try:
+                    from ge_nwp_coordinator.sqlite_transition_transaction import (
+                        _run_rw0_c1_checked_family,
+                    )
+                except Exception:
+                    import_failed = True
+                if import_failed:
+                    selector = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                        )
+                    )
+                result = _run_rw0_c1_checked_family(
+                    operation_lease=operation_lease, selector=selector,
+                )
+                if type(result) is _SafeMutationFailureDisposition:
+                    outward_error = _safe_mutation_error_from_disposition(result)
+                    result = None
+                    selector = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(outward_error)
+                if result is None:
+                    selector = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                        )
+                    )
+                return result
+
+        try:
+            invocation_correlation = self._resource._new_operation_invocation_correlation()
+            return _guarded_checked_family(invocation_correlation)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(
+                        invocation_correlation
+                    )
+                except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                    try:
+                        resource._stabilize_operation_exit_for_process_control(
+                            invocation_correlation
+                        )
+                    except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                        pass
+            selector = None
+            invocation_correlation = None
+            resource = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            accepted_safe_shape = _is_accepted_outward_safe_mutation_store_error(
+                safe_error
+            )
+            selector = None
+            invocation_correlation = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph,
+            )
+            if accepted_safe_shape:
+                raise
+            raise
+
+    def _read_rw0_d2_current_owner_snapshot(self, basis: object) -> object:
+        """Take one fenced, rollback-only B-entry owner observation."""
+        resource_reference = weakref.ref(self._resource)
+        invocation_correlation: _OperationInvocationCorrelation | None = None
+
+        def _guarded_snapshot(
+            exact_correlation: _OperationInvocationCorrelation,
+        ) -> object:
+            nonlocal self, basis
+            bound_operation_guard = self._resource.operation_guard
+            operation_guard_keywords = (
+                {"_invocation_correlation": exact_correlation}
+                if type(bound_operation_guard) is MethodType
+                else {}
+            )
+            with self._resource.operation_guard(
+                self, **operation_guard_keywords,
+            ) as operation_lease:
+                import_failed = False
+                try:
+                    from ge_nwp_coordinator.sqlite_transition_transaction import (
+                        _run_rw0_d2_current_owner_snapshot,
+                    )
+                except Exception:
+                    import_failed = True
+                if import_failed:
+                    basis = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                        )
+                    )
+                result = _run_rw0_d2_current_owner_snapshot(
+                    operation_lease=operation_lease, basis=basis,
+                )
+                if type(result) is _SafeMutationFailureDisposition:
+                    outward_error = _safe_mutation_error_from_disposition(result)
+                    result = None
+                    basis = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(outward_error)
+                if result is None:
+                    basis = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                        )
+                    )
+                return result
+
+        try:
+            invocation_correlation = self._resource._new_operation_invocation_correlation()
+            return _guarded_snapshot(invocation_correlation)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(
+                        invocation_correlation
+                    )
+                except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                    try:
+                        resource._stabilize_operation_exit_for_process_control(
+                            invocation_correlation
+                        )
+                    except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                        pass
+            basis = None
+            invocation_correlation = None
+            resource = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            accepted_safe_shape = _is_accepted_outward_safe_mutation_store_error(
+                safe_error
+            )
+            basis = None
+            invocation_correlation = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph,
+            )
+            if accepted_safe_shape:
+                raise
+            raise
+
+    def _establish_development_bound_effect_intent(self, command: object) -> object:
+        """Apply one exact already-reduced capsule-bound checking command."""
+        try:
+            from ge_nwp_coordinator._development_bound_effect_establishment_contracts import (
+                _require_exact_development_bound_effect_command,
+            )
+            checked = _require_exact_development_bound_effect_command(command)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            checked = None
+            command = None
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        return self._run_development_bound_effect_establishment_operation(
+            command=checked, recovery=False,
+        )
+
+    def _resolve_development_bound_effect_establishment_commit_outcome(
+        self, command: object,
+    ) -> object:
+        """Resolve one exact command on a separately acquired fenced writer."""
+        try:
+            from ge_nwp_coordinator._development_bound_effect_establishment_contracts import (
+                _require_exact_development_bound_effect_command,
+            )
+            checked = _require_exact_development_bound_effect_command(command)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            checked = None
+            command = None
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        return self._run_development_bound_effect_establishment_operation(
+            command=checked, recovery=True,
+        )
+
+    def _run_development_bound_effect_establishment_operation(
+        self,
+        *,
+        command: object,
+        recovery: bool,
+    ) -> object:
+        if type(recovery) is not bool:
+            raise SQLiteMutationStoreError(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+            ) from None
+        resource_reference = weakref.ref(self._resource)
+        invocation_correlation: _OperationInvocationCorrelation | None = None
+
+        def _guarded_bound_effect(
+            exact_correlation: _OperationInvocationCorrelation,
+        ) -> object:
+            nonlocal self, command
+            bound_operation_guard = self._resource.operation_guard
+            operation_guard_keywords = (
+                {"_invocation_correlation": exact_correlation}
+                if type(bound_operation_guard) is MethodType
+                else {}
+            )
+            with self._resource.operation_guard(
+                self,
+                **operation_guard_keywords,
+            ) as operation_lease:
+                import_failed = False
+                try:
+                    from ge_nwp_coordinator.sqlite_transition_transaction import (
+                        _run_atomic_development_bound_effect_establishment,
+                        _run_development_bound_effect_establishment_recovery,
+                    )
+                except Exception:
+                    import_failed = True
+                if import_failed:
+                    command = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                        )
+                    )
+                if recovery:
+                    result = (
+                        _run_development_bound_effect_establishment_recovery(
+                            operation_lease=operation_lease,
+                            command=command,
+                        )
+                    )
+                else:
+                    result = _run_atomic_development_bound_effect_establishment(
+                        operation_lease=operation_lease,
+                        command=command,
+                    )
+                if type(result) is _SafeMutationFailureDisposition:
+                    outward_error = _safe_mutation_error_from_disposition(result)
+                    result = None
+                    command = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(outward_error)
+                if result is None:
+                    command = None
+                    operation_lease = None
+                    self = None  # type: ignore[assignment]
+                    _raise_safe_mutation_store_error(
+                        _new_safe_mutation_store_error(
+                            SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                        )
+                    )
+                return result
+
+        try:
+            invocation_correlation = (
+                self._resource._new_operation_invocation_correlation()
+            )
+            return _guarded_bound_effect(invocation_correlation)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(
+                        invocation_correlation
+                    )
+                except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                    try:
+                        resource._stabilize_operation_exit_for_process_control(
+                            invocation_correlation
+                        )
+                    except (KeyboardInterrupt, SystemExit, GeneratorExit, Exception):
+                        pass
+            command = None
+            invocation_correlation = None
+            resource = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing,
+                _sanitize_exception_traceback_graph,
+            )
+            raise
+        except SQLiteMutationStoreError as safe_error:
+            accepted_safe_shape = _is_accepted_outward_safe_mutation_store_error(
+                safe_error
+            )
+            command = None
+            invocation_correlation = None
+            resource_reference = None  # type: ignore[assignment]
+            self = None  # type: ignore[assignment]
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error,
+                _sanitize_exception_traceback_graph,
+            )
+            if accepted_safe_shape:
+                raise
+            raise
+
     def _prepare_pre_execution_plan_disposition_recovery_probe(
         self,
         mutation_ref: object,

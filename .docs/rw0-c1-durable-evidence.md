@@ -273,3 +273,14 @@ complete C1 closure without changing C1 evidence membership, admission,
 receipts, replay, or recovery. Its adoption adds no completeness reader,
 decision writer, latch owner, terminal-outcome owner, migration 0005,
 production caller, public export, runtime, or external contact.
+
+### RW0-D2 checked admission current successor
+
+The offline D2 A source now admits and reads back only the dependency-closed
+validation/review proof subset through the existing C1 writer, reader, receipt,
+and recovery authority. Its complete case has 14 checked members: rank 1 x3,
+rank 5 x1, rank 6 x2, rank 12 x6, rank 13 x1, and rank 14 x1. Each checked
+family returns the actual persisted member, relation operands, and typed value;
+the parent refuses supplied expected rows as readback. Rank 15 and the durable
+post-execution Section 41 proposal family remain absent. Admission does not
+guarantee future currentness or C2 completeness, decision, or acceptance.

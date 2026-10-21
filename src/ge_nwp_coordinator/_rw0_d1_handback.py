@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -25,7 +26,10 @@ from ._rw0_phase_entry_semantic_values import RW0PhaseEntryBasisV1
 from ._rw0_wire_protocol_values import (
     RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,
 )
-from ._worker_execution_semantic_values import CandidateCapsuleManifestV1
+from ._worker_execution_semantic_values import (
+    CandidateCapsuleManifestV1, WorkerObservationV1,
+    validate_observation_relation,
+)
 from .sqlite_location import CoordinatorStateLocation
 
 
@@ -47,28 +51,28 @@ _CLEANUP_REASONS = frozenset({
 _EVIDENCE_ORDER = (
     "program_result", "author_result", "author_command", "planner_process",
     "selected_bundle", "section41_result", "phase_basis", "phase_result",
-    "worker_process", "wire_result", "wire_classification", "capture",
+    "worker_process", "wire_result", "adapter_exit", "wire_classification", "capture",
     "capsule_manifest",
 )
 _STOP_STAGES = {
     "invalid_input": (0,),
     "durable_commit_unresolved": (0, 1, 5, 7),
-    "durable_conflict": (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+    "durable_conflict": (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
     "planner_start": (4,), "planner_frame": (4,),
     "planner_limit": (4,), "planner_exit": (4,),
     "planner_deadline": (4,), "planner_cancelled": (4,),
     "nonselection": (6,),
-    "worker_start": (9,), "worker_frame": (9, 11),
+    "worker_start": (9,), "worker_frame": (9, 12),
     "worker_limit": (9,), "worker_exit": (9,),
     "worker_deadline": (9,), "worker_cancelled": (9,),
-    "unsafe_candidate": (11,), "missing_candidate": (11,),
-    "excessive_candidate": (11,), "capsule_mismatch": (12,),
+    "unsafe_candidate": (12,), "missing_candidate": (12,),
+    "excessive_candidate": (12,), "capsule_mismatch": (13,),
 }
 _CLEANUP_STAGES = {
     "process_cleanup_unresolved": (0, 1, 2, 3, 4, 5, 6, 7, 8),
     "planner_cleanup_unresolved": (4,),
     "worker_cleanup_unresolved": (9,),
-    "workspace_cleanup_unresolved": (8, 9, 10, 11, 12, 13),
+    "workspace_cleanup_unresolved": (8, 9, 10, 11, 12, 13, 14),
 }
 _PROCESS_FAILURES = {
     "planner_limit": ("output_limit", "stderr_limit"),
@@ -84,6 +88,15 @@ _PROCESS_FAILURES = {
 
 def _invalid_handback() -> None:
     raise ValueError("invalid_d1_handback")
+
+
+def _adapter_invocation_ref(worker: D1ProcessOutcome) -> str:
+    """Bind the local adapter fact to this exact retained worker invocation."""
+    if (type(worker) is not D1ProcessOutcome or type(worker.pid) is not int
+            or worker.pid <= 0 or type(worker.stdout) is not bytes):
+        _invalid_handback()
+    identity = str(worker.pid).encode("ascii") + b"\0" + worker.stdout
+    return "adapter.invocation.d1." + hashlib.sha256(identity).hexdigest()
 
 
 def _started_and_clean(process: D1ProcessOutcome | None) -> bool:
@@ -115,12 +128,18 @@ class RW0D1HandbackV1:
     planner_process: D1ProcessOutcome | None = field(default=None, repr=False)
     worker_process: D1ProcessOutcome | None = field(default=None, repr=False)
     wire_result: RW0WireWorkerResultV1 | None = field(default=None, repr=False)
+    adapter_exit: WorkerObservationV1 | None = field(default=None, repr=False)
     wire_classification: RW0WireProcessResultClassificationV1 | None = field(default=None, repr=False)
     capture: D1CandidateCapture | None = field(default=None, repr=False)
     capsule_manifest: CandidateCapsuleManifestV1 | None = field(default=None, repr=False)
     workspace_cleaned: bool = False
 
     def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self) -> None:
+        if type(self) is not RW0D1HandbackV1:
+            _invalid_handback()
         if type(self.status) is not str or self.status not in _STATUSES:
             _invalid_handback()
         if type(self.reason) is not str or self.reason not in _REASONS:
@@ -138,6 +157,7 @@ class RW0D1HandbackV1:
             (self.planner_process, D1ProcessOutcome),
             (self.worker_process, D1ProcessOutcome),
             (self.wire_result, RW0WireWorkerResultV1),
+            (self.adapter_exit, WorkerObservationV1),
             (self.wire_classification, RW0WireProcessResultClassificationV1),
             (self.capture, D1CandidateCapture),
             (self.capsule_manifest, CandidateCapsuleManifestV1),
@@ -155,6 +175,37 @@ class RW0D1HandbackV1:
             try:
                 self.capture.validate()
             except D1WorkspaceError:
+                _invalid_handback()
+        if self.adapter_exit is not None:
+            try:
+                command = self.author_command
+                worker = self.worker_process
+                wire = self.wire_result
+                if (type(command) is not DevelopmentAuthorEffectEstablishmentCommandV1
+                        or type(worker) is not D1ProcessOutcome
+                        or type(wire) is not RW0WireWorkerResultV1):
+                    _invalid_handback()
+                adapter = WorkerObservationV1.from_mapping(self.adapter_exit.to_mapping())
+                if (adapter.to_mapping() != self.adapter_exit.to_mapping()
+                        or adapter.observation_ref != "observation.d1.process-exited"
+                        or adapter.source_kind != "direct_local_adapter"
+                        or adapter.source_ref != "adapter.d1.fake"
+                        or adapter.source_invocation_ref != _adapter_invocation_ref(worker)
+                        or adapter.observation_kind != "process_exited"
+                        or adapter.outcome != "exited"
+                        or adapter.process_exit_code != worker.exit_code
+                        or type(wire.observations) is not tuple
+                        or len(wire.observations) not in (2, 3)
+                        or wire.observations[-1].observed_at > adapter.observed_at):
+                    _invalid_handback()
+                validate_observation_relation(
+                    observation=adapter, delivery=command.delivery_envelope,
+                    author_command=command.worker_command,
+                    attempt_fence=command.attempt_fence,
+                    author_effect_fence=command.effect_fence,
+                    effect_fence=command.effect_fence,
+                )
+            except Exception:
                 _invalid_handback()
         values = tuple(getattr(self, name) for name in _EVIDENCE_ORDER)
         stage = sum(value is not None for value in values)
@@ -186,10 +237,10 @@ class RW0D1HandbackV1:
             _invalid_handback()
         if stage >= 10 and not self.worker_process.clean_success:
             _invalid_handback()
-        if stage >= 12 and self.wire_classification.classification != "usable":
+        if stage >= 13 and self.wire_classification.classification != "usable":
             _invalid_handback()
         if self.status == "capsule_ready":
-            if self.reason != "complete" or stage != 13 or not self.workspace_cleaned:
+            if self.reason != "complete" or stage != 14 or not self.workspace_cleaned:
                 _invalid_handback()
         elif self.status == "stopped":
             if stage not in _STOP_STAGES.get(self.reason, ()):
@@ -210,7 +261,7 @@ class RW0D1HandbackV1:
                     _invalid_handback()
             elif self.reason == "worker_frame":
                 if (not self.worker_process.clean_success
-                        or (stage == 11 and self.wire_classification.classification == "usable")):
+                        or (stage == 12 and self.wire_classification.classification == "usable")):
                     _invalid_handback()
             elif self.reason == "nonselection":
                 if self.section41_result.disposition == "selected_for_dispatch_gates":
@@ -222,7 +273,7 @@ class RW0D1HandbackV1:
                 if (stage == 4 and not self.planner_process.clean_success
                         or stage == 6 and self.section41_result.disposition != "selected_for_dispatch_gates"
                         or stage == 9 and not self.worker_process.clean_success
-                        or stage == 11 and self.wire_classification.classification != "usable"):
+                        or stage == 12 and self.wire_classification.classification != "usable"):
                     _invalid_handback()
         elif self.status == "cleanup_unresolved":
             if self.reason == "workspace_cleanup_unresolved" and self.workspace_cleaned:

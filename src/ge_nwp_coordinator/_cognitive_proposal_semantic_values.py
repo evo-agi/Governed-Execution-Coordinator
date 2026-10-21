@@ -88,6 +88,25 @@ _PRE_EXECUTION_RECOMMENDATIONS = (
     "replan",
     "terminal_reject",
 )
+_POST_EXECUTION_RECOMMENDATIONS = (
+    "accept_candidate", "repair_candidate", "replan", "terminal_reject", "block",
+)
+_POST_EXECUTION_ROLES = (
+    "candidate_capsule", "worker_result", "validation_result",
+    "independent_review", "standing_policy", "risk_lane",
+    "authority_currentness_attestation", "global_stop", "effect_ceiling",
+)
+_POST_EXECUTION_SCHEMAS = (
+    "governed-execution.nwp-post-execution-semantic-review-context.v1",
+    "governed-execution.nwp-post-execution-semantic-review-artifact.v1",
+    "governed-execution.nwp-post-execution-semantic-review-safe-projection.v1",
+)
+_PHASE_SCHEMAS = {
+    "pre_execution_plan": (
+        _SCHEMAS["planning_context"], _SCHEMAS["artifact"], _SCHEMAS["projection"],
+    ),
+    "post_execution_semantic_review": _POST_EXECUTION_SCHEMAS,
+}
 _CEILING_FIELDS = (
     "max_active_invocations",
     "max_candidate_bytes",
@@ -1636,6 +1655,8 @@ def _validate_context_mapping(mapping: dict[str, object]) -> None:
 
 
 def _validate_source_mapping(mapping: dict[str, object]) -> None:
+    phase = _require_enum(mapping["proposal_phase"], tuple(_PHASE_SCHEMAS))
+    context_schema, artifact_schema, _ = _PHASE_SCHEMAS[phase]
     for name in _SOURCE_INVOCATION_FIELDS[1:]:
         member = mapping[name]
         if name.endswith("_digest"):
@@ -1643,18 +1664,20 @@ def _validate_source_mapping(mapping: dict[str, object]) -> None:
         elif name.endswith("_at"):
             _require_utc_second(member)
         elif name == "proposal_phase":
-            _require_enum(member, ("pre_execution_plan",))
+            _require_enum(member, (phase,))
         elif name == "invocation_status":
             _require_enum(member, ("normalized_typed_proposal_supplied",))
         elif name == "context_schema_id":
-            _require_enum(member, (_SCHEMAS["planning_context"],))
+            _require_enum(member, (context_schema,))
         elif name == "artifact_schema_id":
-            _require_enum(member, (_SCHEMAS["artifact"],))
+            _require_enum(member, (artifact_schema,))
         else:
             _require_safe_ref(member)
 
 
 def _validate_artifact_binding_mapping(mapping: dict[str, object]) -> None:
+    phase = _require_enum(mapping["proposal_phase"], tuple(_PHASE_SCHEMAS))
+    _, artifact_schema, projection_schema = _PHASE_SCHEMAS[phase]
     for name in _ARTIFACT_BINDING_FIELDS[1:]:
         member = mapping[name]
         if name.endswith("_digest"):
@@ -1664,15 +1687,15 @@ def _validate_artifact_binding_mapping(mapping: dict[str, object]) -> None:
             if length > 65_536:
                 _violate("private_plan_artifact_size_invalid")
         elif name == "proposal_phase":
-            _require_enum(member, ("pre_execution_plan",))
+            _require_enum(member, (phase,))
         elif name == "privacy_classification":
             _require_enum(member, ("private_normalized_model_proposal",))
         elif name == "artifact_validated_at":
             _require_utc_second(member)
         elif name == "artifact_schema_id":
-            _require_enum(member, (_SCHEMAS["artifact"],))
+            _require_enum(member, (artifact_schema,))
         elif name == "safe_projection_schema_id":
-            _require_enum(member, (_SCHEMAS["projection"],))
+            _require_enum(member, (projection_schema,))
         else:
             _require_safe_ref(member)
 
@@ -1714,30 +1737,37 @@ def _validate_projection_mapping(mapping: dict[str, object]) -> None:
 
 
 def _validate_evidence_binding_mapping(mapping: dict[str, object]) -> None:
-    role = _require_enum(mapping["evidence_role"], (*_EVIDENCE_ROLES, _READINESS_ROLE))
-    expected_rank = 5 + (_EVIDENCE_ROLES.index(role) if role in _EVIDENCE_ROLES else 14)
+    phase = _require_enum(mapping["proposal_phase"], tuple(_PHASE_SCHEMAS))
+    roles = ((*_EVIDENCE_ROLES, _READINESS_ROLE)
+             if phase == "pre_execution_plan" else _POST_EXECUTION_ROLES)
+    role = _require_enum(mapping["evidence_role"], roles)
+    expected_rank = 5 + roles.index(role)
     if mapping["role_rank"] != expected_rank or mapping["ordinal"] != 0:
         _violate("preselection_timestamp_record_invalid")
     if type(mapping["required_for_selection"]) is not int or mapping[
         "required_for_selection"
     ] not in (0, 1):
         _violate("preselection_timestamp_record_invalid")
-    if bool(mapping["required_for_selection"]) is not (role != _READINESS_ROLE):
+    if bool(mapping["required_for_selection"]) is not (
+        phase == "post_execution_semantic_review" or role != _READINESS_ROLE
+    ):
         _violate("preselection_timestamp_record_invalid")
     for name in ("proposal_ref", "evidence_set_ref", "evidence_ref"):
         _require_safe_ref(mapping[name])
     for name in ("evidence_digest", "evidence_binding_digest"):
         _require_sha256(mapping[name])
-    _require_enum(mapping["proposal_phase"], ("pre_execution_plan",))
+    _require_enum(mapping["proposal_phase"], (phase,))
     _require_utc_second(mapping["evidence_bound_at"])
 
 
 def _validate_evidence_set(value: ModelProposalEvidenceSetV1) -> None:
     _require_safe_ref(value.evidence_set_ref)
     _require_safe_ref(value.proposal_ref)
-    _require_enum(value.proposal_phase, ("pre_execution_plan",))
+    phase = _require_enum(value.proposal_phase, tuple(_PHASE_SCHEMAS))
     raw_entries = _require_tuple_of(
-        value.entries, ModelProposalEvidenceBindingV1, 14, 15
+        value.entries, ModelProposalEvidenceBindingV1,
+        14 if phase == "pre_execution_plan" else 9,
+        15 if phase == "pre_execution_plan" else 9,
     )
     entries = tuple(
         typing.cast(
@@ -1748,9 +1778,9 @@ def _validate_evidence_set(value: ModelProposalEvidenceSetV1) -> None:
         )
         for binding in raw_entries
     )
-    expected = tuple(
-        (*_EVIDENCE_ROLES, *(() if len(entries) == 14 else (_READINESS_ROLE,)))
-    )
+    expected = (tuple((*_EVIDENCE_ROLES,
+                       *(() if len(entries) == 14 else (_READINESS_ROLE,))))
+                if phase == "pre_execution_plan" else _POST_EXECUTION_ROLES)
     if tuple(binding.evidence_role for binding in entries) != expected:
         _violate("preselection_timestamp_record_invalid")
     if any(
@@ -1763,24 +1793,28 @@ def _validate_evidence_set(value: ModelProposalEvidenceSetV1) -> None:
 
 
 def _validate_proposal_mapping(mapping: dict[str, object]) -> None:
+    phase = _require_enum(mapping["proposal_phase"], tuple(_PHASE_SCHEMAS))
+    context_schema, artifact_schema, projection_schema = _PHASE_SCHEMAS[phase]
     for name in _PROPOSAL_FIELDS[1:]:
         member = mapping[name]
         if name.endswith("_digest"):
             _require_sha256(member)
         elif name == "proposal_phase":
-            _require_enum(member, ("pre_execution_plan",))
+            _require_enum(member, (phase,))
         elif name == "recommendation":
-            _require_enum(member, _PRE_EXECUTION_RECOMMENDATIONS)
+            _require_enum(member, (_PRE_EXECUTION_RECOMMENDATIONS
+                                  if phase == "pre_execution_plan"
+                                  else _POST_EXECUTION_RECOMMENDATIONS))
         elif name == "reason_code":
             _require_reason_code(member)
         elif name == "proposal_created_at":
             _require_utc_second(member)
         elif name == "context_schema_id":
-            _require_enum(member, (_SCHEMAS["planning_context"],))
+            _require_enum(member, (context_schema,))
         elif name == "artifact_schema_id":
-            _require_enum(member, (_SCHEMAS["artifact"],))
+            _require_enum(member, (artifact_schema,))
         elif name == "safe_projection_schema_id":
-            _require_enum(member, (_SCHEMAS["projection"],))
+            _require_enum(member, (projection_schema,))
         else:
             _require_safe_ref(member)
 

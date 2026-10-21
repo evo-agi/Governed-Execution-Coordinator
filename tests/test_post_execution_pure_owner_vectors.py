@@ -33,6 +33,55 @@ from test_post_execution_pure_owner_values import (
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src/ge_nwp_coordinator"
 
+# Current D2 successor to the historical no-production-caller record. This
+# independent literal was transcribed from the authenticated primary boundary
+# test's CURRENT_D2_CONSUMERS and checked against the actual source imports.
+# Pairs use a source basename and a package-qualified target module; the AST
+# reports relative imports without that package prefix.
+CURRENT_D2_EXTERNAL_IMPORT_PAIRS = frozenset({
+    ("_rw0_d2_handback.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("_rw0_d2a_evidence.py", "ge_nwp_coordinator._finite_backlog_risk_source_adapter"),
+    ("_rw0_d2a_evidence.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("_rw0_d2a_evidence.py", "ge_nwp_coordinator._post_execution_policy_values"),
+    ("_rw0_d2a_handback.py", "ge_nwp_coordinator._finite_backlog_risk_source_adapter"),
+    ("_rw0_d2a_handback.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("_rw0_d2a_handback.py", "ge_nwp_coordinator._post_execution_policy_values"),
+    ("_rw0_d2b_model_input.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("_rw0_d2b_proposal.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+})
+_POST_EXECUTION_SUPPLIER_MODULES = frozenset({
+    "_post_execution_evidence_values",
+    "_post_execution_policy_values",
+    "_finite_backlog_risk_source_adapter",
+    "_section41_post_execution_proposal_family_projection",
+    "_section41_post_execution_role_resolution",
+    "_rw0_c_decision_input_values",
+})
+_V3G039_STATE_STORE_EDGE = (
+    "state_store.py", "ge_nwp_coordinator._post_execution_evidence_values",
+)
+
+
+def _current_external_post_execution_import_pairs() -> frozenset[tuple[str, str]]:
+    """Observe the same bounded ImportFrom forms as historical V3G039."""
+    observed: set[tuple[str, str]] = set()
+    for path in SOURCE.glob("*.py"):
+        if path.stem in _POST_EXECUTION_SUPPLIER_MODULES:
+            continue
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                target = node.module.removeprefix("ge_nwp_coordinator.")
+                if target in _POST_EXECUTION_SUPPLIER_MODULES:
+                    observed.add((path.name, f"ge_nwp_coordinator.{target}"))
+    return frozenset(observed)
+
+
+def _production_caller_inventory_violates(
+    observed: frozenset[tuple[str, str]] | set[tuple[str, str]],
+) -> bool:
+    return frozenset(observed) != CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+
 
 GOLDEN_RECORD_IDS = ('golden.owner.author-observation.000',
  'golden.owner.author-observation.001',
@@ -1091,14 +1140,6 @@ def _execute_static_boundary_mutation(record_id: str) -> str:
     """Mutate a concrete source/path/allocation inventory and run its checker."""
 
     descriptor = _TEST_RECORDS[record_id]["mutated_canonical_value"]
-    proposed_modules = {
-        "_post_execution_evidence_values",
-        "_post_execution_policy_values",
-        "_finite_backlog_risk_source_adapter",
-        "_section41_post_execution_proposal_family_projection",
-        "_section41_post_execution_role_resolution",
-        "_rw0_c_decision_input_values",
-    }
     if record_id.startswith("malformed.V3G035"):
         tree = ast.parse((SOURCE / "__init__.py").read_text())
         baseline = {
@@ -1149,19 +1190,11 @@ def _execute_static_boundary_mutation(record_id: str) -> str:
         assert not violates(baseline)
         return "implementation_boundary_violation"
     if record_id.startswith("malformed.V3G039"):
-        baseline: set[tuple[str, str]] = set()
-        for path in SOURCE.glob("*.py"):
-            if path.stem in proposed_modules:
-                continue
-            tree = ast.parse(path.read_text())
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ImportFrom) and node.module:
-                    if node.module.removeprefix("ge_nwp_coordinator.") in proposed_modules:
-                        baseline.add((path.name, node.module))
-        violates = bool
+        baseline = _current_external_post_execution_import_pairs()
+        violates = _production_caller_inventory_violates
         assert violates(baseline) is descriptor["from"]
         mutated = set(baseline)
-        mutated.add(("state_store.py", "ge_nwp_coordinator._post_execution_evidence_values"))
+        mutated.add(_V3G039_STATE_STORE_EDGE)
         assert violates(mutated) is descriptor["to"]
         assert not violates(baseline)
         return "implementation_boundary_violation"
@@ -2160,3 +2193,110 @@ def test_each_of_126_assurances_executes_its_named_responsibility(record_id: str
         _execute_assurance_a(record_id)
     else:
         _execute_non_a_assurance(record_id)
+
+
+def _primary_literal_current_d2_pairs(source_text: str) -> frozenset[tuple[str, str]]:
+    """Project only the primary test's literal; never use it as this vector's oracle."""
+    tree = ast.parse(source_text)
+    assignment = next(
+        node for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "CURRENT_D2_CONSUMERS"
+            for target in node.targets
+        )
+    )
+    assert isinstance(assignment.value, ast.Dict)
+    pairs: list[tuple[str, str]] = []
+    targets: set[str] = set()
+    for target_node, consumers_node in zip(
+        assignment.value.keys, assignment.value.values, strict=True,
+    ):
+        target_file = ast.literal_eval(target_node)
+        assert type(target_file) is str
+        targets.add(Path(target_file).stem)
+        assert (
+            isinstance(consumers_node, ast.Call)
+            and isinstance(consumers_node.func, ast.Name)
+            and consumers_node.func.id == "frozenset"
+            and not consumers_node.keywords
+            and len(consumers_node.args) <= 1
+        )
+        consumers = (
+            ast.literal_eval(consumers_node.args[0])
+            if consumers_node.args else ()
+        )
+        for source_path in consumers:
+            assert type(source_path) is str
+            pairs.append((Path(source_path).name, f"ge_nwp_coordinator.{Path(target_file).stem}"))
+    assert targets == _POST_EXECUTION_SUPPLIER_MODULES
+    assert len(pairs) == len(set(pairs))
+    return frozenset(pairs)
+
+
+def test_v3g039_current_nine_edges_match_source_and_independent_primary_literal() -> None:
+    assert len(CURRENT_D2_EXTERNAL_IMPORT_PAIRS) == 9
+    observed = _current_external_post_execution_import_pairs()
+    assert observed == CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+    assert not _production_caller_inventory_violates(observed)
+    primary_source = (
+        ROOT / "tests/test_post_execution_pure_owner_boundaries.py"
+    ).read_text()
+    assert _primary_literal_current_d2_pairs(primary_source) == CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+
+
+def test_v3g039_rejects_empty_missing_substituted_and_extra_caller_edges() -> None:
+    baseline = CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+    removed = next(iter(sorted(baseline)))
+    missing = baseline - {removed}
+    wrong_same_count = missing | {
+        ("_rw0_d2a_offline.py", "ge_nwp_coordinator._post_execution_evidence_values")
+    }
+    unknown_extra = baseline | {
+        ("unlisted.py", "ge_nwp_coordinator._post_execution_policy_values")
+    }
+    state_store_extra = baseline | {_V3G039_STATE_STORE_EDGE}
+    assert len(wrong_same_count) == len(baseline)
+    assert len(baseline) == len(set(baseline)) == 9
+    assert not _production_caller_inventory_violates(baseline)
+    for hostile in (frozenset(), missing, wrong_same_count, unknown_extra, state_store_extra):
+        assert hostile != baseline
+        assert _production_caller_inventory_violates(hostile)
+
+
+def test_v3g039_refuses_one_sided_primary_literal_drift() -> None:
+    original = (ROOT / "tests/test_post_execution_pure_owner_boundaries.py").read_text()
+    old = '"src/ge_nwp_coordinator/_rw0_d2a_evidence.py"'
+    new = '"src/ge_nwp_coordinator/state_store.py"'
+    assert old in original and new not in original
+    assert _primary_literal_current_d2_pairs(original) == CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+    changed = original.replace(old, new, 1)
+    assert changed != original
+    assert _primary_literal_current_d2_pairs(changed) != CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+    assert _current_external_post_execution_import_pairs() == CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+
+
+def test_v3g039_original_malformed_and_assurance_routes_use_current_predicate(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    operative = _production_caller_inventory_violates
+    calls: list[tuple[frozenset[tuple[str, str]], bool]] = []
+
+    def observed_predicate(pairs: frozenset[tuple[str, str]] | set[tuple[str, str]]) -> bool:
+        result = operative(pairs)
+        calls.append((frozenset(pairs), result))
+        return result
+
+    monkeypatch.setitem(globals(), "_production_caller_inventory_violates", observed_predicate)
+    test_each_of_93_malformed_controls_executes_its_causal_mutation(
+        "malformed.V3G039.production-caller-widening"
+    )
+    test_each_of_126_assurances_executes_its_named_responsibility(
+        "assurance.V3G039.production-caller-widening"
+    )
+    expected = [
+        (CURRENT_D2_EXTERNAL_IMPORT_PAIRS, False),
+        (CURRENT_D2_EXTERNAL_IMPORT_PAIRS | {_V3G039_STATE_STORE_EDGE}, True),
+        (CURRENT_D2_EXTERNAL_IMPORT_PAIRS, False),
+    ]
+    assert calls == expected * 2

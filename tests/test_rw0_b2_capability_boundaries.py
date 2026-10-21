@@ -49,9 +49,12 @@ is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
 RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
 durable phase/evidence mechanics are implemented separately behind private
 mutation authority; RW0-D1 artificial offline planner/worker process and capsule mechanics are
-implemented separately under the D1 owner. RW0-D2 evidence/review/model
-closure, RW0-C2 physical decision persistence, live provider/credential/custody,
-and RW0-E runtime mechanics remain future.
+implemented separately under the D1 owner. RW0-D2 now has a bounded private
+offline source candidate: two guarded validation/review bound effects, checked
+C1 evidence, separate fake validator/reviewer/model processes, nine-role input,
+and a typed transient preadmission handback. External-copy validation and
+independent audit are separate gates; this status grants neither. RW0-C2 physical decision persistence,
+live provider/credential/custody, and RW0-E runtime mechanics remain future.
 Execution Substrate retains admission and runtime authority."""
 
 REQUIRED_CANDIDATE_ROWS = (
@@ -134,13 +137,13 @@ PROTECTED_CONTENT_ROWS = (
      ('dependency_schema_migration',), 'protected dependency metadata'),
     ('P08', 'tests/c2a_contract_support.py', 154372, '58be92ddffae6f4b901ae3632521481ab8d9ce0e02a819ef9421408d08eedd85',
      ('authority_non_effect',), 'protected C2A support'),
-    ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 17823, '4c892136f8c6fd629eb44e95bc8dd7a9aa1a5250e97cc61499171f2835bb4f42',
+    ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 17972, 'f2a7089748f39dc8c40a932ac770edd3ffa7f8ea581b053af101dfda8100c830',
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 62778, '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6',
+    ('P11', 'AGENTS.md', 64142, 'ddf5485d88fc4604429a2b553643e3a8a80828002d17f7cfcb10cb935d018166',
      ('authority_non_effect',), 'protected repository governance'),
-    ('P12', 'README.md', 46898, 'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff',
+    ('P12', 'README.md', 47694, 'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3',
      ('authority_non_effect',), 'protected public claims'),
     ('P13', '.docs/software-development-progression-boundary.md', 28654, 'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419',
      ('state_store_writer_session',), 'protected progression authority'),
@@ -898,8 +901,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (62778,
-                                  '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6'),
+         'replacement_identity': (64142,
+                                  'ddf5485d88fc4604429a2b553643e3a8a80828002d17f7cfcb10cb935d018166'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -911,8 +914,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (44919,
                           '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
          'old_identity_changed': True,
-         'replacement_identity': (46898,
-                                  'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff'),
+         'replacement_identity': (47694,
+                                  'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',

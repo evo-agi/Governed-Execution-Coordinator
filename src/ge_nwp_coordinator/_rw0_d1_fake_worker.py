@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 import sys
@@ -15,6 +16,10 @@ from ._rw0_wire_protocol_values import (
 from ._worker_execution_semantic_values import (
     AttemptFenceV1, EffectFenceV1, WorkerObservationV1,
 )
+
+
+def _observed_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _main() -> int:
@@ -34,6 +39,7 @@ def _main() -> int:
             return 2
     except (D1FrameError, ValueError, TypeError, KeyError):
         return 2
+    started_at = _observed_now()
     behavior = launch["behavior"]
     if behavior == "timeout":
         time.sleep(60)
@@ -47,6 +53,7 @@ def _main() -> int:
         os.write(1, b"NWPF\0\0\0\0")
         return 0
     target = Path(command.path_ceiling[launch["target_ordinal"]])
+    captured_at: str | None = None
     if behavior == "extra_path":
         Path("unexpected.txt").write_bytes(b"unexpected\n")
     elif behavior == "unsafe_path":
@@ -55,6 +62,12 @@ def _main() -> int:
     elif behavior != "missing_candidate":
         with target.open("ab") as stream:
             stream.write(b"\n// RW0-D1 artificial bounded candidate\n")
+        captured_at = _observed_now()
+    completed_at = _observed_now()
+    events = [("worker_started", started_at)]
+    if captured_at is not None:
+        events.append(("candidate_captured", captured_at))
+    events.append(("worker_completed", completed_at))
     observations = tuple(
         WorkerObservationV1.create(
             observation_ref=f"observation.d1.{kind.replace('_', '-')}",
@@ -65,12 +78,12 @@ def _main() -> int:
                      "worker_completed": "completed"}[kind],
             reason_code="reason.none",
             evidence_refs=["evidence.d1.fake"],
-            observed_at="2028-01-01T00:00:00Z",
+            observed_at=observed_at,
             delivery=delivery, author_command=command,
             attempt_fence=attempt, author_effect_fence=effect,
             effect_fence=effect,
         )
-        for kind in ("worker_started", "candidate_captured", "worker_completed")
+        for kind, observed_at in events
     )
     result = RW0WireWorkerResultV1._create(observations)
     os.write(1, encode_wire_result_frame(

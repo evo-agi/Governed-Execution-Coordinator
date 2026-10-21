@@ -243,3 +243,15 @@ platform evidence or a new C2 reducer.
 <!-- RW0_D1_CURRENT_STATUS_BEGIN -->
 RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
 <!-- RW0_D1_CURRENT_STATUS_END -->
+
+<!-- RW0_D2_CURRENT_STATUS_BEGIN -->
+RW0-D2 now contains a bounded private offline source candidate for the two
+guarded validation/review effects, checked C1 evidence, separate fake
+validator/reviewer/model processes, exact nine-role input, and transient
+preadmission handback. This successor updates only the earlier D2-next status.
+It adds no durable post-execution Section 41 proposal family, C1 rank-15
+admission, C2 decision/acceptance/terminal writer, migration 0005, live model,
+ES runtime, or production adapter. External-copy validation and independent
+audit remain pending. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
+<!-- RW0_D2_CURRENT_STATUS_END -->

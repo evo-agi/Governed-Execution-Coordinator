@@ -11044,6 +11044,10 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
         ROOT
         / "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
     }
+    rw0_d2_bound_sources = {
+        ROOT / "src/ge_nwp_coordinator/_development_bound_effect_establishment_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_development_bound_effect_establishment.py",
+    }
     section41_sources = {
         ROOT
         / "src/ge_nwp_coordinator/_development_pre_execution_plan_disposition_contracts.py",
@@ -11056,10 +11060,11 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
-    } == slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources | section41_sources
+    } == (slice2_sources | slice3_sources | vs1b_sources | c2b3d_sources
+          | section41_sources | rw0_d2_bound_sources)
     assert all(
         path.is_file() and not path.is_symlink()
-        for path in vs1b_sources | c2b3d_sources | section41_sources
+        for path in vs1b_sources | c2b3d_sources | section41_sources | rw0_d2_bound_sources
     )
 
     production_sources = {
@@ -11078,6 +11083,7 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
             | vs1b_sources
             | c2b3d_sources
             | section41_sources
+            | rw0_d2_bound_sources
             | rw0_c1_literal_owner_snapshot_contract_sources
         )
     )
@@ -19141,6 +19147,22 @@ def test_vs1a_post_section_36_contract_pins_private_cleanup_and_nonimplementatio
 C2B3_GUARD_TARGET_PROJECTION = '\n### Immutable bootstrap guard target projection\n<!-- C2B3_BOOTSTRAP_GUARD_TARGET_BEGIN -->\nClassification: `ACCEPTED TARGET CONTRACT`; all preceding planning/genesis/status\nbytes remain historical or current within their declared scope. Initialization\nremains route-neutral and provides no scope admission. The sole guard owner is\n`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`: explicitly admitted\nCoordinator authority lineage, immutable scope admission, positive continuity,\nsole-active authority, and one permanent acceptance across participating programs.\nMutable-latch target representation is superseded, with physical provisioning\nreopened. No current scope provisioner, guard reader/writer, or runtime exists.\nThe decision family, replay, and recovery remain C2-owned. No reset, deletion,\nrenewal, reuse, restore, clone, grant, or later ES route replenishes the allowance.\n<!-- C2B3_BOOTSTRAP_GUARD_TARGET_END -->\n'
 C2B_GUARD_CURRENT_SUCCESSOR = '\n### RW0-C2 immutable bootstrap guard current successor\n<!-- RW0_C2_BOOTSTRAP_GUARD_CURRENT_SUCCESSOR_BEGIN -->\n\nClassification: `ACCEPTED TARGET CONTRACT`; this bounded successor supersedes\nonly mutable-latch accepted-target representation. Historical mutable-latch\nsections and their physical selections remain historical/proof precursors or\nreopened choices. Later committed current-status successors, current migration\nfacts, current owner routing, and current-family statements retain their existing\nauthority. The complete opening document is preserved byte-for-byte; this successor\ndoes not supersede it as a whole. The one-shot cross-program ceiling and no reset,\ndeletion, renewal, or reuse remain. One scope belongs to one explicitly\nstanding-policy-admitted Coordinator authority lineage; at most one distinct\nproductive candidate acceptance may commit across its participating programs.\nMutable-latch tables, seed rows, migration allocations, SQL, triggers, indexes,\nstate/revision transitions, and consumed-postimage representation are historical\nproof precursors; physical selections for the immutable guard are reopened.\nCurrent accepted-target lineage, scope admission, continuity, sole-active authority,\neligibility, and immutable acceptance-fact semantics belong solely to\n`.docs/rw0-c2-bootstrap-acceptance-guard-semantic-contract.md`. C2 decision,\nresult/receipt, exact replay, and one complete-family recovery classifier remain\nowned by `.docs/rw0-c2-durable-progression-decision-semantic-contract.md`.\nInfrastructure replacement, restore, rollback, cloning, passive backup, relocation,\nnew grants or policy epochs, and ES route transition never replenish the allowance.\nMigrations 0001–0004 and current implemented families are unchanged; migration\n0005 remains absent. No physical guard schema, provisioning, reader, writer,\npublic surface, runtime, RW0-D/E, or ES behavior is implemented. Historical tests\npreserve historical evidence and do not promote old SQL/migration/table choices\nto current physical authority.\n<!-- RW0_C2_BOOTSTRAP_GUARD_CURRENT_SUCCESSOR_END -->\n'
 C2B_D1_CURRENT_STATUS = '\n<!-- RW0_D1_CURRENT_STATUS_BEGIN -->\nRW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.\n<!-- RW0_D1_CURRENT_STATUS_END -->\n'
+C2B_D2_CURRENT_STATUS = '''
+<!-- RW0_D2_CURRENT_STATUS_BEGIN -->
+RW0-D2 contains a private, uncommitted offline implementation candidate with two
+guarded migration-0002 validation/review bound-effect families, checked C1
+evidence, three separate fake checking/model processes, nine-role model input,
+and one typed transient preadmission handback. The D1 capsule remains the
+author/checking boundary. The existing Coordinator program, author-effect,
+Section 41 pre-execution selection, and C1 paths retain their durable authority.
+This successor supersedes only the D1 block's statement that D2 closure is next.
+It adds no Section 41 post-execution proposal-family writer, C1 rank-15 admission,
+C2 decision/acceptance/terminal writer, migration 0005, ES runtime, live model,
+or production direct-local adapter. External-copy validation and independent
+audit are separate gates; this source status grants neither, and `preadmission_ready` is not acceptance.
+The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
+<!-- RW0_D2_CURRENT_STATUS_END -->
+'''
 
 C2B_CURRENT_STATUS_AUTHORITY = 'Classification: `ACCEPTED TARGET CONTRACT`; this bounded successor supersedes only mutable-latch accepted-target representation. Historical mutable-latch sections and their physical selections remain historical/proof precursors or reopened choices. Later committed current-status successors, current migration facts, current owner routing, and current-family statements retain their existing authority. The complete opening document is preserved byte-for-byte; this successor does not supersede it as a whole.'
 
@@ -19179,7 +19201,7 @@ def test_immutable_guard_successor_preserves_historical_evidence():
     if hashlib.sha256(data[:opening_size]).hexdigest() != '77bf3d3c6ed710da669db7fa4353f46f3d1e9b4e09636918046d16d94ed962e5':
         raise AssertionError('c2b:complete_opening_prefix')
     _assert_c2b_current_status_authority(data[opening_size:].decode())
-    if data[opening_size:].decode() != C2B_GUARD_CURRENT_SUCCESSOR + C2B_D1_CURRENT_STATUS:
+    if data[opening_size:].decode() != C2B_GUARD_CURRENT_SUCCESSOR + C2B_D1_CURRENT_STATUS + C2B_D2_CURRENT_STATUS:
         raise AssertionError('c2b:guard_current_successor')
     initialization = (root / '.docs/c2b3-program-initialization.md').read_bytes()
     size = 26691

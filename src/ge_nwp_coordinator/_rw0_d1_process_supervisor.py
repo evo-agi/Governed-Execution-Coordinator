@@ -20,6 +20,9 @@ from typing import Callable
 _CHILDREN = frozenset({
     "ge_nwp_coordinator._rw0_d1_fake_planner",
     "ge_nwp_coordinator._rw0_d1_fake_worker",
+    "ge_nwp_coordinator._rw0_d2a_fake_validator",
+    "ge_nwp_coordinator._rw0_d2a_fake_reviewer",
+    "ge_nwp_coordinator._rw0_d2b_fake_review_model",
 })
 _PROCESS_REASONS = frozenset({
     "ok", "invalid_input", "start_failed", "output_limit", "stderr_limit",

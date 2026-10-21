@@ -27,6 +27,7 @@ SELECT_SUPPORT_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_transition_select_su
 OWNER_PATH = ROOT / ".docs/c2b-durable-development-state.md"
 EXPECTED_PRODUCTION_READER_IMPORTERS = (
     "_sqlite_development_author_effect_establishment.py",
+    "_sqlite_development_bound_effect_establishment.py",
     "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_program_initialization.py",
     "_sqlite_rw0_c1.py",
@@ -968,6 +969,7 @@ def test_no_production_caller_public_store_writer_or_c2b3_surface() -> None:
     for path in production:
         if path.name in {
             "_sqlite_development_author_effect_establishment.py",
+            "_sqlite_development_bound_effect_establishment.py",
             "_sqlite_development_pre_execution_plan_disposition.py",
             "_sqlite_development_readers.py",
             "_sqlite_rw0_c1.py",
@@ -1094,9 +1096,10 @@ def _assert_current_private_reader_composition_documentation(
     required_status = (
         "bounded reader layer remains exactly twelve private roles and twenty-four "
         "bounded query contracts",
-            "Present production composition is source-derived and has exactly four "
+            "Present production composition is source-derived and has exactly five "
             "private importer modules",
         "_sqlite_development_author_effect_establishment.py",
+        "_sqlite_development_bound_effect_establishment.py",
         "_sqlite_development_program_initialization.py",
             "_sqlite_development_pre_execution_plan_disposition.py",
             "_sqlite_rw0_c1.py",
@@ -1107,13 +1110,14 @@ def _assert_current_private_reader_composition_documentation(
             "compose with the exact seven-role subset",
     )
     required_integration = (
-            "Present production composition is source-derived and has exactly four "
+            "Present production composition is source-derived and has exactly five "
             "private importer modules",
         "All twelve roles have the bounded private C2B3D author-effect caller",
         "mutation-receipt role also retains the private VS1B",
             "later Section 41 selection runtime and RW0-C1 durable-evidence runtime "
             "compose with the bounded seven-role subset",
-            "C2B3D, VS1B, Section 41, and RW0-C1 are later consumers",
+            "C2B3D, VS1B, Section 41, RW0-C1, and the RW0-D2 bound-effect "
+            "runtime are later consumers",
         "Their composition does not retroactively make C2B2 the owner of those runtimes",
         "C2B2 did not implement or acquire ownership of migrations 0003/0004, "
         "Section 41, or RW0-C1",
@@ -1189,6 +1193,17 @@ def test_current_living_documents_match_source_derived_private_reader_compositio
     assert tuple(sorted(production_usage)) == EXPECTED_PRODUCTION_READER_IMPORTERS
     expected_production_usage = {
         "_sqlite_development_author_effect_establishment.py": reader_names,
+        "_sqlite_development_bound_effect_establishment.py": {
+            "_read_development_attempt_fence_command_effect_aggregate",
+            "_read_development_authority_evaluation_by_exact_ref",
+            "_read_development_decision_by_decision_ref",
+            "_read_development_delivery_head",
+            "_read_development_effect_head",
+            "_read_development_mutation_receipt_by_mutation_ref",
+            "_read_development_program_head_and_current_version",
+            "_read_development_work_item_head_and_revision_by_exact_ref",
+            "_read_development_work_spec_safe_binding",
+        },
         "_sqlite_development_pre_execution_plan_disposition.py": set(
             EXPECTED_SECTION41_READER_CALLS
         ),
@@ -1215,7 +1230,7 @@ def test_current_living_documents_match_source_derived_private_reader_compositio
         production_usage,
     )
     stale_two_importer_source = reader_status_source.replace(
-        "Present production composition is source-derived and has exactly four private\n"
+        "Present production composition is source-derived and has exactly five private\n"
         "importer modules with this exact role mapping:",
         "The only production importers are the bounded private VS1B and C2B3D family "
         "runtimes.",

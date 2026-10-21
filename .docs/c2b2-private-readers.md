@@ -5,8 +5,9 @@
 Status: `CURRENT IMPLEMENTED CONTRACT` for the private C2B2 reader layer. The
 bounded reader layer remains exactly twelve private roles and twenty-four
 bounded query contracts. Present production composition is source-derived and
-has exactly four private importer modules:
+has exactly five private importer modules:
 `_sqlite_development_author_effect_establishment.py`,
+`_sqlite_development_bound_effect_establishment.py`,
 `_sqlite_development_program_initialization.py`, and
 `_sqlite_development_pre_execution_plan_disposition.py`, plus
 `_sqlite_rw0_c1.py`. All twelve roles now
@@ -25,8 +26,8 @@ schema, migration, capability, or runtime authority, and it defines no public
 API.
 
 Slice 3 itself added no schema or migration, created no durable record, and
-introduced no production caller. C2B3D, VS1B, Section 41, and RW0-C1 are later
-consumers. Their composition does not retroactively make C2B2 the owner of
+introduced no production caller. C2B3D, VS1B, Section 41, RW0-C1, and the
+RW0-D2 bound-effect runtime are later consumers. Their composition does not retroactively make C2B2 the owner of
 those runtimes and does not widen the package root, `StateStore`, or public
 `WriterSession` protocol.
 
@@ -181,7 +182,7 @@ graph, replay, or recovery proof.
 
 ## Current Integration And Remaining Nonimplementation
 
-Present production composition is source-derived and has exactly four private
+Present production composition is source-derived and has exactly five private
 importer modules with this exact role mapping:
 
 <!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_BEGIN -->
@@ -197,6 +198,17 @@ importer modules with this exact role mapping:
     "_read_development_initialize_decision_and_resulting_version",
     "_read_development_mutation_receipt_by_mutation_ref",
     "_read_development_paged_program_version_membership",
+    "_read_development_program_head_and_current_version",
+    "_read_development_work_item_head_and_revision_by_exact_ref",
+    "_read_development_work_spec_safe_binding"
+  ],
+  "_sqlite_development_bound_effect_establishment.py": [
+    "_read_development_attempt_fence_command_effect_aggregate",
+    "_read_development_authority_evaluation_by_exact_ref",
+    "_read_development_decision_by_decision_ref",
+    "_read_development_delivery_head",
+    "_read_development_effect_head",
+    "_read_development_mutation_receipt_by_mutation_ref",
     "_read_development_program_head_and_current_version",
     "_read_development_work_item_head_and_revision_by_exact_ref",
     "_read_development_work_spec_safe_binding"
@@ -232,7 +244,7 @@ roles have the bounded private C2B3D author-effect caller. The mutation-receipt
 role also retains the private VS1B program-initialization and recovery caller,
 and the later Section 41 selection runtime and RW0-C1 durable-evidence runtime
 compose with the bounded seven-role subset shown above. C2B3D, VS1B, Section
-41, and RW0-C1 are later consumers. Their
+41, RW0-C1, and the RW0-D2 bound-effect runtime are later consumers. Their
 composition does not retroactively make C2B2 the owner of those runtimes. The
 exact twenty-four query specifications and their behavior are unchanged.
 C2B3D's three exact family-row locators and bounded identity-collision probes
@@ -270,3 +282,12 @@ inventory, twelve reader roles, nominal capability authority, public surface,
 or owner semantics. The current packaged SQL tip is
 `0004_rw0_c1_durable_evidence` at unchanged application generation 2.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+### RW0-D2 private reader consumer successor
+
+The native D2 bound-effect writer is a fifth private consumer of existing
+C2B2 reader roles through the nominal active transaction capability. It also
+reads current global stop through the existing private reader. The D2 B entry
+uses a guarded C1 owner snapshot that borrows the same fenced controller and
+existing owner readers. The frozen 12 roles, 24 query specifications, schema,
+and public reader surface are unchanged.

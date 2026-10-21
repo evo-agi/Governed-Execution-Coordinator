@@ -567,6 +567,7 @@ def _assert_private_wire_consumers(sources: dict[Path, str]) -> None:
     d1_worker_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_fake_worker.py"
     d1_offline_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_offline.py"
     d1_handback_path = ROOT / "src/ge_nwp_coordinator/_rw0_d1_handback.py"
+    d2_model_input_path = ROOT / "src/ge_nwp_coordinator/_rw0_d2b_model_input.py"
     production_importers = []
     for candidate, source in sources.items():
         production_importers.append(candidate)
@@ -635,15 +636,18 @@ def _assert_private_wire_consumers(sources: dict[Path, str]) -> None:
                 )
             ]
             assert wire_imports == owner_imports
-            # These two names are used only as field annotations and exact
-            # evidence types.  They must not become module values/exports.
-            assert all(
-                sum(isinstance(node, ast.Name) and node.id == name
-                    for node in ast.walk(tree)) == 2
+            # D1 uses the types only in its field and exact evidence checks;
+            # neither may become a module value or export.
+            assert {
+                name: sum(isinstance(node, ast.Name) and node.id == name
+                          for node in ast.walk(tree))
                 for name in (
                     "RW0WireProcessResultClassificationV1", "RW0WireWorkerResultV1",
                 )
-            )
+            } == {
+                "RW0WireProcessResultClassificationV1": 2,
+                "RW0WireWorkerResultV1": 3,
+            }
             assert not any(
                 isinstance(node, (ast.Assign, ast.AnnAssign))
                 and any(isinstance(target, ast.Name) and target.id == "__all__"
@@ -667,6 +671,15 @@ def _assert_private_wire_consumers(sources: dict[Path, str]) -> None:
                              and node.func.attr == "import_module")))
                 for node in ast.walk(tree)
             )
+        elif candidate == d2_model_input_path:
+            owner_imports = [
+                node for node in relative_imports
+                if node.module == "_rw0_wire_protocol_values"
+            ]
+            assert len(owner_imports) == 1
+            assert [(alias.name, alias.asname) for alias in owner_imports[0].names] == [
+                ("_PROFILE_IDENTITY_JSON", "_WIRE_PROFILE_IDENTITY_JSON"),
+            ]
         else:
             assert candidate == c1_runtime_path
             owner_imports = [
@@ -679,6 +692,7 @@ def _assert_private_wire_consumers(sources: dict[Path, str]) -> None:
     assert set(production_importers) == {
         capability_path, c1_values_path, c1_runtime_path,
         d1_worker_path, d1_offline_path, d1_handback_path,
+        d2_model_input_path,
     }
 
 

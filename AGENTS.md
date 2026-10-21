@@ -105,13 +105,22 @@ Coordinator program, author-effect, Section 41, and C1 paths remain the sole
 durable owners. The repository still implements no production direct-local
 adapter, dispatcher, reconciler, service/API/IPC, ES call, Bridge widening,
 Codex invocation, live model/provider client, capsule store,
-validation/review/repair executor, Git effect handler, runtime-profile
+live validation/review/repair executor, Git effect handler, runtime-profile
 integration, outbox/inbox, dispatch schema or migration, connector dependency,
 or autonomous loop. D1 process mechanics own only bounded protocol, process,
 ephemeral correlation, redaction, and evidence shaping. They do not own durable
 work selection, scheduling policy, semantic retry or repair authority,
 acceptance, ES admission, runtime lifecycle truth, Git truth, validation
 truth, or hidden program state.
+
+RW0-D2 now contains a private offline implementation candidate continuing the
+D1 capsule: two guarded validation/review bound effects, 14 checked C1 members,
+separate fake validator/reviewer/model processes, nine-role model input, and one
+typed transient preadmission handback. D2 does not own acceptance, Section 41
+post-execution persistence, C1 rank-15 admission, a C2 decision writer,
+production execution, or migration 0005. External-copy validation and
+independent audit are separate gates; this source status grants neither. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
 
 The bounded operational-change progression target is separate, target-only
 documentation. First operational work is docs/docs-contracts only. The Worker
@@ -949,3 +958,15 @@ reader, writer, public export, and runtime remain future; none is implemented.
 <!-- RW0_D1_CURRENT_STATUS_BEGIN -->
 RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
 <!-- RW0_D1_CURRENT_STATUS_END -->
+
+<!-- RW0_D2_CURRENT_STATUS_BEGIN -->
+RW0-D2 has a private offline source candidate for bounded validation/review
+evidence closure and one fake cognitive-review handback. Its current source
+uses the D1 capsule, guarded Coordinator bound-effect and C1 paths, exact
+nine-role input, and three separate D2 children. This successor supersedes the
+D1 status sentence that placed D2 wholly in the future. It implements no
+post-execution Section 41 proposal-family or C2 decision persistence, rank-15
+admission, terminal acceptance, ES route, live provider, production adapter,
+or migration 0005. External-copy validation and independent audit remain
+pending. `.docs/rw0-d2-offline-evidence-and-review.md` is the detailed owner.
+<!-- RW0_D2_CURRENT_STATUS_END -->

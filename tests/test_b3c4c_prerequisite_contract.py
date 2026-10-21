@@ -46,6 +46,23 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "5512294de5030b94936dc43caec659a16c5617633dcafac28cbffed6dc878760"
     ),
 }
+# The three values above record the historical B3c4c sources. RW0-D2 extends
+# only the private transaction controller; the other two current identities
+# remain their historical values.
+EXPECTED_SOURCE_PATHS = (
+    "src/ge_nwp_coordinator/sqlite_transition_dry_run_contracts.py",
+    "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+    "src/ge_nwp_coordinator/sqlite_transition_write_contracts.py",
+)
+EXPECTED_D2_TRANSACTION_SOURCE_SHA256 = (
+    "6d662dcb83a2641b9d95dee7209ddbd0d8b991bc720da3aafa5b4b9fb3bc5521"
+)
+EXPECTED_CURRENT_SOURCE_SHA256 = {
+    **EXPECTED_FROZEN_SOURCE_SHA256,
+    "src/ge_nwp_coordinator/sqlite_transition_transaction.py": (
+        EXPECTED_D2_TRANSACTION_SOURCE_SHA256
+    ),
+}
 EXPECTED_INITIALIZATION_TRANSACTION_IMPORTS = (
     (
         "ge_nwp_coordinator._development_program_initialization_contracts",
@@ -174,6 +191,64 @@ def _sha256(path: str) -> str:
     return hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
 
 
+def _assert_current_source_identities(observed: dict[str, str]) -> None:
+    assert tuple(EXPECTED_FROZEN_SOURCE_SHA256) == EXPECTED_SOURCE_PATHS
+    assert tuple(EXPECTED_CURRENT_SOURCE_SHA256) == EXPECTED_SOURCE_PATHS
+    assert type(observed) is dict
+    assert set(observed) == set(EXPECTED_SOURCE_PATHS)
+    for path in EXPECTED_SOURCE_PATHS:
+        assert observed[path] == EXPECTED_CURRENT_SOURCE_SHA256[path]
+
+
+def test_d2_current_identity_successor_preserves_historical_source_values() -> None:
+    controller = "src/ge_nwp_coordinator/sqlite_transition_transaction.py"
+    assert EXPECTED_FROZEN_SOURCE_SHA256[controller] == (
+        "6833879bce815e6440945563538e714aae8081430d3275dca132ce10f1f51d2d"
+    )
+    assert EXPECTED_D2_TRANSACTION_SOURCE_SHA256 == (
+        "6d662dcb83a2641b9d95dee7209ddbd0d8b991bc720da3aafa5b4b9fb3bc5521"
+    )
+    for path in (EXPECTED_SOURCE_PATHS[0], EXPECTED_SOURCE_PATHS[2]):
+        assert EXPECTED_CURRENT_SOURCE_SHA256[path] == EXPECTED_FROZEN_SOURCE_SHA256[path]
+    _assert_current_source_identities(dict(EXPECTED_CURRENT_SOURCE_SHA256))
+
+
+@pytest.mark.parametrize(
+    ("path", "alternate"),
+    (
+        (
+            "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+            "6833879bce815e6440945563538e714aae8081430d3275dca132ce10f1f51d2d",
+        ),
+        ("src/ge_nwp_coordinator/sqlite_transition_transaction.py", "0" * 64),
+        ("src/ge_nwp_coordinator/sqlite_transition_dry_run_contracts.py", "0" * 64),
+        ("src/ge_nwp_coordinator/sqlite_transition_write_contracts.py", "0" * 64),
+    ),
+)
+def test_d2_current_identity_rejects_historical_or_changed_source(
+    path: str, alternate: str,
+) -> None:
+    observed = dict(EXPECTED_CURRENT_SOURCE_SHA256)
+    observed[path] = alternate
+    with pytest.raises(AssertionError):
+        _assert_current_source_identities(observed)
+
+
+@pytest.mark.parametrize("missing_path", EXPECTED_SOURCE_PATHS)
+def test_d2_current_identity_requires_every_source(missing_path: str) -> None:
+    observed = dict(EXPECTED_CURRENT_SOURCE_SHA256)
+    del observed[missing_path]
+    with pytest.raises(AssertionError):
+        _assert_current_source_identities(observed)
+
+
+def test_d2_current_identity_rejects_unknown_source() -> None:
+    observed = dict(EXPECTED_CURRENT_SOURCE_SHA256)
+    observed["src/ge_nwp_coordinator/unlisted.py"] = "0" * 64
+    with pytest.raises(AssertionError):
+        _assert_current_source_identities(observed)
+
+
 def test_public_preflight_reason_enum_values_are_exact() -> None:
     assert [reason.name for reason in TransitionApplyPreflightFailureReason] == [
         "INVALID_COMMAND",
@@ -285,8 +360,9 @@ def test_public_sqlite_transition_and_global_stop_preflight_do_not_open_sqlite(
 
 
 def test_private_runtime_sources_remain_frozen_and_public_wrapper_imports_are_bounded() -> None:
-    for path, expected in EXPECTED_FROZEN_SOURCE_SHA256.items():
-        assert _sha256(path) == expected
+    _assert_current_source_identities(
+        {path: _sha256(path) for path in EXPECTED_SOURCE_PATHS}
+    )
 
     transaction_source = _read(
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py"

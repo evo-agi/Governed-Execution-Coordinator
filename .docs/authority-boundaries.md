@@ -455,9 +455,12 @@ is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
 RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
 durable phase/evidence mechanics are implemented separately behind private
 mutation authority; RW0-D1 artificial offline planner/worker process and capsule mechanics are
-implemented separately under the D1 owner. RW0-D2 evidence/review/model
-closure, RW0-C2 physical decision persistence, live provider/credential/custody,
-and RW0-E runtime mechanics remain future.
+implemented separately under the D1 owner. RW0-D2 now has a bounded private
+offline source candidate: two guarded validation/review bound effects, checked
+C1 evidence, separate fake validator/reviewer/model processes, nine-role input,
+and a typed transient preadmission handback. External-copy validation and
+independent audit are separate gates; this status grants neither. RW0-C2 physical decision persistence,
+live provider/credential/custody, and RW0-E runtime mechanics remain future.
 Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 
