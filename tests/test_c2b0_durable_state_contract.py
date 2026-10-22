@@ -19149,18 +19149,23 @@ C2B_GUARD_CURRENT_SUCCESSOR = '\n### RW0-C2 immutable bootstrap guard current su
 C2B_D1_CURRENT_STATUS = '\n<!-- RW0_D1_CURRENT_STATUS_BEGIN -->\nRW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.\n<!-- RW0_D1_CURRENT_STATUS_END -->\n'
 C2B_D2_CURRENT_STATUS = '''
 <!-- RW0_D2_CURRENT_STATUS_BEGIN -->
-RW0-D2 contains a private, uncommitted offline implementation candidate with two
-guarded migration-0002 validation/review bound-effect families, checked C1
-evidence, three separate fake checking/model processes, nine-role model input,
-and one typed transient preadmission handback. The D1 capsule remains the
-author/checking boundary. The existing Coordinator program, author-effect,
-Section 41 pre-execution selection, and C1 paths retain their durable authority.
-This successor supersedes only the D1 block's statement that D2 closure is next.
-It adds no Section 41 post-execution proposal-family writer, C1 rank-15 admission,
-C2 decision/acceptance/terminal writer, migration 0005, ES runtime, live model,
-or production direct-local adapter. External-copy validation and independent
-audit are separate gates; this source status grants neither, and `preadmission_ready` is not acceptance.
-The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
+RW0-D2's bounded private offline implementation was independently reviewed
+and introduced by commit `59621aa041a409c6ead27b74ffe25598c159e78e`. It
+establishes two guarded migration-0002 validation/review bound-effect families,
+14 checked C1 evidence members, three separate fake validator/reviewer/model
+processes, exact nine-role model input, and one typed transient preadmission
+handback. The D1 capsule remains the author/checking boundary. The existing
+Coordinator program, author-effect, Section 41 pre-execution selection, and C1
+paths retain durable authority. This successor supersedes only the D1 block's
+statement that D2 closure is next. The local commit gate recorded no push, PR,
+or merge; this records that gate, not live publication status. Git owns
+committed object and ref truth. Audit, validation, provenance, and closeout
+records remain evidence, not Coordinator durable authority or permission to
+perform effects. It adds no Section 41 post-execution proposal-family writer,
+C1 rank-15 admission, physical C2 decision or terminal acceptance, migration
+0005, live provider/Codex invocation, ES/Bridge route, production direct-local
+adapter, product Git effect, or autonomous loop. `preadmission_ready` is not
+acceptance. The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
 '''
 

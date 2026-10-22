@@ -24932,16 +24932,21 @@ RW0-D1 is a current private artificial offline process and capsule proof. The gu
 <!-- RW0_D1_CURRENT_STATUS_END -->
 
 <!-- RW0_D2_CURRENT_STATUS_BEGIN -->
-RW0-D2 contains a private, uncommitted offline implementation candidate with two
-guarded migration-0002 validation/review bound-effect families, checked C1
-evidence, three separate fake checking/model processes, nine-role model input,
-and one typed transient preadmission handback. The D1 capsule remains the
-author/checking boundary. The existing Coordinator program, author-effect,
-Section 41 pre-execution selection, and C1 paths retain their durable authority.
-This successor supersedes only the D1 block's statement that D2 closure is next.
-It adds no Section 41 post-execution proposal-family writer, C1 rank-15 admission,
-C2 decision/acceptance/terminal writer, migration 0005, ES runtime, live model,
-or production direct-local adapter. External-copy validation and independent
-audit are separate gates; this source status grants neither, and `preadmission_ready` is not acceptance.
-The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
+RW0-D2's bounded private offline implementation was independently reviewed
+and introduced by commit `59621aa041a409c6ead27b74ffe25598c159e78e`. It
+establishes two guarded migration-0002 validation/review bound-effect families,
+14 checked C1 evidence members, three separate fake validator/reviewer/model
+processes, exact nine-role model input, and one typed transient preadmission
+handback. The D1 capsule remains the author/checking boundary. The existing
+Coordinator program, author-effect, Section 41 pre-execution selection, and C1
+paths retain durable authority. This successor supersedes only the D1 block's
+statement that D2 closure is next. The local commit gate recorded no push, PR,
+or merge; this records that gate, not live publication status. Git owns
+committed object and ref truth. Audit, validation, provenance, and closeout
+records remain evidence, not Coordinator durable authority or permission to
+perform effects. It adds no Section 41 post-execution proposal-family writer,
+C1 rank-15 admission, physical C2 decision or terminal acceptance, migration
+0005, live provider/Codex invocation, ES/Bridge route, production direct-local
+adapter, product Git effect, or autonomous loop. `preadmission_ready` is not
+acceptance. The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
