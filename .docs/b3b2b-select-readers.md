@@ -119,3 +119,8 @@ The B3 coherent fixture helpers live under `tests/` only. Their direct seeding
 path is test setup, not B3b2b reader integration, production admission,
 authorization, concrete capability construction, fencing, context assembly, or
 mutation runtime.
+
+RW0-D2's bound-effect writer calls the existing private current-global-stop
+reader only from its exact fenced resolver. The existing author, pre-execution,
+initialization, C1, and controller reader owners remain unchanged. The new
+caller adds no reader role, query, public export, or unfenced capability.

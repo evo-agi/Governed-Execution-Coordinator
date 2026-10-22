@@ -49,9 +49,12 @@ is the sole detailed Capability owner. RW0-B1, RW0-B2-Wire, and
 RW0-B2-Capability private semantics are current implemented contracts. RW0-C1
 durable phase/evidence mechanics are implemented separately behind private
 mutation authority; RW0-D1 artificial offline planner/worker process and capsule mechanics are
-implemented separately under the D1 owner. RW0-D2 evidence/review/model
-closure, RW0-C2 physical decision persistence, live provider/credential/custody,
-and RW0-E runtime mechanics remain future.
+implemented separately under the D1 owner. RW0-D2 now has a bounded private
+offline source candidate: two guarded validation/review bound effects, checked
+C1 evidence, separate fake validator/reviewer/model processes, nine-role input,
+and a typed transient preadmission handback. External-copy validation and
+independent audit are separate gates; this status grants neither. RW0-C2 physical decision persistence,
+live provider/credential/custody, and RW0-E runtime mechanics remain future.
 Execution Substrate retains admission and runtime authority."""
 
 REQUIRED_CANDIDATE_ROWS = (
@@ -134,13 +137,13 @@ PROTECTED_CONTENT_ROWS = (
      ('dependency_schema_migration',), 'protected dependency metadata'),
     ('P08', 'tests/c2a_contract_support.py', 154372, '58be92ddffae6f4b901ae3632521481ab8d9ce0e02a819ef9421408d08eedd85',
      ('authority_non_effect',), 'protected C2A support'),
-    ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 17823, '4c892136f8c6fd629eb44e95bc8dd7a9aa1a5250e97cc61499171f2835bb4f42',
+    ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 17972, 'f2a7089748f39dc8c40a932ac770edd3ffa7f8ea581b053af101dfda8100c830',
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 62778, '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6',
+    ('P11', 'AGENTS.md', 65275, '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc',
      ('authority_non_effect',), 'protected repository governance'),
-    ('P12', 'README.md', 46898, 'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff',
+    ('P12', 'README.md', 47694, 'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3',
      ('authority_non_effect',), 'protected public claims'),
     ('P13', '.docs/software-development-progression-boundary.md', 28654, 'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419',
      ('state_store_writer_session',), 'protected progression authority'),
@@ -898,8 +901,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (62778,
-                                  '076bde721eff6f1a632171f24b586e6d823f63b4e819dd2662942a3bfa720ba6'),
+         'replacement_identity': (65275,
+                                  '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -911,8 +914,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (44919,
                           '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
          'old_identity_changed': True,
-         'replacement_identity': (46898,
-                                  'dfe879cfd680d3a62ec279be46fd96e97b3fdeba19668a8eb72d191b7ad1c4ff'),
+         'replacement_identity': (47694,
+                                  'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -1013,3 +1016,186 @@ def test_capability_semantic_integrity_hostile(case):
     import re
     with pytest.raises(AssertionError, match='^' + re.escape(boundary) + '$'):
         _assert_capability_semantic_integrity(observed, CAPABILITY_REPLACEMENT_EXPECTED)
+
+
+# P11's later D2 status-only successor is separate from the earlier bootstrap reset.
+_P11_STATUS_PREDECESSOR_IDENTITY = (64142, 'ddf5485d88fc4604429a2b553643e3a8a80828002d17f7cfcb10cb935d018166')
+_P11_STATUS_SUCCESSOR_IDENTITY = (65275, '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc')
+_P11_OLD_TOP = b'''RW0-D2 now contains a private offline implementation candidate continuing the
+D1 capsule: two guarded validation/review bound effects, 14 checked C1 members,
+separate fake validator/reviewer/model processes, nine-role model input, and one
+typed transient preadmission handback. D2 does not own acceptance, Section 41
+post-execution persistence, C1 rank-15 admission, a C2 decision writer,
+production execution, or migration 0005. External-copy validation and
+independent audit are separate gates; this source status grants neither. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
+'''
+_P11_NEW_TOP = b'''RW0-D2's bounded private offline D1-to-D2 implementation was independently
+reviewed and introduced by commit `59621aa041a409c6ead27b74ffe25598c159e78e`. It continues
+the D1 capsule with two guarded validation/review bound effects, 14 checked C1
+members, separate fake validator/reviewer/model processes, exact nine-role
+model input, and one typed transient preadmission handback. The guarded
+Coordinator program, author-effect, Section 41 pre-execution selection, and
+C1 paths retain durable authority. The local commit gate recorded no push, PR,
+or merge; this records that gate, not live publication status. Git owns
+committed object and ref truth. Audit, validation, provenance, and closeout
+records are evidence, not Coordinator durable authority or permission to
+perform effects. D2 adds no Section 41 post-execution proposal-family writer,
+C1 rank-15 admission, physical C2 decision or terminal acceptance, migration
+0005, live provider/Codex invocation, ES/Bridge route, production direct-local
+adapter, product Git effect, or autonomous loop. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
+'''
+_P11_OLD_BOTTOM = b'''RW0-D2 has a private offline source candidate for bounded validation/review
+evidence closure and one fake cognitive-review handback. Its current source
+uses the D1 capsule, guarded Coordinator bound-effect and C1 paths, exact
+nine-role input, and three separate D2 children. This successor supersedes the
+D1 status sentence that placed D2 wholly in the future. It implements no
+post-execution Section 41 proposal-family or C2 decision persistence, rank-15
+admission, terminal acceptance, ES route, live provider, production adapter,
+or migration 0005. External-copy validation and independent audit remain
+pending. `.docs/rw0-d2-offline-evidence-and-review.md` is the detailed owner.
+'''
+_P11_NEW_BOTTOM = b'''RW0-D2's bounded private offline evidence and cognitive-review implementation
+was independently reviewed and introduced by commit
+`59621aa041a409c6ead27b74ffe25598c159e78e`. The D1 capsule remains the
+author/checking boundary. Two guarded validation/review bound effects, 14
+checked C1 members, three separate fake validator/reviewer/model processes,
+exact nine-role input, and one typed transient preadmission handback form this
+artificial proof. The guarded Coordinator program, author-effect, Section 41
+pre-execution selection, and C1 paths retain durable authority. The local
+commit gate recorded no push, PR, or merge; this records that gate, not live
+publication status. Git owns committed object and ref truth. Audit,
+validation, provenance, and closeout records are evidence, not Coordinator
+durable authority or effect permission. This successor supersedes only the D1
+sentence placing D2 closure in the future. It adds no Section 41 post-execution
+proposal-family writer, C1 rank-15 admission, physical C2 decision or terminal
+acceptance, migration 0005, live provider/Codex invocation, ES/Bridge route,
+production direct-local adapter, product Git handler, or autonomous loop.
+`preadmission_ready` is not acceptance. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
+'''
+_P11_TOP_CONTEXT_BEFORE = b'''truth, or hidden program state.
+
+'''
+_P11_TOP_CONTEXT_AFTER = b'''
+The bounded operational-change progression target is separate, target-only
+'''
+_P11_BOTTOM_CONTEXT_BEFORE = b'''<!-- RW0_D2_CURRENT_STATUS_BEGIN -->
+'''
+_P11_BOTTOM_CONTEXT_AFTER = b'''<!-- RW0_D2_CURRENT_STATUS_END -->
+'''
+
+
+def _p11_reconstruct_exact_status_predecessor(candidate: bytes) -> bytes:
+    if type(candidate) is not bytes:
+        raise AssertionError('p11:status_candidate_type')
+    top = _P11_TOP_CONTEXT_BEFORE + _P11_NEW_TOP + _P11_TOP_CONTEXT_AFTER
+    bottom = _P11_BOTTOM_CONTEXT_BEFORE + _P11_NEW_BOTTOM + _P11_BOTTOM_CONTEXT_AFTER
+    if candidate.count(_P11_NEW_TOP) != 1 or candidate.count(top) != 1:
+        raise AssertionError('p11:top_status_context')
+    if candidate.count(_P11_NEW_BOTTOM) != 1 or candidate.count(bottom) != 1:
+        raise AssertionError('p11:bottom_status_context')
+    if candidate.index(top) + len(top) > candidate.index(bottom):
+        raise AssertionError('p11:status_order')
+    predecessor = candidate.replace(_P11_NEW_TOP, _P11_OLD_TOP, 1).replace(
+        _P11_NEW_BOTTOM, _P11_OLD_BOTTOM, 1
+    )
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _P11_STATUS_PREDECESSOR_IDENTITY:
+        raise AssertionError('p11:predecessor_identity')
+    return predecessor
+
+
+def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> None:
+    current = (ROOT / 'AGENTS.md').read_bytes()
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_STATUS_SUCCESSOR_IDENTITY
+    predecessor = _p11_reconstruct_exact_status_predecessor(current)
+    assert predecessor.count(_P11_OLD_TOP) == predecessor.count(_P11_OLD_BOTTOM) == 1
+    assert predecessor.replace(_P11_OLD_TOP, _P11_NEW_TOP, 1).replace(
+        _P11_OLD_BOTTOM, _P11_NEW_BOTTOM, 1
+    ) == current
+    for span in (_P11_NEW_TOP, _P11_NEW_BOTTOM):
+        assert b'59621aa041a409c6ead27b74ffe25598c159e78e' in span
+        assert b'commit gate recorded no push, PR, or merge' in b' '.join(span.split())
+        assert b'not live publication status' in b' '.join(span.split())
+        assert b'Git owns committed object and ref truth' in b' '.join(span.split())
+        assert b'not Coordinator durable authority' in b' '.join(span.split())
+        assert b'C1 rank-15 admission' in b' '.join(span.split())
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('fully_stale', 'p11:top_status_context'),
+    ('only_top_new', 'p11:bottom_status_context'),
+    ('only_bottom_new', 'p11:top_status_context'),
+    ('missing_top', 'p11:top_status_context'),
+    ('missing_bottom', 'p11:bottom_status_context'),
+    ('duplicate_top', 'p11:top_status_context'),
+    ('duplicate_bottom', 'p11:bottom_status_context'),
+    ('reordered', 'p11:top_status_context'),
+    ('wrong_commit', 'p11:top_status_context'),
+    ('missing_commit', 'p11:bottom_status_context'),
+    ('product_authority_overclaim', 'p11:top_status_context'),
+    ('acceptance_overclaim', 'p11:bottom_status_context'),
+    ('unrelated_byte', 'p11:predecessor_identity'),
+    ('authority_sentence_byte', 'p11:predecessor_identity'),
+    ('nonstatus_scope_sentence', 'p11:top_status_context'),
+))
+def test_p11_status_successor_rejects_bounded_mutations(case: str, boundary: str) -> None:
+    current = (ROOT / 'AGENTS.md').read_bytes()
+    assert _p11_reconstruct_exact_status_predecessor(current)
+    if case == 'fully_stale':
+        changed = current.replace(_P11_NEW_TOP, _P11_OLD_TOP, 1).replace(
+            _P11_NEW_BOTTOM, _P11_OLD_BOTTOM, 1)
+        assert (len(changed), hashlib.sha256(changed).hexdigest()) == _P11_STATUS_PREDECESSOR_IDENTITY
+    elif case == 'only_top_new':
+        changed = current.replace(_P11_NEW_BOTTOM, _P11_OLD_BOTTOM, 1)
+    elif case == 'only_bottom_new':
+        changed = current.replace(_P11_NEW_TOP, _P11_OLD_TOP, 1)
+    elif case == 'missing_top':
+        changed = current.replace(_P11_NEW_TOP, b'', 1)
+    elif case == 'missing_bottom':
+        changed = current.replace(_P11_NEW_BOTTOM, b'', 1)
+    elif case == 'duplicate_top':
+        changed = current.replace(_P11_NEW_TOP, _P11_NEW_TOP * 2, 1)
+        assert changed.count(_P11_NEW_TOP) == 2
+    elif case == 'duplicate_bottom':
+        changed = current.replace(_P11_NEW_BOTTOM, _P11_NEW_BOTTOM * 2, 1)
+        assert changed.count(_P11_NEW_BOTTOM) == 2
+    elif case == 'reordered':
+        placeholder = b'P11_UNIQUE_TEMPORARY_SWAP_ANCHOR'
+        assert placeholder not in current
+        changed = current.replace(_P11_NEW_TOP, placeholder, 1).replace(
+            _P11_NEW_BOTTOM, _P11_NEW_TOP, 1).replace(placeholder, _P11_NEW_BOTTOM, 1)
+        assert changed.count(_P11_NEW_TOP) == changed.count(_P11_NEW_BOTTOM) == 1
+    elif case == 'wrong_commit':
+        changed = current.replace(
+            _P11_NEW_TOP, _P11_NEW_TOP.replace(b'59621aa041a409c6ead27b74ffe25598c159e78e',
+                                              b'69621aa041a409c6ead27b74ffe25598c159e78e', 1), 1)
+    elif case == 'missing_commit':
+        changed = current.replace(
+            _P11_NEW_BOTTOM, _P11_NEW_BOTTOM.replace(b'59621aa041a409c6ead27b74ffe25598c159e78e', b'', 1), 1)
+    elif case == 'product_authority_overclaim':
+        changed = current.replace(
+            _P11_NEW_TOP, _P11_NEW_TOP.replace(
+                b'records are evidence, not Coordinator durable authority or permission to\nperform effects.',
+                b'records grant Coordinator durable authority and permission to\nperform effects.', 1), 1)
+    elif case == 'acceptance_overclaim':
+        changed = current.replace(
+            _P11_NEW_BOTTOM, _P11_NEW_BOTTOM.replace(
+                b'`preadmission_ready` is not acceptance.',
+                b'`preadmission_ready` is terminal acceptance.', 1), 1)
+    elif case == 'unrelated_byte':
+        changed = current.replace(b'If `.docs/` exists', b'If `.dacs/` exists', 1)
+    elif case == 'authority_sentence_byte':
+        changed = current.replace(b'Coordinator cannot self-authorize',
+                                  b'Coordinator cannoX self-authorize', 1)
+    else:
+        assert case == 'nonstatus_scope_sentence'
+        changed = current.replace(
+            _P11_NEW_TOP, _P11_NEW_TOP.replace(
+                b'C1 paths retain durable authority.', b'C1 paths cede durable authority.', 1), 1)
+    assert changed != current
+    if boundary == 'p11:predecessor_identity':
+        assert changed.count(_P11_NEW_TOP) == changed.count(_P11_NEW_BOTTOM) == 1
+    with pytest.raises(AssertionError, match='^' + boundary + '$'):
+        _p11_reconstruct_exact_status_predecessor(changed)

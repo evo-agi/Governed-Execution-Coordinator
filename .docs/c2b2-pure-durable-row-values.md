@@ -169,3 +169,8 @@ cursor, filesystem, environment, clock, randomness, logging, network,
 subprocess, process/thread control, Git invocation, dynamic import, evaluator,
 compiler, registry, test import, document/migration parser, reader, writer,
 transaction, or mutation controller. Generation-2 schema bytes are unchanged.
+
+The D2 bound-effect writer now consumes the existing pure effect, program,
+decision, and row-support values to construct its private six-member family.
+That caller does not move SQL, I/O, or durable authority into these pure
+modules and does not change any existing row schema or digest domain.

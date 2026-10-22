@@ -106,6 +106,50 @@ def _sqlite_sources() -> str:
     )
 
 
+_WRITER_AUTHORITY_EXPIRY_PATHS = (
+    "src/ge_nwp_coordinator/__init__.py",
+    "src/ge_nwp_coordinator/state_store.py",
+    "src/ge_nwp_coordinator/state_authority_lock.py",
+    "src/ge_nwp_coordinator/sqlite_writer_state.py",
+    "src/ge_nwp_coordinator/sqlite_writer_session.py",
+    "src/ge_nwp_coordinator/sqlite_connection.py",
+    "src/ge_nwp_coordinator/sqlite_security.py",
+    "src/ge_nwp_coordinator/sqlite_mutation_transaction_contracts.py",
+    "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+)
+
+
+def _writer_authority_expiry_sources() -> tuple[tuple[str, str], ...]:
+    return tuple((path, _read(path)) for path in _WRITER_AUTHORITY_EXPIRY_PATHS)
+
+
+def _assert_no_writer_authority_expiry(sources: tuple[tuple[str, str], ...]) -> None:
+    # .docs/writer-session-authority.md forbids writer TTL/takeover authority.
+    # Expiry fields in D2 source-evidence profiles describe evidence, not writers.
+    assert type(sources) is tuple
+    assert tuple(path for path, _ in sources) == _WRITER_AUTHORITY_EXPIRY_PATHS
+    for path, source in sources:
+        assert type(source) is str
+        assert "expiry" not in source, path
+
+
+def _assert_no_b2c_whole_source_fragments(source: str) -> None:
+    for fragment in (
+        "class SQLiteWriterSession",
+        "class SqliteWriterSession",
+        "acquire_writer",
+        "release_writer",
+        "ttl",
+        "heartbeat",
+        "takeover",
+        "failover",
+        "from_metadata",
+        "from_durable",
+        "reconstruct_writer_session",
+    ):
+        assert fragment not in source
+
+
 def _markdown_section(text: str, heading: str) -> str:
     marker = f"## {heading}"
     start = text.index(marker)
@@ -485,26 +529,48 @@ def test_b2c_contains_no_writer_release_takeover_or_reconstruction_runtime() -> 
     sqlite_writer_session = _read("src/ge_nwp_coordinator/sqlite_writer_session.py")
 
     assert "class WriterSession(Protocol)" in state_store
-    for fragment in (
-        "class SQLiteWriterSession",
-        "class SqliteWriterSession",
-        "acquire_writer",
-        "release_writer",
-        "ttl",
-        "heartbeat",
-        "expiry",
-        "takeover",
-        "failover",
-        "from_metadata",
-        "from_durable",
-        "reconstruct_writer_session",
-    ):
-        assert fragment not in source
+    _assert_no_b2c_whole_source_fragments(source)
+    _assert_no_writer_authority_expiry(_writer_authority_expiry_sources())
     assert "secrets.token_bytes" in sqlite_writer_session
     assert "hmac.compare_digest" in sqlite_writer_session
     for fragment in ("fcntl.", "flock", "LOCK_EX", "LOCK_NB"):
         assert fragment not in source_without_lock
         assert fragment in _read("src/ge_nwp_coordinator/state_authority_lock.py")
+
+
+def test_b2c_expiry_scope_keeps_all_writer_authority_sources_and_d2_profile() -> None:
+    sources = _writer_authority_expiry_sources()
+    assert len(sources) == len(_WRITER_AUTHORITY_EXPIRY_PATHS) == 9
+    _assert_no_writer_authority_expiry(sources)
+    profile = _read("src/ge_nwp_coordinator/_rw0_d2b_model_input.py")
+    assert "at_or_after_expiry" in profile
+    assert "expiry_fields" in profile
+    assert "src/ge_nwp_coordinator/_rw0_d2b_model_input.py" not in _WRITER_AUTHORITY_EXPIRY_PATHS
+
+    for index in range(len(sources)):
+        with pytest.raises(AssertionError):
+            _assert_no_writer_authority_expiry(sources[:index] + sources[index + 1 :])
+    with pytest.raises(AssertionError):
+        _assert_no_writer_authority_expiry(sources + (sources[0],))
+    with pytest.raises(AssertionError):
+        _assert_no_writer_authority_expiry(sources + (("src/ge_nwp_coordinator/unknown.py", ""),))
+
+
+def test_b2c_expiry_scope_rejects_direct_writer_expiry_and_keeps_global_scan() -> None:
+    sources = _writer_authority_expiry_sources()
+    target = "src/ge_nwp_coordinator/sqlite_writer_state.py"
+    hostile = tuple(
+        (path, source + "\nwriter_expiry = None\n" if path == target else source)
+        for path, source in sources
+    )
+    with pytest.raises(AssertionError, match="sqlite_writer_state.py"):
+        _assert_no_writer_authority_expiry(hostile)
+
+    assert target in _WRITER_AUTHORITY_EXPIRY_PATHS
+    with pytest.raises(AssertionError):
+        _assert_no_b2c_whole_source_fragments(
+            _source() + "\nreconstruct_writer_session = None\n"
+        )
 
 
 def test_fork_exec_and_thread_requirements_are_documented_without_overclaim() -> None:

@@ -963,7 +963,7 @@ def test_invalid_input_has_no_later_evidence_or_state_root() -> None:
         assert all(getattr(h, name) is None for name in (
             "program_result", "author_result", "author_command", "planner_process",
             "selected_bundle", "section41_result", "phase_basis", "phase_result",
-            "worker_process", "wire_result", "wire_classification", "capture",
+            "worker_process", "wire_result", "adapter_exit", "wire_classification", "capture",
             "capsule_manifest",
         ))
         with pytest.raises(RuntimeError, match="^d1_state_closed$"):

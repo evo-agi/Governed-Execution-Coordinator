@@ -89,6 +89,7 @@ from ._sqlite_development_readers import (
 from ._sqlite_rw0_c1_readers import (
     RW0C1MembershipFamily,
     RW0C1OwnerRowSnapshot,
+    RW0C1RelationSetAggregate,
     RW0C1Section41PostExecutionEvidenceFamily,
     RW0C1TypedEvidenceAggregate,
     _read_membership_by_digest,
@@ -116,11 +117,102 @@ from ._sqlite_rw0_c1_readers import (
     _read_development_owner_row,
 )
 from .global_stop import GLOBAL_STOP_SCHEMA_ID
+from .global_stop import GlobalStopState
 from .sqlite_errors import SQLiteMutationStoreError, SQLiteMutationStoreErrorCode
 from .sqlite_transition_read_scope import _read_global_stop_current
 
 
 __all__: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class RW0D2CurrentOwnerSnapshotV1:
+    """Detached point-in-time C1 owner read, without a capability or connection."""
+
+    phase_basis_ref: str
+    phase_basis_digest: str
+    program_head_revision: int
+    program_head_digest: str
+    work_item_head_revision: int
+    work_item_head_digest: str
+    selection_head_revision: int
+    selection_head_digest: str
+    author_effect_head_revision: int
+    author_effect_head_digest: str
+    author_delivery_head_revision: int
+    author_delivery_head_digest: str
+    global_stop: GlobalStopState
+    global_stop_updated_at: str
+    observed_at: str
+
+    def validate(self) -> None:
+        if type(self) is not RW0D2CurrentOwnerSnapshotV1:
+            raise _integrity_failure() from None
+        for name in (
+            "phase_basis_digest", "program_head_digest", "work_item_head_digest",
+            "selection_head_digest", "author_effect_head_digest",
+            "author_delivery_head_digest",
+        ):
+            value = getattr(self, name)
+            if type(value) is not str or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+                raise _integrity_failure() from None
+        for name in (
+            "program_head_revision", "work_item_head_revision", "selection_head_revision",
+            "author_effect_head_revision", "author_delivery_head_revision",
+        ):
+            value = getattr(self, name)
+            if type(value) is not int or value < 0:
+                raise _integrity_failure() from None
+        if (type(self.phase_basis_ref) is not str or not self.phase_basis_ref
+                or type(self.global_stop) is not GlobalStopState
+                or type(self.global_stop_updated_at) is not str
+                or type(self.observed_at) is not str
+                or self.global_stop_updated_at > self.observed_at):
+            raise _integrity_failure() from None
+
+    def __reduce__(self) -> typing.NoReturn:
+        raise TypeError("serialization disabled")
+
+
+def _read_rw0_d2_current_owner_snapshot_after_fencing(
+    *, capability: object, basis: object, observed_at: str,
+) -> RW0D2CurrentOwnerSnapshotV1:
+    """Use existing C1 owner resolution for the B-entry read-only gate."""
+    if type(basis) is not _b1.RW0PhaseEntryBasisV1:
+        raise _integrity_failure() from None
+    try:
+        phase = _read_phase_by_pair(capability, basis.basis_ref, basis.basis_digest)
+        if phase is None:
+            raise _integrity_failure() from None
+        (_disposition, _receipt, _result, selection,
+         _proposal, _artifact) = _read_phase_selection_owner_rows(capability, basis)
+        (program, work, _work_spec, _effect, _authority,
+         effect_head, delivery, stop, _lineage) = _read_phase_development_owner_rows(
+             capability, basis,
+         )
+        snapshot = RW0D2CurrentOwnerSnapshotV1(
+            phase_basis_ref=basis.basis_ref,
+            phase_basis_digest=basis.basis_digest,
+            program_head_revision=program.program_head.head_revision,
+            program_head_digest=program.program_head.head_digest,
+            work_item_head_revision=work.work_item_head.head_revision,
+            work_item_head_digest=work.work_item_head.head_digest,
+            selection_head_revision=selection.head_revision,
+            selection_head_digest=selection.head_digest,
+            author_effect_head_revision=effect_head.head_revision,
+            author_effect_head_digest=effect_head.head_digest,
+            author_delivery_head_revision=delivery.delivery_head.head_revision,
+            author_delivery_head_digest=delivery.delivery_head.head_digest,
+            global_stop=stop.state,
+            global_stop_updated_at=stop.updated_at,
+            observed_at=observed_at,
+        )
+        snapshot.validate()
+        return snapshot
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        raise _integrity_failure() from None
 
 
 _PHASE_RELATION_SCHEMA = (
@@ -4941,3 +5033,138 @@ def _recover_rw0_c1_evidence_admission_after_fencing(
             selector.command_digest,
             RW0C1RecoveryDispositionV1.UNRESOLVED,
         )
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class RW0C1CheckedEvidenceFamilyV1:
+    """Detached exact checked C1 member, without transaction capability or custody."""
+
+    admission_result: RW0C1AdmitEvidenceResultV1
+    phase: RW0C1RowValue
+    registry: RW0C1RowValue
+    payload: RW0C1RowValue
+    children: tuple[RW0C1RowValue, ...]
+    membership: RW0C1RowValue
+    relations: RW0C1RelationSetAggregate
+    receipt: RW0C1RowValue
+    evidence_value: (
+        _b1.RW0AuthorityVerificationObservationV1
+        | _b1.RW0RemoteHostReadinessObservationV1
+        | _b1.RW0EffectHostQualificationV1
+        | _worker_values.WorkerObservationV1
+        | RW0C1WireWorkerResultBindingV1
+        | RW0C1WireProcessResultClassificationBindingV1
+    )
+
+    def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self) -> None:
+        if (type(self) is not RW0C1CheckedEvidenceFamilyV1
+                or type(self.admission_result) is not RW0C1AdmitEvidenceResultV1
+                or type(self.phase) is not RW0C1RowValue
+                or type(self.registry) is not RW0C1RowValue
+                or type(self.payload) is not RW0C1RowValue
+                or type(self.membership) is not RW0C1RowValue
+                or type(self.receipt) is not RW0C1RowValue
+                or type(self.children) is not tuple
+                or any(type(child) is not RW0C1RowValue for child in self.children)
+                or type(self.relations) is not RW0C1RelationSetAggregate):
+            raise _integrity_failure() from None
+        selector = self.admission_result
+        if (self.membership.value("membership_ref") != selector.membership_ref
+                or self.membership.value("membership_digest") != selector.membership_digest
+                or self.membership.value("kind_rank") != selector.kind_rank
+                or self.registry.value("value_ref") != selector.value_ref
+                or self.registry.value("value_digest") != selector.value_digest
+                or self.registry.value("value_schema_id") != selector.value_schema_id
+                or self.phase.value("phase_basis_ref") != selector.phase_basis_ref
+                or self.phase.value("phase_basis_digest") != selector.phase_basis_digest
+                or self.receipt.value("receipt_digest") != selector.receipt_digest):
+            raise _integrity_failure() from None
+        actual = (
+            _owner_value_from_typed_evidence(
+                RW0C1TypedEvidenceAggregate(self.registry, self.payload, self.children)
+            )
+            if selector.kind_rank <= 12
+            else _wrapper_value_from_membership_family(
+                RW0C1MembershipFamily(
+                    self.phase,
+                    RW0C1TypedEvidenceAggregate(self.registry, self.payload, self.children),
+                    self.membership, self.relations,
+                )
+            )
+        )
+        if type(actual) is not type(self.evidence_value):
+            raise _integrity_failure() from None
+        if actual.to_mapping() != self.evidence_value.to_mapping():
+            raise _integrity_failure() from None
+
+    def __repr__(self) -> str:
+        return "<RW0C1CheckedEvidenceFamilyV1>"
+
+    def __reduce__(self) -> typing.NoReturn:
+        raise TypeError("serialization disabled")
+
+
+def _require_exact_checked_selector(value: object) -> RW0C1AdmitEvidenceResultV1:
+    if type(value) is not RW0C1AdmitEvidenceResultV1:
+        raise _integrity_failure() from None
+    try:
+        fields = (
+            "mutation_ref", "command_digest", "disposition", "phase_basis_ref",
+            "phase_basis_digest", "membership_ref", "membership_digest",
+            "kind_rank", "value_ref", "value_digest", "value_schema_id",
+            "relation_set_digest", "admission_graph_digest", "receipt_digest",
+            "committed_at", "result_digest",
+        )
+        result = RW0C1AdmitEvidenceResultV1(**{
+            name: object.__getattribute__(value, name) for name in fields
+        })
+        if (object.__getattribute__(value, "schema_id") != result.schema_id
+                or result.kind_rank not in {1, 5, 6, 12, 13, 14}):
+            raise _integrity_failure() from None
+        return result
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        raise _integrity_failure() from None
+
+
+def _read_rw0_c1_checked_family_after_fencing(
+    *, capability: object, selector: object,
+) -> RW0C1CheckedEvidenceFamilyV1:
+    checked = _require_exact_checked_selector(selector)
+    family = _read_membership_family(
+        capability, phase_basis_ref=checked.phase_basis_ref,
+        membership_ref=checked.membership_ref,
+    )
+    receipt = _read_receipt(capability, checked.mutation_ref)
+    if type(family) is not RW0C1MembershipFamily or type(receipt) is not RW0C1RowValue:
+        raise _integrity_failure() from None
+    _verify_evidence_family_rows(family, receipt, capability=capability)
+    membership = family.membership
+    if (membership.value("membership_digest") != checked.membership_digest
+            or membership.value("kind_rank") != checked.kind_rank
+            or membership.value("value_ref") != checked.value_ref
+            or membership.value("value_digest") != checked.value_digest
+            or membership.value("value_schema_id") != checked.value_schema_id
+            or membership.value("relation_set_digest") != checked.relation_set_digest
+            or membership.value("admission_graph_digest") != checked.admission_graph_digest
+            or receipt.value("command_digest") != checked.command_digest
+            or receipt.value("phase_basis_ref") != checked.phase_basis_ref
+            or receipt.value("phase_basis_digest") != checked.phase_basis_digest
+            or receipt.value("receipt_digest") != checked.receipt_digest
+            or receipt.value("result_projection_digest") != checked.committed_projection_digest()
+            or receipt.value("committed_at") != checked.committed_at):
+        raise _integrity_failure() from None
+    evidence = (
+        _owner_value_from_typed_evidence(family.typed_evidence)
+        if checked.kind_rank <= 12
+        else _wrapper_value_from_membership_family(family)
+    )
+    return RW0C1CheckedEvidenceFamilyV1(
+        checked, family.phase, family.typed_evidence.registry,
+        family.typed_evidence.payload, family.typed_evidence.children,
+        membership, family.relation_set, receipt, evidence,
+    )

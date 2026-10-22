@@ -53,6 +53,19 @@ The frozen nonprinting `RW0D1HandbackV1` contains committed lineage receipts,
 typed process and Wire observations, captured immutable bytes/modes, the
 verified manifest, and a closed status/reason. It contains no raw state path,
 workspace path, writer, descriptor, proof, or serializable live-state handle.
+The private handback now retains the exact parent-authored `adapter_exit`
+observation that the Wire classifier consumed. Worker start, optional candidate
+capture, and completion times are sampled at their real child event sites;
+the parent samples adapter exit after the clean decoded result. This amends
+the artificial D1 proof used by D2 without changing the public Wire protocol
+or claiming that the earlier fixture-year proof supplied live source
+authentication.
+The adapter source-invocation reference is a bounded local correlation derived
+from the retained worker PID and SHA-256 of its exact output bytes. Handback
+validation recomputes it from the retained process outcome, so an adapter fact
+from a different worker run cannot be substituted while preserving the rest of
+the handback. This correlation is evidence linkage, not source authentication
+or executable authority.
 The separate nonserializable parent-only `RW0D1OfflineRun` owns the disposable
 state location until explicit idempotent `close()`. It retains no open writer
 between stages or after return. D2 later consumes this run owner in the same
@@ -66,3 +79,12 @@ runtime. RW0-D2 evidence/review/model closure is next for the selected offline
 proof; RW0-C2 physical decision persistence follows D2. The generic earlier
 C2-before-D source ordering is superseded only for this bounded proof. C2
 authority semantics and first-live entry rules remain unchanged.
+
+RW0-D2 now contains a private offline source continuation using the D1 capsule
+as its only author/checking boundary. Its two bound validation/review effects,
+checked C1 evidence, three separate fake checking/model children, nine-role
+input, and transient preadmission handback are detailed in
+`.docs/rw0-d2-offline-evidence-and-review.md`. This current successor
+supersedes only the preceding D2-next status, not D1's source or durable
+authority. The D2 candidate awaits full external-copy validation and
+independent audit; RW0-C2 persistence remains later.

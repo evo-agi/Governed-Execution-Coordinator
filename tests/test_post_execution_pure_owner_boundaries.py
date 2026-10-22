@@ -116,6 +116,34 @@ DOC_PATHS = ('.docs/autonomous-software-development-operating-model.md',
  '.docs/architecture.md',
  '.docs/c2a1-pure-semantic-values.md',
  '.docs/rw0-c1-durable-evidence.md')
+CURRENT_D2_CONSUMERS = {
+    "_post_execution_evidence_values.py": frozenset({
+        "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_handback.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_model_input.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_proposal.py",
+        "src/ge_nwp_coordinator/_rw0_d2_handback.py",
+    }),
+    "_post_execution_policy_values.py": frozenset({
+        "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_handback.py",
+    }),
+    "_finite_backlog_risk_source_adapter.py": frozenset({
+        "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_handback.py",
+    }),
+    "_section41_post_execution_proposal_family_projection.py": frozenset(),
+    "_section41_post_execution_role_resolution.py": frozenset(),
+    "_rw0_c_decision_input_values.py": frozenset(),
+}
+CURRENT_D2_SOURCE_FILES = frozenset({
+    "_rw0_d2a_evidence.py", "_rw0_d2a_fake_reviewer.py",
+    "_rw0_d2a_fake_validator.py", "_rw0_d2a_handback.py",
+    "_rw0_d2a_offline.py", "_rw0_d2a_process_frames.py",
+    "_rw0_d2a_workspace.py", "_rw0_d2b_model_input.py",
+    "_rw0_d2b_model_frames.py", "_rw0_d2b_fake_review_model.py",
+    "_rw0_d2b_proposal.py", "_rw0_d2_handback.py", "_rw0_d2_offline.py",
+})
 
 
 def _relative_import_targets(path: Path) -> set[str]:
@@ -182,14 +210,9 @@ def test_no_migration_0005_and_catalog_stays_0001_through_0004() -> None:
 
 
 def test_reserved_values_and_production_callers_remain_absent() -> None:
-    proposed_names = {Path(path).name for path in MODULE_PATHS}
-    for path in SOURCE.glob("*.py"):
-        if path.name in proposed_names:
-            continue
-        text = path.read_text()
-        assert "_post_execution_evidence_values" not in text
-        assert "_post_execution_policy_values" not in text
-        assert "_rw0_c_decision_input_values" not in text
+    assert set(CURRENT_D2_CONSUMERS) == {Path(path).name for path in MODULE_PATHS}
+    for module, consumers in CURRENT_D2_CONSUMERS.items():
+        assert frozenset(_production_importers(module)) == consumers
     combined = "\n".join((ROOT / path).read_text() for path in MODULE_PATHS)
     for reserved in ("V35", "V36", "V37", "V45"):
         assert reserved not in combined
@@ -257,7 +280,7 @@ def test_each_of_44_module_allocations_executes_private_owner_boundary(record_id
     }
     assert value_type.__name__ not in exported_names
     assert owner_path.stem not in exported_names
-    assert _production_importers(module_filename) == ()
+    assert frozenset(_production_importers(module_filename)) == CURRENT_D2_CONSUMERS[module_filename]
 
 
 @pytest.mark.parametrize("record_id", IMPORT_EDGE_RECORD_IDS)
@@ -269,7 +292,7 @@ def test_each_of_31_import_edges_executes_its_exact_boundary(record_id: str) -> 
 
     if source_name == "current_production_runtime":
         assert record["allowed"] is False
-        assert _production_importers(target_name) == ()
+        assert frozenset(_production_importers(target_name)) == CURRENT_D2_CONSUMERS[target_name]
         return
 
     source_path = SOURCE / source_name
@@ -320,7 +343,7 @@ def test_each_of_8_remaining_seams_is_concretely_absent_and_non_authorizing(reco
             "_rw0_d1_pre_execution.py", "_rw0_d1_handback.py",
             "_rw0_d1_offline.py",
         }
-        assert not tuple(SOURCE.glob("_rw0_d2*.py"))
+        assert {path.name for path in SOURCE.glob("_rw0_d2*.py")} == CURRENT_D2_SOURCE_FILES
         assert not tuple(SOURCE.glob("_rw0_e*.py"))
         assert "_rw0_d1_" not in combined
         assert "_rw0_d1_" not in (SOURCE / "__init__.py").read_text()
@@ -352,4 +375,8 @@ def test_each_of_8_remaining_seams_is_concretely_absent_and_non_authorizing(reco
             "Implementation_Report", "Boundary_Freeze",
         )
         assert all(name not in combined for name in forbidden_artifacts)
-        assert all(_production_importers(Path(path).name) == () for path in MODULE_PATHS)
+        assert all(
+            frozenset(_production_importers(Path(path).name))
+            == CURRENT_D2_CONSUMERS[Path(path).name]
+            for path in MODULE_PATHS
+        )

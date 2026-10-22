@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError, fields, replace
+import hashlib
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path, PurePath
 import pickle
 from typing import get_type_hints
@@ -25,7 +27,9 @@ from ge_nwp_coordinator._rw0_phase_entry_semantic_values import RW0PhaseEntryBas
 from ge_nwp_coordinator._rw0_wire_protocol_values import (
     RW0WireProcessResultClassificationV1, RW0WireWorkerResultV1,
 )
-from ge_nwp_coordinator._worker_execution_semantic_values import CandidateCapsuleManifestV1
+from ge_nwp_coordinator._worker_execution_semantic_values import (
+    CandidateCapsuleManifestV1, WorkerObservationV1,
+)
 from test_rw0_d1_offline_integration import work_spec
 
 
@@ -40,6 +44,7 @@ _EVIDENCE_TYPES = {
     "planner_process": D1ProcessOutcome,
     "worker_process": D1ProcessOutcome,
     "wire_result": RW0WireWorkerResultV1,
+    "adapter_exit": WorkerObservationV1,
     "wire_classification": RW0WireProcessResultClassificationV1,
     "capture": D1CandidateCapture,
     "capsule_manifest": CandidateCapsuleManifestV1,
@@ -50,7 +55,8 @@ def test_fixed_handback_field_inventory_types_and_repr_flags() -> None:
     expected = (
         "status", "reason", "program_result", "author_result", "author_command",
         "section41_result", "selected_bundle", "phase_basis", "phase_result",
-        "planner_process", "worker_process", "wire_result", "wire_classification",
+        "planner_process", "worker_process", "wire_result", "adapter_exit",
+        "wire_classification",
         "capture", "capsule_manifest", "workspace_cleaned",
     )
     actual = fields(RW0D1HandbackV1)
@@ -133,7 +139,8 @@ def test_success_handback_requires_every_typed_stage_and_hides_roots() -> None:
         worker_cleanup = replace(
             handback, status="cleanup_unresolved", reason="worker_cleanup_unresolved",
             worker_process=unproved_worker, wire_result=None,
-            wire_classification=None, capture=None, capsule_manifest=None,
+            adapter_exit=None, wire_classification=None, capture=None,
+            capsule_manifest=None,
         )
         assert worker_cleanup.worker_process is unproved_worker
         unproved_planner = replace(handback.planner_process, cleanup_reason="selector_close")
@@ -265,14 +272,14 @@ def test_handback_is_nonprinting_and_state_owner_is_distinct() -> None:
 _PREFIX = (
     "program_result", "author_result", "author_command", "planner_process",
     "selected_bundle", "section41_result", "phase_basis", "phase_result",
-    "worker_process", "wire_result", "wire_classification", "capture",
+    "worker_process", "wire_result", "adapter_exit", "wire_classification", "capture",
     "capsule_manifest",
 )
 _EXPECTED_EXITS = {
-    "complete": ("capsule_ready", (13,)),
+    "complete": ("capsule_ready", (14,)),
     "invalid_input": ("stopped", (0,)),
     "durable_commit_unresolved": ("stopped", (0, 1, 5, 7)),
-    "durable_conflict": ("stopped", (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)),
+    "durable_conflict": ("stopped", (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)),
     "planner_start": ("stopped", (4,)),
     "planner_frame": ("stopped", (4,)),
     "planner_limit": ("stopped", (4,)),
@@ -282,19 +289,19 @@ _EXPECTED_EXITS = {
     "nonselection": ("stopped", (6,)),
     "c1_phase_failure": ("stopped", ()),
     "worker_start": ("stopped", (9,)),
-    "worker_frame": ("stopped", (9, 11)),
+    "worker_frame": ("stopped", (9, 12)),
     "worker_limit": ("stopped", (9,)),
     "worker_exit": ("stopped", (9,)),
     "worker_deadline": ("stopped", (9,)),
     "worker_cancelled": ("stopped", (9,)),
-    "unsafe_candidate": ("stopped", (11,)),
-    "missing_candidate": ("stopped", (11,)),
-    "excessive_candidate": ("stopped", (11,)),
-    "capsule_mismatch": ("stopped", (12,)),
+    "unsafe_candidate": ("stopped", (12,)),
+    "missing_candidate": ("stopped", (12,)),
+    "excessive_candidate": ("stopped", (12,)),
+    "capsule_mismatch": ("stopped", (13,)),
     "process_cleanup_unresolved": ("cleanup_unresolved", (0, 1, 2, 3, 4, 5, 6, 7, 8)),
     "planner_cleanup_unresolved": ("cleanup_unresolved", (4,)),
     "worker_cleanup_unresolved": ("cleanup_unresolved", (9,)),
-    "workspace_cleanup_unresolved": ("cleanup_unresolved", (8, 9, 10, 11, 12, 13)),
+    "workspace_cleanup_unresolved": ("cleanup_unresolved", (8, 9, 10, 11, 12, 13, 14)),
 }
 _FAILURE_PROCESS_REASONS = {
     "planner_limit": "output_limit", "planner_exit": "nonzero_exit",
@@ -330,7 +337,7 @@ def _exit_specimen(success: RW0D1HandbackV1, deferred: RW0D1HandbackV1,
     elif reason == "worker_cleanup_unresolved":
         facts["worker_process"] = replace(facts["worker_process"],
                                           cleanup_reason="selector_close")
-    elif reason == "worker_frame" and stage == 11:
+    elif reason == "worker_frame" and stage == 12:
         facts["wire_classification"] = RW0WireProcessResultClassificationV1._create(
             "unusable", "process_failed",
         )
@@ -378,7 +385,7 @@ def test_fixed_reason_prefix_matrix_and_neighboring_stage_rejections() -> None:
                         "worker_frame", "worker_limit", "worker_exit",
                         "worker_deadline", "worker_cancelled", "unsafe_candidate",
                         "missing_candidate", "excessive_candidate", "capsule_mismatch",
-                    } and stage < 13:
+                    } and stage < 14:
                         with pytest.raises(ValueError, match="^invalid_d1_handback$"):
                             replace(specimen, **{
                                 _PREFIX[stage]: getattr(success, _PREFIX[stage]),
@@ -466,12 +473,12 @@ def test_both_processes_are_revalidated_at_every_handback_status(
             success,
             _exit_specimen(success, success, "planner_frame", 4),
             _exit_specimen(success, success, "worker_frame", 9),
-            _exit_specimen(success, success, "worker_frame", 11),
+            _exit_specimen(success, success, "worker_frame", 12),
             _exit_specimen(success, success, "durable_conflict", 4),
             _exit_specimen(success, success, "durable_conflict", 9),
             _exit_specimen(success, success, "planner_cleanup_unresolved", 4),
             _exit_specimen(success, success, "worker_cleanup_unresolved", 9),
-            _exit_specimen(success, success, "workspace_cleanup_unresolved", 13),
+            _exit_specimen(success, success, "workspace_cleanup_unresolved", 14),
         )
         for specimen in categories:
             for name in ("planner_process", "worker_process"):
@@ -560,3 +567,66 @@ def test_valid_failed_planner_cannot_appear_in_later_handback_prefix() -> None:
             assert valid_stage.planner_process.clean_success
             with pytest.raises(ValueError, match="^invalid_d1_handback$"):
                 replace(valid_stage, planner_process=failed_planner)
+
+
+def test_retained_adapter_is_the_classifier_input_and_has_real_event_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import ge_nwp_coordinator._rw0_d1_offline as offline
+
+    original = offline.classify_wire_process_result
+    observed: list[WorkerObservationV1] = []
+
+    def observe(**kwargs: object) -> RW0WireProcessResultClassificationV1:
+        values = kwargs["adapter_observations"]
+        assert type(values) is tuple and len(values) == 1
+        observed.append(values[0])
+        return original(**kwargs)
+
+    monkeypatch.setattr(offline, "classify_wire_process_result", observe)
+    before = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    work = work_spec()
+    with run_rw0_d1_offline(work, artificial_fixture(work)) as run:
+        after = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        handback = run.handback
+        assert len(observed) == 1
+        assert all(value is handback.adapter_exit for value in observed)
+        assert handback.adapter_exit.process_exit_code == handback.worker_process.exit_code
+        expected_invocation = "adapter.invocation.d1." + hashlib.sha256(
+            str(handback.worker_process.pid).encode("ascii") + b"\0"
+            + handback.worker_process.stdout
+        ).hexdigest()
+        assert handback.adapter_exit.source_invocation_ref == expected_invocation
+        events = handback.wire_result.observations
+        assert tuple(value.observation_kind for value in events) == (
+            "worker_started", "candidate_captured", "worker_completed",
+        )
+        times = tuple(value.observed_at for value in events) + (
+            handback.adapter_exit.observed_at,
+        )
+        assert before <= times[0] <= times[1] <= times[2] <= times[3] <= after
+        assert all(not value.startswith("2028-") for value in times)
+        handback.validate()
+        assert all(value is handback.adapter_exit for value in observed)
+        with pytest.raises(ValueError, match="^invalid_d1_handback$"):
+            replace(handback, adapter_exit=object())
+
+
+def test_retained_adapter_rejects_a_different_worker_run() -> None:
+    work = work_spec()
+    fixture = artificial_fixture(work)
+    changed_fixture = replace(fixture, base_entries=(
+        fixture.base_entries[0], fixture.base_entries[1],
+        (fixture.base_entries[2][0],
+         b"package contracts\n\nfunc TestContract() {}\n// cross-run source\n",
+         "100644"),
+    ))
+    with run_rw0_d1_offline(work, fixture) as first, run_rw0_d1_offline(
+        work, changed_fixture,
+    ) as second:
+        assert (first.handback.capsule_manifest.portable_capsule_digest
+                != second.handback.capsule_manifest.portable_capsule_digest)
+        assert (first.handback.adapter_exit.source_invocation_ref
+                != second.handback.adapter_exit.source_invocation_ref)
+        with pytest.raises(ValueError, match="^invalid_d1_handback$"):
+            replace(first.handback, adapter_exit=second.handback.adapter_exit)

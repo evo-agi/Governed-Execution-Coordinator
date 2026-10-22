@@ -6261,6 +6261,16 @@ PURE_OWNER_ACTION_CALLS = {
     "evaluate_rw0_c_decision_time_global_stop_branches",
     "evaluate_rw0_c_decision_time_source_effect_ceiling_branches",
 }
+D2_EVIDENCE_OWNER_CALLS = {
+    (
+        "ge_nwp_coordinator._rw0_d2a_evidence",
+        "ge_nwp_coordinator._post_execution_policy_values.validate_post_execution_standing_policy_matrix_relation",
+    ),
+    (
+        "ge_nwp_coordinator._rw0_d2a_evidence",
+        "ge_nwp_coordinator._post_execution_policy_values.validate_post_execution_risk_lane_matrix_relation",
+    ),
+}
 
 
 def _owner_module_for_target(target: str) -> str | None:
@@ -6279,6 +6289,8 @@ def _semantic_owner_boundary_violations(
     for caller, target in index["calls"]:
         owner_module = _owner_module_for_target(target)
         if owner_module is None or caller in PURE_OWNER_MODULES:
+            continue
+        if (caller, target) in D2_EVIDENCE_OWNER_CALLS:
             continue
         symbol = target.rsplit(".", 1)[-1]
         if (

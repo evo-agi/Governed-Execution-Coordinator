@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import math
 from pathlib import Path
 import shutil
@@ -21,7 +22,9 @@ from ._development_program_initialization_contracts import (
 )
 from ._rw0_c1_semantic_values import RW0C1RecoveryProbeV1
 from ._rw0_d1_capsule import build_candidate_capsule, verify_candidate_capsule
-from ._rw0_d1_handback import RW0D1HandbackV1, RW0D1OfflineRun
+from ._rw0_d1_handback import (
+    RW0D1HandbackV1, RW0D1OfflineRun, _adapter_invocation_ref,
+)
 from ._rw0_d1_pre_execution import (
     _AuthorContext, _build_bundle, make_phase_command,
     section41_disposition_identity_and_digest,
@@ -434,15 +437,16 @@ def run_rw0_d1_offline(
         adapter_exit = WorkerObservationV1.create(
             observation_ref="observation.d1.process-exited",
             source_kind="direct_local_adapter", source_ref="adapter.d1.fake",
-            source_invocation_ref="adapter.invocation.d1.fake",
+            source_invocation_ref=_adapter_invocation_ref(worker_process),
             observation_kind="process_exited", outcome="exited",
             reason_code="reason.none", evidence_refs=["evidence.d1.process"],
-            observed_at="2028-01-01T00:00:01Z",
+            observed_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             process_exit_code=worker_process.exit_code,
             delivery=delivery, author_command=worker_command,
             attempt_fence=attempt, author_effect_fence=effect_fence,
             effect_fence=effect_fence,
         )
+        facts["adapter_exit"] = adapter_exit
         classification = classify_wire_process_result(
             command=worker_command, delivery=delivery, attempt_fence=attempt,
             author_effect_fence=effect_fence, result=wire_result,

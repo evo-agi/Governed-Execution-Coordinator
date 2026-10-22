@@ -30,3 +30,8 @@ def test_worker_faults_never_return_capsule(behavior: str) -> None:
         assert run.handback.status == "stopped"
         assert run.handback.capsule_manifest is None
         assert run.handback.worker_process.cleanup_complete
+        if behavior in {"missing_candidate", "extra_path", "unsafe_path"}:
+            assert run.handback.adapter_exit is not None
+            assert run.handback.wire_result is not None
+        else:
+            assert run.handback.adapter_exit is None

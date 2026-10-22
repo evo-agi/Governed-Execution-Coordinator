@@ -528,6 +528,9 @@ def _assert_private_b1_consumers(sources: dict[Path, str]) -> None:
     post_execution_values_path = PACKAGE / "_post_execution_evidence_values.py"
     d1_pre_execution_path = PACKAGE / "_rw0_d1_pre_execution.py"
     d1_handback_path = PACKAGE / "_rw0_d1_handback.py"
+    bound_effect_path = PACKAGE / "_development_bound_effect_establishment_contracts.py"
+    d2_evidence_path = PACKAGE / "_rw0_d2a_evidence.py"
+    d2_handback_path = PACKAGE / "_rw0_d2a_handback.py"
     expected_importers = {
         capability_path,
         c1_values_path,
@@ -535,6 +538,9 @@ def _assert_private_b1_consumers(sources: dict[Path, str]) -> None:
         post_execution_values_path,
         d1_pre_execution_path,
         d1_handback_path,
+        bound_effect_path,
+        d2_evidence_path,
+        d2_handback_path,
     }
     importers = []
     for path, source in sources.items():
@@ -657,6 +663,29 @@ def _assert_private_b1_consumers(sources: dict[Path, str]) -> None:
                                        else (node.target,)))
                 for node in tree.body
             )
+        elif path in {bound_effect_path, d2_evidence_path, d2_handback_path}:
+            owner_imports = [
+                node for node in imports
+                if node.module == "_rw0_phase_entry_semantic_values"
+            ]
+            assert len(owner_imports) == 1
+            expected = {
+                bound_effect_path: {"RW0PhaseEntryBasisV1"},
+                d2_evidence_path: {
+                    "RW0AuthorityVerificationObservationV1",
+                    "RW0EffectHostQualificationV1", "RW0PhaseEntryBasisV1",
+                    "RW0RemoteHostReadinessObservationV1",
+                    "validate_authority_observation", "validate_host_qualification",
+                },
+                d2_handback_path: {
+                    "RW0AuthorityVerificationObservationV1",
+                    "RW0EffectHostQualificationV1",
+                    "RW0RemoteHostReadinessObservationV1",
+                },
+            }[path]
+            assert {alias.name for alias in owner_imports[0].names} == expected
+            assert all(alias.asname is None for alias in owner_imports[0].names)
+            assert "__all__: tuple[str, ...] = ()" in source
         else:
             assert path == post_execution_values_path
             owner_imports = [

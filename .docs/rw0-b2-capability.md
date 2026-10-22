@@ -352,4 +352,13 @@ ES operation, and absence of implementation. P01–P07/P09–P10 remain exact.
 Wire and Capability own no admission, durable guard, acceptance, B1 schema,
 decision, replay/recovery, or runtime truth.
 
+P11 has one later status-only successor after the RW0-D2 implementation commit
+`59621aa041a409c6ead27b74ffe25598c159e78e`. The prior 64,142-byte `AGENTS.md`
+identity is historical for this change; only its two D2 current-status spans
+are replaced. The current whole-file raw identity, exact predecessor
+reconstruction, and unchanged governance markers remain checked, including by
+the independent bootstrap guard. This creates no general normalization rule,
+runtime permission, or automatic acceptance of later text changes. This
+uncommitted status update still awaits independent review.
+
 <!-- RW0_B2_CAPABILITY_OWNER_END -->

@@ -105,13 +105,29 @@ Coordinator program, author-effect, Section 41, and C1 paths remain the sole
 durable owners. The repository still implements no production direct-local
 adapter, dispatcher, reconciler, service/API/IPC, ES call, Bridge widening,
 Codex invocation, live model/provider client, capsule store,
-validation/review/repair executor, Git effect handler, runtime-profile
+live validation/review/repair executor, Git effect handler, runtime-profile
 integration, outbox/inbox, dispatch schema or migration, connector dependency,
 or autonomous loop. D1 process mechanics own only bounded protocol, process,
 ephemeral correlation, redaction, and evidence shaping. They do not own durable
 work selection, scheduling policy, semantic retry or repair authority,
 acceptance, ES admission, runtime lifecycle truth, Git truth, validation
 truth, or hidden program state.
+
+RW0-D2's bounded private offline D1-to-D2 implementation was independently
+reviewed and introduced by commit `59621aa041a409c6ead27b74ffe25598c159e78e`. It continues
+the D1 capsule with two guarded validation/review bound effects, 14 checked C1
+members, separate fake validator/reviewer/model processes, exact nine-role
+model input, and one typed transient preadmission handback. The guarded
+Coordinator program, author-effect, Section 41 pre-execution selection, and
+C1 paths retain durable authority. The local commit gate recorded no push, PR,
+or merge; this records that gate, not live publication status. Git owns
+committed object and ref truth. Audit, validation, provenance, and closeout
+records are evidence, not Coordinator durable authority or permission to
+perform effects. D2 adds no Section 41 post-execution proposal-family writer,
+C1 rank-15 admission, physical C2 decision or terminal acceptance, migration
+0005, live provider/Codex invocation, ES/Bridge route, production direct-local
+adapter, product Git effect, or autonomous loop. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
 
 The bounded operational-change progression target is separate, target-only
 documentation. First operational work is docs/docs-contracts only. The Worker
@@ -949,3 +965,24 @@ reader, writer, public export, and runtime remain future; none is implemented.
 <!-- RW0_D1_CURRENT_STATUS_BEGIN -->
 RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
 <!-- RW0_D1_CURRENT_STATUS_END -->
+
+<!-- RW0_D2_CURRENT_STATUS_BEGIN -->
+RW0-D2's bounded private offline evidence and cognitive-review implementation
+was independently reviewed and introduced by commit
+`59621aa041a409c6ead27b74ffe25598c159e78e`. The D1 capsule remains the
+author/checking boundary. Two guarded validation/review bound effects, 14
+checked C1 members, three separate fake validator/reviewer/model processes,
+exact nine-role input, and one typed transient preadmission handback form this
+artificial proof. The guarded Coordinator program, author-effect, Section 41
+pre-execution selection, and C1 paths retain durable authority. The local
+commit gate recorded no push, PR, or merge; this records that gate, not live
+publication status. Git owns committed object and ref truth. Audit,
+validation, provenance, and closeout records are evidence, not Coordinator
+durable authority or effect permission. This successor supersedes only the D1
+sentence placing D2 closure in the future. It adds no Section 41 post-execution
+proposal-family writer, C1 rank-15 admission, physical C2 decision or terminal
+acceptance, migration 0005, live provider/Codex invocation, ES/Bridge route,
+production direct-local adapter, product Git handler, or autonomous loop.
+`preadmission_ready` is not acceptance. The detailed owner is
+`.docs/rw0-d2-offline-evidence-and-review.md`.
+<!-- RW0_D2_CURRENT_STATUS_END -->

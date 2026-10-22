@@ -28,6 +28,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_cognitive_proposal_semantic_values.py",
         "src/ge_nwp_coordinator/_cognitive_proposal_value_support.py",
         "src/ge_nwp_coordinator/_development_author_effect_establishment_contracts.py",
+        "src/ge_nwp_coordinator/_development_bound_effect_establishment_contracts.py",
         "src/ge_nwp_coordinator/_development_pre_execution_plan_disposition_contracts.py",
         "src/ge_nwp_coordinator/_development_program_initialization_contracts.py",
         "src/ge_nwp_coordinator/_development_decision_row_values.py",
@@ -46,6 +47,19 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_rw0_d1_process_frames.py",
         "src/ge_nwp_coordinator/_rw0_d1_process_supervisor.py",
         "src/ge_nwp_coordinator/_rw0_d1_workspace.py",
+        "src/ge_nwp_coordinator/_rw0_d2_offline.py",
+        "src/ge_nwp_coordinator/_rw0_d2_handback.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_fake_reviewer.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_fake_validator.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_handback.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_offline.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_process_frames.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_workspace.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_fake_review_model.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_model_frames.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_model_input.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_proposal.py",
         "src/ge_nwp_coordinator/_rw0_c1_mutation_contracts.py",
         "src/ge_nwp_coordinator/_rw0_c1_row_values.py",
         "src/ge_nwp_coordinator/_rw0_c1_semantic_values.py",
@@ -53,6 +67,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_section41_post_execution_proposal_family_projection.py",
         "src/ge_nwp_coordinator/_section41_post_execution_role_resolution.py",
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_bound_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_reader_contracts.py",
         "src/ge_nwp_coordinator/_sqlite_development_readers.py",
@@ -928,6 +943,9 @@ def test_production_python_has_no_module_scope_dunder_name_entry_surface() -> No
     allowed_children = {
         "src/ge_nwp_coordinator/_rw0_d1_fake_planner.py",
         "src/ge_nwp_coordinator/_rw0_d1_fake_worker.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_fake_validator.py",
+        "src/ge_nwp_coordinator/_rw0_d2a_fake_reviewer.py",
+        "src/ge_nwp_coordinator/_rw0_d2b_fake_review_model.py",
     }
     findings: list[str] = []
     for relative_path in sorted(EXPECTED_PRODUCTION_PATHS):
@@ -948,6 +966,7 @@ def test_sqlite_import_surface_is_exact() -> None:
     }
     assert sqlite_importers == {
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_bound_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
@@ -973,6 +992,7 @@ def test_c2b2_private_readers_have_no_public_or_production_caller_surface() -> N
     }
     assert importers == {
         "src/ge_nwp_coordinator/_sqlite_development_author_effect_establishment.py",
+        "src/ge_nwp_coordinator/_sqlite_development_bound_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",

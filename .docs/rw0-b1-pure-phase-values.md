@@ -461,3 +461,12 @@ uniqueness, family membership, continuity, replay, or recovery proof. Current
 names, order, nullability, bytes, domains, and budgets remain exactly as they
 are. A later terminal consumer requires its own separately accepted safe-value
 compatibility/versioning contract; this tranche defines no B1 successor value.
+
+### RW0-D2 current private B1 consumers
+
+The bound-effect command imports only `RW0PhaseEntryBasisV1` for exact phase
+basis checking. The D2 A evidence constructor imports the named authority,
+readiness, qualification, and basis values plus their pure validators; the A
+checkpoint imports only the three evidence classes it holds. These are private
+artificial proof consumers and add no B1 schema, source authentication,
+standing authorization, physical host truth, or package export.

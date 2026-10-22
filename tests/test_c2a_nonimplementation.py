@@ -25,6 +25,7 @@ EXPECTED_PRODUCTION_FILES = (
     "_cognitive_proposal_semantic_values.py",
     "_cognitive_proposal_value_support.py",
     "_development_author_effect_establishment_contracts.py",
+    "_development_bound_effect_establishment_contracts.py",
     "_development_pre_execution_plan_disposition_contracts.py",
     "_development_program_initialization_contracts.py",
     "_development_decision_row_values.py",
@@ -43,6 +44,19 @@ EXPECTED_PRODUCTION_FILES = (
     "_rw0_d1_process_frames.py",
     "_rw0_d1_process_supervisor.py",
     "_rw0_d1_workspace.py",
+    "_rw0_d2_offline.py",
+    "_rw0_d2_handback.py",
+    "_rw0_d2a_evidence.py",
+    "_rw0_d2a_fake_reviewer.py",
+    "_rw0_d2a_fake_validator.py",
+    "_rw0_d2a_handback.py",
+    "_rw0_d2a_offline.py",
+    "_rw0_d2a_process_frames.py",
+    "_rw0_d2a_workspace.py",
+    "_rw0_d2b_fake_review_model.py",
+    "_rw0_d2b_model_frames.py",
+    "_rw0_d2b_model_input.py",
+    "_rw0_d2b_proposal.py",
     "_rw0_c1_mutation_contracts.py",
     "_rw0_c1_row_values.py",
     "_rw0_c1_semantic_values.py",
@@ -50,6 +64,7 @@ EXPECTED_PRODUCTION_FILES = (
     "_section41_post_execution_proposal_family_projection.py",
     "_section41_post_execution_role_resolution.py",
     "_sqlite_development_author_effect_establishment.py",
+    "_sqlite_development_bound_effect_establishment.py",
     "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_reader_contracts.py",
     "_sqlite_development_readers.py",
@@ -570,6 +585,13 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
             )
         if model == "CandidateCapsuleManifestV1":
             expected_sources.add(package_dir / "_rw0_c1_semantic_values.py")
+        if model in {
+            "AttemptFenceV1", "EffectFenceV1", "WorkerObservationV1",
+            "CandidateCapsuleManifestV1",
+        }:
+            # D2B carries the frozen model-input profile payloads as supplied
+            # evidence; their schema names do not create a C2A runtime owner.
+            expected_sources.add(package_dir / "_rw0_d2b_model_input.py")
         assert {
             path for path, text in source_text_by_path.items() if schema_id in text
         } == expected_sources

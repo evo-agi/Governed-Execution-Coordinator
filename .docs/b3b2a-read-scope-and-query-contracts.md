@@ -184,3 +184,8 @@ observed maximum-sequence readers, with no production caller.
 B3b2a/B3b2b must remain absent from package-root exports, public `StateStore`,
 CLI, MCP, connectors, reports, examples, and related repositories. The public
 `StateStore` is not widened by B3b2a or B3b2b.
+
+RW0-D2's private bound-effect transaction is an additional exact SQLite
+consumer of the existing nominal read capability and current-global-stop
+reader. It adds no B3b2a query specification, connection owner, public read
+method, or transition/global-stop mutation behavior.
