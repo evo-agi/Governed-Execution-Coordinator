@@ -178,3 +178,31 @@ The original three-observation command and safe-basis bytes remain compatible.
 The bounded offline path still creates no C2 decision, acceptance, live worker,
 provider or ES route, Git/publication effect, or autonomous loop. This
 successor is implementation evidence pending independent review.
+
+<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->
+### Post-D2 cumulative local-commit status
+
+The preceding pending-review sentence is historical implementation-stage
+evidence, superseded only for review and local-commit status. The exact
+sealed tree `3965cd3d1d3e28b43c9bc3709058c2524bad369d` was
+independently reviewed for a separately governed commit gate and locally
+committed as `66ee79132501e636d848ff8578fb674a208d6ac5`. The gate
+reauthenticated all 299 committed blobs and Git modes and recorded 9,295
+collected and 9,295 passing tests, zero failures, errors, or skips, with
+three known Python 3.13 fork deprecation warnings. The two legal D2 layouts,
+typed invalid-evidence stops, and original-run association above are unchanged.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This is historical local-gate evidence, not a live remote-ref or
+publication claim. Git objects and refs remain current commit and publication
+truth. Audit, validation, provenance, reports, and status text are evidence,
+not Coordinator durable authority or effect permission. The artifact-only
+audit did not certify live Git, and the gate proves only its prospective
+opening-to-commit interval; earlier raw-index and diagnostic-ref gaps remain
+unresolved. F03 remains a nonblocking private-constructor observation; F2,
+qualified F3/F6/F7, cross-host clock ordering, and live concerns remain open.
+
+This proof adds no live custody, physical C2 decision or acceptance, terminal
+outcome, executable permission, production provider or worker readiness, ES
+or Bridge route, product Git authority, service, scheduler, or autonomous loop.
+<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->

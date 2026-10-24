@@ -386,4 +386,29 @@ It changes no Capability value, profile, digest, permission, or authority.
 It is implementation evidence pending independent review, not acceptance or
 publication.
 
+### P11 post-D2 cumulative local-commit exact successor
+
+The P11 Unit 2 paragraph above remains the exact historical
+implementation-stage predecessor. Current complete `AGENTS.md` records the
+independent review of exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` for a separately governed
+commit gate and its local commit
+`66ee79132501e636d848ff8578fb674a208d6ac5`. That gate reauthenticated
+all 299 committed blobs and Git modes and recorded 9,295 collected and 9,295
+passing tests, zero failures, errors, or skips, with three known Python 3.13
+fork deprecation warnings. It performed no push, PR, merge, publication,
+deployment, or product effect. This is historical local-gate evidence, not a
+live remote-ref or publication claim. Git objects and refs remain current
+commit and publication truth. Audit, validation, provenance, reports, and
+status text remain evidence, not Coordinator durable authority or effect
+permission. Historical raw-index and diagnostic-ref gaps remain unresolved;
+the artifact-only audit did not certify live Git, and the gate proves only
+its prospective interval. F03 remains a nonblocking private-constructor
+observation; F2, qualified F3/F6/F7, cross-host clock ordering, and live
+concerns remain outside this successor. It adds no live custody, physical C2
+decision or acceptance, terminal outcome, executable permission, production
+provider or worker readiness, ES or Bridge route, product Git authority,
+service, scheduler, or autonomous loop. Capability values, profile, digest,
+qualification, and authority boundaries are unchanged.
+
 <!-- RW0_B2_CAPABILITY_OWNER_END -->

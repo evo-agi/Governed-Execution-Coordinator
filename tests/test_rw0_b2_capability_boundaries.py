@@ -141,7 +141,7 @@ PROTECTED_CONTENT_ROWS = (
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 69392, 'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171',
+    ('P11', 'AGENTS.md', 71265, '1e1159352c56f668bc6a43d3a03124e1db33b60fb0b96aca62b17409c473816e',
      ('authority_non_effect',), 'protected repository governance'),
     ('P12', 'README.md', 48578, 'd39ed1289dd0d4305ea0744a12186d12b2e3ecdafdfd991ff9e838b9764ec8e2',
      ('authority_non_effect',), 'protected public claims'),
@@ -922,8 +922,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (69392,
-                                  'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171'),
+         'replacement_identity': (71265,
+                                  '1e1159352c56f668bc6a43d3a03124e1db33b60fb0b96aca62b17409c473816e'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -1039,6 +1039,113 @@ def test_capability_semantic_integrity_hostile(case):
         _assert_capability_semantic_integrity(observed, CAPABILITY_REPLACEMENT_EXPECTED)
 
 
+# P11 cumulative local commit is an exact append-only successor to Unit 2.
+_P11_LOCAL_COMMIT_PREDECESSOR_IDENTITY = (69392, 'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171')
+_P11_LOCAL_COMMIT_SUCCESSOR_IDENTITY = (71265, '1e1159352c56f668bc6a43d3a03124e1db33b60fb0b96aca62b17409c473816e')
+_P11_LOCAL_COMMIT_NEW = b'''
+<!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 cumulative local-commit status successor
+
+The bounded post-D2 implementation in the exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` was independently reviewed
+for a separately governed commit gate. That gate locally committed those
+bytes as `66ee79132501e636d848ff8578fb674a208d6ac5`, reauthenticated all
+299 committed blobs and Git modes, and recorded 9,295 collected and 9,295
+passing tests, zero failures, errors, or skips, and three known Python 3.13
+fork deprecation warnings. The earlier Unit 2 pending-review sentence remains
+historical candidate-stage evidence and is superseded only for review and
+local-commit status.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This is a historical local-gate statement, not a live remote-ref or
+publication claim. Git objects and refs remain authoritative for current
+commit and publication truth. Audit, validation, provenance, reports, and
+status text remain evidence, not Coordinator durable authority or permission
+to perform effects. The artifact-only audit did not certify live Git state;
+the gate proves only its prospective opening-to-commit interval. Earlier
+raw-index and diagnostic-ref provenance gaps remain unresolved history. F03
+remains a nonblocking private-constructor observation; F2 and qualified
+F3/F6/F7 findings, cross-host clock ordering, and future live concerns are
+not claimed closed.
+
+This implementation adds no live custody, physical C2 decision or acceptance,
+terminal outcome, executable permission, production provider or worker
+readiness, ES or Bridge route, product Git authority, service, scheduler, or
+autonomous loop. The original D2 entry and Unit 2 behavioral boundaries above
+remain unchanged.
+<!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->
+'''
+
+
+def _p11_reconstruct_exact_local_commit_predecessor(candidate: bytes) -> bytes:
+    begin = b'<!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_BEGIN -->'
+    end = b'<!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->'
+    if (type(candidate) is not bytes or candidate.count(_P11_LOCAL_COMMIT_NEW) != 1
+            or candidate.count(begin) != 1 or candidate.count(end) != 1):
+        raise AssertionError('p11:local_commit_successor_count')
+    if not candidate.endswith(_P11_LOCAL_COMMIT_NEW):
+        raise AssertionError('p11:local_commit_successor_context')
+    predecessor = candidate[:-len(_P11_LOCAL_COMMIT_NEW)]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _P11_LOCAL_COMMIT_PREDECESSOR_IDENTITY:
+        raise AssertionError('p11:local_commit_predecessor_identity')
+    if not predecessor.endswith(b'<!-- POST_D2_UNIT2_CURRENT_SUCCESSOR_END -->\n'):
+        raise AssertionError('p11:local_commit_predecessor_context')
+    compact = b' '.join(_P11_LOCAL_COMMIT_NEW.split())
+    required = (
+        b'3965cd3d1d3e28b43c9bc3709058c2524bad369d',
+        b'66ee79132501e636d848ff8578fb674a208d6ac5',
+        b'independently reviewed', b'299 committed blobs and Git modes',
+        b'9,295 collected and 9,295 passing tests',
+        b'no push, PR, merge, publication, deployment, or product effect',
+        b'not a live remote-ref', b'Git objects and refs remain authoritative',
+        b'not Coordinator durable authority or permission to perform effects',
+        b'no live custody, physical C2 decision or acceptance',
+        b'no live custody, physical C2 decision or acceptance, terminal outcome, executable permission',
+        b'production provider or worker readiness', b'product Git authority',
+        b'service, scheduler, or autonomous loop',
+    )
+    if any(fragment not in compact for fragment in required):
+        raise AssertionError('p11:local_commit_semantics')
+    return predecessor
+
+
+def test_p11_exact_local_commit_successor_reconstructs_full_history() -> None:
+    current = (ROOT / 'AGENTS.md').read_bytes()
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_LOCAL_COMMIT_SUCCESSOR_IDENTITY
+    unit2 = _p11_reconstruct_exact_local_commit_predecessor(current)
+    assert unit2 + _P11_LOCAL_COMMIT_NEW == current
+    native = _p11_reconstruct_exact_unit2_predecessor(unit2)
+    d2 = _p11_reconstruct_exact_post_d2_predecessor(native)
+    historical = _p11_reconstruct_exact_status_predecessor(d2)
+    assert (len(historical), hashlib.sha256(historical).hexdigest()) == _P11_STATUS_PREDECESSOR_IDENTITY
+
+
+@pytest.mark.parametrize(('case', 'boundary'), (
+    ('missing', 'p11:local_commit_successor_count'),
+    ('duplicate', 'p11:local_commit_successor_count'),
+    ('moved', 'p11:local_commit_successor_context'),
+    ('semantic_change', 'p11:local_commit_successor_count'),
+    ('outside_change', 'p11:local_commit_predecessor_identity'),
+))
+def test_p11_local_commit_successor_rejects_exact_mutants(case: str, boundary: str) -> None:
+    current = (ROOT / 'AGENTS.md').read_bytes()
+    predecessor = _p11_reconstruct_exact_local_commit_predecessor(current)
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + _P11_LOCAL_COMMIT_NEW
+    elif case == 'moved':
+        changed = _P11_LOCAL_COMMIT_NEW + predecessor
+    elif case == 'semantic_change':
+        changed = current.replace(b'no push, PR, merge', b'did push, PR, merge', 1)
+    else:
+        changed = current.replace(b'Coordinator cannot self-authorize',
+                                  b'Coordinator cannoX self-authorize', 1)
+    assert changed != current
+    with pytest.raises(AssertionError, match='^' + boundary + '$'):
+        _p11_reconstruct_exact_local_commit_predecessor(changed)
+
+
 # P11 Unit 2 is an exact append-only successor to the 67,252-byte identity.
 _P11_UNIT2_PREDECESSOR_IDENTITY = (67252, '24a17a3c87b92306837bf18e69e2d425919aa9c57f01a307d3fdb018a124c728')
 _P11_UNIT2_SUCCESSOR_IDENTITY = (69392, 'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171')
@@ -1101,7 +1208,7 @@ def _p11_reconstruct_exact_unit2_predecessor(candidate: bytes) -> bytes:
 
 
 def test_p11_exact_unit2_successor_reconstructs_all_predecessors() -> None:
-    current = (ROOT / 'AGENTS.md').read_bytes()
+    current = _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_UNIT2_SUCCESSOR_IDENTITY
     prior = _p11_reconstruct_exact_unit2_predecessor(current)
     assert prior + _P11_UNIT2_NEW == current
@@ -1117,7 +1224,7 @@ def test_p11_exact_unit2_successor_reconstructs_all_predecessors() -> None:
     ('outside_change', 'p11:unit2_predecessor_identity'),
 ))
 def test_p11_unit2_successor_rejects_exact_mutants(case: str, boundary: str) -> None:
-    current = (ROOT / 'AGENTS.md').read_bytes()
+    current = _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
     predecessor = _p11_reconstruct_exact_unit2_predecessor(current)
     if case == 'missing':
         changed = predecessor
@@ -1187,7 +1294,9 @@ def _p11_reconstruct_exact_post_d2_predecessor(candidate: bytes) -> bytes:
 
 
 def test_p11_exact_native_post_d2_successor_reconstructs_integrated_predecessor() -> None:
-    current = _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    current = _p11_reconstruct_exact_unit2_predecessor(
+        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    )
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_POST_D2_SUCCESSOR_IDENTITY
     predecessor = _p11_reconstruct_exact_post_d2_predecessor(current)
     assert predecessor + _P11_POST_D2_NEW == current
@@ -1207,7 +1316,9 @@ def test_p11_exact_native_post_d2_successor_reconstructs_integrated_predecessor(
 def test_p11_native_post_d2_successor_rejects_exact_mutants(
     case: str, boundary: str,
 ) -> None:
-    current = _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    current = _p11_reconstruct_exact_unit2_predecessor(
+        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    )
     predecessor = _p11_reconstruct_exact_post_d2_predecessor(current)
     if case == 'missing':
         changed = predecessor
@@ -1315,7 +1426,9 @@ def _p11_reconstruct_exact_status_predecessor(candidate: bytes) -> bytes:
 
 
 def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> None:
-    current = _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    current = _p11_reconstruct_exact_unit2_predecessor(
+        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    )
     historical_current = _p11_reconstruct_exact_post_d2_predecessor(current)
     assert (len(historical_current), hashlib.sha256(historical_current).hexdigest()) == _P11_STATUS_SUCCESSOR_IDENTITY
     predecessor = _p11_reconstruct_exact_status_predecessor(historical_current)
@@ -1351,7 +1464,9 @@ def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> N
 ))
 def test_p11_status_successor_rejects_bounded_mutations(case: str, boundary: str) -> None:
     current = _p11_reconstruct_exact_post_d2_predecessor(
-        _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+        _p11_reconstruct_exact_unit2_predecessor(
+        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    )
     )
     assert _p11_reconstruct_exact_status_predecessor(current)
     if case == 'fully_stale':
@@ -1410,3 +1525,166 @@ def test_p11_status_successor_rejects_bounded_mutations(case: str, boundary: str
         assert changed.count(_P11_NEW_TOP) == changed.count(_P11_NEW_BOTTOM) == 1
     with pytest.raises(AssertionError, match='^' + boundary + '$'):
         _p11_reconstruct_exact_status_predecessor(changed)
+
+
+_D2_LOCAL_COMMIT_PREDECESSOR_IDENTITY = (12012, 'd5420bdf363aa09d896ab9711c6a700c95e6c55267e7e1e8b9feb264acaec646')
+_SECTION41_LOCAL_COMMIT_PREDECESSOR_IDENTITY = (12956, '727a5048a0aafc26ad8676a76ac47377c83c8958d9f5976e84d47a84fabb5e90')
+_CAPABILITY_LOCAL_COMMIT_PREDECESSOR_IDENTITY = (19883, '8fdfc493a3ecf78ee3020a83687466812fab1687f46d2f279c694cf079999129')
+_D2_LOCAL_COMMIT_NEW = b'''
+<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->
+### Post-D2 cumulative local-commit status
+
+The preceding pending-review sentence is historical implementation-stage
+evidence, superseded only for review and local-commit status. The exact
+sealed tree `3965cd3d1d3e28b43c9bc3709058c2524bad369d` was
+independently reviewed for a separately governed commit gate and locally
+committed as `66ee79132501e636d848ff8578fb674a208d6ac5`. The gate
+reauthenticated all 299 committed blobs and Git modes and recorded 9,295
+collected and 9,295 passing tests, zero failures, errors, or skips, with
+three known Python 3.13 fork deprecation warnings. The two legal D2 layouts,
+typed invalid-evidence stops, and original-run association above are unchanged.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This is historical local-gate evidence, not a live remote-ref or
+publication claim. Git objects and refs remain current commit and publication
+truth. Audit, validation, provenance, reports, and status text are evidence,
+not Coordinator durable authority or effect permission. The artifact-only
+audit did not certify live Git, and the gate proves only its prospective
+opening-to-commit interval; earlier raw-index and diagnostic-ref gaps remain
+unresolved. F03 remains a nonblocking private-constructor observation; F2,
+qualified F3/F6/F7, cross-host clock ordering, and live concerns remain open.
+
+This proof adds no live custody, physical C2 decision or acceptance, terminal
+outcome, executable permission, production provider or worker readiness, ES
+or Bridge route, product Git authority, service, scheduler, or autonomous loop.
+<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->
+'''
+_SECTION41_LOCAL_COMMIT_NEW = b'''
+<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->
+### Post-D2 cumulative local-commit status
+
+The opening selected-contract status and the preceding outstanding-review
+sentence are historical design and implementation-stage statements. The
+bounded offline implementation in exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` was independently reviewed
+for a separately governed commit gate and locally committed as
+`66ee79132501e636d848ff8578fb674a208d6ac5`. The gate reauthenticated
+all 299 committed blobs and Git modes and recorded 9,295 collected and 9,295
+passing tests, zero failures, errors, or skips, with three known Python 3.13
+fork deprecation warnings. The A/B split, original-run fresh association,
+receipt-first replay, checked readback, schema, and recovery above retain
+their exact bounds.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This is a historical local-gate statement, not a live remote-ref or
+publication claim. Git objects and refs remain current commit and publication
+truth. Audit, validation, provenance, reports, and status text are evidence,
+not Coordinator durable authority or effect permission. The artifact-only
+audit did not certify live Git; the gate proves only its prospective
+opening-to-commit interval. Earlier raw-index and diagnostic-ref gaps remain
+unresolved. F03 remains a nonblocking private-constructor observation; F2,
+qualified F3/F6/F7, cross-host clock ordering, and live concerns remain open.
+
+This implementation adds no live custody, physical C2 decision or acceptance,
+terminal outcome, executable permission, production provider or worker
+readiness, ES or Bridge route, product Git authority, service, scheduler, or
+autonomous loop.
+<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->
+'''
+_CAPABILITY_LOCAL_COMMIT_NEW = b'''### P11 post-D2 cumulative local-commit exact successor
+
+The P11 Unit 2 paragraph above remains the exact historical
+implementation-stage predecessor. Current complete `AGENTS.md` records the
+independent review of exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` for a separately governed
+commit gate and its local commit
+`66ee79132501e636d848ff8578fb674a208d6ac5`. That gate reauthenticated
+all 299 committed blobs and Git modes and recorded 9,295 collected and 9,295
+passing tests, zero failures, errors, or skips, with three known Python 3.13
+fork deprecation warnings. It performed no push, PR, merge, publication,
+deployment, or product effect. This is historical local-gate evidence, not a
+live remote-ref or publication claim. Git objects and refs remain current
+commit and publication truth. Audit, validation, provenance, reports, and
+status text remain evidence, not Coordinator durable authority or effect
+permission. Historical raw-index and diagnostic-ref gaps remain unresolved;
+the artifact-only audit did not certify live Git, and the gate proves only
+its prospective interval. F03 remains a nonblocking private-constructor
+observation; F2, qualified F3/F6/F7, cross-host clock ordering, and live
+concerns remain outside this successor. It adds no live custody, physical C2
+decision or acceptance, terminal outcome, executable permission, production
+provider or worker readiness, ES or Bridge route, product Git authority,
+service, scheduler, or autonomous loop. Capability values, profile, digest,
+qualification, and authority boundaries are unchanged.
+
+'''
+
+
+def _assert_exact_appended_owner_status(candidate: bytes, addition: bytes, predecessor_identity: tuple[int, str], begin: bytes, end: bytes) -> bytes:
+    if (type(candidate) is not bytes or candidate.count(addition) != 1
+            or candidate.count(begin) != 1 or candidate.count(end) != 1):
+        raise AssertionError('owner:successor_count')
+    if not candidate.endswith(addition):
+        raise AssertionError('owner:successor_context')
+    predecessor = candidate[:-len(addition)]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != predecessor_identity:
+        raise AssertionError('owner:predecessor_identity')
+    return predecessor
+
+
+def test_subordinate_post_d2_owner_statuses_reconstruct_exact_predecessors() -> None:
+    d2_prior = _assert_exact_appended_owner_status(
+        (ROOT / '.docs/rw0-d2-offline-evidence-and-review.md').read_bytes(),
+        _D2_LOCAL_COMMIT_NEW, _D2_LOCAL_COMMIT_PREDECESSOR_IDENTITY,
+        b'<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->',
+        b'<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->')
+    assert b'implementation evidence pending independent review' in d2_prior
+    section_prior = _assert_exact_appended_owner_status(
+        (ROOT / '.docs/section41-post-execution-proposal-family.md').read_bytes(),
+        _SECTION41_LOCAL_COMMIT_NEW, _SECTION41_LOCAL_COMMIT_PREDECESSOR_IDENTITY,
+        b'<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->',
+        b'<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->')
+    assert b'Independent review remains\noutstanding.' in section_prior
+    assert b'selected contract' in section_prior.lower()
+    capability = (ROOT / '.docs/rw0-b2-capability.md').read_bytes()
+    ending = b'<!-- RW0_B2_CAPABILITY_OWNER_END -->\n'
+    if capability.count(_CAPABILITY_LOCAL_COMMIT_NEW) != 1 or not capability.endswith(_CAPABILITY_LOCAL_COMMIT_NEW + ending):
+        raise AssertionError('capability:successor_context')
+    cap_prior = capability[:-len(_CAPABILITY_LOCAL_COMMIT_NEW + ending)] + ending
+    assert (len(cap_prior), hashlib.sha256(cap_prior).hexdigest()) == _CAPABILITY_LOCAL_COMMIT_PREDECESSOR_IDENTITY
+    assert b'implementation evidence pending independent review' in cap_prior
+    required = (
+        b'3965cd3d1d3e28b43c9bc3709058c2524bad369d',
+        b'66ee79132501e636d848ff8578fb674a208d6ac5',
+        b'299 committed blobs and Git modes', b'9,295', b'no push, PR, merge',
+        b'not a live remote-ref', b'Git objects and refs remain',
+        b'not Coordinator durable authority', b'no live custody',
+        b'physical C2 decision or acceptance', b'executable permission',
+        b'ES or Bridge route', b'product Git authority',
+        b'service, scheduler, or autonomous loop',
+    )
+    for addition in (_D2_LOCAL_COMMIT_NEW, _SECTION41_LOCAL_COMMIT_NEW, _CAPABILITY_LOCAL_COMMIT_NEW):
+        compact = b' '.join(addition.split())
+        assert all(fragment in compact for fragment in required)
+
+
+@pytest.mark.parametrize('owner', ('d2', 'section41'))
+def test_subordinate_appended_owner_status_rejects_missing_and_outside_changes(owner):
+    paths = {
+        'd2': ('.docs/rw0-d2-offline-evidence-and-review.md', _D2_LOCAL_COMMIT_NEW,
+               _D2_LOCAL_COMMIT_PREDECESSOR_IDENTITY,
+               b'<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->',
+               b'<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->'),
+        'section41': ('.docs/section41-post-execution-proposal-family.md',
+                      _SECTION41_LOCAL_COMMIT_NEW, _SECTION41_LOCAL_COMMIT_PREDECESSOR_IDENTITY,
+                      b'<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->',
+                      b'<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->'),
+    }
+    path, addition, identity, begin, end = paths[owner]
+    current = (ROOT / path).read_bytes()
+    prior = _assert_exact_appended_owner_status(current, addition, identity, begin, end)
+    for changed, boundary in ((prior, 'owner:successor_count'),
+                              (current + addition, 'owner:successor_count'),
+                              (addition + prior, 'owner:successor_context'),
+                              (b'X' + current, 'owner:predecessor_identity')):
+        with pytest.raises(AssertionError, match='^' + boundary + '$'):
+            _assert_exact_appended_owner_status(changed, addition, identity, begin, end)
