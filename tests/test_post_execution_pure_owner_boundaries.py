@@ -123,6 +123,10 @@ CURRENT_D2_CONSUMERS = {
         "src/ge_nwp_coordinator/_rw0_d2b_model_input.py",
         "src/ge_nwp_coordinator/_rw0_d2b_proposal.py",
         "src/ge_nwp_coordinator/_rw0_d2_handback.py",
+        "src/ge_nwp_coordinator/_rw0_d2_post_execution_continuation.py",
+        "src/ge_nwp_coordinator/_section41_post_execution_proposal_mutation_contracts.py",
+        "src/ge_nwp_coordinator/_section41_post_execution_proposal_row_values.py",
+        "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
     }),
     "_post_execution_policy_values.py": frozenset({
         "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
@@ -132,7 +136,9 @@ CURRENT_D2_CONSUMERS = {
         "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
         "src/ge_nwp_coordinator/_rw0_d2a_handback.py",
     }),
-    "_section41_post_execution_proposal_family_projection.py": frozenset(),
+    "_section41_post_execution_proposal_family_projection.py": frozenset({
+        "src/ge_nwp_coordinator/_rw0_d2_post_execution_continuation.py",
+    }),
     "_section41_post_execution_role_resolution.py": frozenset(),
     "_rw0_c_decision_input_values.py": frozenset(),
 }
@@ -198,14 +204,16 @@ def test_no_io_sqlite_runtime_or_external_effect_imports() -> None:
         assert {"open", "exec", "eval", "compile"}.isdisjoint(calls), relative
 
 
-def test_no_migration_0005_and_catalog_stays_0001_through_0004() -> None:
+def test_section41_0005_is_exact_and_no_c2_suffix_is_present() -> None:
     migrations = sorted(path.name for path in (SOURCE / "sqlite_migrations").glob("*.sql"))
     assert migrations == [
         "0001_initial.sql",
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
+        "0005_section41_post_execution_proposal_family.sql",
     ]
+    assert not list((SOURCE / "sqlite_migrations").glob("0006*"))
     assert not (SOURCE / "sqlite_state.py").exists()
 
 
@@ -343,7 +351,9 @@ def test_each_of_8_remaining_seams_is_concretely_absent_and_non_authorizing(reco
             "_rw0_d1_pre_execution.py", "_rw0_d1_handback.py",
             "_rw0_d1_offline.py",
         }
-        assert {path.name for path in SOURCE.glob("_rw0_d2*.py")} == CURRENT_D2_SOURCE_FILES
+        assert {path.name for path in SOURCE.glob("_rw0_d2*.py")} == (
+            CURRENT_D2_SOURCE_FILES | {"_rw0_d2_post_execution_continuation.py"}
+        )
         assert not tuple(SOURCE.glob("_rw0_e*.py"))
         assert "_rw0_d1_" not in combined
         assert "_rw0_d1_" not in (SOURCE / "__init__.py").read_text()

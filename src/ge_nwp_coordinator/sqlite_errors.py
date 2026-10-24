@@ -22,6 +22,9 @@ class SQLiteStateErrorCode(str, Enum):
     SCHEMA_VERIFICATION_FAILED = "schema_verification_failed"
     SCHEMA_FINGERPRINT_MISMATCH = "schema_fingerprint_mismatch"
     SQLITE_POSTURE_UNAVAILABLE = "sqlite_posture_unavailable"
+    RECOVERY_NEEDED = "recovery_needed"
+    RECOVERY_UNSAFE = "recovery_unsafe"
+    RECOVERY_UNRESOLVED = "recovery_unresolved"
 
 
 class SQLiteMutationStoreErrorCode(str, Enum):

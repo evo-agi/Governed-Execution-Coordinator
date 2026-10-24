@@ -695,3 +695,7 @@ admission, terminal acceptance, ES route, live provider, production adapter,
 or migration 0005. External-copy validation and independent audit are separate
 gates; this source status grants neither. `.docs/rw0-d2-offline-evidence-and-review.md` is the detailed owner.
 <!-- RW0_D2_CURRENT_STATUS_END -->
+
+### Native post-D2 offline proposal admission successor
+
+The private adjacent post-D2 continuation now runs the original D2 proof once, records a native Section 41 post-execution proposal family in fenced transaction A, checks its twelve persisted common owner rows, admits one C1 rank-15 member in separate transaction B, and feeds fresh guarded readbacks to unchanged pure V22. The five model recommendations remain proposal evidence. This does not make a C2 decision, acceptance, terminal outcome or executable permission. The current packaged SQLite tip is additive migration `0005_section41_post_execution_proposal_family`, still generation 2; exact 0004 databases require explicit administrative migration. The bounded owner is `.docs/section41-post-execution-proposal-family.md`; earlier 0004-tip and absent-0005 status text describes the preserved D2/C1 historical tranches.

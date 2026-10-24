@@ -4020,7 +4020,8 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        # The named current successor follows the historical bounded block.
+        (3, "Post-D2 native proposal admission successor"),
     ),
     _CrossReferenceOwnerSpec(
         "README.md",
@@ -4029,7 +4030,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ((1, "NWP Coordinator"), (2, "Narrowed first vertical-slice target")),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, "Native post-D2 offline proposal admission successor"),
     ),
     _CrossReferenceOwnerSpec(
         ".docs/c2a-first-slice-semantic-protocol-contract.md",
@@ -4105,7 +4106,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, "Section 41 migration 0005 additive successor"),
     ),
     _CrossReferenceOwnerSpec(
         ".docs/sqlite-operations-and-recovery.md",
@@ -4117,7 +4118,7 @@ _CROSS_REFERENCE_OWNER_INVENTORY = (
         ),
         _CROSS_REFERENCE_BEGIN,
         _CROSS_REFERENCE_END,
-        None,
+        (3, "Section 41 0005 operator and mutation recovery successor"),
     ),
     _CrossReferenceOwnerSpec(
         ".docs/sqlite-threat-model.md",

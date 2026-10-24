@@ -284,3 +284,28 @@ family returns the actual persisted member, relation operands, and typed value;
 the parent refuses supplied expected rows as readback. Rank 15 and the durable
 post-execution Section 41 proposal family remain absent. Admission does not
 guarantee future currentness or C2 completeness, decision, or acceptance.
+
+### Post-D2 rank-15 checked-reader successor
+
+A separate Section 41 transaction now owns the persisted post-execution source, artifact, proposal, nine evidence rows, context and receipt. C1 still owns only its own single-member rank-15 admission and frozen twelve-common-owner-row graph. Its private checked readback now accepts rank 15, including a recovery-selector path that reconstructs the committed result from already persisted C1 rows after read-only three-way recovery; it never reissues B to compensate for a lost response. C1's kind inventory, generic 0-or-9 Section 41 representation, admission grammar, receipt-first replay and recovery semantics are unchanged. The post-D2 owner is `.docs/section41-post-execution-proposal-family.md`; C1 has no C2 decision or acceptance authority.
+
+### Unit 2 checked-layout successor
+
+The D2 A producer now supports the two legal complete Worker Wire observation
+orders: `worker_started, worker_completed` and `worker_started,
+candidate_captured, worker_completed`. The respective checked C1 family
+rank sequences are `(12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)` and
+`(12, 12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)`. A single private D2
+layout resolver ties each ordinal and reached prefix to the actual D1 Wire
+result. The optional worker-authored capture observation is distinct from D1
+parent-owned candidate capture; its omission carries no negative candidate
+claim. V40 binds the parent capsule, rank-13 worker-result candidate, review
+observation, and exact checked membership/relation rows for either layout.
+
+A clean malformed validator/reviewer response is a typed D2 stop at the
+validation-qualification or review-qualification prefix, respectively. No
+invalid observation is admitted. C1 itself retains its existing admission,
+receipt, replay, recovery, and rank-15 authority. Neither layout or typed
+stop adds a C2 decision, acceptance, executable permission, or new durable
+schema. Earlier 14-only D2 A statements above describe the reviewed D2 v1
+tranche and are superseded for current D2 A behavior by this successor.

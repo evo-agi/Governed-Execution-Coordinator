@@ -45,6 +45,22 @@ class _SQLiteOperationalPostureError(SQLiteStateError):
     """Private marker for operational posture failures without raw details."""
 
 
+_SQLITE_READONLY_ROLLBACK = 776
+
+
+def _is_engine_reported_readonly_rollback(error: sqlite3.Error) -> bool:
+    """Use only SQLite's exact extended result, never message or primary code."""
+
+    code = getattr(error, "sqlite_errorcode", None)
+    return type(code) is int and code == _SQLITE_READONLY_ROLLBACK
+
+
+def _safe_observational_sqlite_error(error: sqlite3.Error) -> SQLiteStateError:
+    if _is_engine_reported_readonly_rollback(error):
+        return SQLiteStateError(SQLiteStateErrorCode.RECOVERY_NEEDED)
+    return _SQLiteOperationalPostureError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+
+
 _RETAINED_CONNECTION_CONSTRUCTION_KEY = object()
 _CLOSE_PROOF_CONSTRUCTION_KEY = object()
 _WRITER_SESSION_RESOURCE_IDENTITY_CONSTRUCTION_KEY = object()
@@ -313,7 +329,7 @@ def open_existing_sqlite_connection(
     connection = _connect_uri(f"{database_path.as_uri()}?mode={mode}", busy_timeout_ms=busy_timeout_ms)
     try:
         apply_observational_connection_posture(connection, busy_timeout_ms=busy_timeout_ms)
-    except Exception:
+    except BaseException:
         connection.close()
         raise
     return connection
@@ -323,6 +339,7 @@ def _open_bound_existing_sqlite_connection(
     binding: _StateDatabaseAuthorityBinding,
     *,
     read_only: bool,
+    recovery: bool = False,
     busy_timeout_ms: int = DEFAULT_BUSY_TIMEOUT_MS,
 ) -> sqlite3.Connection:
     if type(binding) is not _StateDatabaseAuthorityBinding:
@@ -344,6 +361,8 @@ def _open_bound_existing_sqlite_connection(
             f"{database_path.resolve(strict=True).as_uri()}?mode={mode}",
             busy_timeout_ms=busy_timeout_ms,
         )
+        if recovery:
+            _apply_pre_recovery_connection_controls(connection, busy_timeout_ms)
         _validate_state_database_authority_binding(binding)
         apply_observational_connection_posture(connection, busy_timeout_ms=busy_timeout_ms)
         _validate_state_database_authority_binding(binding)
@@ -358,6 +377,10 @@ def _open_bound_existing_sqlite_connection(
         if connection is not None:
             _close_rejected_bound_connection(connection)
         failure = _StateDatabaseAuthorityBindingUnavailable(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        if connection is not None:
+            _close_rejected_bound_connection(connection)
+        raise
     finally:
         _close_descriptor(database_descriptor)
         _close_descriptor(root_descriptor)
@@ -371,6 +394,24 @@ def _close_rejected_bound_connection(connection: sqlite3.Connection) -> None:
         connection.close()
     except Exception:
         pass
+
+
+def _apply_pre_recovery_connection_controls(
+    connection: sqlite3.Connection, busy_timeout_ms: int
+) -> None:
+    """Set nonpersistent controls before the first posture/database read.
+
+    Python exposes no pre-connect PRAGMA hook. The checked journal entry is
+    therefore established before connect, and this is the first API opportunity.
+    """
+
+    _require_bounded_busy_timeout(busy_timeout_ms)
+    _disable_extension_loading(connection)
+    connection.execute("PRAGMA trusted_schema = OFF")
+    connection.execute("PRAGMA synchronous = FULL")
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA locking_mode = NORMAL")
+    _set_busy_timeout(connection, busy_timeout_ms)
 
 
 def apply_connection_posture(
@@ -427,8 +468,8 @@ def apply_observational_connection_posture(
             extension_loading_disabled=True,
             explicit_transaction_control=connection.isolation_level is None,
         )
-    except sqlite3.Error:
-        raise _SQLiteOperationalPostureError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
+    except sqlite3.Error as exc:
+        raise _safe_observational_sqlite_error(exc) from None
     except (TypeError, ValueError):
         raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
     _verify_nonpersistent_posture(posture, busy_timeout_ms)
@@ -454,8 +495,8 @@ def _connect_uri(uri: str, *, busy_timeout_ms: int) -> sqlite3.Connection:
             isolation_level=None,
             uri=True,
         )
-    except sqlite3.Error:
-        raise SQLiteStateError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
+    except sqlite3.Error as exc:
+        raise _safe_observational_sqlite_error(exc) from None
 
 
 def _disable_extension_loading(connection: sqlite3.Connection) -> None:
@@ -463,8 +504,8 @@ def _disable_extension_loading(connection: sqlite3.Connection) -> None:
     if callable(enable_load_extension):
         try:
             enable_load_extension(False)
-        except sqlite3.Error:
-            raise _SQLiteOperationalPostureError(SQLiteStateErrorCode.SQLITE_POSTURE_UNAVAILABLE) from None
+        except sqlite3.Error as exc:
+            raise _safe_observational_sqlite_error(exc) from None
 
 
 def _set_busy_timeout(connection: sqlite3.Connection, busy_timeout_ms: int) -> None:
@@ -490,7 +531,9 @@ def _disable_trusted_schema(connection: sqlite3.Connection) -> tuple[bool, bool 
     try:
         connection.execute("PRAGMA trusted_schema = OFF")
         row = connection.execute("PRAGMA trusted_schema").fetchone()
-    except sqlite3.Error:
+    except sqlite3.Error as exc:
+        if _is_engine_reported_readonly_rollback(exc):
+            raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_NEEDED) from None
         return False, None
     if row is None:
         return False, None

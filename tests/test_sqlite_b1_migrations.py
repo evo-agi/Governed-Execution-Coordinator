@@ -90,6 +90,8 @@ EXPECTED_TABLES = {
     "rw0_section41_post_execution_proposal_family_members",
     "rw0_authority_observation_effect_classes",
     "rw0_c2a_worker_observation_evidence_refs",
+    "development_post_execution_proposal_contexts",
+    "development_post_execution_proposal_receipts",
 }
 
 EXPECTED_LITERAL_MIGRATION_CATALOG = (
@@ -125,6 +127,15 @@ EXPECTED_LITERAL_MIGRATION_CATALOG = (
         "0004_rw0_c1_durable_evidence",
         "0004_rw0_c1_durable_evidence.sql",
         "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec",
+        2,
+        2,
+        False,
+    ),
+    (
+        5,
+        "0005_section41_post_execution_proposal_family",
+        "0005_section41_post_execution_proposal_family.sql",
+        "583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87",
         2,
         2,
         False,
@@ -175,15 +186,22 @@ def test_sqlite_state_error_code_inventory_preserves_prior_order_and_freezes_fin
     observed_iteration = tuple(
         (member.name, member.value) for member in SQLiteStateErrorCode
     )
+    f1_successor = (
+        ("RECOVERY_NEEDED", "recovery_needed"),
+        ("RECOVERY_UNSAFE", "recovery_unsafe"),
+        ("RECOVERY_UNRESOLVED", "recovery_unresolved"),
+    )
+    observed_c2b1 = observed_members[: len(C2B1_SQLITE_STATE_ERROR_CODES)]
     observed_prior = tuple(
         item
-        for item in observed_members
+        for item in observed_c2b1
         if item[0] != "MIGRATION_OUTCOME_UNRESOLVED"
     )
-    observed_new = tuple(item for item in observed_members if item not in observed_prior)
+    observed_new = tuple(item for item in observed_c2b1 if item not in observed_prior)
 
-    assert observed_members == C2B1_SQLITE_STATE_ERROR_CODES
-    assert observed_iteration == C2B1_SQLITE_STATE_ERROR_CODES
+    assert observed_c2b1 == C2B1_SQLITE_STATE_ERROR_CODES
+    assert observed_members[len(C2B1_SQLITE_STATE_ERROR_CODES) :] == f1_successor
+    assert observed_iteration == observed_members
     assert observed_prior == PRE_C2B1_SQLITE_STATE_ERROR_CODES
     assert observed_new == (
         ("MIGRATION_OUTCOME_UNRESOLVED", "migration_outcome_unresolved"),
@@ -405,6 +423,16 @@ def _catalog_row_0004(
     )
 
 
+def _catalog_row_0005(
+    *, migration_id: str | None = None, sequence: int = 5,
+    checksum: str | None = None,
+    applied_at: str = "2026-07-16T00:00:00Z",
+) -> tuple[str, int, str, str, int, int]:
+    expected = EXPECTED_LITERAL_MIGRATION_CATALOG[4]
+    return (migration_id or expected[1], sequence, checksum or expected[3],
+            applied_at, 2, 2)
+
+
 def _migration_catalog_projection(
     catalog: MigrationCatalog,
 ) -> tuple[tuple[int, str, str, str, int, int, bool], ...]:
@@ -589,9 +617,9 @@ def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 4
-    assert inspection.latest_sequence == 4
-    assert inspection.current_migration_id == "0004_rw0_c1_durable_evidence"
+    assert inspection.current_sequence == 5
+    assert inspection.latest_sequence == 5
+    assert inspection.current_migration_id == "0005_section41_post_execution_proposal_family"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
@@ -662,7 +690,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 4
+    assert _count(location, "schema_migrations") == 5
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -673,7 +701,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 4
+    assert inspection.current_sequence == inspection.latest_sequence == 5
     assert _file_digest(location.database_path) == before
 
 
@@ -681,7 +709,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=5) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=6) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
         ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
@@ -711,7 +739,8 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
             _catalog_row_0002(),
             _catalog_row_0003(),
             _catalog_row_0004(),
-            _catalog_row_0004(migration_id="0005_future", sequence=5),
+            _catalog_row_0005(),
+            _catalog_row_0005(migration_id="0006_future", sequence=6),
         ],
     )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")

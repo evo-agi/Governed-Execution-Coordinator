@@ -18,6 +18,8 @@ from ge_nwp_coordinator.sqlite_location import (
 
 _PRIVATE_DIR_MODE = 0o700
 _PRIVATE_FILE_MODE = 0o600
+_ROLLBACK_JOURNAL_MAGIC = bytes.fromhex("d9d505f920a163d7")
+_ROLLBACK_JOURNAL_NAME = COORDINATOR_DATABASE_FILENAME + "-journal"
 
 
 class _StateDatabaseAuthorityBindingMismatch(SQLiteStateError):
@@ -211,6 +213,106 @@ def _validate_state_database_authority_binding(binding: _StateDatabaseAuthorityB
     )
     if not binding._same_authority_as(current):
         raise _StateDatabaseAuthorityBindingMismatch(SQLiteStateErrorCode.UNSAFE_DATABASE_FILE)
+
+
+def _require_recovery_private_file(metadata: os.stat_result) -> None:
+    try:
+        _validate_private_regular_file_metadata(metadata, SQLiteStateErrorCode.RECOVERY_UNSAFE)
+    except SQLiteStateError:
+        raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE) from None
+    if stat.S_IMODE(metadata.st_mode) != _PRIVATE_FILE_MODE:
+        raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+
+
+def _same_recovery_journal_snapshot(first: os.stat_result, second: os.stat_result) -> bool:
+    return all(
+        getattr(first, field) == getattr(second, field)
+        for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns", "st_mode", "st_uid", "st_nlink")
+    )
+
+
+@contextmanager
+def _bound_hot_rollback_journal(binding: _StateDatabaseAuthorityBinding) -> Iterator[None]:
+    """Admit only the fixed local DELETE journal; SQLite owns page rollback.
+
+    Descriptor checks bound the observed owner-private files. The standard VFS
+    still opens by name, so this does not promise hostile same-account race
+    resistance. No journal-supplied name is followed or returned.
+    """
+
+    root_descriptor = database_descriptor = journal_descriptor = -1
+    primary: BaseException | None = None
+    try:
+        try:
+            if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "pread"):
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            _validate_state_database_authority_binding(binding)
+            root_descriptor = _open_bound_root_descriptor(binding)
+            database_descriptor = _open_bound_database_descriptor(
+                binding, root_descriptor=root_descriptor
+            )
+            if stat.S_IMODE(os.fstat(root_descriptor).st_mode) != _PRIVATE_DIR_MODE:
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            if stat.S_IMODE(os.fstat(database_descriptor).st_mode) != _PRIVATE_FILE_MODE:
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            lock = os.lstat(COORDINATOR_STATE_AUTHORITY_LOCK_FILENAME, dir_fd=root_descriptor)
+            _require_recovery_private_file(lock)
+            for name in os.listdir(root_descriptor):
+                if name == _ROLLBACK_JOURNAL_NAME:
+                    continue
+                if name.startswith(COORDINATOR_DATABASE_FILENAME + "-") or name.endswith(("-journal", "-wal", "-shm")):
+                    raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+
+            observed = os.lstat(_ROLLBACK_JOURNAL_NAME, dir_fd=root_descriptor)
+            _require_recovery_private_file(observed)
+            flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | getattr(os, "O_NONBLOCK", 0)
+            journal_descriptor = os.open(_ROLLBACK_JOURNAL_NAME, flags, dir_fd=root_descriptor)
+            opened = os.fstat(journal_descriptor)
+            _require_recovery_private_file(opened)
+            if not _same_recovery_journal_snapshot(observed, opened):
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+
+            header = os.pread(journal_descriptor, 28, 0)
+            if len(header) != 28 or header[:8] != _ROLLBACK_JOURNAL_MAGIC:
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            sector_size = int.from_bytes(header[20:24], "big")
+            page_size = int.from_bytes(header[24:28], "big")
+            if (
+                sector_size < 512 or sector_size > 65536 or sector_size & (sector_size - 1)
+                or page_size < 512 or page_size > 65536 or page_size & (page_size - 1)
+                or opened.st_size < sector_size
+            ):
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            # SQLite's optional super-journal name is recognized by a magic
+            # trailer. Refuse the whole form without reading or following it.
+            tail = os.pread(journal_descriptor, 16, opened.st_size - 16)
+            if len(tail) != 16 or _ROLLBACK_JOURNAL_MAGIC in tail or any(
+                tail[-8:].startswith(_ROLLBACK_JOURNAL_MAGIC[:length])
+                or tail.endswith(_ROLLBACK_JOURNAL_MAGIC[:length])
+                for length in range(4, 8)
+            ):
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            current = os.lstat(_ROLLBACK_JOURNAL_NAME, dir_fd=root_descriptor)
+            _require_recovery_private_file(current)
+            if not _same_recovery_journal_snapshot(opened, os.fstat(journal_descriptor)) or not _same_recovery_journal_snapshot(opened, current):
+                raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE)
+            _validate_state_database_authority_binding(binding)
+        except OSError:
+            raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNSAFE) from None
+        yield
+    except BaseException as exc:
+        primary = exc
+        raise
+    finally:
+        close_failed = False
+        for descriptor in (journal_descriptor, database_descriptor, root_descriptor):
+            if descriptor >= 0:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    close_failed = True
+        if close_failed and not isinstance(primary, (KeyboardInterrupt, SystemExit, GeneratorExit)):
+            raise SQLiteStateError(SQLiteStateErrorCode.RECOVERY_UNRESOLVED) from None
 
 
 def _require_same_state_database_authority_binding(

@@ -220,7 +220,30 @@ operator policy receipts and seeds no authorized or executable receipt.
 
 ## Database Classification
 
+F1 current successor: observational inspection and validation keep the four
+classifications and never open writable. An engine-supplied exact numeric
+`SQLITE_READONLY_ROLLBACK` (776) becomes `UNKNOWN` with closed reason
+`recovery_needed`; a message, journal filename, generic READONLY, or generic
+I/O error cannot produce that reason. This reason establishes neither managed
+schema nor corruption. `initialize_database()` and `migrate_database()` reject
+it with the same safe `recovery_needed` state error; they do not auto-recover or
+auto-migrate. Writer acquisition rechecks under the common lock and may let
+SQLite roll back only a checked fixed adjacent DELETE journal for the bound
+existing main database. An unsafe journal or dependency form refuses before
+write-capable recovery access; an uncertain access or cleanup reports
+`recovery_unresolved`. After rollback the writer validates the exact current
+catalog/schema/invariants before ordinary issuance. Exact older prefixes still
+require explicit administrative migration even if their storage has rolled
+back. All five packaged SQL resources, catalog checksums, schema and
+application generation remain unchanged. The earlier refusal-only F1 branch is
+historical, not the current writer-entry behavior.
+
 C2B1 preserves the public four-way classification:
+
+The historical nine-condition private assessment below gains one F1 successor
+condition, `RECOVERY_NEEDED`, only for the exact engine result described above.
+It maps to public `UNKNOWN` with reason `recovery_needed`, not to corrupt
+history; it never makes an old prefix current or admits administrative mutation.
 
 - absent: the fixed database file does not exist; inspection/validation do not
   create it;
@@ -636,3 +659,7 @@ acquisition, and product mutation admit only the exact complete tip. Migration
 0004 remains application generation 2, requires SQLite 3.37.0 before any
 writable activity, is non-destructive, and seeds zero rows.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+### Section 41 migration 0005 additive successor
+
+The complete production catalog is now `[0001, 0002, 0003, 0004, 0005_section41_post_execution_proposal_family]` at application generation 2. The 0005 SQL resource has SHA-256 `583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87`, adds two STRICT zero-seed tables and four immutable guards, and adds no explicit index. The cumulative schema has 64 user tables, 114 triggers and five explicit indexes. Fresh initialization applies all five; an exact supported 0004 prefix requires explicit `migrate_database()` before ordinary validation, writer acquisition or mutation, which never auto-migrate. The four earlier SQL resources remain byte-exact. Existing SQLite 3.37.0 preflight and cumulative packaged-SQL schema verification apply to this suffix. Prior 0004-tip wording is a historical owner snapshot.

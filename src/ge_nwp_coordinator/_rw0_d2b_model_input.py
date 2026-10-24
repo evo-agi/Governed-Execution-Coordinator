@@ -29,7 +29,7 @@ from ._post_execution_evidence_values import (
 )
 from ._rw0_wire_protocol_values import _PROFILE_IDENTITY_JSON as _WIRE_PROFILE_IDENTITY_JSON
 import json
-from ._rw0_d2a_evidence import _seal_post_value, _support_set
+from ._rw0_d2a_evidence import _resolve_d2_checked_layout, _seal_post_value, _support_set
 from ._rw0_d2a_handback import RW0D2EvidenceCheckpointV1
 from ._sqlite_rw0_c1 import RW0D2CurrentOwnerSnapshotV1
 
@@ -52,7 +52,9 @@ def require_current_d2_basis(
     checkpoint.validate()
     current.validate()
     basis = checkpoint.d1_handback.phase_basis
-    phase = checkpoint.admitted_families[0].phase
+    phase = _resolve_d2_checked_layout(checkpoint.d1_handback).family(
+        checkpoint.admitted_families, "worker_observation:000",
+    ).phase
     if (current.phase_basis_ref != basis.basis_ref
             or current.phase_basis_digest != basis.basis_digest
             or current.program_head_revision != phase.value("expected_program_head_revision")
@@ -226,13 +228,14 @@ def _role_values(
     stop: PostExecutionGlobalStopSnapshotV1,
     ceiling: PostExecutionSourceEffectCeilingEvidenceV1,
 ) -> tuple[object, ...]:
+    layout = _resolve_d2_checked_layout(checkpoint.d1_handback)
     return (
         checkpoint.capsule_manifest,
-        checkpoint.admitted_families[5].evidence_value,
+        layout.family(checkpoint.admitted_families, "process_result").evidence_value,
         checkpoint.validation_disposition,
         checkpoint.review_disposition,
         checkpoint.policy_matrices[0], checkpoint.policy_matrices[1],
-        checkpoint.admitted_families[13].evidence_value,
+        layout.family(checkpoint.admitted_families, "author_authority").evidence_value,
         stop, ceiling,
     )
 
@@ -292,8 +295,9 @@ def construct_d2b_context(
          checkpoint.policy_sources[3].source_profile_digest),
         None, stop._PROFILE_PAIR, ceiling._PROFILE_PAIR,
     )
-    worker_family = checkpoint.admitted_families[5]
-    authority_family = checkpoint.admitted_families[13]
+    layout = _resolve_d2_checked_layout(checkpoint.d1_handback)
+    worker_family = layout.family(checkpoint.admitted_families, "process_result")
+    authority_family = layout.family(checkpoint.admitted_families, "author_authority")
     direct = (
         (None, None, None, None),
         ("wire_process_result_classification_binding", 14,
@@ -592,7 +596,9 @@ def construct_d2b_evidence_supply(
     )
     binding_values = (
         None,
-        checkpoint.admitted_families[5].relations.relations[0].binding.to_mapping(),
+        _resolve_d2_checked_layout(checkpoint.d1_handback).family(
+            checkpoint.admitted_families, "process_result",
+        ).relations.relations[0].binding.to_mapping(),
         validation_observation.to_mapping(),
         review_observation.to_mapping(),
         checkpoint.policy_sources[0].to_mapping(),

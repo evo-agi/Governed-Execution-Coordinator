@@ -59,6 +59,7 @@ from ge_nwp_coordinator._worker_execution_semantic_values import (
     AttemptFenceV1,
     CandidateCapsuleManifestV1,
     EffectFenceV1,
+    WorkerExecutionValueError,
     WorkerObservationV1,
 )
 from ge_nwp_coordinator.global_stop import GlobalStopState
@@ -262,6 +263,298 @@ def _reviewer_separation_action(value: object) -> object:
         value,
         **_reviewer_separation_owner_inputs(),
     )
+
+
+def _resealed_review_owner_rows(
+    prefix: str, value: object, *, kind_rank: int,
+) -> tuple[object, object]:
+    """Rebuild a fixture's C1 proof chain after changing its typed value."""
+    membership = deepcopy(_TEST_RECORDS[prefix + ".membership"])
+    relation = deepcopy(_TEST_RECORDS[prefix + ".relation"])
+    graph = deepcopy(_TEST_RECORDS[prefix + ".graph"])
+    operands = tuple(
+        RW0C1OperandIdentity(**item)
+        for item in _TEST_RECORDS[prefix + ".operands"]
+    )
+    value_ref = value.observation_ref if kind_rank == 12 else value.value_ref
+    value_digest = value.observation_digest if kind_rank == 12 else value.value_digest
+    value_schema_id = value.schema_id
+    new_relation_digest, operand_digest = relation_digest(
+        phase_basis_ref=relation["phase_basis_ref"],
+        phase_basis_digest=relation["phase_basis_digest"],
+        relation_ref=relation["relation_ref"],
+        subject_type=relation["subject_type"],
+        subject_membership_ref=relation["subject_membership_ref"],
+        subject_kind_rank=kind_rank,
+        subject_value_ref=value_ref,
+        subject_value_digest=value_digest,
+        subject_value_schema_id=value_schema_id,
+        specification=relation_specifications(kind_rank=kind_rank)[0],
+        evaluated_at=relation["evaluated_at"],
+        operands=operands,
+    )
+    new_relation_set_digest = relation_set_digest(
+        phase_basis_ref=membership["phase_basis_ref"],
+        subject_type="evidence_membership",
+        subject_ref=membership["membership_ref"],
+        relations=((0, relation["relation_ref"], new_relation_digest),),
+    )
+    graph["value_digest"] = value_digest
+    graph["relation_set_digest"] = new_relation_set_digest
+    graph["relations"][0]["relation_digest"] = new_relation_digest
+    graph["relations"][0]["operand_set_digest"] = operand_digest
+    membership["value_digest"] = value_digest
+    membership["relation_set_digest"] = new_relation_set_digest
+    membership["admission_graph_digest"] = admission_graph_digest(graph)
+    member_row = build_row(
+        "rw0_evidence_memberships",
+        {key: membership[key] for key in MEMBERSHIP_COLUMNS if key != "membership_digest"},
+    )
+    relation["subject_membership_digest"] = member_row.to_mapping()["membership_digest"]
+    relation["subject_value_digest"] = value_digest
+    relation["relation_digest"] = new_relation_digest
+    relation["operand_set_digest"] = operand_digest
+    relation_row = build_row(
+        "rw0_relation_bindings",
+        {key: relation[key] for key in RELATION_COLUMNS if key != "relation_row_digest"},
+    )
+    return member_row, relation_row
+
+
+def _rebound_author_result(inputs: dict[str, object], *, candidate_ref: str | None = None) -> None:
+    old_value = inputs["author_result_value"]
+    mapping = old_value.to_mapping()
+    for field in ("schema_id", "wire_profile_ref", "wire_profile_digest", "value_digest"):
+        mapping.pop(field)
+    mapping["candidate_ref"] = candidate_ref or mapping["candidate_ref"]
+    mapping["observation_memberships"] = tuple(
+        RW0C1MemberLocatorV1(
+            role=f"worker_observation:{ordinal:03d}", kind_rank=12,
+            membership_ref=member.to_mapping()["membership_ref"],
+            membership_digest=member.to_mapping()["membership_digest"],
+            value_ref=observation.observation_ref,
+            value_digest=observation.observation_digest,
+        )
+        for ordinal, (member, observation) in enumerate(zip(
+            inputs["author_observation_membership_rows"],
+            inputs["author_observations"], strict=True,
+        ))
+    )
+    value = RW0C1WireWorkerResultBindingV1(**mapping)
+    inputs["author_result_value"] = value
+    member, relation = _resealed_review_owner_rows(
+        "golden.owner.author-rank13", value, kind_rank=13,
+    )
+    inputs["author_result_membership_row"] = member
+    inputs["author_result_relation_row"] = relation
+    _refresh_reviewer_support_set(inputs)
+
+
+def _refresh_reviewer_support_set(inputs: dict[str, object]) -> None:
+    mapping = inputs["support_set"].to_mapping()
+    mapping["entries"][0]["source_digest"] = (
+        inputs["review_membership_row"].to_mapping()["membership_digest"]
+    )
+    mapping["entries"][1]["source_digest"] = (
+        inputs["author_result_membership_row"].to_mapping()["membership_digest"]
+    )
+    inputs["support_set"] = CLASS_BY_V["V13"].from_mapping(
+        _ordered_fixture("V13", _seal("V13", mapping))
+    )
+
+
+def _two_observation_reviewer_owner() -> tuple[dict[str, object], dict[str, object]]:
+    inputs = _reviewer_separation_owner_inputs()
+    inputs["author_observations"] = (
+        inputs["author_observations"][0], inputs["author_observations"][2],
+    )
+    inputs["author_observation_membership_rows"] = (
+        inputs["author_observation_membership_rows"][0],
+        inputs["author_observation_membership_rows"][2],
+    )
+    inputs["author_observation_relation_rows"] = (
+        inputs["author_observation_relation_rows"][0],
+        inputs["author_observation_relation_rows"][2],
+    )
+    _rebound_author_result(inputs)
+    return inputs, _reviewer_value_for_owner(inputs)
+
+
+def _reviewer_value_for_owner(inputs: dict[str, object]) -> dict[str, object]:
+    value = _sample("V40")
+    review = inputs["review_observation"]
+    review_member = inputs["review_membership_row"].to_mapping()
+    review_relation = inputs["review_relation_row"].to_mapping()
+    author_value = inputs["author_result_value"]
+    author_member = inputs["author_result_membership_row"].to_mapping()
+    author_relation = inputs["author_result_relation_row"].to_mapping()
+    value.update(
+        review_value_digest=review.observation_digest,
+        review_membership_digest=review_member["membership_digest"],
+        review_relation_digest=review_relation["relation_digest"],
+        review_relation_row_digest=review_relation["relation_row_digest"],
+        author_result_value_digest=author_value.value_digest,
+        author_result_membership_digest=author_member["membership_digest"],
+        author_result_relation_digest=author_relation["relation_digest"],
+        author_result_relation_row_digest=author_relation["relation_row_digest"],
+        support_set_ref=inputs["support_set"].support_set_ref,
+        support_set_digest=inputs["support_set"].support_set_digest,
+    )
+    locators = []
+    for ordinal, (member, observation, relation) in enumerate(zip(
+        inputs["author_observation_membership_rows"],
+        inputs["author_observations"],
+        inputs["author_observation_relation_rows"], strict=True,
+    )):
+        row = member.to_mapping()
+        relation_row = relation.to_mapping()
+        item = deepcopy(_sample("V40")["author_observation_locators"][0])
+        item.update(
+            ordinal=ordinal,
+            membership_ref=row["membership_ref"],
+            membership_digest=row["membership_digest"],
+            value_ref=observation.observation_ref,
+            value_digest=observation.observation_digest,
+            relation_ref=relation_row["relation_ref"],
+            relation_digest=relation_row["relation_digest"],
+            relation_row_digest=relation_row["relation_row_digest"],
+            observation_kind=observation.observation_kind,
+        )
+        locators.append(item)
+    value["author_observation_locators"] = locators
+    return _seal("V40", value)
+
+
+def _resealed_worker_observation(observation: WorkerObservationV1, **changes: object) -> WorkerObservationV1:
+    mapping = observation.to_mapping()
+    mapping.update(changes)
+    mapping.pop("observation_digest")
+    return WorkerObservationV1.from_mapping(_sealed_record("WorkerObservationV1", mapping))
+
+
+def test_v40_two_observation_parent_capture_owner_relation_passes() -> None:
+    inputs, expected = _two_observation_reviewer_owner()
+    assert tuple(item.observation_kind for item in inputs["author_observations"]) == (
+        "worker_started", "worker_completed",
+    )
+    completed_mapping = inputs["author_observations"][1].to_mapping()
+    assert "candidate_ref" not in completed_mapping
+    assert "capsule_manifest_ref" not in completed_mapping
+    assert "portable_capsule_digest" not in completed_mapping
+    result = evidence.evaluate_post_execution_reviewer_separation(expected, **inputs)
+    assert (result.status, result.reason) == (
+        "separate", "governed_review_graph_separate",
+    )
+    assert len(result.author_observation_locators) == 2
+    assert result.candidate_ref == inputs["candidate_capsule"].candidate_ref
+
+
+def test_v40_three_observation_owner_relation_remains_exact() -> None:
+    inputs = _reviewer_separation_owner_inputs()
+    expected = _sample("V40")
+    assert evidence.evaluate_post_execution_reviewer_separation(expected, **inputs).to_mapping() == (
+        CLASS_BY_V["V40"].from_mapping(expected).to_mapping()
+    )
+    assert inputs["author_observations"][1].observation_kind == "candidate_captured"
+
+
+def test_v40_two_observation_resealed_rank13_candidate_mismatch_reaches_relation() -> None:
+    inputs, _ = _two_observation_reviewer_owner()
+    _rebound_author_result(inputs, candidate_ref="candidate.other.0001")
+    with pytest.raises(evidence._PostExecutionContractViolation) as caught:
+        evidence.evaluate_post_execution_reviewer_separation(
+            _reviewer_value_for_owner(inputs), **inputs,
+        )
+    assert caught.value.reason == "source_owner_mismatch"
+
+
+@pytest.mark.parametrize("field,other", (
+    ("candidate_ref", "candidate.other.0001"),
+    ("capsule_manifest_ref", "capsule.other.0001"),
+))
+def test_v40_two_observation_resealed_review_capsule_mismatch_reaches_relation(
+    field: str, other: str,
+) -> None:
+    inputs, _ = _two_observation_reviewer_owner()
+    changed = _resealed_worker_observation(inputs["review_observation"], **{field: other})
+    inputs["review_observation"] = changed
+    member, relation = _resealed_review_owner_rows(
+        "golden.owner.review-rank12", changed, kind_rank=12,
+    )
+    inputs["review_membership_row"] = member
+    inputs["review_relation_row"] = relation
+    _refresh_reviewer_support_set(inputs)
+    with pytest.raises(evidence._PostExecutionContractViolation) as caught:
+        evidence.evaluate_post_execution_reviewer_separation(
+            _reviewer_value_for_owner(inputs), **inputs,
+        )
+    assert caught.value.reason == "source_owner_mismatch"
+
+
+def test_v40_three_observation_resealed_capture_mismatch_reaches_relation() -> None:
+    inputs = _reviewer_separation_owner_inputs()
+    changed = _resealed_worker_observation(
+        inputs["author_observations"][1], candidate_ref="candidate.other.0001",
+    )
+    observations = list(inputs["author_observations"])
+    observations[1] = changed
+    inputs["author_observations"] = tuple(observations)
+    member, relation = _resealed_review_owner_rows(
+        "golden.owner.author-rank12.001", changed, kind_rank=12,
+    )
+    members = list(inputs["author_observation_membership_rows"])
+    relations = list(inputs["author_observation_relation_rows"])
+    members[1], relations[1] = member, relation
+    inputs["author_observation_membership_rows"] = tuple(members)
+    inputs["author_observation_relation_rows"] = tuple(relations)
+    _rebound_author_result(inputs)
+    with pytest.raises(evidence._PostExecutionContractViolation) as caught:
+        evidence.evaluate_post_execution_reviewer_separation(
+            _reviewer_value_for_owner(inputs), **inputs,
+        )
+    assert caught.value.reason == "source_owner_mismatch"
+
+
+def test_v40_completed_observation_cannot_synthesize_candidate_capture() -> None:
+    inputs, _ = _two_observation_reviewer_owner()
+    mapping = inputs["author_observations"][1].to_mapping()
+    mapping["candidate_ref"] = inputs["candidate_capsule"].candidate_ref
+    mapping.pop("observation_digest")
+    with pytest.raises(WorkerExecutionValueError) as caught:
+        WorkerObservationV1.from_mapping(_sealed_record("WorkerObservationV1", mapping))
+    assert (caught.value.reason, caught.value.field_path) == (
+        "invalid_field_value", "WorkerObservationV1.conditional_fields",
+    )
+
+
+@pytest.mark.parametrize("form,reason", (
+    ("one", "invalid_cardinality"),
+    ("four", "invalid_cardinality"),
+    ("duplicate", "duplicate_entry"),
+    ("omitted", "invalid_cardinality"),
+    ("inserted", "relation_mismatch"),
+    ("reordered", "relation_mismatch"),
+))
+def test_v40_two_observation_locator_cardinality_and_order_reject(
+    form: str, reason: str,
+) -> None:
+    inputs, expected = _two_observation_reviewer_owner()
+    locators = deepcopy(expected["author_observation_locators"])
+    if form in {"one", "omitted"}:
+        locators = locators[:1]
+    elif form == "four":
+        locators = locators + [deepcopy(locators[0]), deepcopy(locators[1])]
+    elif form == "duplicate":
+        locators[1] = deepcopy(locators[0])
+    elif form == "inserted":
+        extra = deepcopy(_sample("V40")["author_observation_locators"][2])
+        locators.insert(1, extra)
+    else:
+        locators.reverse()
+    expected["author_observation_locators"] = locators
+    with pytest.raises(evidence._PostExecutionContractViolation) as caught:
+        evidence.evaluate_post_execution_reviewer_separation(_seal("V40", expected), **inputs)
+    assert caught.value.reason == reason
 
 
 def _wire_process_result_value(mapping: dict[str, object]) -> object:

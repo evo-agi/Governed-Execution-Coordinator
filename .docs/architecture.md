@@ -681,6 +681,10 @@ audit remain pending. The detailed owner is
 `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
 
+**Native post-D2 offline successor.**
+
+The private Coordinator now has one Section 41 post-execution proposal-family writer and checked reader, reached only from an adjacent outer D2 continuation under the existing fenced writer/controller. A separate C1 transaction admits one rank-15 member from the checked twelve common rows, and pure V22 consumes final checked A/B families. Current SQLite generation 2 ends at additive migration 0005 (64 user tables, 114 triggers, five explicit indexes). Older 0004-tip/absent-0005 statements in this architecture record are historical tranche snapshots. This temporary artificial proof is neither restart-safe custody nor C2 decision/acceptance/runtime authority; live gate B remains required.
+
 <!-- C2B3_NARROWED_ARCHITECTURE_BEGIN -->
 ## C2B3 vertical-slice governing narrowing
 

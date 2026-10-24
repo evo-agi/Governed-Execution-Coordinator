@@ -140,8 +140,8 @@ GUARD_CAPABILITY_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.py',
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (65275,
-                                  '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc'),
+         'replacement_identity': (69392,
+                                  'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -153,8 +153,8 @@ GUARD_CAPABILITY_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.py',
          'old_identity': (44919,
                           '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
          'old_identity_changed': True,
-         'replacement_identity': (47694,
-                                  'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3'),
+         'replacement_identity': (48578,
+                                  'd39ed1289dd0d4305ea0744a12186d12b2e3ecdafdfd991ff9e838b9764ec8e2'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -615,7 +615,17 @@ def test_b1_compatibility_and_focused_nonimplementation(guard):
     _require(all(value is False for value in guard['implementation'].values()), 'guard:implementation_nonclaims')
     source = ROOT / 'src' / 'ge_nwp_coordinator'
     _require(not any('bootstrap_acceptance_guard' in p.name or 'bootstrap_scope_admission' in p.name for p in source.rglob('*.py')), 'guard:source_module_absent')
-    _require(not any(p.name.startswith('0005') for p in source.rglob('*')), 'guard:migration_absent')
+    migration_root = source / 'sqlite_migrations'
+    _require(
+        {p.name for p in migration_root.glob('0005*')}
+        == {'0005_section41_post_execution_proposal_family.sql'},
+        'guard:section41_0005_exact_successor',
+    )
+    _require(
+        not any('rw0_c2' in p.name or 'bootstrap_guard' in p.name
+                for p in migration_root.glob('*.sql')),
+        'guard:c2_migration_absent',
+    )
     for relative in ('state_store.py', '__init__.py'):
         text = (source / relative).read_text()
         tree = ast.parse(text)

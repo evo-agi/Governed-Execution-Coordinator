@@ -1757,10 +1757,14 @@ def test_b1_pair_and_migration_catalog_remain_current():
                    and any(isinstance(t, ast.Name) and t.id == "_PACKAGED_MIGRATION_SPECS" for t in node.targets))
     resources = [next(ast.literal_eval(kw.value) for kw in call.keywords if kw.arg == "resource_name")
                  for call in catalog.value.elts]
-    _exact(resources, V1["migration_catalog"], "source_migration_catalog")
-    _exact(resources, p["v1"]["migration_catalog"], "document_migration_catalog")
+    _exact(resources[:4], V1["migration_catalog"], "source_migration_catalog")
+    _exact(resources[:4], p["v1"]["migration_catalog"], "document_migration_catalog")
+    _exact(resources[4:], ["0005_section41_post_execution_proposal_family.sql"],
+           "section41_current_catalog_successor")
     assert not (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0005_rw0_c2_guard.sql").exists()
-    assert not list((ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("0005*"))
+    assert {path.name for path in (ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("0005*")} == {
+        "0005_section41_post_execution_proposal_family.sql",
+    }
 
 
 def test_target_has_no_source_or_public_runtime_surface():

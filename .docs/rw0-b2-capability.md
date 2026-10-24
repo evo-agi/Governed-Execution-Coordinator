@@ -348,17 +348,42 @@ migration-review gate; AGENTS retains repository authority and nonimplementation
 README retains product/status nonclaims; progression retains pure/non-authorizing
 boundaries. Their replacement guards verify admitted lineage, cross-program
 one-shot permanence, explicit mutable-target supersession, separate non-replenishing
-ES operation, and absence of implementation. P01–P07/P09–P10 remain exact.
+ES operation, and absence of implementation. P01–P07/P10 remain exact.
 Wire and Capability own no admission, durable guard, acceptance, B1 schema,
 decision, replay/recovery, or runtime truth.
 
-P11 has one later status-only successor after the RW0-D2 implementation commit
+The native post-D2 Section 41 checked reader adds one explicit decision-row
+consumer to the P09 C2B2 test inventory. P09 now pins that exact successor
+whole-file identity and reconstructs its earlier 17,972-byte protected
+predecessor by removing only the named 260-byte inventory entry. The new
+consumer remains limited to retained D2 bound-effect receipt reconstruction;
+it changes no C2B2 row-value or Capability contract.
+
+P11 has a historical status-only successor after the RW0-D2 implementation commit
 `59621aa041a409c6ead27b74ffe25598c159e78e`. The prior 64,142-byte `AGENTS.md`
 identity is historical for this change; only its two D2 current-status spans
 are replaced. The current whole-file raw identity, exact predecessor
 reconstruction, and unchanged governance markers remain checked, including by
 the independent bootstrap guard. This creates no general normalization rule,
 runtime permission, or automatic acceptance of later text changes. This
-uncommitted status update still awaits independent review.
+exact status successor does not itself authorize or accept later source changes.
+The subsequent native post-D2 append-only successor separately reconstructs
+that exact D2 predecessor and retains both historical identity checks.
+
+### P11 Unit 2 exact successor
+
+The current complete `AGENTS.md` P11 identity has one bounded append-only
+Unit 2 status successor. Its immediate predecessor remains the exact
+67,252-byte native post-D2 identity. Removing only the named Unit 2 span
+reconstructs that predecessor byte-for-byte; the established reverse chain
+still reconstructs the 65,275-byte D2 status predecessor and the earlier
+64,142-byte identity. The complete current file retains a raw size/SHA-256
+check in Capability's P11 registry and an independent bootstrap-guard check.
+The successor states the exact 13/14 checked D2 layouts, parent-owned capsule
+and optional worker capture distinction, stage-specific clean invalid-evidence
+stops, and original-run fresh-write equality with historical replay separate.
+It changes no Capability value, profile, digest, permission, or authority.
+It is implementation evidence pending independent review, not acceptance or
+publication.
 
 <!-- RW0_B2_CAPABILITY_OWNER_END -->

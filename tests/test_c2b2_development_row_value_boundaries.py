@@ -223,6 +223,11 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
         "_sqlite_development_bound_effect_establishment.py":owner_names,
         "_sqlite_development_reader_contracts.py":owner_names,
         "_sqlite_development_readers.py":owner_names,
+        # The native Section 41 checked reader consumes only the decision
+        # row adapter for retained D2 bound-effect mutation receipts.
+        "_sqlite_section41_post_execution_proposal.py":{
+            "_development_decision_row_values",
+        },
         "_rw0_phase_entry_semantic_values.py":{
             "_development_decision_row_values",
             "_development_effect_row_values",

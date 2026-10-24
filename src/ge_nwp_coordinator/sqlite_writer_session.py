@@ -48,7 +48,9 @@ from ge_nwp_coordinator.sqlite_security import (
     _StateDatabaseAuthorityBinding,
     _StateDatabaseAuthorityBindingMismatch,
     _StateDatabaseAuthorityBindingUnavailable,
+    _bound_hot_rollback_journal,
     _require_same_state_database_authority_binding,
+    _validate_state_database_authority_binding,
 )
 from ge_nwp_coordinator.sqlite_writer_state import (
     _DurableWriterIssuance,
@@ -390,6 +392,8 @@ class SQLiteWriterAcquisitionFailureReason(str, Enum):
     WRITER_GENERATION_EXHAUSTED = "writer_generation_exhausted"
     WRITER_STATE_MALFORMED = "writer_state_malformed"
     WRITER_ACQUISITION_FAILED = "writer_acquisition_failed"
+    RECOVERY_UNSAFE = "recovery_unsafe"
+    RECOVERY_UNRESOLVED = "recovery_unresolved"
 
 
 class SQLiteWriterAcquisitionError(RuntimeError):
@@ -6823,6 +6827,117 @@ class _SQLiteWriterSession(WriterSession):
             recovery=True,
         )
 
+    def _record_post_execution_proposal(
+        self, command: object, run: object, safe_basis_bytes: object,
+    ) -> object:
+        return self._run_post_execution_proposal_operation(
+            command, mode="record", run=run, safe_basis_bytes=safe_basis_bytes,
+        )
+
+    def _read_post_execution_proposal(self, command: object) -> object:
+        return self._run_post_execution_proposal_operation(command, mode="read")
+
+    def _recover_post_execution_proposal(self, command: object) -> object:
+        return self._run_post_execution_proposal_operation(command, mode="recovery")
+
+    def _run_post_execution_proposal_operation(
+        self, command: object, *, mode: str,
+        run: object = None, safe_basis_bytes: object = None,
+    ) -> object:
+        """Guard one private Section 41 operation with the existing lease."""
+        try:
+            from ge_nwp_coordinator._section41_post_execution_proposal_mutation_contracts import (
+                RecordPostExecutionProposalCommandV1,
+                checked_safe_basis_bytes,
+            )
+            from ge_nwp_coordinator._rw0_d2_handback import RW0D2OfflineRun
+            from ge_nwp_coordinator._rw0_c1_mutation_contracts import (
+                _RW0C1CommitCloseWitness,
+            )
+            if (
+                type(command) is not RecordPostExecutionProposalCommandV1
+                or mode not in {"record", "read", "recovery"}
+                or (mode == "record" and (
+                    type(run) is not RW0D2OfflineRun
+                    or type(safe_basis_bytes) is not bytes
+                    or checked_safe_basis_bytes(safe_basis_bytes) != safe_basis_bytes
+                ))
+                or (mode != "record" and (run is not None or safe_basis_bytes is not None))
+            ):
+                raise ValueError("invalid ingress")
+            if mode == "record":
+                run._require_open_owner()
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+                )
+            )
+        witness = _RW0C1CommitCloseWitness() if mode == "record" else None
+        resource_reference = weakref.ref(self._resource)
+        correlation: _OperationInvocationCorrelation | None = None
+        try:
+            correlation = self._resource._new_operation_invocation_correlation()
+            bound_guard = self._resource.operation_guard
+            keywords = (
+                {"_invocation_correlation": correlation}
+                if type(bound_guard) is MethodType else {}
+            )
+            with bound_guard(self, **keywords) as operation_lease:
+                from ge_nwp_coordinator.sqlite_transition_transaction import (
+                    _run_post_execution_proposal_operation,
+                )
+                result = _run_post_execution_proposal_operation(
+                    operation_lease=operation_lease,
+                    command=command, mode=mode,
+                    run=run, safe_basis_bytes=safe_basis_bytes,
+                    commit_close_witness=witness,
+                )
+                if type(result) is _SafeMutationFailureDisposition:
+                    _raise_safe_mutation_store_error(
+                        _safe_mutation_error_from_disposition(result)
+                    )
+            resource = resource_reference()
+            _stabilize_rw0_c1_outer_operation_close(resource, correlation)
+            if witness is not None:
+                _complete_rw0_c1_writer_post_operation(
+                    commit_close_witness=witness,
+                    recovery_close_witness=None,
+                )
+            return result
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(correlation)
+                except BaseException:
+                    pass
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+            if witness is not None and witness.ordinary_failure_is_commit_uncertain:
+                _raise_safe_mutation_store_error(
+                    _new_safe_mutation_store_error(
+                        SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                    )
+                )
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(
+                _new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                    if witness is not None and witness.ordinary_failure_is_commit_uncertain
+                    else SQLiteMutationStoreErrorCode.MUTATION_FAILED
+                )
+            )
+
     def _run_rw0_c1_operation(
         self,
         *,
@@ -7080,8 +7195,22 @@ def acquire_sqlite_writer_session(location: CoordinatorStateLocation) -> WriterS
     database_binding: _StateDatabaseAuthorityBinding | None = None
     committed = False
     try:
-        _require_managed_preflight(location)
+        recovery_needed = _require_managed_preflight(location)
         database_binding = authority_lock._capture_state_database_authority_binding(location)
+        if recovery_needed:
+            _recover_locked_hot_journal(database_binding)
+            try:
+                _validate_state_database_authority_binding(database_binding)
+                if _require_managed_preflight(location, after_recovery=True):
+                    raise SQLiteWriterAcquisitionError(
+                        SQLiteWriterAcquisitionFailureReason.RECOVERY_UNRESOLVED
+                    )
+                recovered_binding = authority_lock._capture_state_database_authority_binding(location)
+                _require_same_state_database_authority_binding(database_binding, recovered_binding)
+            except (_StateDatabaseAuthorityBindingMismatch, _StateDatabaseAuthorityBindingUnavailable):
+                raise SQLiteWriterAcquisitionError(
+                    SQLiteWriterAcquisitionFailureReason.RECOVERY_UNRESOLVED
+                ) from None
         connection = _open_bound_existing_sqlite_connection(database_binding, read_only=False)
         connection.execute("BEGIN IMMEDIATE")
         try:
@@ -7186,17 +7315,81 @@ def acquire_sqlite_writer_session(location: CoordinatorStateLocation) -> WriterS
             connection.close()
         authority_lock.close()
         raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.WRITER_ACQUISITION_FAILED) from None
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        if credential is not None:
+            credential.overwrite_and_drop()
+        if connection is not None:
+            _rollback(connection)
+            connection.close()
+        authority_lock.close()
+        raise
 
 
-def _require_managed_preflight(location: CoordinatorStateLocation) -> None:
+def _require_managed_preflight(
+    location: CoordinatorStateLocation, *, after_recovery: bool = False,
+) -> bool:
     inspection = inspect_database(location)
+    if (
+        after_recovery
+        and inspection.classification is DatabaseClassification.UNKNOWN
+        and inspection.reason == "sqlite_posture_unavailable"
+    ):
+        raise SQLiteWriterAcquisitionError(
+            SQLiteWriterAcquisitionFailureReason.RECOVERY_UNRESOLVED
+        )
+    if (
+        inspection.classification is DatabaseClassification.UNKNOWN
+        and inspection.reason == "recovery_needed"
+    ):
+        return True
     if (
         inspection.classification is not DatabaseClassification.MANAGED
         or inspection.current_sequence != inspection.latest_sequence
     ):
-        if inspection.classification is DatabaseClassification.UNKNOWN:
+        if (
+            inspection.classification is DatabaseClassification.UNKNOWN
+            and inspection.reason != "sqlite_posture_unavailable"
+        ):
             _raise_writer_state_malformed_if_present(location)
         raise SQLiteWriterAcquisitionError(SQLiteWriterAcquisitionFailureReason.DATABASE_NOT_MANAGED)
+    return False
+
+
+def _recover_locked_hot_journal(binding: _StateDatabaseAuthorityBinding) -> None:
+    """Let SQLite roll back only after the fixed local dependency is checked."""
+
+    attempted = False
+    recovery_connection: sqlite3.Connection | None = None
+    try:
+        with _bound_hot_rollback_journal(binding):
+            attempted = True
+            recovery_connection = _open_bound_existing_sqlite_connection(
+                binding, read_only=False, recovery=True
+            )
+            try:
+                recovery_connection.close()
+            except sqlite3.Error:
+                # A second close is cleanup only; it cannot retry rollback or
+                # issuance. The outcome stays unresolved even if it succeeds.
+                try:
+                    recovery_connection.close()
+                except sqlite3.Error:
+                    pass
+                raise SQLiteWriterAcquisitionError(
+                    SQLiteWriterAcquisitionFailureReason.RECOVERY_UNRESOLVED
+                ) from None
+            recovery_connection = None
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except SQLiteWriterAcquisitionError:
+        raise
+    except (_StateDatabaseAuthorityBindingMismatch, _StateDatabaseAuthorityBindingUnavailable, SQLiteStateError, sqlite3.Error, OSError) as exc:
+        reason = (
+            SQLiteWriterAcquisitionFailureReason.RECOVERY_UNSAFE
+            if not attempted and getattr(exc, "error_class", None) != "recovery_unresolved"
+            else SQLiteWriterAcquisitionFailureReason.RECOVERY_UNRESOLVED
+        )
+        raise SQLiteWriterAcquisitionError(reason) from None
 
 
 def _raise_writer_state_malformed_if_present(location: CoordinatorStateLocation) -> None:

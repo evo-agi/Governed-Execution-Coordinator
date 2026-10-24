@@ -5641,11 +5641,6 @@ def evaluate_post_execution_reviewer_separation(
         })
 
     author = author_observations[-1]
-    captured = (
-        author_observations[1]
-        if count == 3
-        else author_observations[-1]
-    )
     phase_pair = (
         review_membership["phase_basis_ref"],
         review_membership["phase_basis_digest"],
@@ -5672,7 +5667,7 @@ def evaluate_post_execution_reviewer_separation(
         )
         or tuple(getattr(review_observation, name) for name in common_lineage_fields)
         != author_lineage
-        or captured.candidate_ref != candidate_capsule.candidate_ref
+        or (count == 3 and author_observations[1].candidate_ref != candidate_capsule.candidate_ref)
         or review_observation.candidate_ref != candidate_capsule.candidate_ref
         or review_observation.capsule_manifest_ref != candidate_capsule.capsule_manifest_ref
         or review_observation.portable_capsule_digest != candidate_capsule.portable_capsule_digest

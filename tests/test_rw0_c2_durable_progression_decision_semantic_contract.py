@@ -986,6 +986,7 @@ MIGRATION_SHA256 = {
     "0002_development_program_and_effect_state.sql": "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c",
     "0003_cognitive_proposal_and_selection_state.sql": "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579",
     "0004_rw0_c1_durable_evidence.sql": "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec",
+    "0005_section41_post_execution_proposal_family.sql": "583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87",
 }
 
 
@@ -6829,11 +6830,13 @@ def test_current_pure_owner_modules_remain_present_without_public_exports() -> N
     assert _assignment(decision_tree, "__all__") == ()
 
 
-def test_migration_inventory_and_bytes_are_exactly_0001_through_0004() -> None:
+def test_migration_inventory_and_bytes_are_exactly_0001_through_section41_0005() -> None:
     migration_root = ROOT / "src" / "ge_nwp_coordinator" / "sqlite_migrations"
     sql_paths = tuple(sorted(migration_root.glob("*.sql")))
     assert tuple(path.name for path in sql_paths) == tuple(MIGRATION_SHA256)
-    assert "0005" not in " ".join(path.name for path in migration_root.iterdir())
+    assert {path.name for path in migration_root.glob("0005*")} == {
+        "0005_section41_post_execution_proposal_family.sql",
+    }
     assert {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sql_paths

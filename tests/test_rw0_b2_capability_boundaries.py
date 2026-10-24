@@ -137,17 +137,38 @@ PROTECTED_CONTENT_ROWS = (
      ('dependency_schema_migration',), 'protected dependency metadata'),
     ('P08', 'tests/c2a_contract_support.py', 154372, '58be92ddffae6f4b901ae3632521481ab8d9ce0e02a819ef9421408d08eedd85',
      ('authority_non_effect',), 'protected C2A support'),
-    ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 17972, 'f2a7089748f39dc8c40a932ac770edd3ffa7f8ea581b053af101dfda8100c830',
+    ('P09', 'tests/test_c2b2_development_row_value_boundaries.py', 18232, 'd23abee15a3284674f0f7cf3a89fb5a9813fec1527b6904784b16e2602a71ae7',
      ('dependency_schema_migration',), 'protected C2B2 schema controls'),
     ('P10', 'tests/test_codex_agent_config.py', 1082, '0691c90c0178632a793a93595ba344169fb9b9669de155939fb4873db2f0d3ee',
      ('authority_non_effect',), 'protected Codex configuration'),
-    ('P11', 'AGENTS.md', 65275, '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc',
+    ('P11', 'AGENTS.md', 69392, 'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171',
      ('authority_non_effect',), 'protected repository governance'),
-    ('P12', 'README.md', 47694, 'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3',
+    ('P12', 'README.md', 48578, 'd39ed1289dd0d4305ea0744a12186d12b2e3ecdafdfd991ff9e838b9764ec8e2',
      ('authority_non_effect',), 'protected public claims'),
     ('P13', '.docs/software-development-progression-boundary.md', 28654, 'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419',
      ('state_store_writer_session',), 'protected progression authority'),
 )
+
+# P09's one post-D2 reader-consumer addition is an exact successor to the
+# protected C2B2 boundary oracle, not a replacement of its historical rules.
+_P09_POST_D2_PREDECESSOR_IDENTITY = (17972, 'f2a7089748f39dc8c40a932ac770edd3ffa7f8ea581b053af101dfda8100c830')
+_P09_POST_D2_SUCCESSOR_IDENTITY = (18232, 'd23abee15a3284674f0f7cf3a89fb5a9813fec1527b6904784b16e2602a71ae7')
+_P09_POST_D2_ADDITION = b'''        # The native Section 41 checked reader consumes only the decision
+        # row adapter for retained D2 bound-effect mutation receipts.
+        "_sqlite_section41_post_execution_proposal.py":{
+            "_development_decision_row_values",
+        },
+'''
+_P09_POST_D2_FOLLOWING = b'        "_rw0_phase_entry_semantic_values.py":{\n'
+
+
+def test_p09_exact_post_d2_reader_consumer_successor_preserves_predecessor() -> None:
+    current = (ROOT / 'tests/test_c2b2_development_row_value_boundaries.py').read_bytes()
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _P09_POST_D2_SUCCESSOR_IDENTITY
+    assert current.count(_P09_POST_D2_ADDITION) == 1
+    assert current.count(_P09_POST_D2_ADDITION + _P09_POST_D2_FOLLOWING) == 1
+    predecessor = current.replace(_P09_POST_D2_ADDITION, b'', 1)
+    assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == _P09_POST_D2_PREDECESSOR_IDENTITY
 
 
 def _assert_single_literal_protected_rows_source(source: str) -> tuple:
@@ -901,8 +922,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (60530,
                           'c12a3449e761728f2093c19bb30134c54994b045843313471a6d715b648355a6'),
          'old_identity_changed': True,
-         'replacement_identity': (65275,
-                                  '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc'),
+         'replacement_identity': (69392,
+                                  'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -914,8 +935,8 @@ CAPABILITY_REPLACEMENT_EXPECTED = {'P08': {'path': 'tests/c2a_contract_support.p
          'old_identity': (44919,
                           '80428110e282c8c17e23c5929a9b7110c098979fee8629dda436ac54ac5418cb'),
          'old_identity_changed': True,
-         'replacement_identity': (47694,
-                                  'f48f2439d282350e36b5d8374864cb5dfe19eb417672737e820500c3a68224f3'),
+         'replacement_identity': (48578,
+                                  'd39ed1289dd0d4305ea0744a12186d12b2e3ecdafdfd991ff9e838b9764ec8e2'),
          'semantic_markers': ('explicitly standing-policy-admitted Coordinator authority lineage',
                               'at most one distinct productive acceptance may commit',
                               'Later ES operation is separately governed and non-replenishing',
@@ -1018,6 +1039,193 @@ def test_capability_semantic_integrity_hostile(case):
         _assert_capability_semantic_integrity(observed, CAPABILITY_REPLACEMENT_EXPECTED)
 
 
+# P11 Unit 2 is an exact append-only successor to the 67,252-byte identity.
+_P11_UNIT2_PREDECESSOR_IDENTITY = (67252, '24a17a3c87b92306837bf18e69e2d425919aa9c57f01a307d3fdb018a124c728')
+_P11_UNIT2_SUCCESSOR_IDENTITY = (69392, 'a23fe109833ddc4ee70f526826058c503dcab93438047e2e68365819bfec3171')
+_P11_UNIT2_NEW = b'''
+<!-- POST_D2_UNIT2_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 Unit 2 bounded evidence successor
+
+The current private offline D2 A path accepts exactly two Worker Wire observation
+orders: `worker_started, worker_completed` and `worker_started,
+candidate_captured, worker_completed`. The parent captures and verifies the
+candidate capsule in either case; omission of the optional worker-authored
+`candidate_captured` observation makes no claim that the parent did not capture
+a candidate. `worker_completed` still carries no candidate or capsule
+conditional fields. The checked C1 A families have exactly 13 or 14 members,
+respectively, with rank sequences `(12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6,
+12, 1)` and `(12, 12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)`. One private
+layout resolver anchors role positions and reached prefixes to the actual D1
+Wire result. Pure V40 reviewer separation binds the parent capsule, the
+rank-13 worker-result candidate, and the review observation in both layouts;
+only the three-observation layout reads a `candidate_captured.candidate_ref`.
+
+A clean, reaped validator or reviewer child whose closed checking response is
+invalid stops with `validator_evidence_invalid` or
+`reviewer_evidence_invalid`, respectively. The returned handback retains the
+exact prior checked prefix and child outcomes without admitting the bad
+observation or launching a later child. Process failure, cleanup failure, and
+programming faults retain their separate handling. The native Section 41 fresh
+writer derives one command and canonical safe basis from the original open D2
+run and requires complete equality before route probing or target writes.
+Receipt-first historical replay and checked readback use the persisted family
+without rerunning children or requiring present process custody. The existing
+three-observation command and safe-basis bytes remain unchanged.
+
+This bounded implementation is pending independent review. It adds no C2
+decision, acceptance, executable permission, live provider or ES route,
+production worker, Git effect, publication, or autonomous loop.
+<!-- POST_D2_UNIT2_CURRENT_SUCCESSOR_END -->
+'''
+
+
+def _p11_reconstruct_exact_unit2_predecessor(candidate: bytes) -> bytes:
+    if type(candidate) is not bytes or candidate.count(_P11_UNIT2_NEW) != 1:
+        raise AssertionError('p11:unit2_successor_count')
+    if not candidate.endswith(_P11_UNIT2_NEW):
+        raise AssertionError('p11:unit2_successor_context')
+    predecessor = candidate[:-len(_P11_UNIT2_NEW)]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _P11_UNIT2_PREDECESSOR_IDENTITY:
+        raise AssertionError('p11:unit2_predecessor_identity')
+    if not predecessor.endswith(b'<!-- POST_D2_NATIVE_PROPOSAL_ADMISSION_CURRENT_SUCCESSOR_END -->\n'):
+        raise AssertionError('p11:unit2_predecessor_context')
+    required = (
+        b'worker_started, worker_completed', b'candidate_captured',
+        b'validator_evidence_invalid', b'reviewer_evidence_invalid',
+        b'original open D2', b'Receipt-first historical replay',
+        b'no C2', b'pending independent review',
+    )
+    if any(marker not in _P11_UNIT2_NEW for marker in required):
+        raise AssertionError('p11:unit2_semantics')
+    return predecessor
+
+
+def test_p11_exact_unit2_successor_reconstructs_all_predecessors() -> None:
+    current = (ROOT / 'AGENTS.md').read_bytes()
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_UNIT2_SUCCESSOR_IDENTITY
+    prior = _p11_reconstruct_exact_unit2_predecessor(current)
+    assert prior + _P11_UNIT2_NEW == current
+    d2 = _p11_reconstruct_exact_post_d2_predecessor(prior)
+    assert _p11_reconstruct_exact_status_predecessor(d2)
+
+
+@pytest.mark.parametrize(('case', 'boundary'), (
+    ('missing', 'p11:unit2_successor_count'),
+    ('duplicate', 'p11:unit2_successor_count'),
+    ('moved', 'p11:unit2_successor_context'),
+    ('semantic_change', 'p11:unit2_successor_count'),
+    ('outside_change', 'p11:unit2_predecessor_identity'),
+))
+def test_p11_unit2_successor_rejects_exact_mutants(case: str, boundary: str) -> None:
+    current = (ROOT / 'AGENTS.md').read_bytes()
+    predecessor = _p11_reconstruct_exact_unit2_predecessor(current)
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + _P11_UNIT2_NEW
+    elif case == 'moved':
+        changed = _P11_UNIT2_NEW + predecessor
+    elif case == 'semantic_change':
+        changed = current.replace(b'no candidate or capsule', b'candidate or capsule', 1)
+    else:
+        changed = current.replace(b'Coordinator cannot self-authorize',
+                                  b'Coordinator cannoX self-authorize', 1)
+    assert changed != current
+    with pytest.raises(AssertionError, match='^' + boundary + '$'):
+        _p11_reconstruct_exact_unit2_predecessor(changed)
+
+
+# P11's native post-D2 addition is a third, exact, append-only successor.
+_P11_POST_D2_PREDECESSOR_IDENTITY = (65275, '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc')
+_P11_POST_D2_SUCCESSOR_IDENTITY = (67252, '24a17a3c87b92306837bf18e69e2d425919aa9c57f01a307d3fdb018a124c728')
+_P11_POST_D2_NEW = b'''
+<!-- POST_D2_NATIVE_PROPOSAL_ADMISSION_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 native proposal admission successor
+
+The adjacent private post-D2 offline continuation calls the original D2 run
+once, records one native Section 41 post-execution proposal/context/receipt
+family in transaction A, checks the committed twelve owner rows in a fresh
+guarded session, then uses a distinct C1 transaction B to admit exactly one
+rank-15 member. Fresh guarded readback of both families feeds unchanged pure
+V22 projection. The original D2 entry and `preadmission_ready` meaning remain
+as documented above. The five model recommendations remain evidence only.
+
+The current additive production catalog now ends at
+`0005_section41_post_execution_proposal_family`, still at application
+generation 2 with SQLite 3.37.0 minimum. Migration 0005 adds exactly two
+immutable STRICT tables, four guards, no explicit index or seed, giving 64
+user tables, 114 triggers, and five explicit indexes cumulatively. Existing
+0004 states require explicit administrative migration before normal writer
+admission; normal validation, acquisition and mutation do not auto-migrate.
+Earlier current-tip and absent-0005 statements in this file describe the
+historical D2/C1 tranches and are superseded only for this additive successor.
+
+The owning contract is `.docs/section41-post-execution-proposal-family.md`,
+incorporated by Section 41 in `.docs/c2b-durable-development-state.md`.
+The proof retains only a closed safe basis, uses the original process-owned
+temporary state, and provides read-only three-way recovery after uncertain A
+or B commits. It adds no C2 decision, acceptance, terminal outcome, executable
+permission, real custody, restart/clone recovery, live provider/worker, ES or
+Bridge route, Git effect, publication, service, scheduler, or autonomous loop.
+This source successor is not an independent audit or deployment assertion.
+<!-- POST_D2_NATIVE_PROPOSAL_ADMISSION_CURRENT_SUCCESSOR_END -->
+'''
+_P11_POST_D2_PRE_CONTEXT = b'<!-- RW0_D2_CURRENT_STATUS_END -->\n'
+
+
+def _p11_reconstruct_exact_post_d2_predecessor(candidate: bytes) -> bytes:
+    if type(candidate) is not bytes or candidate.count(_P11_POST_D2_NEW) != 1:
+        raise AssertionError('p11:post_d2_successor_count')
+    if not candidate.endswith(_P11_POST_D2_NEW):
+        raise AssertionError('p11:post_d2_successor_context')
+    predecessor = candidate[:-len(_P11_POST_D2_NEW)]
+    if not predecessor.endswith(_P11_POST_D2_PRE_CONTEXT):
+        raise AssertionError('p11:post_d2_predecessor_context')
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _P11_POST_D2_PREDECESSOR_IDENTITY:
+        raise AssertionError('p11:post_d2_predecessor_identity')
+    return predecessor
+
+
+def test_p11_exact_native_post_d2_successor_reconstructs_integrated_predecessor() -> None:
+    current = _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_POST_D2_SUCCESSOR_IDENTITY
+    predecessor = _p11_reconstruct_exact_post_d2_predecessor(current)
+    assert predecessor + _P11_POST_D2_NEW == current
+    assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == _P11_STATUS_SUCCESSOR_IDENTITY
+    assert _p11_reconstruct_exact_status_predecessor(predecessor)
+    assert b'0005_section41_post_execution_proposal_family' in _P11_POST_D2_NEW
+    assert b'no C2 decision, acceptance, terminal outcome' in b' '.join(_P11_POST_D2_NEW.split())
+
+
+@pytest.mark.parametrize(('case', 'boundary'), (
+    ('missing', 'p11:post_d2_successor_count'),
+    ('duplicate', 'p11:post_d2_successor_count'),
+    ('moved', 'p11:post_d2_successor_context'),
+    ('semantic_change', 'p11:post_d2_successor_count'),
+    ('outside_change', 'p11:post_d2_predecessor_identity'),
+))
+def test_p11_native_post_d2_successor_rejects_exact_mutants(
+    case: str, boundary: str,
+) -> None:
+    current = _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    predecessor = _p11_reconstruct_exact_post_d2_predecessor(current)
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + _P11_POST_D2_NEW
+    elif case == 'moved':
+        changed = _P11_POST_D2_NEW + predecessor
+    elif case == 'semantic_change':
+        changed = current.replace(b'five model recommendations remain evidence only',
+                                  b'five model recommendations grant acceptance', 1)
+    else:
+        changed = current.replace(b'Coordinator cannot self-authorize',
+                                  b'Coordinator cannoX self-authorize', 1)
+    assert changed != current
+    with pytest.raises(AssertionError, match='^' + boundary + '$'):
+        _p11_reconstruct_exact_post_d2_predecessor(changed)
+
+
 # P11's later D2 status-only successor is separate from the earlier bootstrap reset.
 _P11_STATUS_PREDECESSOR_IDENTITY = (64142, 'ddf5485d88fc4604429a2b553643e3a8a80828002d17f7cfcb10cb935d018166')
 _P11_STATUS_SUCCESSOR_IDENTITY = (65275, '1137167c50bbc8c302f126bea89a7f1032555664b278db66d5aae4feedd79cbc')
@@ -1107,13 +1315,14 @@ def _p11_reconstruct_exact_status_predecessor(candidate: bytes) -> bytes:
 
 
 def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> None:
-    current = (ROOT / 'AGENTS.md').read_bytes()
-    assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_STATUS_SUCCESSOR_IDENTITY
-    predecessor = _p11_reconstruct_exact_status_predecessor(current)
+    current = _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    historical_current = _p11_reconstruct_exact_post_d2_predecessor(current)
+    assert (len(historical_current), hashlib.sha256(historical_current).hexdigest()) == _P11_STATUS_SUCCESSOR_IDENTITY
+    predecessor = _p11_reconstruct_exact_status_predecessor(historical_current)
     assert predecessor.count(_P11_OLD_TOP) == predecessor.count(_P11_OLD_BOTTOM) == 1
     assert predecessor.replace(_P11_OLD_TOP, _P11_NEW_TOP, 1).replace(
         _P11_OLD_BOTTOM, _P11_NEW_BOTTOM, 1
-    ) == current
+    ) == historical_current
     for span in (_P11_NEW_TOP, _P11_NEW_BOTTOM):
         assert b'59621aa041a409c6ead27b74ffe25598c159e78e' in span
         assert b'commit gate recorded no push, PR, or merge' in b' '.join(span.split())
@@ -1141,7 +1350,9 @@ def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> N
     ('nonstatus_scope_sentence', 'p11:top_status_context'),
 ))
 def test_p11_status_successor_rejects_bounded_mutations(case: str, boundary: str) -> None:
-    current = (ROOT / 'AGENTS.md').read_bytes()
+    current = _p11_reconstruct_exact_post_d2_predecessor(
+        _p11_reconstruct_exact_unit2_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    )
     assert _p11_reconstruct_exact_status_predecessor(current)
     if case == 'fully_stale':
         changed = current.replace(_P11_NEW_TOP, _P11_OLD_TOP, 1).replace(

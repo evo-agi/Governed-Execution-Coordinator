@@ -16,11 +16,15 @@ import ge_nwp_coordinator._rw0_d1_process_supervisor as supervisor
 from ge_nwp_coordinator._rw0_d1_offline import artificial_fixture
 from ge_nwp_coordinator._rw0_d1_offline import run_rw0_d1_offline
 from ge_nwp_coordinator._rw0_d2_offline import run_rw0_d2_offline
+from ge_nwp_coordinator._rw0_d2a_process_frames import (
+    decode_checking_request, decode_checking_response, encode_checking_response,
+)
 from ge_nwp_coordinator._rw0_phase_entry_semantic_values import (
     RW0AuthorityVerificationObservationV1, validate_authority_observation,
 )
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
 from test_rw0_d1_offline_integration import work_spec
+from test_rw0_d2_post_execution_admission_integration import _omit_optional_capture_observation
 
 
 def _forge_exact_value(value: object, **changes: object) -> object:
@@ -91,6 +95,171 @@ def test_single_input_ready_handback_and_owned_close() -> None:
         run.close()
     with pytest.raises(RuntimeError, match="d2_run_closed"):
         _ = run.handback
+
+
+@pytest.mark.parametrize("worker_count", (2, 3))
+@pytest.mark.parametrize("role", ("validator", "reviewer"))
+def test_clean_checker_invalid_frame_has_typed_reached_stop(
+    monkeypatch: pytest.MonkeyPatch, worker_count: int, role: str,
+) -> None:
+    import ge_nwp_coordinator._rw0_d2a_offline as d2a
+
+    with monkeypatch.context() as patch:
+        if worker_count == 2:
+            _omit_optional_capture_observation(patch)
+        original = d2a.run_fake_module
+        checker_calls: list[str] = []
+
+        def malformed_selected(module: str, request: bytes, **kwargs: object) -> object:
+            process = original(module, request, **kwargs)
+            checker_calls.append(module)
+            if module.endswith("_fake_" + role):
+                assert process.clean_success and process.cleanup_complete
+                return replace(process, stdout=b"invalid-checking-response-frame")
+            return process
+
+        patch.setattr(d2a, "run_fake_module", malformed_selected)
+        patch.setattr(
+            d2_offline, "run_fake_module",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("model_must_not_run_after_invalid_checker_evidence")
+            ),
+        )
+        work = work_spec()
+        run = run_rw0_d2_offline(work, artificial_fixture(work))
+    try:
+        handback = run.handback
+        expected_checked = worker_count + (7 if role == "validator" else 9)
+        expected_children = 1 if role == "validator" else 2
+        assert (handback.status, handback.reason) == ("stopped", role + "_evidence_invalid")
+        assert (len(handback.checked_admissions), len(handback.child_outcomes)) == (
+            expected_checked, expected_children,
+        )
+        assert len(checker_calls) == expected_children
+        assert all(child.clean_success and child.cleanup_complete for child in handback.child_outcomes)
+        assert handback.evidence_checkpoint is None
+        assert handback.model_process is None
+        handback.validate()
+        with sqlite3.connect(run._d1_run.location.database_path) as db:
+            assert db.execute(
+                "SELECT count(*) FROM development_model_proposals "
+                "WHERE proposal_phase='post_execution_semantic_review'"
+            ).fetchone()[0] == 0
+            assert db.execute(
+                "SELECT count(*) FROM rw0_evidence_memberships WHERE kind_rank=15"
+            ).fetchone()[0] == 0
+    finally:
+        run.close()
+
+
+@pytest.mark.parametrize("worker_count", (2, 3))
+@pytest.mark.parametrize("role", ("validator", "reviewer"))
+@pytest.mark.parametrize("invalid_field", (
+    "impossible_calendar", "forbidden_reason", "other_role_reason",
+    "wrong_outcome_for_reason",
+))
+def test_semantic_invalid_checker_child_value_has_typed_reached_stop(
+    monkeypatch: pytest.MonkeyPatch, worker_count: int, role: str,
+    invalid_field: str,
+) -> None:
+    import ge_nwp_coordinator._rw0_d2a_offline as d2a
+
+    original = d2a.run_fake_module
+    checker_calls: list[str] = []
+
+    def semantic_invalid_selected(module: str, request: bytes, **kwargs: object) -> object:
+        process = original(module, request, **kwargs)
+        checker_calls.append(module)
+        if not module.endswith("_fake_" + role):
+            return process
+        assert process.clean_success and process.cleanup_complete
+        request_record = decode_checking_request(role, request)
+        source_record = decode_checking_response(role, process.stdout)
+        for name in (
+            "invocation_ref", "command_digest", "effect_fence_ref",
+            "effect_fence_digest", "delivery_attempt_ref", "capsule_manifest_ref",
+            "portable_capsule_digest",
+        ):
+            assert source_record[name] == request_record[name]
+        assert source_record["file_digests"] == [
+            entry["sha256"] for entry in request_record["files"]
+        ]
+        assert (source_record["source_ref"], source_record["evidence_ref"]) == (
+            "validator.d2.fake" if role == "validator" else "reviewer.d2.fake",
+            "evidence.d2.validation" if role == "validator" else "evidence.d2.review",
+        )
+        altered = dict(source_record)
+        if invalid_field == "impossible_calendar":
+            altered["observed_at"] = "9999-99-99T99:99:99Z"
+        elif invalid_field == "forbidden_reason":
+            altered["reason_code"] = "provably_not_accepted"
+        elif invalid_field == "other_role_reason":
+            altered["reason_code"] = (
+                "review_passed" if role == "validator" else "validation_passed"
+            )
+        else:
+            altered["outcome"] = "failed"
+            altered["reason_code"] = (
+                "validation_passed" if role == "validator" else "review_passed"
+            )
+        frame = encode_checking_response(role, altered)
+        decoded = decode_checking_response(role, frame)
+        assert decoded["record_digest"] != source_record["record_digest"]
+        assert all(
+            decoded[name] == source_record[name]
+            for name in source_record
+            if name not in {"observed_at", "outcome", "reason_code", "record_digest"}
+        )
+        return replace(process, stdout=frame)
+
+    with monkeypatch.context() as patch:
+        if worker_count == 2:
+            _omit_optional_capture_observation(patch)
+        patch.setattr(d2a, "run_fake_module", semantic_invalid_selected)
+        patch.setattr(
+            d2_offline, "run_fake_module",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("model_must_not_run_after_invalid_checker_evidence")
+            ),
+        )
+        work = work_spec()
+        run = run_rw0_d2_offline(work, artificial_fixture(work))
+    try:
+        handback = run.handback
+        expected_checked = worker_count + (7 if role == "validator" else 9)
+        expected_children = 1 if role == "validator" else 2
+        assert (handback.status, handback.reason) == ("stopped", role + "_evidence_invalid")
+        assert (len(handback.checked_admissions), len(handback.child_outcomes)) == (
+            expected_checked, expected_children,
+        )
+        assert len(checker_calls) == expected_children
+        assert all(child.clean_success and child.cleanup_complete for child in handback.child_outcomes)
+        assert handback.evidence_checkpoint is None and handback.model_process is None
+        handback.validate()
+        with sqlite3.connect(run._d1_run.location.database_path) as db:
+            assert db.execute(
+                "SELECT count(*) FROM development_model_proposals "
+                "WHERE proposal_phase='post_execution_semantic_review'"
+            ).fetchone()[0] == 0
+            assert db.execute(
+                "SELECT count(*) FROM rw0_evidence_memberships WHERE kind_rank=15"
+            ).fetchone()[0] == 0
+    finally:
+        run.close()
+
+
+def test_checker_programming_fault_is_not_invalid_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import ge_nwp_coordinator._rw0_d2a_offline as d2a
+
+    def programming_fault(**_kwargs: object) -> object:
+        raise RuntimeError("programming_fault_outside_child_record_decode")
+
+    monkeypatch.setattr(d2a, "normalize_checking_evidence", programming_fault)
+    work = work_spec()
+    with pytest.raises(RuntimeError, match="programming_fault_outside_child_record_decode"):
+        run_rw0_d2_offline(work, artificial_fixture(work))
 
 
 def test_d1_stopped_has_no_invented_a_or_model_evidence() -> None:
@@ -645,20 +814,22 @@ def test_partial_bound_effect_failure_keeps_one_real_commit(
         run.close()
 
 
-@pytest.mark.parametrize(("fail_at", "checked", "children", "wrong_reason"), (
-    (0, 0, 0, "bound_effect_conflict"),
-    (10, 10, 1, "validator_process_failed"),
-    (12, 12, 2, "reviewer_process_failed"),
-    (13, 13, 2, "evidence_mismatch"),
+@pytest.mark.parametrize("worker_count", (2, 3))
+@pytest.mark.parametrize(("offset", "children", "wrong_reason"), (
+    (None, 0, "bound_effect_conflict"),
+    (7, 1, "validator_process_failed"),
+    (9, 2, "reviewer_process_failed"),
+    (10, 2, "evidence_mismatch"),
 ))
 def test_c1_admission_failure_preserves_exact_reached_prefix(
-    monkeypatch: pytest.MonkeyPatch, fail_at: int, checked: int,
+    monkeypatch: pytest.MonkeyPatch, worker_count: int, offset: int | None,
     children: int, wrong_reason: str,
 ) -> None:
     import ge_nwp_coordinator._rw0_d2a_offline as d2a
 
     original = d2a._admit_and_check
     calls = 0
+    fail_at = 0 if offset is None else worker_count + offset
 
     def fail_selected(*args: object, **kwargs: object) -> object:
         nonlocal calls
@@ -669,6 +840,8 @@ def test_c1_admission_failure_preserves_exact_reached_prefix(
         return original(*args, **kwargs)
 
     with monkeypatch.context() as patch:
+        if worker_count == 2:
+            _omit_optional_capture_observation(patch)
         patch.setattr(d2a, "_admit_and_check", fail_selected)
         work = work_spec()
         run = run_rw0_d2_offline(work, artificial_fixture(work))
@@ -677,7 +850,7 @@ def test_c1_admission_failure_preserves_exact_reached_prefix(
         assert calls == fail_at + 1
         assert (handback.status, handback.reason) == ("stopped", "c1_admission_failed")
         assert (len(handback.committed_bound_effects), len(handback.checked_admissions),
-                len(handback.child_outcomes)) == (2, checked, children)
+                len(handback.child_outcomes)) == (2, fail_at, children)
         assert handback.evidence_checkpoint is None
         handback.validate()
         _reject_reason_only(handback, wrong_reason)
@@ -685,12 +858,13 @@ def test_c1_admission_failure_preserves_exact_reached_prefix(
         run.close()
 
 
-@pytest.mark.parametrize(("role", "checked", "children", "reason"), (
-    ("validator", 10, 1, "validator_process_failed"),
-    ("reviewer", 12, 2, "reviewer_process_failed"),
+@pytest.mark.parametrize("worker_count", (2, 3))
+@pytest.mark.parametrize(("role", "children", "reason"), (
+    ("validator", 1, "validator_process_failed"),
+    ("reviewer", 2, "reviewer_process_failed"),
 ))
 def test_real_cancelled_checker_is_a_process_failure(
-    monkeypatch: pytest.MonkeyPatch, role: str, checked: int,
+    monkeypatch: pytest.MonkeyPatch, worker_count: int, role: str,
     children: int, reason: str,
 ) -> None:
     import ge_nwp_coordinator._rw0_d2a_offline as d2a
@@ -703,6 +877,8 @@ def test_real_cancelled_checker_is_a_process_failure(
         return original(module, request, **kwargs)
 
     with monkeypatch.context() as patch:
+        if worker_count == 2:
+            _omit_optional_capture_observation(patch)
         patch.setattr(d2a, "run_fake_module", cancel_target)
         work = work_spec()
         run = run_rw0_d2_offline(work, artificial_fixture(work))
@@ -710,13 +886,58 @@ def test_real_cancelled_checker_is_a_process_failure(
         handback = run.handback
         assert (handback.status, handback.reason) == ("stopped", reason)
         assert (len(handback.checked_admissions), len(handback.child_outcomes)) == (
-            checked, children,
+            worker_count + (7 if role == "validator" else 9), children,
         )
         assert handback.child_outcomes[-1].reason == "cancelled"
         assert handback.child_outcomes[-1].cleanup_complete
         handback.validate()
         _reject_reason_only(handback, "c1_admission_failed")
         _reject_reason_only(handback, "process_cleanup_unresolved")
+    finally:
+        run.close()
+
+
+@pytest.mark.parametrize("worker_count", (2, 3))
+@pytest.mark.parametrize("role", ("validator", "reviewer"))
+def test_checker_cleanup_unresolved_keeps_exact_prior_prefix(
+    monkeypatch: pytest.MonkeyPatch, worker_count: int, role: str,
+) -> None:
+    import ge_nwp_coordinator._rw0_d2a_offline as d2a
+
+    original = d2a.run_fake_module
+    calls = []
+
+    def unresolved_selected(module: str, request: bytes, **kwargs: object) -> object:
+        process = original(module, request, **kwargs)
+        calls.append(module)
+        if module.endswith("_fake_" + role):
+            assert process.clean_success and process.cleanup_complete
+            return replace(
+                process, group_clear=False,
+                cleanup_reason="group_unproved",
+            )
+        return process
+
+    with monkeypatch.context() as patch:
+        if worker_count == 2:
+            _omit_optional_capture_observation(patch)
+        patch.setattr(d2a, "run_fake_module", unresolved_selected)
+        work = work_spec()
+        run = run_rw0_d2_offline(work, artificial_fixture(work))
+    try:
+        handback = run.handback
+        children = 1 if role == "validator" else 2
+        assert (handback.status, handback.reason) == (
+            "cleanup_unresolved", "process_cleanup_unresolved",
+        )
+        assert (len(handback.checked_admissions), len(handback.child_outcomes)) == (
+            worker_count + (7 if role == "validator" else 9), children,
+        )
+        assert len(calls) == children
+        assert not handback.child_outcomes[-1].cleanup_complete
+        assert all(child.clean_success and child.cleanup_complete
+                   for child in handback.child_outcomes[:-1])
+        handback.validate()
     finally:
         run.close()
 

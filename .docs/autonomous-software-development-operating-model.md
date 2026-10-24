@@ -604,6 +604,12 @@ immutable phase/evidence persistence. All worker, dispatch, Git, Bridge, ES,
 and other external execution remains absent.
 <!-- C2B3_NARROWED_OPERATING_MODEL_END -->
 
+<!-- POST_D2_NATIVE_PROPOSAL_COMPOSITION_SUCCESSOR_BEGIN -->
+**Post-D2 native offline proposal-admission composition successor.**
+
+The present private proof now composes one original D2 run with native Section 41 transaction A, a checked twelve-owner-row readback, separate C1 rank-15 transaction B, fresh checked A/B readback and unchanged pure V22. Migration 0005 is the additive generation-2 current tip; prior 0004-tip or absent-0005 statements describe earlier tranches and are superseded only for this Section 41 successor. The proof has process-owned temporary custody and fake children. It does not implement C2 physical decisions, immutable acceptance, terminal outcomes, live suppliers, standing authority, ES/Bridge routing, product Git effects or an autonomous loop. `.docs/c2b-durable-development-state.md` and its subordinate `.docs/section41-post-execution-proposal-family.md` own the precise boundary.
+<!-- POST_D2_NATIVE_PROPOSAL_COMPOSITION_SUCCESSOR_END -->
+
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
 ## Cognitive proposal and selection runtime
 
