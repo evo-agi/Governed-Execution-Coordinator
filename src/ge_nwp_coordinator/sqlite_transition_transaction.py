@@ -117,6 +117,19 @@ from ge_nwp_coordinator._sqlite_rw0_c1 import (
     _resolve_rw0_c1_evidence_admission_after_fencing,
     _resolve_rw0_c1_phase_establishment_after_fencing,
 )
+from ge_nwp_coordinator._rw0_d2_handback import RW0D2OfflineRun
+from ge_nwp_coordinator._section41_post_execution_proposal_mutation_contracts import (
+    PostExecutionProposalConflictV1,
+    PostExecutionProposalRecoveryV1,
+    RecordPostExecutionProposalCommandV1,
+    RecordPostExecutionProposalResultV1,
+)
+from ge_nwp_coordinator._sqlite_section41_post_execution_proposal import (
+    CheckedPostExecutionProposalFamilyV1,
+    read_checked_family_after_fencing as _read_post_execution_proposal_after_fencing,
+    recover_after_fencing as _recover_post_execution_proposal_after_fencing,
+    write_fresh_after_fencing as _write_post_execution_proposal_after_fencing,
+)
 from ge_nwp_coordinator.lease import derive_lease_runtime_decision
 from ge_nwp_coordinator.persistence_contracts import (
     AdmittedBacklogRecordEnvelope,
@@ -1101,7 +1114,7 @@ class _CoordinatorMutationTransactionController:
         return result
 
     def run_rw0_c1_checked_family(
-        self, *, selector: RW0C1AdmitEvidenceResultV1,
+        self, *, selector: RW0C1AdmitEvidenceResultV1 | RW0C1EvidenceAdmissionRecoverySelectorV1,
     ) -> RW0C1CheckedEvidenceFamilyV1:
         result = self._run_rw0_c1_checked_family_transaction(selector=selector)
         if type(result) is not RW0C1CheckedEvidenceFamilyV1:
@@ -1111,6 +1124,196 @@ class _CoordinatorMutationTransactionController:
     def run_rw0_d2_current_owner_snapshot(self, *, basis: object) -> RW0D2CurrentOwnerSnapshotV1:
         result = self._run_rw0_d2_current_owner_snapshot_transaction(basis=basis)
         if type(result) is not RW0D2CurrentOwnerSnapshotV1:
+            raise _mutation_failed()
+        return result
+
+    def run_atomic_post_execution_proposal(
+        self, *, command: RecordPostExecutionProposalCommandV1,
+        run: RW0D2OfflineRun, safe_basis_bytes: bytes,
+    ) -> RecordPostExecutionProposalResultV1 | PostExecutionProposalConflictV1:
+        if (type(command) is not RecordPostExecutionProposalCommandV1
+                or type(run) is not RW0D2OfflineRun
+                or type(safe_basis_bytes) is not bytes):
+            raise _mutation_failed()
+        return self._run_atomic_post_execution_proposal_transaction(
+            command=command, run=run, safe_basis_bytes=safe_basis_bytes,
+        )
+
+    def run_post_execution_proposal_read(
+        self, *, command: RecordPostExecutionProposalCommandV1,
+    ) -> CheckedPostExecutionProposalFamilyV1:
+        result = self._run_post_execution_proposal_read_transaction(command=command)
+        if type(result) is not CheckedPostExecutionProposalFamilyV1:
+            raise _mutation_failed()
+        return result
+
+    def run_post_execution_proposal_recovery(
+        self, *, command: RecordPostExecutionProposalCommandV1,
+    ) -> PostExecutionProposalRecoveryV1:
+        result = self._run_post_execution_proposal_read_transaction(
+            command=command, recovery=True,
+        )
+        if type(result) is not PostExecutionProposalRecoveryV1:
+            raise _mutation_failed()
+        return result
+
+    def _run_atomic_post_execution_proposal_transaction(
+        self, *, command: RecordPostExecutionProposalCommandV1,
+        run: RW0D2OfflineRun, safe_basis_bytes: bytes,
+    ) -> RecordPostExecutionProposalResultV1 | PostExecutionProposalConflictV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        planned_result: RecordPostExecutionProposalResultV1 | PostExecutionProposalConflictV1 | None = None
+        planned_exception: BaseException | None = None
+        cleanup_exception: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                if self._run_until_writer_fencing_resolution() is not _WriterIssuanceMatch.MATCH:
+                    planned_exception = _mutation_failed()
+                else:
+                    try:
+                        historical = _read_post_execution_proposal_after_fencing(
+                            self._capability, command,
+                        )
+                    except ValueError as error:
+                        if str(error) != "post_execution_proposal_identity_conflict":
+                            raise
+                        planned_result = PostExecutionProposalConflictV1(
+                            "identity_conflict", command.mutation_ref,
+                            command.command_digest,
+                        )
+                        historical = None
+                    if planned_result is None and historical is not None:
+                        planned_result = historical.result
+                    elif planned_result is None:
+                        connection = self._connection
+                        if type(connection) is not sqlite3.Connection:
+                            raise _mutation_failed()
+                        timestamp = _capture_transaction_timestamp()
+                        self._set_resolution_state(
+                            _MutationCommitResolutionState.PLANNED_OUTCOME
+                        )
+                        candidate = _write_post_execution_proposal_after_fencing(
+                            capability=self._capability, connection=connection,
+                            command=command, run=run,
+                            safe_basis_bytes=safe_basis_bytes,
+                            transaction_timestamp=timestamp,
+                        )
+                        if type(candidate) is RecordPostExecutionProposalResultV1:
+                            self._set_resolution_state(
+                                _MutationCommitResolutionState.WRITES_PERFORMED
+                            )
+                            planned_result = self._commit_after_fresh_writes(
+                                candidate, force_cleanup_on_uncertainty=True,
+                            )
+                        elif type(candidate) is PostExecutionProposalConflictV1:
+                            planned_result = candidate
+                        else:
+                            planned_exception = _database_integrity_failure()
+                    if not self._commit_attempt_started:
+                        cleanup_exception = self._resolve_rollback_before_commit()
+            except _WriterSessionAuthorityClosed:
+                planned_exception = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                planned_exception = _mutation_failed()
+            except WriterSessionError as error:
+                planned_exception = error
+            except SQLiteMutationStoreError as error:
+                planned_exception = error
+            except Exception:
+                planned_exception = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if planned_exception is not None and not self._commit_attempt_started:
+                cleanup_exception = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    planned_result = None
+                    cleanup_exception = None
+                    planned_exception = _commit_outcome_unknown()
+                else:
+                    cleanup_exception = cleanup_exception or _mutation_failed()
+            run = None  # type: ignore[assignment]
+            safe_basis_bytes = b""
+        witness = self._rw0_c1_commit_close_witness
+        if (
+            type(witness) is _RW0C1CommitCloseWitness
+            and witness.ordinary_failure_is_commit_uncertain
+            and (cleanup_exception is not None or planned_exception is not None
+                 or planned_result is None)
+        ):
+            planned_result = None
+            cleanup_exception = None
+            planned_exception = _commit_outcome_unknown()
+        if cleanup_exception is not None:
+            raise cleanup_exception
+        if planned_exception is not None:
+            raise planned_exception
+        if planned_result is None:
+            raise _mutation_failed()
+        return planned_result
+
+    def _run_post_execution_proposal_read_transaction(
+        self, *, command: RecordPostExecutionProposalCommandV1,
+        recovery: bool = False,
+    ) -> CheckedPostExecutionProposalFamilyV1 | PostExecutionProposalRecoveryV1:
+        if type(command) is not RecordPostExecutionProposalCommandV1:
+            raise _mutation_failed()
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result: CheckedPostExecutionProposalFamilyV1 | PostExecutionProposalRecoveryV1 | None = None
+        failure: BaseException | None = None
+        cleanup: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                if self._run_until_writer_fencing_resolution() is not _WriterIssuanceMatch.MATCH:
+                    failure = _mutation_failed()
+                elif recovery:
+                    result = _recover_post_execution_proposal_after_fencing(
+                        self._capability, command,
+                    )
+                else:
+                    result = _read_post_execution_proposal_after_fencing(
+                        self._capability, command,
+                    )
+                    if result is None:
+                        failure = _database_integrity_failure()
+            except _WriterSessionAuthorityClosed:
+                failure = _database_integrity_failure()
+            except _WriterSessionAuthorityUnavailable:
+                failure = _mutation_failed()
+            except WriterSessionError as error:
+                failure = error
+            except SQLiteMutationStoreError as error:
+                failure = error
+            except Exception:
+                failure = _mutation_failed()
+            except BaseException:
+                try:
+                    self._resolve_rollback_before_commit()
+                except BaseException:
+                    pass
+                raise
+            cleanup = self._resolve_rollback_before_commit()
+        finally:
+            mutation_lease._close()
+        if cleanup is not None:
+            if recovery:
+                return PostExecutionProposalRecoveryV1("unresolved")
+            raise cleanup
+        if failure is not None:
+            if recovery:
+                return PostExecutionProposalRecoveryV1("unresolved")
+            raise failure
+        if result is None:
             raise _mutation_failed()
         return result
 
@@ -1160,7 +1363,7 @@ class _CoordinatorMutationTransactionController:
         return result
 
     def _run_rw0_c1_checked_family_transaction(
-        self, *, selector: RW0C1AdmitEvidenceResultV1,
+        self, *, selector: RW0C1AdmitEvidenceResultV1 | RW0C1EvidenceAdmissionRecoverySelectorV1,
     ) -> RW0C1CheckedEvidenceFamilyV1:
         self._require_new_owner()
         mutation_lease = self._acquire_controller_mutation_lease()
@@ -2632,6 +2835,7 @@ class _CoordinatorMutationTransactionController:
         require_complete_close_proof = type(planned_result) in (
             RW0C1EstablishPhaseResultV1,
             RW0C1AdmitEvidenceResultV1,
+            RecordPostExecutionProposalResultV1,
         )
         commit_close_witness = self._rw0_c1_commit_close_witness
         if require_complete_close_proof and type(
@@ -3422,7 +3626,7 @@ def _run_pre_execution_plan_disposition_recovery(
 
 def _run_rw0_c1_checked_family(
     *, operation_lease: _WriterSessionOperationLease,
-    selector: RW0C1AdmitEvidenceResultV1,
+    selector: RW0C1AdmitEvidenceResultV1 | RW0C1EvidenceAdmissionRecoverySelectorV1,
 ) -> RW0C1CheckedEvidenceFamilyV1 | _SafeMutationFailureDisposition:
     if type(operation_lease) is not _WriterSessionOperationLease:
         return _new_safe_mutation_failure_disposition(
@@ -3444,6 +3648,76 @@ def _run_rw0_c1_checked_family(
     controller = None
     selector = None  # type: ignore[assignment]
     operation_lease = None  # type: ignore[assignment]
+    return result
+
+
+def _run_post_execution_proposal_operation(
+    *, operation_lease: _WriterSessionOperationLease,
+    command: RecordPostExecutionProposalCommandV1,
+    mode: str,
+    run: RW0D2OfflineRun | None = None,
+    safe_basis_bytes: bytes | None = None,
+    commit_close_witness: _RW0C1CommitCloseWitness | None = None,
+) -> (
+    RecordPostExecutionProposalResultV1 | PostExecutionProposalConflictV1
+    | CheckedPostExecutionProposalFamilyV1 | PostExecutionProposalRecoveryV1
+    | _SafeMutationFailureDisposition
+):
+    if (type(operation_lease) is not _WriterSessionOperationLease
+            or type(command) is not RecordPostExecutionProposalCommandV1
+            or mode not in {"record", "read", "recovery"}
+            or (mode == "record" and (
+                type(run) is not RW0D2OfflineRun
+                or type(safe_basis_bytes) is not bytes
+                or type(commit_close_witness) is not _RW0C1CommitCloseWitness
+            ))
+            or (mode != "record" and (
+                run is not None or safe_basis_bytes is not None
+                or commit_close_witness is not None
+            ))):
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.MUTATION_FAILED
+        )
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        if mode == "record":
+            result = controller.run_atomic_post_execution_proposal(
+                command=command, run=run, safe_basis_bytes=safe_basis_bytes,
+            )
+        elif mode == "read":
+            result = controller.run_post_execution_proposal_read(command=command)
+        else:
+            result = controller.run_post_execution_proposal_recovery(command=command)
+    except SQLiteMutationStoreError as error:
+        if (
+            type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+        ):
+            return _new_safe_mutation_failure_disposition(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            )
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if mode == "recovery":
+            return PostExecutionProposalRecoveryV1("unresolved")
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            if type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            else SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        operation_lease = None  # type: ignore[assignment]
+        run = None
+        safe_basis_bytes = None
     return result
 
 

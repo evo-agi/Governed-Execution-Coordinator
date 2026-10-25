@@ -238,6 +238,48 @@ runtime, or execution authority.
 
 ## Filesystem Posture
 
+### F1 recovery-needed observation and bounded writer entry
+
+Observational inspection and validation retain no-write behavior. Exact
+SQLite-supplied extended result 776 (`SQLITE_READONLY_ROLLBACK`) becomes closed
+reason `recovery_needed`; generic I/O, message text and journal presence do
+not. The public classification stays `UNKNOWN`, without claiming managed
+schema, corruption or completed rollback. Administrative initialize/migrate
+reject the reason without automatic recovery or migration.
+
+The guarded writer now rechecks this condition under the common authority lock
+and binds the existing root/lock/database. A resolved current managed store
+uses the ordinary writer path after the locked binding check. For a still-hot
+store, the checker requires private owner/mode/type/link metadata and stable
+identity for the fixed adjacent DELETE journal, compatible root/lock/database
+posture, no competing WAL/SHM/journal sidecars, and a bounded recognizable
+rollback header without an optional super-journal tail. Missing, disappearing,
+truncated, zeroed, changed, substituted or ambiguous journal evidence refuses
+with `recovery_unsafe` before write-capable recovery access. It never follows a
+journal-supplied path or replays journal pages itself.
+
+The existing create-disabled bound connection lets SQLite perform rollback
+under the common lock. Safety controls are installed at the first Python API
+opportunity before the posture read; Python supplies no pre-connect PRAGMA
+hook. The journal may change or disappear as an engine effect. Access/cleanup
+uncertainty reports `recovery_unresolved` without a hidden retry. Binding and
+the exact current catalog/schema/invariants are revalidated before ordinary
+writer issuance. An older prefix can have rolled back and still be refused
+without migration or writer credential; a failed post-rollback admission is
+not evidence of unchanged storage. Existing one-commit issuance and its
+postcommit publication semantics remain in force.
+
+The previous refusal-only branch followed a pre-COMMIT ATTACH fixture whose
+main journal did not contain a super-journal dependency. That result remains
+historical evidence of an earlier contract decision. An attachment in prior
+transaction history alone does not imply that recovering the admitted main
+journal requires opening the sibling. This bounded contract relies on the
+standard SQLite VFS and private local-storage model; checked descriptors do
+not confine the VFS against hostile same-account pathname substitution, and
+the fixture's surviving sibling journal does not provide a C/VFS access trace.
+DELETE/FULL and nonpersistent posture remain unchanged. Storage recovery
+does not authorize first-live restart or a domain effect.
+
 The first backend state directory must be local, private, and fixed by
 Coordinator-owned local configuration/defaults, not by connector, MCP, command
 payload, work item, lease, backlog, report, or remote input.
@@ -644,3 +686,7 @@ CAS precede registry, member, dependency, relation, and owner collision probes.
 Only an actual `None` from an owner reader becomes `owner_row_missing`; closed
 SQLite reader errors retain their existing safe class.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+### Section 41 0005 operator and mutation recovery successor
+
+The installed current generation-2 catalog now ends at `0005_section41_post_execution_proposal_family`. Only explicit administrative migration moves an exact supported 0004 prefix to 0005; ordinary inspection/validation, writer acquisition and product mutation do not append a suffix. The original common advisory lock, path binding, one guarded writer operation and one commit-attempt uncertainty rules remain. Section 41 A and C1 B are separate transactions with separate read-only three-way recovery. A committed A with B CAS refusal retains A; neither recovery path retries a lost response. Schema counts are 64 user tables, 114 triggers and five explicit indexes. Historical 0004 operational examples remain scoped to their prior tip.

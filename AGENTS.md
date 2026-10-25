@@ -986,3 +986,100 @@ production direct-local adapter, product Git handler, or autonomous loop.
 `preadmission_ready` is not acceptance. The detailed owner is
 `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
+
+<!-- POST_D2_NATIVE_PROPOSAL_ADMISSION_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 native proposal admission successor
+
+The adjacent private post-D2 offline continuation calls the original D2 run
+once, records one native Section 41 post-execution proposal/context/receipt
+family in transaction A, checks the committed twelve owner rows in a fresh
+guarded session, then uses a distinct C1 transaction B to admit exactly one
+rank-15 member. Fresh guarded readback of both families feeds unchanged pure
+V22 projection. The original D2 entry and `preadmission_ready` meaning remain
+as documented above. The five model recommendations remain evidence only.
+
+The current additive production catalog now ends at
+`0005_section41_post_execution_proposal_family`, still at application
+generation 2 with SQLite 3.37.0 minimum. Migration 0005 adds exactly two
+immutable STRICT tables, four guards, no explicit index or seed, giving 64
+user tables, 114 triggers, and five explicit indexes cumulatively. Existing
+0004 states require explicit administrative migration before normal writer
+admission; normal validation, acquisition and mutation do not auto-migrate.
+Earlier current-tip and absent-0005 statements in this file describe the
+historical D2/C1 tranches and are superseded only for this additive successor.
+
+The owning contract is `.docs/section41-post-execution-proposal-family.md`,
+incorporated by Section 41 in `.docs/c2b-durable-development-state.md`.
+The proof retains only a closed safe basis, uses the original process-owned
+temporary state, and provides read-only three-way recovery after uncertain A
+or B commits. It adds no C2 decision, acceptance, terminal outcome, executable
+permission, real custody, restart/clone recovery, live provider/worker, ES or
+Bridge route, Git effect, publication, service, scheduler, or autonomous loop.
+This source successor is not an independent audit or deployment assertion.
+<!-- POST_D2_NATIVE_PROPOSAL_ADMISSION_CURRENT_SUCCESSOR_END -->
+
+<!-- POST_D2_UNIT2_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 Unit 2 bounded evidence successor
+
+The current private offline D2 A path accepts exactly two Worker Wire observation
+orders: `worker_started, worker_completed` and `worker_started,
+candidate_captured, worker_completed`. The parent captures and verifies the
+candidate capsule in either case; omission of the optional worker-authored
+`candidate_captured` observation makes no claim that the parent did not capture
+a candidate. `worker_completed` still carries no candidate or capsule
+conditional fields. The checked C1 A families have exactly 13 or 14 members,
+respectively, with rank sequences `(12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6,
+12, 1)` and `(12, 12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)`. One private
+layout resolver anchors role positions and reached prefixes to the actual D1
+Wire result. Pure V40 reviewer separation binds the parent capsule, the
+rank-13 worker-result candidate, and the review observation in both layouts;
+only the three-observation layout reads a `candidate_captured.candidate_ref`.
+
+A clean, reaped validator or reviewer child whose closed checking response is
+invalid stops with `validator_evidence_invalid` or
+`reviewer_evidence_invalid`, respectively. The returned handback retains the
+exact prior checked prefix and child outcomes without admitting the bad
+observation or launching a later child. Process failure, cleanup failure, and
+programming faults retain their separate handling. The native Section 41 fresh
+writer derives one command and canonical safe basis from the original open D2
+run and requires complete equality before route probing or target writes.
+Receipt-first historical replay and checked readback use the persisted family
+without rerunning children or requiring present process custody. The existing
+three-observation command and safe-basis bytes remain unchanged.
+
+This bounded implementation is pending independent review. It adds no C2
+decision, acceptance, executable permission, live provider or ES route,
+production worker, Git effect, publication, or autonomous loop.
+<!-- POST_D2_UNIT2_CURRENT_SUCCESSOR_END -->
+
+<!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 cumulative local-commit status successor
+
+The bounded post-D2 implementation in the exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` was independently reviewed
+for a separately governed commit gate. That gate locally committed those
+bytes as `66ee79132501e636d848ff8578fb674a208d6ac5`, reauthenticated all
+299 committed blobs and Git modes, and recorded 9,295 collected and 9,295
+passing tests, zero failures, errors, or skips, and three known Python 3.13
+fork deprecation warnings. The earlier Unit 2 pending-review sentence remains
+historical candidate-stage evidence and is superseded only for review and
+local-commit status.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This is a historical local-gate statement, not a live remote-ref or
+publication claim. Git objects and refs remain authoritative for current
+commit and publication truth. Audit, validation, provenance, reports, and
+status text remain evidence, not Coordinator durable authority or permission
+to perform effects. The artifact-only audit did not certify live Git state;
+the gate proves only its prospective opening-to-commit interval. Earlier
+raw-index and diagnostic-ref provenance gaps remain unresolved history. F03
+remains a nonblocking private-constructor observation; F2 and qualified
+F3/F6/F7 findings, cross-host clock ordering, and future live concerns are
+not claimed closed.
+
+This implementation adds no live custody, physical C2 decision or acceptance,
+terminal outcome, executable permission, production provider or worker
+readiness, ES or Bridge route, product Git authority, service, scheduler, or
+autonomous loop. The original D2 entry and Unit 2 behavioral boundaries above
+remain unchanged.
+<!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->

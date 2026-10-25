@@ -176,6 +176,7 @@ def test_default_location_can_be_redirected_for_tests_without_creating_real_stat
 def test_safe_errors_do_not_echo_paths(tmp_path: Path) -> None:
     root = tmp_path / "unsafe-root"
     root.mkdir(mode=0o755)
+    root.chmod(0o755)  # The F1 validation fixture uses umask 077.
 
     with pytest.raises(SQLiteStateError) as exc_info:
         prepare_state_database(_location(root))

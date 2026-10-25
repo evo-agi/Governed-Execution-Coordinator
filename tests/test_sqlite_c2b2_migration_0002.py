@@ -45,6 +45,10 @@ MIGRATION_0004_PATH = (
     / "sqlite_migrations"
     / "0004_rw0_c1_durable_evidence.sql"
 )
+MIGRATION_0005_PATH = (
+    REPOSITORY_ROOT / "src" / "ge_nwp_coordinator" / "sqlite_migrations"
+    / "0005_section41_post_execution_proposal_family.sql"
+)
 MIGRATION_PACKAGE_PATH = MIGRATION_0002_PATH.parent
 
 EXPECTED_MIGRATION_0001_SHA256 = "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148"
@@ -55,10 +59,13 @@ EXPECTED_SHA256 = "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d
 SECTION41_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
 SECTION41_RESOURCE_NAME = "0003_cognitive_proposal_and_selection_state.sql"
 SECTION41_SHA256 = "b5c7cac8e074b77ab369579f1f8015f547f1a2776b4b09d612e56280f16c1579"
-CURRENT_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
-CURRENT_SEQUENCE = 4
-CURRENT_RESOURCE_NAME = "0004_rw0_c1_durable_evidence.sql"
-CURRENT_SHA256 = "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec"
+RW0_C1_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
+RW0_C1_RESOURCE_NAME = "0004_rw0_c1_durable_evidence.sql"
+RW0_C1_SHA256 = "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec"
+CURRENT_MIGRATION_ID = "0005_section41_post_execution_proposal_family"
+CURRENT_SEQUENCE = 5
+CURRENT_RESOURCE_NAME = "0005_section41_post_execution_proposal_family.sql"
+CURRENT_SHA256 = "583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87"
 SECTION41_TABLE_NAMES = (
     "development_model_source_invocations",
     "development_pre_execution_planning_contexts",
@@ -122,16 +129,25 @@ RW0_C1_INDEX_NAMES = (
     "idx_rw0_relation_operands_c1_membership_lookup",
     "idx_rw0_c1_mutation_receipts_phase_family_lookup",
 )
+POST_EXECUTION_TABLE_NAMES = (
+    "development_post_execution_proposal_contexts",
+    "development_post_execution_proposal_receipts",
+)
+POST_EXECUTION_TRIGGER_NAMES = tuple(
+    f"{table}_no_{operation}"
+    for table in POST_EXECUTION_TABLE_NAMES
+    for operation in ("update", "delete")
+)
 EXPECTED_SIZE = 154_434
 EXPECTED_COMPATIBILITY = (2, 2)
 EXPECTED_DESTRUCTIVE = False
 EXPECTED_SQLITE_MINIMUM = (3, 37, 0)
 EXPECTED_STATEMENT_COUNT = 50
-EXPECTED_CUMULATIVE_TABLE_COUNT = 62
-EXPECTED_CUMULATIVE_COLUMN_COUNT = 1482
-EXPECTED_CUMULATIVE_TRIGGER_COUNT = 110
+EXPECTED_CUMULATIVE_TABLE_COUNT = 64
+EXPECTED_CUMULATIVE_COLUMN_COUNT = 1518
+EXPECTED_CUMULATIVE_TRIGGER_COUNT = 114
 EXPECTED_CUMULATIVE_EXPLICIT_INDEX_COUNT = 5
-EXPECTED_CUMULATIVE_FOREIGN_KEY_COUNT = 190
+EXPECTED_CUMULATIVE_FOREIGN_KEY_COUNT = 197
 EXPECTED_NEW_FOREIGN_KEY_COUNT = 87
 EXPECTED_NEW_DEFERRED_FOREIGN_KEY_COUNT = 6
 EXPECTED_NEW_COLUMN_COUNT = 362
@@ -4437,17 +4453,19 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         "0001_initial",
         EXPECTED_MIGRATION_ID,
         SECTION41_MIGRATION_ID,
+        RW0_C1_MIGRATION_ID,
         CURRENT_MIGRATION_ID,
     )
-    assert tuple(migration.sequence for migration in catalog.migrations) == (1, 2, 3, 4)
+    assert tuple(migration.sequence for migration in catalog.migrations) == (1, 2, 3, 4, 5)
     assert tuple(migration.resource_name for migration in catalog.migrations) == (
         "0001_initial.sql",
         EXPECTED_RESOURCE_NAME,
         SECTION41_RESOURCE_NAME,
+        RW0_C1_RESOURCE_NAME,
         CURRENT_RESOURCE_NAME,
     )
     assert hashlib.sha256(MIGRATION_0001_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_SHA256
-    first, second, third, fourth = catalog.migrations
+    first, second, third, fourth, fifth = catalog.migrations
     assert (first.min_app_schema, first.max_app_schema, first.destructive) == (1, 1, False)
     assert (
         second.migration_id,
@@ -4493,19 +4511,27 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         fourth.max_app_schema,
         fourth.destructive,
     ) == (
-        CURRENT_MIGRATION_ID,
-        CURRENT_SEQUENCE,
-        CURRENT_RESOURCE_NAME,
-        CURRENT_SHA256,
+        RW0_C1_MIGRATION_ID,
+        4,
+        RW0_C1_RESOURCE_NAME,
+        RW0_C1_SHA256,
         2,
         2,
         False,
     )
     assert fourth.sql_bytes == MIGRATION_0004_PATH.read_bytes()
+    assert (
+        fifth.migration_id, fifth.sequence, fifth.resource_name,
+        fifth.checksum, fifth.min_app_schema, fifth.max_app_schema,
+        fifth.destructive,
+    ) == (CURRENT_MIGRATION_ID, 5, CURRENT_RESOURCE_NAME, CURRENT_SHA256,
+          2, 2, False)
+    assert fifth.sql_bytes == MIGRATION_0005_PATH.read_bytes()
     assert tuple(sorted(path.name for path in MIGRATION_PACKAGE_PATH.glob("*.sql"))) == (
         "0001_initial.sql",
         EXPECTED_RESOURCE_NAME,
         SECTION41_RESOURCE_NAME,
+        RW0_C1_RESOURCE_NAME,
         CURRENT_RESOURCE_NAME,
     )
 
@@ -4528,7 +4554,8 @@ def test_fresh_generation_two_initialization_has_one_timestamp_and_exact_current
         ("0001_initial", 1, EXPECTED_MIGRATION_0001_SHA256, 1, 1),
         (EXPECTED_MIGRATION_ID, 2, EXPECTED_SHA256, 2, 2),
         (SECTION41_MIGRATION_ID, 3, SECTION41_SHA256, 2, 2),
-        (CURRENT_MIGRATION_ID, 4, CURRENT_SHA256, 2, 2),
+        (RW0_C1_MIGRATION_ID, 4, RW0_C1_SHA256, 2, 2),
+        (CURRENT_MIGRATION_ID, 5, CURRENT_SHA256, 2, 2),
     )
     assert len({row[3] for row in history}) == 1
     with closing(sqlite3.connect(location.database_path)) as connection, connection:
@@ -4578,22 +4605,24 @@ def test_exact_0001_is_observationally_unknown_then_explicitly_migrates_complete
     assert history[1][4:] == (2, 2)
     assert history[2][0:3] == (SECTION41_MIGRATION_ID, 3, SECTION41_SHA256)
     assert history[2][4:] == (2, 2)
-    assert history[3][0:3] == (CURRENT_MIGRATION_ID, 4, CURRENT_SHA256)
+    assert history[3][0:3] == (RW0_C1_MIGRATION_ID, 4, RW0_C1_SHA256)
     assert history[3][4:] == (2, 2)
-    assert history[1][3] == history[2][3] == history[3][3]
+    assert history[4][0:3] == (CURRENT_MIGRATION_ID, 5, CURRENT_SHA256)
+    assert history[4][4:] == (2, 2)
+    assert history[1][3] == history[2][3] == history[3][3] == history[4][3]
     with closing(sqlite3.connect(location.database_path)) as connection, connection:
         assert _schema_counts(connection) == {
-            "tables": 62,
-            "columns": 1482,
-            "triggers": 110,
+            "tables": 64,
+            "columns": 1518,
+            "triggers": 114,
             "indexes": 5,
             "views": 0,
-            "foreign_keys": 190,
+            "foreign_keys": 197,
         }
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
-def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_current_schema(
+def test_exact_packaged_terminal_0002_applies_complete_suffix_and_matches_fresh_current_schema(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4606,6 +4635,7 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
         "0001_initial",
         EXPECTED_MIGRATION_ID,
         SECTION41_MIGRATION_ID,
+        RW0_C1_MIGRATION_ID,
         CURRENT_MIGRATION_ID,
     )
     prefix_catalog = migration_module.MigrationCatalog(
@@ -4697,7 +4727,9 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
         real_apply,
     )
 
-    assert applied_migration_ids == [SECTION41_MIGRATION_ID, CURRENT_MIGRATION_ID]
+    assert applied_migration_ids == [
+        SECTION41_MIGRATION_ID, RW0_C1_MIGRATION_ID, CURRENT_MIGRATION_ID,
+    ]
     assert migrated == migration_module.DatabaseInspection(
         classification=migration_module.DatabaseClassification.MANAGED,
         current_sequence=CURRENT_SEQUENCE,
@@ -4707,7 +4739,7 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
     after_history = tuple(_history_rows(upgrade))
     assert after_history[:2] == before_history
     assert _canonical_snapshot_bytes(after_history[:2]) == before_history_bytes
-    assert len(after_history) == 4
+    assert len(after_history) == 5
     assert after_history[2][:3] == (
         SECTION41_MIGRATION_ID,
         3,
@@ -4715,11 +4747,13 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
     )
     assert after_history[2][4:] == (2, 2)
     assert after_history[3][:3] == (
-        CURRENT_MIGRATION_ID,
-        CURRENT_SEQUENCE,
-        CURRENT_SHA256,
+        RW0_C1_MIGRATION_ID,
+        4,
+        RW0_C1_SHA256,
     )
     assert after_history[3][4:] == (2, 2)
+    assert after_history[4][:3] == (CURRENT_MIGRATION_ID, 5, CURRENT_SHA256)
+    assert after_history[4][4:] == (2, 2)
 
     with closing(sqlite3.connect(upgrade.database_path)) as connection:
         after_tables = _user_table_names(connection)
@@ -4733,7 +4767,8 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
             for object_type, name, _table_name, _sql in before_schema
         }
         assert set(after_tables) - set(before_tables) == set(
-            (*SECTION41_TABLE_NAMES, *RW0_C1_TABLE_NAMES)
+            (*SECTION41_TABLE_NAMES, *RW0_C1_TABLE_NAMES,
+             *POST_EXECUTION_TABLE_NAMES)
         )
         assert set(before_tables) <= set(after_tables)
         assert new_schema_objects == {
@@ -4742,13 +4777,16 @@ def test_exact_packaged_terminal_0002_applies_only_0003_and_matches_fresh_curren
             *(("table", table) for table in RW0_C1_TABLE_NAMES),
             *(("trigger", trigger) for trigger in RW0_C1_TRIGGER_NAMES),
             *(("index", index) for index in RW0_C1_INDEX_NAMES),
+            *(("table", table) for table in POST_EXECUTION_TABLE_NAMES),
+            *(("trigger", trigger) for trigger in POST_EXECUTION_TRIGGER_NAMES),
         }
-        assert len(new_schema_objects) == 100
+        assert len(new_schema_objects) == 106
         assert _canonical_snapshot_bytes(after_rows) == before_rows_bytes
         assert all(
             connection.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()
             == (0,)
-            for table in (*SECTION41_TABLE_NAMES, *RW0_C1_TABLE_NAMES)
+            for table in (*SECTION41_TABLE_NAMES, *RW0_C1_TABLE_NAMES,
+                          *POST_EXECUTION_TABLE_NAMES)
         )
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute("PRAGMA integrity_check").fetchall() == [("ok",)]

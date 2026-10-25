@@ -386,6 +386,12 @@ an ambiguous outcome. Exact durable authority/evidence representations remain
 required just-in-time questions rather than selected schemas.
 <!-- C2B3_NARROWED_AUTHORITY_END -->
 
+<!-- POST_D2_SECTION41_AUTHORITY_SUCCESSOR_BEGIN -->
+**Post-D2 Section 41 authority successor.**
+
+The Section 41 writer has bounded durable mutation authority only for its post-execution proposal/context/receipt family in a process-owned artificial D2 proof. C1 separately owns rank-15 membership admission; V22 remains pure. Receipt-first historical readback and owner-specific read-only recovery do not create decision, acceptance, terminal, external-grant, executable or runtime authority. The model's five recommendations are evidence. Migration 0005 changes representability, not the external standing-policy, ES, Bridge, IM or MA authority boundaries. The physical and retention contract is `.docs/section41-post-execution-proposal-family.md`.
+<!-- POST_D2_SECTION41_AUTHORITY_SUCCESSOR_END -->
+
 <!-- COGNITIVE_PROPOSAL_SELECTION_CROSS_REFERENCE_BEGIN -->
 ## Cognitive proposal and selection runtime
 

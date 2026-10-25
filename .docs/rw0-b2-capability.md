@@ -348,17 +348,67 @@ migration-review gate; AGENTS retains repository authority and nonimplementation
 README retains product/status nonclaims; progression retains pure/non-authorizing
 boundaries. Their replacement guards verify admitted lineage, cross-program
 one-shot permanence, explicit mutable-target supersession, separate non-replenishing
-ES operation, and absence of implementation. P01–P07/P09–P10 remain exact.
+ES operation, and absence of implementation. P01–P07/P10 remain exact.
 Wire and Capability own no admission, durable guard, acceptance, B1 schema,
 decision, replay/recovery, or runtime truth.
 
-P11 has one later status-only successor after the RW0-D2 implementation commit
+The native post-D2 Section 41 checked reader adds one explicit decision-row
+consumer to the P09 C2B2 test inventory. P09 now pins that exact successor
+whole-file identity and reconstructs its earlier 17,972-byte protected
+predecessor by removing only the named 260-byte inventory entry. The new
+consumer remains limited to retained D2 bound-effect receipt reconstruction;
+it changes no C2B2 row-value or Capability contract.
+
+P11 has a historical status-only successor after the RW0-D2 implementation commit
 `59621aa041a409c6ead27b74ffe25598c159e78e`. The prior 64,142-byte `AGENTS.md`
 identity is historical for this change; only its two D2 current-status spans
 are replaced. The current whole-file raw identity, exact predecessor
 reconstruction, and unchanged governance markers remain checked, including by
 the independent bootstrap guard. This creates no general normalization rule,
 runtime permission, or automatic acceptance of later text changes. This
-uncommitted status update still awaits independent review.
+exact status successor does not itself authorize or accept later source changes.
+The subsequent native post-D2 append-only successor separately reconstructs
+that exact D2 predecessor and retains both historical identity checks.
+
+### P11 Unit 2 exact successor
+
+The current complete `AGENTS.md` P11 identity has one bounded append-only
+Unit 2 status successor. Its immediate predecessor remains the exact
+67,252-byte native post-D2 identity. Removing only the named Unit 2 span
+reconstructs that predecessor byte-for-byte; the established reverse chain
+still reconstructs the 65,275-byte D2 status predecessor and the earlier
+64,142-byte identity. The complete current file retains a raw size/SHA-256
+check in Capability's P11 registry and an independent bootstrap-guard check.
+The successor states the exact 13/14 checked D2 layouts, parent-owned capsule
+and optional worker capture distinction, stage-specific clean invalid-evidence
+stops, and original-run fresh-write equality with historical replay separate.
+It changes no Capability value, profile, digest, permission, or authority.
+It is implementation evidence pending independent review, not acceptance or
+publication.
+
+### P11 post-D2 cumulative local-commit exact successor
+
+The P11 Unit 2 paragraph above remains the exact historical
+implementation-stage predecessor. Current complete `AGENTS.md` records the
+independent review of exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` for a separately governed
+commit gate and its local commit
+`66ee79132501e636d848ff8578fb674a208d6ac5`. That gate reauthenticated
+all 299 committed blobs and Git modes and recorded 9,295 collected and 9,295
+passing tests, zero failures, errors, or skips, with three known Python 3.13
+fork deprecation warnings. It performed no push, PR, merge, publication,
+deployment, or product effect. This is historical local-gate evidence, not a
+live remote-ref or publication claim. Git objects and refs remain current
+commit and publication truth. Audit, validation, provenance, reports, and
+status text remain evidence, not Coordinator durable authority or effect
+permission. Historical raw-index and diagnostic-ref gaps remain unresolved;
+the artifact-only audit did not certify live Git, and the gate proves only
+its prospective interval. F03 remains a nonblocking private-constructor
+observation; F2, qualified F3/F6/F7, cross-host clock ordering, and live
+concerns remain outside this successor. It adds no live custody, physical C2
+decision or acceptance, terminal outcome, executable permission, production
+provider or worker readiness, ES or Bridge route, product Git authority,
+service, scheduler, or autonomous loop. Capability values, profile, digest,
+qualification, and authority boundaries are unchanged.
 
 <!-- RW0_B2_CAPABILITY_OWNER_END -->

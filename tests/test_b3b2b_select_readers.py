@@ -3111,6 +3111,7 @@ def test_tests_only_schema_setup_is_not_a_fixture_or_production_capability_progr
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
+        "0005_section41_post_execution_proposal_family.sql",
     ]
     assert json.loads(json.dumps({"capability": "tests-only"})) == {"capability": "tests-only"}
 

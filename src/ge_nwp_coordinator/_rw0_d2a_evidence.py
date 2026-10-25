@@ -14,11 +14,16 @@ from ._development_bound_effect_establishment_contracts import (
     DevelopmentBoundEffectEstablishmentCommandV1,
     _require_exact_development_bound_effect_command,
 )
+from ._rw0_c1_semantic_values import (
+    RW0C1MemberLocatorV1, RW0C1WireProcessResultClassificationBindingV1,
+    RW0C1WireWorkerResultBindingV1,
+)
+from ._rw0_d1_handback import RW0D1HandbackV1
 from ._finite_backlog_risk_source_adapter import (
     FiniteBacklogRiskSourceBindingV1, finite_backlog_risk_source_projection,
 )
 from ._rw0_d1_process_supervisor import D1ProcessOutcome
-from ._rw0_d2a_process_frames import decode_checking_response
+from ._rw0_d2a_process_frames import D2CheckingFrameError, decode_checking_response
 from ._post_execution_evidence_values import (
     IndependentReviewDispositionV1, ValidationDispositionV1,
     PostExecutionReviewResultSetV1, PostExecutionValidationResultSetV1,
@@ -58,10 +63,211 @@ _ROLE_EFFECT = {"validator": "validate_candidate", "reviewer": "review_candidate
 _ROLE_SOURCE = {"validator": "validator.d2.fake", "reviewer": "reviewer.d2.fake"}
 _ROLE_EVIDENCE = {"validator": "evidence.d2.validation", "reviewer": "evidence.d2.review"}
 _ROLE_KIND = {"validator": "validation_completed", "reviewer": "independent_review_completed"}
+_ROLE_OUTCOME_REASON = {
+    "validator": frozenset({
+        ("passed", "validation_passed"),
+        ("failed", "validation_failed_repairable"),
+        ("failed", "validation_failed_replan_required"),
+        ("failed", "validation_failed_terminal"),
+        ("failed", "validation_failed_unclassified"),
+        ("inconclusive", "validation_inconclusive"),
+    }),
+    "reviewer": frozenset({
+        ("passed", "review_passed"),
+        ("failed", "review_failed_repair_required"),
+        ("failed", "review_failed_replan_required"),
+        ("failed", "review_failed_terminal_reject"),
+        ("failed", "review_failed_unclassified"),
+        ("inconclusive", "review_inconclusive"),
+    }),
+}
+
+_D2_TAIL_ROLES = (
+    "adapter_exit", "worker_result", "process_result",
+    "validation_authority", "review_authority", "readiness",
+    "validation_qualification", "validator_observation",
+    "review_qualification", "reviewer_observation", "author_authority",
+)
+_D2_TAIL_LABELS = (
+    "adapter-exit", "worker-result", "process-result",
+    "validation-authority", "review-authority", "readiness",
+    "validation-qualification", "validator-observation",
+    "review-qualification", "reviewer-observation", "author-authority",
+)
+_D2_TAIL_RANKS = (12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)
+_D2_LEGAL_RANKS = frozenset((
+    (12, 12, *_D2_TAIL_RANKS),
+    (12, 12, 12, *_D2_TAIL_RANKS),
+))
+
+
+@dataclass(frozen=True, slots=True)
+class _D2CheckedLayout:
+    """The one finite role map, anchored to the actual D1 Wire observation tuple."""
+
+    d1_handback: RW0D1HandbackV1 = field(repr=False)
+    roles: tuple[str, ...]
+    labels: tuple[str, ...]
+    ranks: tuple[int, ...]
+    worker_count: int
+
+    def index(self, role: str) -> int:
+        if type(role) is not str or role not in self.roles:
+            _fail()
+        return self.roles.index(role)
+
+    def through(self, role: str) -> int:
+        return self.index(role) + 1
+
+    def family(self, families: tuple[object, ...], role: str) -> object:
+        return families[self.index(role)]
+
+    def validate_prefix(self, families: tuple[object, ...], *, complete: bool = False) -> None:
+        from ._sqlite_rw0_c1 import RW0C1CheckedEvidenceFamilyV1
+
+        if (type(families) is not tuple or len(families) > len(self.roles)
+                or (complete and len(families) != len(self.roles))):
+            _fail()
+        basis = self.d1_handback.phase_basis
+        observations = self.d1_handback.wire_result.observations
+        types = (
+            *(WorkerObservationV1 for _ in observations),
+            WorkerObservationV1, RW0C1WireWorkerResultBindingV1,
+            RW0C1WireProcessResultClassificationBindingV1,
+            RW0AuthorityVerificationObservationV1,
+            RW0AuthorityVerificationObservationV1,
+            RW0RemoteHostReadinessObservationV1,
+            RW0EffectHostQualificationV1, WorkerObservationV1,
+            RW0EffectHostQualificationV1, WorkerObservationV1,
+            RW0AuthorityVerificationObservationV1,
+        )
+        for index, family in enumerate(families):
+            if type(family) is not RW0C1CheckedEvidenceFamilyV1:
+                _fail()
+            family.validate()
+            result = family.admission_result
+            if (type(result.kind_rank) is not int or result.kind_rank != self.ranks[index]
+                    or result.mutation_ref != "mutation.d2.admit." + self.labels[index]
+                    or result.membership_ref != "membership.d2." + self.labels[index]
+                    or type(family.evidence_value) is not types[index]
+                    or (result.phase_basis_ref, result.phase_basis_digest)
+                    != (basis.basis_ref, basis.basis_digest)):
+                _fail()
+            if index < self.worker_count and (
+                family.evidence_value.to_mapping() != observations[index].to_mapping()
+            ):
+                _fail()
+            if index == self.index("adapter_exit") and (
+                family.evidence_value.to_mapping() != self.d1_handback.adapter_exit.to_mapping()
+            ):
+                _fail()
+            if index == self.index("worker_result"):
+                members = family.evidence_value.observation_memberships
+                if (len(members) != self.worker_count
+                        or any(not _same_member(locator, prior, f"worker_observation:{ordinal:03d}")
+                               for ordinal, (locator, prior) in enumerate(zip(
+                                   members, families[:self.worker_count], strict=True,
+                               )))):
+                    _fail()
+            if index == self.index("process_result"):
+                value = family.evidence_value
+                if (value.result_state != "present" or value.result_failure_reason is not None
+                        or value.request_membership is not None or value.process_observations
+                        or not _same_member(value.result_membership,
+                                            self.family(families, "worker_result"),
+                                            "worker_result_binding")
+                        or len(value.adapter_observations) != 1
+                        or not _same_member(value.adapter_observations[0],
+                                            self.family(families, "adapter_exit"),
+                                            "adapter_observation:000")
+                        or (value.classification, value.reason) != (
+                            self.d1_handback.wire_classification.classification,
+                            self.d1_handback.wire_classification.reason,
+                        )):
+                    _fail()
+
+
+def _same_member(locator: object, family: object, role: str) -> bool:
+    if type(locator) is not RW0C1MemberLocatorV1:
+        return False
+    result = family.admission_result
+    return (
+        locator.role == role
+        and (locator.kind_rank, locator.membership_ref, locator.membership_digest,
+             locator.value_ref, locator.value_digest)
+        == (result.kind_rank, result.membership_ref, result.membership_digest,
+            result.value_ref, result.value_digest)
+    )
+
+
+def _resolve_d2_checked_layout(d1_handback: RW0D1HandbackV1) -> _D2CheckedLayout:
+    if type(d1_handback) is not RW0D1HandbackV1:
+        _fail()
+    d1_handback.validate()
+    if d1_handback.status != "capsule_ready" or d1_handback.wire_result is None:
+        _fail()
+    observations = d1_handback.wire_result.observations
+    if type(observations) is not tuple or len(observations) not in (2, 3):
+        _fail()
+    kinds = tuple(
+        item.observation_kind if type(item) is WorkerObservationV1 else None
+        for item in observations
+    )
+    expected = (("worker_started", "worker_completed") if len(observations) == 2
+                else ("worker_started", "candidate_captured", "worker_completed"))
+    if kinds != expected:
+        _fail()
+    count = len(observations)
+    return _D2CheckedLayout(
+        d1_handback,
+        tuple(f"worker_observation:{ordinal:03d}" for ordinal in range(count))
+        + _D2_TAIL_ROLES,
+        tuple(f"author-observation.{ordinal}" for ordinal in range(count))
+        + _D2_TAIL_LABELS,
+        (12,) * count + _D2_TAIL_RANKS,
+        count,
+    )
 
 
 def _fail() -> None:
     raise ValueError("invalid_d2_checking_evidence")
+
+
+class _D2CheckingInputInvalid(ValueError):
+    """Only a decoded child frame or its closed command relation is invalid."""
+
+
+def _decode_child_checking_record(
+    role: str, frame: bytes, command: DevelopmentBoundEffectEstablishmentCommandV1,
+    adapter_exit: WorkerObservationV1,
+) -> dict[str, object]:
+    try:
+        record = decode_checking_response(role, frame)
+    except D2CheckingFrameError:
+        raise _D2CheckingInputInvalid("invalid_d2_checking_child_record") from None
+    observed_at = record["observed_at"]
+    try:
+        parsed_at = datetime.strptime(observed_at, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        raise _D2CheckingInputInvalid("invalid_d2_checking_child_record") from None
+    if (parsed_at.strftime("%Y-%m-%dT%H:%M:%SZ") != observed_at
+            or (record["outcome"], record["reason_code"]) not in _ROLE_OUTCOME_REASON[role]):
+        raise _D2CheckingInputInvalid("invalid_d2_checking_child_record") from None
+    if (record["command_digest"] != command.command_digest
+            or record["effect_fence_ref"] != command.effect_fence_ref
+            or record["effect_fence_digest"] != command.effect_fence.effect_fence_digest
+            or record["delivery_attempt_ref"] != command.delivery_attempt_ref
+            or record["capsule_manifest_ref"] != command.capsule_manifest_ref
+            or record["portable_capsule_digest"] != command.portable_capsule_digest
+            or record["source_ref"] != _ROLE_SOURCE[role]
+            or record["evidence_ref"] != _ROLE_EVIDENCE[role]
+            or record["invocation_ref"] != "invocation.d2." + role
+            or tuple(record["file_digests"]) != tuple(
+                entry.after_blob_sha256 for entry in command.capsule_manifest.entries
+            )
+            or record["observed_at"] < adapter_exit.observed_at):
+        raise _D2CheckingInputInvalid("invalid_d2_checking_child_record") from None
+    return record
 
 
 def _identity_digest(schema: str, mapping: dict[str, object]) -> str:
@@ -401,19 +607,16 @@ def _support_set(entries: tuple[tuple[str, int, int, str, str, str], ...]) -> Po
 def checked_reviewer_separation(
     *, checked_families: tuple[object, ...],
     capsule_manifest: CandidateCapsuleManifestV1,
+    d1_handback: RW0D1HandbackV1,
 ) -> tuple[PostExecutionReviewerSeparationEvaluationV1, PostExecutionSupportSetV1]:
     """Derive V40 only from exact checked C1 membership/relation/value rows."""
-    from ._sqlite_rw0_c1 import RW0C1CheckedEvidenceFamilyV1
-
-    if (type(checked_families) is not tuple or len(checked_families) != 14
-            or any(type(item) is not RW0C1CheckedEvidenceFamilyV1 for item in checked_families)
-            or type(capsule_manifest) is not CandidateCapsuleManifestV1):
+    if type(capsule_manifest) is not CandidateCapsuleManifestV1:
         _fail()
-    for family in checked_families:
-        family.validate()
-    review = checked_families[12]
-    author_result = checked_families[4]
-    author_members = checked_families[:3]
+    layout = _resolve_d2_checked_layout(d1_handback)
+    layout.validate_prefix(checked_families, complete=True)
+    review = layout.family(checked_families, "reviewer_observation")
+    author_result = layout.family(checked_families, "worker_result")
+    author_members = checked_families[:layout.worker_count]
     review_observation = review.evidence_value
     author_value = author_result.evidence_value
     review_member = review.membership.to_mapping()
@@ -972,38 +1175,31 @@ def normalize_checking_evidence(
             or type(author_command) is not DevelopmentAuthorEffectEstablishmentCommandV1
             or type(adapter_exit) is not WorkerObservationV1):
         _fail()
-    try:
-        checked = _require_exact_development_bound_effect_command(command)
-        process.validate()
-        if not process.clean_success:
-            _fail()
-        record = decode_checking_response(role, process.stdout)
-        if (record["observed_at"] < adapter_exit.observed_at
-                or record["outcome"] not in ("passed", "failed", "inconclusive")):
-            _fail()
-        observation = WorkerObservationV1.create(
-            observation_ref=("observation.d2.validation-completed" if role == "validator"
-                             else "observation.d2.review-completed"),
-            source_kind=("validator" if role == "validator" else "independent_reviewer"),
-            source_ref=record["source_ref"],
-            source_invocation_ref=record["invocation_ref"],
-            observation_kind=_ROLE_KIND[role], outcome=record["outcome"],
-            reason_code=record["reason_code"],
-            evidence_refs=[record["evidence_ref"]],
-            observed_at=record["observed_at"],
-            delivery=checked.delivery_envelope,
-            author_command=author_command.worker_command,
-            attempt_fence=author_command.attempt_fence,
-            author_effect_fence=author_command.effect_fence,
-            effect_fence=checked.effect_fence,
-            capsule_manifest=checked.capsule_manifest,
-            before_blobs=dict(checked.before_blob_entries),
-            after_blobs=dict(checked.after_blob_entries),
-        )
-        return RW0D2CheckingEvidenceV1(
-            role, checked, author_command, process, observation, process.stdout,
-        )
-    except (KeyboardInterrupt, SystemExit, GeneratorExit):
-        raise
-    except Exception:
+    checked = _require_exact_development_bound_effect_command(command)
+    process.validate()
+    WorkerObservationV1.from_mapping(adapter_exit.to_mapping())
+    if not process.clean_success:
         _fail()
+    record = _decode_child_checking_record(role, process.stdout, checked, adapter_exit)
+    observation = WorkerObservationV1.create(
+        observation_ref=("observation.d2.validation-completed" if role == "validator"
+                         else "observation.d2.review-completed"),
+        source_kind=("validator" if role == "validator" else "independent_reviewer"),
+        source_ref=record["source_ref"],
+        source_invocation_ref=record["invocation_ref"],
+        observation_kind=_ROLE_KIND[role], outcome=record["outcome"],
+        reason_code=record["reason_code"],
+        evidence_refs=[record["evidence_ref"]],
+        observed_at=record["observed_at"],
+        delivery=checked.delivery_envelope,
+        author_command=author_command.worker_command,
+        attempt_fence=author_command.attempt_fence,
+        author_effect_fence=author_command.effect_fence,
+        effect_fence=checked.effect_fence,
+        capsule_manifest=checked.capsule_manifest,
+        before_blobs=dict(checked.before_blob_entries),
+        after_blobs=dict(checked.after_blob_entries),
+    )
+    return RW0D2CheckingEvidenceV1(
+        role, checked, author_command, process, observation, process.stdout,
+    )

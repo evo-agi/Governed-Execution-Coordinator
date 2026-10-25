@@ -117,3 +117,19 @@ the short sequence is `[0001, 0002, 0003, 0004]`, and the terminal migration is
 `4`. Migration 0002 remains an unchanged historical prefix; C2B2 did not
 implement or acquire ownership of migration 0003 or migration 0004.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+<!-- SECTION41_0005_CURRENT_CATALOG_SUCCESSOR_BEGIN -->
+### Current catalog after native Section 41 post-execution admission
+
+The complete current generation-2 catalog is
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence, 0005_section41_post_execution_proposal_family]`.
+Its short sequence is `[0001, 0002, 0003, 0004, 0005]`, and the current
+production SQL resource count is `5`. The terminal migration is
+`0005_section41_post_execution_proposal_family`, adding two immutable STRICT
+tables, four guards, no explicit index and no seed. Earlier statements in
+this document that call 0004 the current tip describe the prior C1 tranche.
+Migration 0002 remains an unchanged historical prefix and its literal oracle
+above remains frozen. C2B2 did not implement or acquire ownership of
+migration 0003, 0004 or 0005; Section 41 owns 0005 through
+`.docs/section41-post-execution-proposal-family.md`.
+<!-- SECTION41_0005_CURRENT_CATALOG_SUCCESSOR_END -->

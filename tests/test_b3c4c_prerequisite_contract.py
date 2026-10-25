@@ -46,9 +46,9 @@ EXPECTED_FROZEN_SOURCE_SHA256 = {
         "5512294de5030b94936dc43caec659a16c5617633dcafac28cbffed6dc878760"
     ),
 }
-# The three values above record the historical B3c4c sources. RW0-D2 extends
-# only the private transaction controller; the other two current identities
-# remain their historical values.
+# The three values above record the historical B3c4c sources. RW0-D2 and its
+# native Section 41 successor extend only the private transaction controller;
+# the other two current identities remain their historical values.
 EXPECTED_SOURCE_PATHS = (
     "src/ge_nwp_coordinator/sqlite_transition_dry_run_contracts.py",
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
@@ -57,10 +57,13 @@ EXPECTED_SOURCE_PATHS = (
 EXPECTED_D2_TRANSACTION_SOURCE_SHA256 = (
     "6d662dcb83a2641b9d95dee7209ddbd0d8b991bc720da3aafa5b4b9fb3bc5521"
 )
+EXPECTED_POST_D2_TRANSACTION_SOURCE_SHA256 = (
+    "08f8538fcd60a98171f146690bf4f72bc225b54faa8b98432f0258b3d6721bcf"
+)
 EXPECTED_CURRENT_SOURCE_SHA256 = {
     **EXPECTED_FROZEN_SOURCE_SHA256,
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py": (
-        EXPECTED_D2_TRANSACTION_SOURCE_SHA256
+        EXPECTED_POST_D2_TRANSACTION_SOURCE_SHA256
     ),
 }
 EXPECTED_INITIALIZATION_TRANSACTION_IMPORTS = (
@@ -200,13 +203,16 @@ def _assert_current_source_identities(observed: dict[str, str]) -> None:
         assert observed[path] == EXPECTED_CURRENT_SOURCE_SHA256[path]
 
 
-def test_d2_current_identity_successor_preserves_historical_source_values() -> None:
+def test_post_d2_current_identity_successor_preserves_historical_source_values() -> None:
     controller = "src/ge_nwp_coordinator/sqlite_transition_transaction.py"
     assert EXPECTED_FROZEN_SOURCE_SHA256[controller] == (
         "6833879bce815e6440945563538e714aae8081430d3275dca132ce10f1f51d2d"
     )
     assert EXPECTED_D2_TRANSACTION_SOURCE_SHA256 == (
         "6d662dcb83a2641b9d95dee7209ddbd0d8b991bc720da3aafa5b4b9fb3bc5521"
+    )
+    assert EXPECTED_POST_D2_TRANSACTION_SOURCE_SHA256 == (
+        "08f8538fcd60a98171f146690bf4f72bc225b54faa8b98432f0258b3d6721bcf"
     )
     for path in (EXPECTED_SOURCE_PATHS[0], EXPECTED_SOURCE_PATHS[2]):
         assert EXPECTED_CURRENT_SOURCE_SHA256[path] == EXPECTED_FROZEN_SOURCE_SHA256[path]
@@ -220,12 +226,16 @@ def test_d2_current_identity_successor_preserves_historical_source_values() -> N
             "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
             "6833879bce815e6440945563538e714aae8081430d3275dca132ce10f1f51d2d",
         ),
+        (
+            "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+            EXPECTED_D2_TRANSACTION_SOURCE_SHA256,
+        ),
         ("src/ge_nwp_coordinator/sqlite_transition_transaction.py", "0" * 64),
         ("src/ge_nwp_coordinator/sqlite_transition_dry_run_contracts.py", "0" * 64),
         ("src/ge_nwp_coordinator/sqlite_transition_write_contracts.py", "0" * 64),
     ),
 )
-def test_d2_current_identity_rejects_historical_or_changed_source(
+def test_post_d2_current_identity_rejects_historical_or_changed_source(
     path: str, alternate: str,
 ) -> None:
     observed = dict(EXPECTED_CURRENT_SOURCE_SHA256)

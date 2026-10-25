@@ -595,3 +595,7 @@ guard, nominal capability, and sole Coordinator transaction controller. It
 adds no second backend, connection path, lock, writer, transaction authority,
 or public API.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+### Section 41 catalog succession
+
+The current packaged generation-2 SQLite tip is additive `0005_section41_post_execution_proposal_family`, superseding only previous current-tip references to 0004; the current production SQL resource count is `5`. The new resource adds two immutable STRICT tables and four guards, with no explicit indexes or seeds, for cumulative 64/114/5 table/trigger/explicit-index counts. The four earlier migration bytes and owners are unchanged. An exact older 0004 database needs explicit administrative migration. The existing filesystem binding, writer authority, observational validation, transaction uncertainty and recovery architecture remain in force; Section 41 A uses the existing controller and C1 B remains a separate owner transaction.

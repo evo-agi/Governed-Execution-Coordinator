@@ -1368,3 +1368,7 @@ unreachability-boundary proofs, and current-source AST evidence.
 <!-- RW0_C2_DURABLE_DECISION_FINITE_ORACLE_END -->
 
 RW0-D1 now implements only the separately owned artificial offline process/capsule spine. The boolean `rw0_d = false` above continues to mean that complete RW0-D and D2 closure are not implemented. The temporary complete-tree source manifest is superseded by the scoped C2 nonimplementation guard; C2 branch, recovery, immutable scope admission, and acceptance semantics remain unchanged.
+
+### Physical suffix succession after native Section 41 admission
+
+The additive Section 41 post-execution proposal-family migration 0005 now exists in the current generation-2 catalog. This does not implement this C2 decision reducer. Earlier references reserving 0005 for possible C2 physical decision relations are historical prospective allocations; any separately authorized C2 additive suffix is now later, currently expected no earlier than 0006, with schema and authority still unselected. A checked Section 41 proposal and C1 rank-15 membership are input evidence, never a C2 decision, block, acceptance or terminal fact.

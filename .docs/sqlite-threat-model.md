@@ -323,6 +323,28 @@ Hung writer:
 
 ## Corruption And Recovery Threats
 
+F1 admits SQLite rollback of a checked fixed adjacent DELETE journal for a
+bound existing main database, only under the owner-private local-storage
+threat model. The checker rejects unsafe file metadata or substitution,
+competing auxiliary posture, malformed/ambiguous journal structure and a
+recognizable super-journal/path-bearing tail before write-capable recovery
+access. The checker never uses a journal-supplied pathname. SQLite performs the
+page rollback; the storage effect is followed by separate exact current-state
+admission before writer issuance. Access or cleanup uncertainty is closed as
+`recovery_unresolved`, and refused admission need not mean unchanged storage.
+
+The historical pre-COMMIT attached-database fixture showed that an ordinary
+main journal can exist after an ATTACH without a super-journal dependency.
+Prior attachment history is therefore not the selected dependency criterion.
+The main journal's absent tail plus standard SQLite pager behavior supports a
+main-only rollback path for that fixture; the observed unchanged sibling bytes
+and metadata do not establish absence of C/VFS reads. Standard VFS opens by
+name, not the checker-held descriptors, so this contract does not promise
+hostile same-account race resistance or arbitrary-VFS confinement. The earlier
+refusal-only implementation and failed writable attempt remain historical
+evidence, not current authority. No first-live or domain-effect permission is
+created by storage recovery.
+
 Partial or corrupt database:
 
 - startup and backup/restore validation must run schema checksum checks,

@@ -313,3 +313,7 @@ currentness envelopes, safe provisioning values/readset bindings beyond this
 semantic freeze, bounded-hybrid representation and additive migration 0005,
 provisioning and guarded-C2 transactions/recovery, terminal and offline-process
 mechanics, and live proof. No full-custodian successor is selected by default.
+
+### Section 41 offline proof versus live admission
+
+The current additive migration 0005 records a synthetic Section 41 post-execution proposal family and supports private C1 rank-15 admission. Its process-owned local state and fake children do not satisfy the live external custody, enrollment, source authentication, continuity or standing-policy admission requirements of this contract. Historical prospective references to C2 use of migration 0005 are superseded as allocations only; any C2 physical suffix must be later and separately selected, currently expected no earlier than 0006.

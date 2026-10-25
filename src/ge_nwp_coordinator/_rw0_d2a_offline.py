@@ -30,7 +30,8 @@ from ._rw0_d1_handback import RW0D1OfflineRun
 from ._rw0_d1_offline import D1ArtificialFixture, _reduce_development_program_initialization_command
 from ._rw0_d1_process_supervisor import run_fake_module
 from ._rw0_d2a_evidence import (
-    RW0D2CheckingEvidenceV1, artificial_authority_observation,
+    RW0D2CheckingEvidenceV1, _D2CheckingInputInvalid,
+    _resolve_d2_checked_layout, artificial_authority_observation,
     artificial_host_qualification, artificial_policy_evidence,
     artificial_readiness_observation, checked_reviewer_separation,
     checking_disposition, checking_result_set, normalize_checking_evidence,
@@ -75,7 +76,7 @@ class _RW0D2AAdmittedBundle:
         if (type(self) is not _RW0D2AAdmittedBundle
                 or type(self.bound_commands) is not tuple or len(self.bound_commands) != 2
                 or type(self.bound_results) is not tuple or len(self.bound_results) != 2
-                or type(self.checked_families) is not tuple or len(self.checked_families) != 14
+                or type(self.checked_families) is not tuple
                 or type(self.checking_evidence) is not tuple or len(self.checking_evidence) != 2
                 or type(self.checkpoint) is not RW0D2EvidenceCheckpointV1):
             raise _D2AStop("evidence_incomplete")
@@ -88,6 +89,9 @@ class _RW0D2AAdmittedBundle:
             if type(family) is not RW0C1CheckedEvidenceFamilyV1:
                 raise _D2AStop("evidence_mismatch")
             family.validate()
+        _resolve_d2_checked_layout(self.checkpoint.d1_handback).validate_prefix(
+            self.checked_families, complete=True,
+        )
         for evidence in self.checking_evidence:
             if type(evidence) is not RW0D2CheckingEvidenceV1:
                 raise _D2AStop("evidence_mismatch")
@@ -318,11 +322,14 @@ def _run_checker(
             raise _D2AStop("process_cleanup_unresolved")
         if not process.clean_success:
             raise _D2AStop(role + "_process_failed")
-        evidence = normalize_checking_evidence(
-            role=role, process=process, command=command,
-            author_command=handback.author_command,
-            adapter_exit=handback.adapter_exit,
-        )
+        try:
+            evidence = normalize_checking_evidence(
+                role=role, process=process, command=command,
+                author_command=handback.author_command,
+                adapter_exit=handback.adapter_exit,
+            )
+        except _D2CheckingInputInvalid:
+            raise _D2AStop(role + "_evidence_invalid") from None
         reconstruction.verify()
         return evidence, root_identity
 
@@ -342,6 +349,7 @@ def _run_d2a_checked_evidence_impl(
         raise _D2AStop("invalid_d1_input")
     handback = d1_run.handback
     handback.validate()
+    layout = _resolve_d2_checked_layout(handback)
     location = d1_run.location
     preimages = _preimages(work_spec, handback)
     author = handback.author_command
@@ -543,32 +551,34 @@ def _run_d2a_checked_evidence_impl(
     separation, separation_support = checked_reviewer_separation(
         checked_families=checked_families,
         capsule_manifest=handback.capsule_manifest,
+        d1_handback=handback,
     )
     validation_result_set = checking_result_set(
         evidence=validation_evidence,
-        qualification=checked_families[9].evidence_value,
+        qualification=layout.family(checked_families, "validation_qualification").evidence_value,
         expires_at=author.attempt_fence.expires_at,
     )
     review_result_set = checking_result_set(
         evidence=review_evidence,
-        qualification=checked_families[11].evidence_value,
+        qualification=layout.family(checked_families, "review_qualification").evidence_value,
         expires_at=author.attempt_fence.expires_at,
     )
     attempt_digest = author_plan.semantic_attempt.semantic_attempt_digest
     validation_disposition, validation_support = checking_disposition(
         evidence=validation_evidence, result_set=validation_result_set,
-        qualification=checked_families[9].evidence_value,
+        qualification=layout.family(checked_families, "validation_qualification").evidence_value,
         semantic_attempt_digest=attempt_digest, attempt_number=1,
         reviewer_separation=None,
     )
     review_disposition, review_support = checking_disposition(
         evidence=review_evidence, result_set=review_result_set,
-        qualification=checked_families[11].evidence_value,
+        qualification=layout.family(checked_families, "review_qualification").evidence_value,
         semantic_attempt_digest=attempt_digest, attempt_number=1,
         reviewer_separation=separation,
     )
     policy_sources, policy_matrices, policy_supports = artificial_policy_evidence(
-        handback=handback, author_authority=checked_families[13].evidence_value,
+        handback=handback,
+        author_authority=layout.family(checked_families, "author_authority").evidence_value,
     )
     checkpoint = RW0D2EvidenceCheckpointV1(
         d1_handback=handback,
@@ -583,13 +593,13 @@ def _run_d2a_checked_evidence_impl(
         ),
         admitted_families=checked_families,
         authority_sources=(
-            checked_families[6].evidence_value,
-            checked_families[7].evidence_value,
-            checked_families[13].evidence_value,
+            layout.family(checked_families, "validation_authority").evidence_value,
+            layout.family(checked_families, "review_authority").evidence_value,
+            layout.family(checked_families, "author_authority").evidence_value,
         ),
-        readiness_source=checked_families[8].evidence_value,
-        qualifications=(checked_families[9].evidence_value,
-                        checked_families[11].evidence_value),
+        readiness_source=layout.family(checked_families, "readiness").evidence_value,
+        qualifications=(layout.family(checked_families, "validation_qualification").evidence_value,
+                        layout.family(checked_families, "review_qualification").evidence_value),
         validator_process=validation_evidence.process,
         reviewer_process=review_evidence.process,
         validation_source=validation_evidence,

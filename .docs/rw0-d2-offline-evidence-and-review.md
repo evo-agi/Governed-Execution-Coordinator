@@ -131,3 +131,78 @@ C1 rank-15 admission, a C2 decision input/receipt, or terminal progression.
 This private source candidate is subject to external-copy validation and
 independent audit; those gates are recorded separately. It invokes no live provider,
 message bus, ES runtime, or direct-local production adapter.
+
+### Later native Section 41 successor
+
+The D2 v1 entry, handback, fake-process identities and `preadmission_ready` meaning above are preserved. An adjacent private continuation now borrows one original open D2 run and records its safe post-execution proposal family through Section 41 transaction A, then separately asks C1 for rank-15 admission and pure V22 projection. The continuation closes only its own outer run in the creator process. `.docs/section41-post-execution-proposal-family.md` owns the new bounded transaction/retention contract. Earlier statements that D2 itself adds no Section 41 writer, C1 rank-15 admission or migration 0005 remain true of the reviewed D2 v1 tranche; the additive successor supplies those three capabilities without changing D2 v1. No C2 decision or live execution follows.
+
+### Unit 2 current checked-layout and invalid-evidence successor
+
+The present D2 A path admits exactly the two complete Worker Wire observation
+orders `worker_started, worker_completed` and `worker_started,
+candidate_captured, worker_completed`. D1 parent capture and verified capsule
+remain present in both. The absence of the optional worker-authored capture
+observation does not negate the parent's candidate capture, and
+`worker_completed` has no candidate or capsule conditional fields. The private
+checked-layout resolver derives all role positions and stop prefixes from the
+actual D1 result. Complete C1 checked families are 13 or 14 members with rank
+sequences `(12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)` and `(12, 12, 12,
+12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)`. The common tail is adapter exit,
+worker result, process result, validation authority, review authority,
+readiness, validation qualification, validator observation, review
+qualification, reviewer observation, and author authority. V40 reviewer
+separation checks the exact C1 membership/relation graph and binds candidate
+identity through the parent capsule, rank-13 result, and review observation;
+only the three-observation form also compares the captured observation.
+
+After a clean reaped child, malformed closed checking evidence or a decoded
+child record with an impossible canonical UTC calendar time or an unsupported
+role-specific `(outcome, reason_code)` pair stops as
+`validator_evidence_invalid` at `n + 7` checked members with one child, or
+`reviewer_evidence_invalid` at `n + 9` with two children, where `n` is 2 or 3.
+The validator pairs are `passed/validation_passed`, `failed` with one of
+`validation_failed_repairable`, `validation_failed_replan_required`,
+`validation_failed_terminal`, or `validation_failed_unclassified`, and
+`inconclusive/validation_inconclusive`. The reviewer pairs are
+`passed/review_passed`, `failed` with one of `review_failed_repair_required`,
+`review_failed_replan_required`, `review_failed_terminal_reject`, or
+`review_failed_unclassified`, and `inconclusive/review_inconclusive`. The
+invalid observation and later child/model/native effects are not admitted.
+Nonzero process exit remains a process failure; unresolved cleanup and
+programming faults retain their separate paths. A stopped handback carries
+only the prefix actually reached. Complete A is `n + 11`; through readiness,
+validation qualification, validator observation, review qualification, and
+reviewer observation are `n + 6`, `n + 7`, `n + 8`, `n + 9`, and `n + 10`.
+
+The original three-observation command and safe-basis bytes remain compatible.
+The bounded offline path still creates no C2 decision, acceptance, live worker,
+provider or ES route, Git/publication effect, or autonomous loop. This
+successor is implementation evidence pending independent review.
+
+<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_BEGIN -->
+### Post-D2 cumulative local-commit status
+
+The preceding pending-review sentence is historical implementation-stage
+evidence, superseded only for review and local-commit status. The exact
+sealed tree `3965cd3d1d3e28b43c9bc3709058c2524bad369d` was
+independently reviewed for a separately governed commit gate and locally
+committed as `66ee79132501e636d848ff8578fb674a208d6ac5`. The gate
+reauthenticated all 299 committed blobs and Git modes and recorded 9,295
+collected and 9,295 passing tests, zero failures, errors, or skips, with
+three known Python 3.13 fork deprecation warnings. The two legal D2 layouts,
+typed invalid-evidence stops, and original-run association above are unchanged.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This is historical local-gate evidence, not a live remote-ref or
+publication claim. Git objects and refs remain current commit and publication
+truth. Audit, validation, provenance, reports, and status text are evidence,
+not Coordinator durable authority or effect permission. The artifact-only
+audit did not certify live Git, and the gate proves only its prospective
+opening-to-commit interval; earlier raw-index and diagnostic-ref gaps remain
+unresolved. F03 remains a nonblocking private-constructor observation; F2,
+qualified F3/F6/F7, cross-host clock ordering, and live concerns remain open.
+
+This proof adds no live custody, physical C2 decision or acceptance, terminal
+outcome, executable permission, production provider or worker readiness, ES
+or Bridge route, product Git authority, service, scheduler, or autonomous loop.
+<!-- RW0_D2_CUMULATIVE_LOCAL_COMMIT_STATUS_END -->

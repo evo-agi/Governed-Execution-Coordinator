@@ -532,6 +532,7 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
         "src/ge_nwp_coordinator/_sqlite_development_bound_effect_establishment.py",
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
+        "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
         "src/ge_nwp_coordinator/sqlite_transition_select_support.py",
@@ -582,20 +583,20 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
     with pytest.raises(SyntaxError):
         _imports_sqlite3("from sqlite3 import\n", filename="<invalid-python>")
 
-    seventh_path = "src/ge_nwp_coordinator/_seventh_sqlite_importer.py"
-    for seventh_source in (
+    unlisted_path = "src/ge_nwp_coordinator/_unlisted_sqlite_importer.py"
+    for unlisted_source in (
         "from sqlite3 import connect\n",
         "import sqlite3 as database\n",
     ):
-        seventh_sources = {**sources, seventh_path: seventh_source}
-        seventh_importers = {
+        unlisted_sources = {**sources, unlisted_path: unlisted_source}
+        unlisted_importers = {
             relative_path
-            for relative_path, file_source in seventh_sources.items()
+            for relative_path, file_source in unlisted_sources.items()
             if _imports_sqlite3(file_source, filename=relative_path)
         }
-        assert seventh_importers == expected_sqlite_importers | {seventh_path}
+        assert unlisted_importers == expected_sqlite_importers | {unlisted_path}
         with pytest.raises(AssertionError):
-            assert seventh_importers == expected_sqlite_importers
+            assert unlisted_importers == expected_sqlite_importers
 
     state_store = _read("src/ge_nwp_coordinator/state_store.py")
     assert "class StateStore(Protocol)" in state_store
@@ -614,7 +615,11 @@ def test_no_persistent_database_or_journal_artifacts_exist() -> None:
             name = path.name
             assert not name.endswith(forbidden_suffixes)
             assert not name.endswith(forbidden_exact_suffixes)
-            assert "journal" not in name.lower()
+            if "journal" in name.lower():
+                # The F1 source test is not a persisted SQLite journal.
+                assert path.relative_to(ROOT).as_posix() == (
+                    "tests/test_sqlite_writer_hot_journal_recovery.py"
+                )
 
 def _d1_subprocess_owners(sources: tuple[tuple[Path, str], ...]) -> set[str]:
     owners: set[str] = set()

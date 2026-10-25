@@ -560,7 +560,7 @@ generation inside the internal session.
 
 ## Writer Acquisition
 
-B2c writer acquisition order is:
+B2c writer acquisition order for a current managed database is:
 
 1. Observationally require an existing current `MANAGED` database.
 2. Refuse `ABSENT`, `EMPTY`, `UNKNOWN`, drifted, or incompatible databases
@@ -583,6 +583,49 @@ B2c writer acquisition order is:
 14. Verify the persisted digest with `hmac.compare_digest`.
 15. Commit and close the acquisition SQLite connection.
 16. Publish the internal concrete session while retaining the common lock.
+
+### F1 bounded hot rollback recovery before writer admission
+
+F1 observational inspection recognizes only SQLite's supplied numeric extended
+`SQLITE_READONLY_ROLLBACK` code 776 and returns `UNKNOWN` with closed reason
+`recovery_needed`. A message, filename, primary READONLY code, or generic I/O
+error cannot authorize a recovery attempt. The healthy managed acquisition
+path above remains in force. If this exact reason is seen, acquisition takes
+the existing common lock, reobserves under it and binds the existing
+root/lock/database. A concurrently resolved store takes the ordinary path only
+after that bound store validates as current managed. If recovery is still
+needed, the private checker admits only the fixed adjacent DELETE rollback
+journal under the owner-private local-storage model. It requires private
+root/lock/database/journal metadata, no-follow journal identity and a stable
+bounded structural read. Missing, disappearing, changed, malformed or
+ambiguous journals, auxiliary WAL/SHM/journal arrangements, and recognizable
+super-journal tails refuse before write-capable recovery access with
+`recovery_unsafe`. Unsupported WAL posture is refused from the observational
+file-header result without a second writer-row diagnostic open that could
+create WAL sidecars.
+
+For an admitted journal, the existing bound connection owner opens the main
+database create-disabled and SQLite performs rollback under the common lock.
+The checker never follows a name from journal bytes and does not replay pages.
+The connection installs available nonpersistent safety controls at its first
+API opportunity, then validates posture. The journal may be consumed. An
+operational error after recovery access or unproved cleanup reports
+`recovery_unresolved`; no automatic retry follows. Once rollback completes,
+the writer rechecks binding and exact current catalog/schema/invariants before
+the ordinary one-commit issuance steps above. A recovered older or otherwise
+ineligible store receives no writer and no implicit migration. Refusal after
+rollback can leave changed storage. A committed issuance with a lost return is
+not proof of noncommit and cannot be retried blindly.
+
+The previous F1 refusal-only branch and its controlled pre-COMMIT ATTACH
+fixture remain historical evidence, not the current recovery contract. The
+fixture's main journal had no super-journal dependency; an attachment in
+transaction history alone does not require a second recovery path. Current
+support is bounded by the admitted main journal's dependency form and the
+standard SQLite VFS path under private local storage. Checked descriptors do
+not make the VFS use those descriptors or prove resistance to a hostile same-
+account path race. No first-live restart or broader effect authorization follows
+from this storage recovery.
 
 B2c updates `writer_ownership` only during writer acquisition. Close never
 updates, deletes, or clears that row.

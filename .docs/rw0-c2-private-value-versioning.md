@@ -5475,3 +5475,7 @@ test constrain its meaning.
 }
 ```
 <!-- RW0_C2_PRIVATE_VALUES_MACHINE_END -->
+
+### Section 41 0005 succession boundary
+
+Migration 0005 now belongs to native Section 41 post-execution proposal/context/receipt recording. It does not change this C2 pure value-versioning contract or select C2 physical persistence. Any earlier prospective 0005 C2 reference is historical; a future C2 additive suffix, if selected, must be later and separately authorized, currently expected no earlier than 0006.

@@ -5054,6 +5054,7 @@ class RW0C1CheckedEvidenceFamilyV1:
         | _worker_values.WorkerObservationV1
         | RW0C1WireWorkerResultBindingV1
         | RW0C1WireProcessResultClassificationBindingV1
+        | RW0C1Section41PostExecutionProposalFamilyMemberV1
     )
 
     def __post_init__(self) -> None:
@@ -5122,7 +5123,7 @@ def _require_exact_checked_selector(value: object) -> RW0C1AdmitEvidenceResultV1
             name: object.__getattribute__(value, name) for name in fields
         })
         if (object.__getattribute__(value, "schema_id") != result.schema_id
-                or result.kind_rank not in {1, 5, 6, 12, 13, 14}):
+                or result.kind_rank not in {1, 5, 6, 12, 13, 14, 15}):
             raise _integrity_failure() from None
         return result
     except (KeyboardInterrupt, SystemExit, GeneratorExit):
@@ -5131,9 +5132,55 @@ def _require_exact_checked_selector(value: object) -> RW0C1AdmitEvidenceResultV1
         raise _integrity_failure() from None
 
 
+def _checked_result_from_recovery_selector_after_fencing(
+    *, capability: object, selector: RW0C1EvidenceAdmissionRecoverySelectorV1,
+) -> RW0C1AdmitEvidenceResultV1:
+    """Recover a persisted result for checked readback without retrying B."""
+    recovery = _recover_rw0_c1_evidence_admission_after_fencing(
+        capability=capability, selector=selector,
+    )
+    if recovery.disposition is not RW0C1RecoveryDispositionV1.COMMITTED_EXACT:
+        raise _integrity_failure() from None
+    receipt = _read_receipt(capability, selector.mutation_ref)
+    family = _read_membership_family(
+        capability,
+        phase_basis_ref=selector.phase_basis_ref,
+        membership_ref=selector.preassigned_membership_ref,
+    )
+    if type(receipt) is not RW0C1RowValue or type(family) is not RW0C1MembershipFamily:
+        raise _integrity_failure() from None
+    member = family.membership
+    result = RW0C1AdmitEvidenceResultV1(
+        mutation_ref=selector.mutation_ref,
+        command_digest=selector.command_digest,
+        disposition="exact_replay",
+        phase_basis_ref=selector.phase_basis_ref,
+        phase_basis_digest=selector.phase_basis_digest,
+        membership_ref=selector.preassigned_membership_ref,
+        membership_digest=typing.cast(str, member.value("membership_digest")),
+        kind_rank=selector.kind_rank,
+        value_ref=selector.value_ref,
+        value_digest=selector.value_digest,
+        value_schema_id=selector.value_schema_id,
+        relation_set_digest=typing.cast(str, member.value("relation_set_digest")),
+        admission_graph_digest=typing.cast(str, member.value("admission_graph_digest")),
+        receipt_digest=typing.cast(str, receipt.value("receipt_digest")),
+        committed_at=typing.cast(str, receipt.value("committed_at")),
+    )
+    if (result.receipt_digest != recovery.receipt_digest
+            or result.committed_projection_digest() != recovery.result_projection_digest
+            or result.admission_graph_digest != recovery.operation_graph_digest):
+        raise _integrity_failure() from None
+    return result
+
+
 def _read_rw0_c1_checked_family_after_fencing(
     *, capability: object, selector: object,
 ) -> RW0C1CheckedEvidenceFamilyV1:
+    if type(selector) is RW0C1EvidenceAdmissionRecoverySelectorV1:
+        selector = _checked_result_from_recovery_selector_after_fencing(
+            capability=capability, selector=selector,
+        )
     checked = _require_exact_checked_selector(selector)
     family = _read_membership_family(
         capability, phase_basis_ref=checked.phase_basis_ref,

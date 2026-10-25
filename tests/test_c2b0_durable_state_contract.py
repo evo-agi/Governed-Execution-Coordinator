@@ -11057,6 +11057,9 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
     rw0_c1_literal_owner_snapshot_contract_sources = {
         ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c1_reader_contracts.py",
     }
+    section41_post_execution_family_reader_sources = {
+        ROOT / "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
@@ -11085,11 +11088,15 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
             | section41_sources
             | rw0_d2_bound_sources
             | rw0_c1_literal_owner_snapshot_contract_sources
+            | section41_post_execution_family_reader_sources
         )
     )
     assert all(
         path.is_file() and not path.is_symlink()
-        for path in rw0_c1_literal_owner_snapshot_contract_sources
+        for path in (
+            rw0_c1_literal_owner_snapshot_contract_sources
+            | section41_post_execution_family_reader_sources
+        )
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
     schema = "\n".join(
@@ -19169,6 +19176,185 @@ acceptance. The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
 '''
 
+C2B_SECTION41_CURRENT_STATUS = '''
+<!-- SECTION41_POST_D2_NATIVE_PROPOSAL_ADMISSION_SUCCESSOR_BEGIN -->
+### Section 41 native post-execution proposal-family successor
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for one private artificial
+offline continuation. `.docs/section41-post-execution-proposal-family.md` is
+the bounded subordinate contract for this Section 41 family. It owns the
+closed command, safe basis, two-table 0005 representation, receipt-first
+historical replay, same-transaction nine-evidence gate, complete checked
+readback, and read-only three-way A recovery. The existing Section 41 common
+post-execution 0-or-9 envelope remains representable; this D2 producer and
+unchanged V22 projection require nine actual evidence rows.
+
+Transaction A writes the twelve common source/artifact/proposal/evidence owner
+rows plus one context and one receipt through the existing fenced Coordinator
+transaction controller. In a separate guarded transaction, C1 owns the
+rank-15 admission of exactly those persisted common rows. A fresh checked
+readback of both families supplies unchanged pure V22. A committed A followed
+by B CAS conflict remains proposal recorded without admission. Neither A nor
+B commits a C2 progression decision, acceptance or terminal fact.
+
+The current physical catalog has the additive
+`0005_section41_post_execution_proposal_family` tip at generation 2: 64 user
+tables, 114 triggers and five explicit indexes cumulatively. The four earlier
+SQL resources remain byte-exact; 0004 states require explicit administrative
+migration. The earlier current-tip/absent-0005 statements in this document
+are historical tranche statements superseded only by this Section 41 physical
+successor. Prospective C2 physical suffix references now mean a later additive
+suffix, currently expected no earlier than 0006, without selecting one.
+
+This proof borrows one original open D2 run, uses only fake local children and
+temporary process-owned state, and closes it in the creator process. It has
+no restart-safe custody or live supplier authentication. Retained child
+attestations bind consumed evidence but cannot reconstruct deliberately
+unretained private bytes after disposal. Model recommendations remain
+non-authoritative proposal evidence. No C2 decision, guard, admission
+provisioning, acceptance, terminal outcome, executable permission, provider,
+ES/Bridge route, Git effect, service, scheduler, or autonomous loop is added.
+<!-- SECTION41_POST_D2_NATIVE_PROPOSAL_ADMISSION_SUCCESSOR_END -->
+'''
+
+C2B_UNIT2_CURRENT_STATUS = '''
+<!-- SECTION41_POST_D2_UNIT2_CURRENT_SUCCESSOR_BEGIN -->
+### Unit 2 native post-execution proposal admission successor
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for the bounded private
+offline proof, pending independent review. The D1 Wire worker result has
+exactly two legal observation orders: `worker_started, worker_completed` and
+`worker_started, candidate_captured, worker_completed`. The D2 A producer
+admits 13 or 14 checked C1 members in those respective orders, with exact
+rank sequences `(12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)` and
+`(12, 12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)`. Parent-owned capsule
+capture remains authoritative in either form. The missing optional worker
+capture observation has no negative candidate meaning and does not place
+candidate fields on `worker_completed`. Pure V40 binds candidate identity
+through the parent capsule, rank-13 result, and independent review evidence.
+
+Clean malformed child checking evidence produces typed
+`validator_evidence_invalid` or `reviewer_evidence_invalid` handbacks at the
+exact `n + 7` or `n + 9` checked prefix, where `n` is the actual Worker Wire
+observation count. The invalid observation, later child/model, and native
+proposal effects are absent. The fresh Section 41 writer independently
+derives and compares the complete command and canonical safe basis from the
+original open run before target writes. Historical receipt-first replay uses
+persisted immutable evidence without child rerun. The historical 14-member
+safe basis remains byte-compatible.
+
+The physical catalog and generation, twelve common Section 41 owner rows,
+nine model-evidence roles, A/B ownership split, C1 rank-15 admission and
+recovery, and pure V22 projection remain unchanged. This successor is not
+C2 progression, acceptance, executable permission, live custody, ES runtime,
+Git effect, publication, or autonomous operation.
+<!-- SECTION41_POST_D2_UNIT2_CURRENT_SUCCESSOR_END -->
+'''
+
+C2B_LOCAL_COMMIT_PREDECESSOR_IDENTITY = (1896199, '43bbd3838cce4dfbee4a77c33484a51296878bed03de1dc5ffa92f734171dd6b')
+C2B_LOCAL_COMMIT_SUCCESSOR_IDENTITY = (1898118, '0dcc982648d2475c1abd86d53e518f0cd702b00c34787945ab01995db3b3aa7e')
+C2B_LOCAL_COMMIT_CURRENT_STATUS = '''
+<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 cumulative local-commit successor
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for the same bounded private
+offline proof. The exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` received independent
+artifact-only review for a separately governed commit gate. That gate
+locally committed the accepted bytes as
+`66ee79132501e636d848ff8578fb674a208d6ac5`, reauthenticated all 299
+committed blobs and Git modes, and recorded 9,295 collected and 9,295 passing
+tests, zero failures, errors, or skips, with three known Python 3.13 fork
+deprecation warnings. The preceding Unit 2 pending-review classification is
+historical candidate-stage evidence, superseded only for review and local
+commit; its two legal layouts and all transaction, recovery, and evidence
+boundaries remain unchanged.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This records a historical local gate, not a live remote-ref or
+publication claim. Git objects and refs remain current commit and publication
+truth. Audit, validation, provenance, reports, and status text are evidence,
+not Coordinator durable authority or effect permission. The artifact-only
+audit did not certify live Git; the gate proves only its prospective
+opening-to-commit interval. Earlier raw-index and diagnostic-ref provenance
+gaps remain unresolved. F03 remains a nonblocking private-constructor
+observation, and F2, qualified F3/F6/F7, cross-host clock ordering, and live
+concerns remain outside this status change.
+
+The bounded implementation adds no live custody, physical C2 decision or
+acceptance, terminal outcome, executable permission, production provider or
+worker readiness, ES or Bridge route, product Git authority, service,
+scheduler, or autonomous loop.
+<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->
+'''
+
+
+def _assert_c2b_local_commit_successor(candidate: bytes) -> bytes:
+    import hashlib
+    addition = C2B_LOCAL_COMMIT_CURRENT_STATUS.encode()
+    begin = b'<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_BEGIN -->'
+    end = b'<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->'
+    if (type(candidate) is not bytes or candidate.count(addition) != 1
+            or candidate.count(begin) != 1 or candidate.count(end) != 1):
+        raise AssertionError('c2b:local_commit_successor_count')
+    if not candidate.endswith(addition):
+        raise AssertionError('c2b:local_commit_successor_context')
+    predecessor = candidate[:-len(addition)]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != C2B_LOCAL_COMMIT_PREDECESSOR_IDENTITY:
+        raise AssertionError('c2b:local_commit_predecessor_identity')
+    compact = b' '.join(addition.split())
+    required = (
+        b'3965cd3d1d3e28b43c9bc3709058c2524bad369d',
+        b'66ee79132501e636d848ff8578fb674a208d6ac5',
+        b'independent artifact-only review', b'299 committed blobs and Git modes',
+        b'9,295 collected and 9,295 passing tests',
+        b'no push, PR, merge, publication, deployment, or product effect',
+        b'not a live remote-ref', b'Git objects and refs remain',
+        b'not Coordinator durable authority or effect permission',
+        b'no live custody, physical C2 decision or acceptance',
+        b'production provider or worker readiness', b'product Git authority',
+        b'service, scheduler, or autonomous loop',
+    )
+    if any(fragment not in compact for fragment in required):
+        raise AssertionError('c2b:local_commit_semantics')
+    return predecessor
+
+
+def test_c2b_local_commit_successor_reconstructs_predecessor() -> None:
+    import hashlib
+    current = OWNER_PATH.read_bytes()
+    assert (len(current), hashlib.sha256(current).hexdigest()) == C2B_LOCAL_COMMIT_SUCCESSOR_IDENTITY
+    predecessor = _assert_c2b_local_commit_successor(current)
+    assert predecessor.endswith(C2B_UNIT2_CURRENT_STATUS.encode())
+    assert hashlib.sha256(predecessor[:1887232]).hexdigest() == '77bf3d3c6ed710da669db7fa4353f46f3d1e9b4e09636918046d16d94ed962e5'
+
+
+@pytest.mark.parametrize(('case', 'boundary'), (
+    ('missing', 'c2b:local_commit_successor_count'),
+    ('duplicate', 'c2b:local_commit_successor_count'),
+    ('moved', 'c2b:local_commit_successor_context'),
+    ('semantic_change', 'c2b:local_commit_successor_count'),
+    ('outside_change', 'c2b:local_commit_predecessor_identity'),
+))
+def test_c2b_local_commit_successor_rejects_exact_mutants(case, boundary):
+    current = OWNER_PATH.read_bytes()
+    predecessor = _assert_c2b_local_commit_successor(current)
+    addition = C2B_LOCAL_COMMIT_CURRENT_STATUS.encode()
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + addition
+    elif case == 'moved':
+        changed = addition + predecessor
+    elif case == 'semantic_change':
+        changed = current.replace(b'no push, PR, merge', b'did push, PR, merge', 1)
+    else:
+        changed = b'X' + current
+    assert changed != current
+    with pytest.raises(AssertionError, match='^' + boundary + '$'):
+        _assert_c2b_local_commit_successor(changed)
+
+
 C2B_CURRENT_STATUS_AUTHORITY = 'Classification: `ACCEPTED TARGET CONTRACT`; this bounded successor supersedes only mutable-latch accepted-target representation. Historical mutable-latch sections and their physical selections remain historical/proof precursors or reopened choices. Later committed current-status successors, current migration facts, current owner routing, and current-family statements retain their existing authority. The complete opening document is preserved byte-for-byte; this successor does not supersede it as a whole.'
 
 
@@ -19206,7 +19392,8 @@ def test_immutable_guard_successor_preserves_historical_evidence():
     if hashlib.sha256(data[:opening_size]).hexdigest() != '77bf3d3c6ed710da669db7fa4353f46f3d1e9b4e09636918046d16d94ed962e5':
         raise AssertionError('c2b:complete_opening_prefix')
     _assert_c2b_current_status_authority(data[opening_size:].decode())
-    if data[opening_size:].decode() != C2B_GUARD_CURRENT_SUCCESSOR + C2B_D1_CURRENT_STATUS + C2B_D2_CURRENT_STATUS:
+    _assert_c2b_local_commit_successor(data)
+    if data[opening_size:].decode() != C2B_GUARD_CURRENT_SUCCESSOR + C2B_D1_CURRENT_STATUS + C2B_D2_CURRENT_STATUS + C2B_SECTION41_CURRENT_STATUS + C2B_UNIT2_CURRENT_STATUS + C2B_LOCAL_COMMIT_CURRENT_STATUS:
         raise AssertionError('c2b:guard_current_successor')
     initialization = (root / '.docs/c2b3-program-initialization.md').read_bytes()
     size = 26691

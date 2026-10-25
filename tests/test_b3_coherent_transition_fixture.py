@@ -479,9 +479,9 @@ def test_base_fixture_uses_current_physical_schema_and_builds_historical_exact_g
         assert not fixture.location.state_root.is_relative_to(ROOT)
         inspection = validate_database(fixture.location)
         assert inspection.classification is DatabaseClassification.MANAGED
-        assert inspection.current_sequence == 4
-        assert inspection.latest_sequence == 4
-        assert inspection.current_migration_id == "0004_rw0_c1_durable_evidence"
+        assert inspection.current_sequence == 5
+        assert inspection.latest_sequence == 5
+        assert inspection.current_migration_id == "0005_section41_post_execution_proposal_family"
 
         assert fixture.lease_identity_validation.identity_valid is True
         assert fixture.lease_identity_validation.lease_ref == fixture.lease.lease_id
@@ -741,6 +741,7 @@ def test_migration_boundary_related_surfaces_and_repo_artifacts_remain_frozen() 
         "0002_development_program_and_effect_state.sql",
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
+        "0005_section41_post_execution_proposal_family.sql",
     ]
 
     source_paths = tuple(

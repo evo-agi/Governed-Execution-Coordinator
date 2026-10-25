@@ -24950,3 +24950,107 @@ C1 rank-15 admission, physical C2 decision or terminal acceptance, migration
 adapter, product Git effect, or autonomous loop. `preadmission_ready` is not
 acceptance. The detailed owner is `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
+
+<!-- SECTION41_POST_D2_NATIVE_PROPOSAL_ADMISSION_SUCCESSOR_BEGIN -->
+### Section 41 native post-execution proposal-family successor
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for one private artificial
+offline continuation. `.docs/section41-post-execution-proposal-family.md` is
+the bounded subordinate contract for this Section 41 family. It owns the
+closed command, safe basis, two-table 0005 representation, receipt-first
+historical replay, same-transaction nine-evidence gate, complete checked
+readback, and read-only three-way A recovery. The existing Section 41 common
+post-execution 0-or-9 envelope remains representable; this D2 producer and
+unchanged V22 projection require nine actual evidence rows.
+
+Transaction A writes the twelve common source/artifact/proposal/evidence owner
+rows plus one context and one receipt through the existing fenced Coordinator
+transaction controller. In a separate guarded transaction, C1 owns the
+rank-15 admission of exactly those persisted common rows. A fresh checked
+readback of both families supplies unchanged pure V22. A committed A followed
+by B CAS conflict remains proposal recorded without admission. Neither A nor
+B commits a C2 progression decision, acceptance or terminal fact.
+
+The current physical catalog has the additive
+`0005_section41_post_execution_proposal_family` tip at generation 2: 64 user
+tables, 114 triggers and five explicit indexes cumulatively. The four earlier
+SQL resources remain byte-exact; 0004 states require explicit administrative
+migration. The earlier current-tip/absent-0005 statements in this document
+are historical tranche statements superseded only by this Section 41 physical
+successor. Prospective C2 physical suffix references now mean a later additive
+suffix, currently expected no earlier than 0006, without selecting one.
+
+This proof borrows one original open D2 run, uses only fake local children and
+temporary process-owned state, and closes it in the creator process. It has
+no restart-safe custody or live supplier authentication. Retained child
+attestations bind consumed evidence but cannot reconstruct deliberately
+unretained private bytes after disposal. Model recommendations remain
+non-authoritative proposal evidence. No C2 decision, guard, admission
+provisioning, acceptance, terminal outcome, executable permission, provider,
+ES/Bridge route, Git effect, service, scheduler, or autonomous loop is added.
+<!-- SECTION41_POST_D2_NATIVE_PROPOSAL_ADMISSION_SUCCESSOR_END -->
+
+<!-- SECTION41_POST_D2_UNIT2_CURRENT_SUCCESSOR_BEGIN -->
+### Unit 2 native post-execution proposal admission successor
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for the bounded private
+offline proof, pending independent review. The D1 Wire worker result has
+exactly two legal observation orders: `worker_started, worker_completed` and
+`worker_started, candidate_captured, worker_completed`. The D2 A producer
+admits 13 or 14 checked C1 members in those respective orders, with exact
+rank sequences `(12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)` and
+`(12, 12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)`. Parent-owned capsule
+capture remains authoritative in either form. The missing optional worker
+capture observation has no negative candidate meaning and does not place
+candidate fields on `worker_completed`. Pure V40 binds candidate identity
+through the parent capsule, rank-13 result, and independent review evidence.
+
+Clean malformed child checking evidence produces typed
+`validator_evidence_invalid` or `reviewer_evidence_invalid` handbacks at the
+exact `n + 7` or `n + 9` checked prefix, where `n` is the actual Worker Wire
+observation count. The invalid observation, later child/model, and native
+proposal effects are absent. The fresh Section 41 writer independently
+derives and compares the complete command and canonical safe basis from the
+original open run before target writes. Historical receipt-first replay uses
+persisted immutable evidence without child rerun. The historical 14-member
+safe basis remains byte-compatible.
+
+The physical catalog and generation, twelve common Section 41 owner rows,
+nine model-evidence roles, A/B ownership split, C1 rank-15 admission and
+recovery, and pure V22 projection remain unchanged. This successor is not
+C2 progression, acceptance, executable permission, live custody, ES runtime,
+Git effect, publication, or autonomous operation.
+<!-- SECTION41_POST_D2_UNIT2_CURRENT_SUCCESSOR_END -->
+
+<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_BEGIN -->
+### Post-D2 cumulative local-commit successor
+
+Classification: `CURRENT IMPLEMENTED CONTRACT` for the same bounded private
+offline proof. The exact sealed tree
+`3965cd3d1d3e28b43c9bc3709058c2524bad369d` received independent
+artifact-only review for a separately governed commit gate. That gate
+locally committed the accepted bytes as
+`66ee79132501e636d848ff8578fb674a208d6ac5`, reauthenticated all 299
+committed blobs and Git modes, and recorded 9,295 collected and 9,295 passing
+tests, zero failures, errors, or skips, with three known Python 3.13 fork
+deprecation warnings. The preceding Unit 2 pending-review classification is
+historical candidate-stage evidence, superseded only for review and local
+commit; its two legal layouts and all transaction, recovery, and evidence
+boundaries remain unchanged.
+
+The gate performed no push, PR, merge, publication, deployment, or product
+effect. This records a historical local gate, not a live remote-ref or
+publication claim. Git objects and refs remain current commit and publication
+truth. Audit, validation, provenance, reports, and status text are evidence,
+not Coordinator durable authority or effect permission. The artifact-only
+audit did not certify live Git; the gate proves only its prospective
+opening-to-commit interval. Earlier raw-index and diagnostic-ref provenance
+gaps remain unresolved. F03 remains a nonblocking private-constructor
+observation, and F2, qualified F3/F6/F7, cross-host clock ordering, and live
+concerns remain outside this status change.
+
+The bounded implementation adds no live custody, physical C2 decision or
+acceptance, terminal outcome, executable permission, production provider or
+worker readiness, ES or Bridge route, product Git authority, service,
+scheduler, or autonomous loop.
+<!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->

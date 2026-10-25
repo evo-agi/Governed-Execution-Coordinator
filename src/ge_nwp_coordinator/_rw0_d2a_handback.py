@@ -33,7 +33,7 @@ from ._post_execution_policy_values import (
 from ._rw0_d1_handback import RW0D1HandbackV1
 from ._rw0_d1_process_supervisor import D1ProcessOutcome
 from ._rw0_d1_workspace import D1CandidateCapture
-from ._rw0_d2a_evidence import RW0D2CheckingEvidenceV1
+from ._rw0_d2a_evidence import RW0D2CheckingEvidenceV1, _resolve_d2_checked_layout
 from ._rw0_phase_entry_semantic_values import (
     RW0AuthorityVerificationObservationV1,
     RW0EffectHostQualificationV1,
@@ -127,7 +127,7 @@ class RW0D2EvidenceCheckpointV1:
                 or type(self.capsule_manifest) is not CandidateCapsuleManifestV1
                 or type(self.adapter_exit) is not WorkerObservationV1
                 or type(self.bound_effects) is not tuple or len(self.bound_effects) != 2
-                or type(self.admitted_families) is not tuple or len(self.admitted_families) != 14
+                or type(self.admitted_families) is not tuple
                 or type(self.authority_sources) is not tuple or len(self.authority_sources) != 3
                 or type(self.readiness_source) is not RW0RemoteHostReadinessObservationV1
                 or type(self.qualifications) is not tuple or len(self.qualifications) != 2
@@ -146,6 +146,8 @@ class RW0D2EvidenceCheckpointV1:
             _invalid()
         try:
             self.d1_handback.validate()
+            layout = _resolve_d2_checked_layout(self.d1_handback)
+            layout.validate_prefix(self.admitted_families, complete=True)
             self.capture.validate()
             CandidateCapsuleManifestV1.from_mapping(self.capsule_manifest.to_mapping())
             WorkerObservationV1.from_mapping(self.adapter_exit.to_mapping())
@@ -189,9 +191,9 @@ class RW0D2EvidenceCheckpointV1:
                     or self.validation_source.process is not self.validator_process
                     or self.review_source.process is not self.reviewer_process
                     or self.validation_source.observation.to_mapping()
-                    != self.admitted_families[10].evidence_value.to_mapping()
+                    != layout.family(self.admitted_families, "validator_observation").evidence_value.to_mapping()
                     or self.review_source.observation.to_mapping()
-                    != self.admitted_families[12].evidence_value.to_mapping()
+                    != layout.family(self.admitted_families, "reviewer_observation").evidence_value.to_mapping()
                     or self.validation_result_set.source_observation_digest
                     != self.validation_source.observation.observation_digest
                     or self.review_result_set.source_observation_digest
@@ -222,7 +224,10 @@ class RW0D2EvidenceCheckpointV1:
             self.bound_effects[1].current_fence,
             author_fence,
         )
-        role_families = (6, 7, 13)
+        layout = _resolve_d2_checked_layout(self.d1_handback)
+        role_families = tuple(layout.index(role) for role in (
+            "validation_authority", "review_authority", "author_authority",
+        ))
         member_refs: list[str] = []
         for source_index, (family_index, fence) in enumerate(zip(
             role_families, role_fences, strict=True,

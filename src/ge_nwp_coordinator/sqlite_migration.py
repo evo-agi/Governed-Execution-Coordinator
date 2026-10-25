@@ -37,6 +37,7 @@ MIGRATION_RESOURCE_READ_CHUNK_BYTES = 65_536
 _C2B2_MIGRATION_ID = "0002_development_program_and_effect_state"
 _SECTION41_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
 _RW0_C1_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
+_POST_EXECUTION_PROPOSAL_MIGRATION_ID = "0005_section41_post_execution_proposal_family"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -131,6 +132,8 @@ EXPECTED_TABLES = frozenset(
         "rw0_section41_post_execution_proposal_family_members",
         "rw0_authority_observation_effect_classes",
         "rw0_c2a_worker_observation_evidence_refs",
+        "development_post_execution_proposal_contexts",
+        "development_post_execution_proposal_receipts",
     }
 )
 
@@ -211,6 +214,13 @@ _EMPTY_AFTER_RW0_C1_MIGRATION_TABLES = frozenset(
         "rw0_section41_post_execution_proposal_family_members",
         "rw0_authority_observation_effect_classes",
         "rw0_c2a_worker_observation_evidence_refs",
+    }
+)
+
+_EMPTY_AFTER_POST_EXECUTION_PROPOSAL_MIGRATION_TABLES = frozenset(
+    {
+        "development_post_execution_proposal_contexts",
+        "development_post_execution_proposal_receipts",
     }
 )
 
@@ -312,6 +322,7 @@ class _MigrationDatabaseDisposition(str, Enum):
     CORRUPT_HISTORY = "corrupt_history"
     PARTIAL_MIGRATION = "partial_migration"
     DATABASE_NOT_EMPTY_UNMANAGED = "database_not_empty_unmanaged"
+    RECOVERY_NEEDED = "recovery_needed"
 
 
 class _MigrationTransactionPhase(str, Enum):
@@ -425,6 +436,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="RW0-C1 private durable phase and supplied-evidence state",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_POST_EXECUTION_PROPOSAL_MIGRATION_ID,
+        sequence=5,
+        resource_name="0005_section41_post_execution_proposal_family.sql",
+        literal_checksum="583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="Section 41 native post-execution proposal context and receipt",
     ),
 )
 
@@ -959,6 +980,8 @@ def _raise_assessment_failure(assessment: _MigrationDatabaseAssessment) -> None:
 def _default_error_for_disposition(
     disposition: _MigrationDatabaseDisposition,
 ) -> SQLiteStateErrorCode:
+    if disposition is _MigrationDatabaseDisposition.RECOVERY_NEEDED:
+        return SQLiteStateErrorCode.RECOVERY_NEEDED
     if disposition is _MigrationDatabaseDisposition.SUPPORTED_OLDER_PREFIX:
         return SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE
     if disposition is _MigrationDatabaseDisposition.UNSUPPORTED_OLDER:
@@ -977,6 +1000,16 @@ def _default_error_for_disposition(
     }:
         return SQLiteStateErrorCode.MIGRATION_HISTORY_MISSING
     return SQLiteStateErrorCode.DATABASE_SCHEMA_INCOMPATIBLE
+
+
+def _assessment_for_observational_failure(error: SQLiteStateError) -> _MigrationDatabaseAssessment:
+    reason = SQLiteStateErrorCode(error.error_class)
+    disposition = (
+        _MigrationDatabaseDisposition.RECOVERY_NEEDED
+        if reason is SQLiteStateErrorCode.RECOVERY_NEEDED
+        else _MigrationDatabaseDisposition.CORRUPT_HISTORY
+    )
+    return _MigrationDatabaseAssessment(disposition, reason=reason)
 
 
 def _classify_existing_file_header(database_path: Any) -> tuple[DatabaseClassification, str | None] | None:
@@ -1020,10 +1053,7 @@ def _assess_location_database(
     try:
         connection = open_existing_sqlite_connection(location, read_only=True)
     except SQLiteStateError as exc:
-        return _MigrationDatabaseAssessment(
-            _MigrationDatabaseDisposition.CORRUPT_HISTORY,
-            reason=SQLiteStateErrorCode(exc.error_class),
-        )
+        return _assessment_for_observational_failure(exc)
     try:
         return _assess_open_database(
             connection,
@@ -1061,10 +1091,7 @@ def _assess_location_database_history_only(
     try:
         connection = open_existing_sqlite_connection(location, read_only=True)
     except SQLiteStateError as exc:
-        return _MigrationDatabaseAssessment(
-            _MigrationDatabaseDisposition.CORRUPT_HISTORY,
-            reason=SQLiteStateErrorCode(exc.error_class),
-        )
+        return _assessment_for_observational_failure(exc)
     try:
         return _assess_open_database_history_only(
             connection,
@@ -1092,10 +1119,7 @@ def _assess_open_database_history_only(
         has_objects = _has_any_user_schema_object(connection)
         has_history_table = _has_schema_migrations_table(connection)
     except SQLiteStateError as exc:
-        return _MigrationDatabaseAssessment(
-            _MigrationDatabaseDisposition.CORRUPT_HISTORY,
-            reason=SQLiteStateErrorCode(exc.error_class),
-        )
+        return _assessment_for_observational_failure(exc)
     if not has_objects:
         return _MigrationDatabaseAssessment(_MigrationDatabaseDisposition.EMPTY)
     if not has_history_table:
@@ -1203,10 +1227,7 @@ def _assess_open_database(
     except SQLiteStateError as exc:
         if preserve_operational_errors and _is_operational_validation_error(exc):
             raise
-        return _MigrationDatabaseAssessment(
-            _MigrationDatabaseDisposition.CORRUPT_HISTORY,
-            reason=SQLiteStateErrorCode(exc.error_class),
-        )
+        return _assessment_for_observational_failure(exc)
     if not has_objects:
         return _MigrationDatabaseAssessment(_MigrationDatabaseDisposition.EMPTY)
     if not has_history_table:
@@ -2334,6 +2355,8 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_section41_migration_tables(connection)
     if migration.migration_id == _RW0_C1_MIGRATION_ID:
         _verify_empty_rw0_c1_migration_tables(connection)
+    if migration.migration_id == _POST_EXECUTION_PROPOSAL_MIGRATION_ID:
+        _verify_empty_post_execution_proposal_migration_tables(connection)
 
 
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:
@@ -2350,6 +2373,12 @@ def _verify_empty_section41_migration_tables(connection: sqlite3.Connection) -> 
 
 def _verify_empty_rw0_c1_migration_tables(connection: sqlite3.Connection) -> None:
     _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C1_MIGRATION_TABLES)
+
+
+def _verify_empty_post_execution_proposal_migration_tables(
+    connection: sqlite3.Connection,
+) -> None:
+    _verify_empty_tables(connection, _EMPTY_AFTER_POST_EXECUTION_PROPOSAL_MIGRATION_TABLES)
 
 
 def _verify_empty_tables(

@@ -488,3 +488,7 @@ The schema represents C1 phase/evidence facts only; it contains no C2
 completeness, decision, latch, terminal state, worker, runtime, transport,
 capsule custody, or external integration table.
 <!-- RW0_C1_CURRENT_STATUS_END -->
+
+### Current additive Section 41 0005 schema successor
+
+`0005_section41_post_execution_proposal_family` adds only `development_post_execution_proposal_contexts` (11 ordered columns) and `development_post_execution_proposal_receipts` (25 ordered columns). Both are STRICT and immutable with immediate restricted foreign keys, exact phase-qualified routes and zero seed rows. Each has UPDATE and DELETE guards; there are no new explicit indexes. Generation 2 cumulative totals are 64 user tables, 114 triggers and five explicit indexes. Context safe-basis BLOBs are at most 131072 canonical bytes; DDL ref FKs do not themselves prove digest equality, which the typed writer and full checked reader verify. The four earlier SQL resources and their historical inventories remain unchanged; 0004 was their tip, 0005 is the current tip. The exact field/identity contract is `.docs/section41-post-execution-proposal-family.md`.

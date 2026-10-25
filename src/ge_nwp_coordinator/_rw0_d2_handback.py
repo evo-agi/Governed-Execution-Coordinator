@@ -22,7 +22,7 @@ from ._post_execution_evidence_values import (
     evaluate_post_execution_source_effect_ceiling,
     post_execution_global_stop_snapshot, validate_post_execution_evidence_supply,
 )
-from ._rw0_d2a_evidence import _seal_post_value
+from ._rw0_d2a_evidence import _resolve_d2_checked_layout, _seal_post_value
 from .global_stop import GlobalStopState
 from ._rw0_d1_handback import RW0D1HandbackV1, RW0D1OfflineRun
 from ._rw0_d1_process_supervisor import D1ProcessOutcome
@@ -41,7 +41,6 @@ _B_ORDER = (
     "safe_projection", "evidence_bindings", "evidence_set", "proposal",
     "model_process",
 )
-_A_RANK_PREFIX = (12, 12, 12, 12, 13, 14, 1, 1, 5, 6, 12, 6, 12, 1)
 _NORMALIZED_NAMES = (
     "model_input_binding", "model_source_invocation", "private_artifact",
     "artifact_binding", "safe_projection", "evidence_set", "proposal",
@@ -71,6 +70,13 @@ def _validate_reason_reached_facts(handback: RW0D2PreadmissionHandbackV1) -> Non
     if (handback.d1_handback.status != "capsule_ready"
             or not handback.d1_handback.workspace_cleaned):
         _fail()
+    layout = _resolve_d2_checked_layout(handback.d1_handback)
+    through_readiness = layout.through("readiness")
+    through_validation_qualification = layout.through("validation_qualification")
+    through_validator_observation = layout.through("validator_observation")
+    through_review_qualification = layout.through("review_qualification")
+    through_reviewer_observation = layout.through("reviewer_observation")
+    complete = layout.through("author_authority")
     if handback.reason == "complete":
         if handback.status != "preadmission_ready":
             _fail()
@@ -79,7 +85,10 @@ def _validate_reason_reached_facts(handback: RW0D2PreadmissionHandbackV1) -> Non
         _fail()
 
     def checked_child_prefix() -> bool:
-        return children == (0 if admitted <= 9 else 1 if admitted <= 11 else 2)
+        return children == (
+            0 if admitted <= through_readiness
+            else 1 if admitted <= through_validator_observation else 2
+        )
 
     def prior_children_clean() -> bool:
         return all(child.clean_success and child.cleanup_complete
@@ -95,33 +104,43 @@ def _validate_reason_reached_facts(handback: RW0D2PreadmissionHandbackV1) -> Non
         "c1_admission_failed", "c1_readback_failed", "c1_commit_unresolved",
     ):
         valid = (handback.status == "stopped" and a_only and effects == 2
-                 and admitted <= 13 and checked_child_prefix()
+                 and admitted < complete and checked_child_prefix()
                  and prior_children_clean())
     elif handback.reason == "writer_cleanup_unresolved":
         valid = (handback.status == "cleanup_unresolved" and a_only
                  and ((effects < 2 and admitted == children == 0)
-                      or (effects == 2 and admitted <= 13
+                      or (effects == 2 and admitted < complete
                           and checked_child_prefix() and prior_children_clean())))
     elif handback.reason == "process_cleanup_unresolved":
         valid = (handback.status == "cleanup_unresolved" and a_only and effects == 2
-                 and (admitted, children) in ((10, 1), (12, 2))
+                 and (admitted, children) in ((through_validation_qualification, 1),
+                                               (through_review_qualification, 2))
                  and all(child.clean_success and child.cleanup_complete
                          for child in handback.child_outcomes[:-1])
                  and not handback.child_outcomes[-1].cleanup_complete)
     elif handback.reason in ("validator_process_failed", "reviewer_process_failed"):
-        expected = (10, 1) if handback.reason == "validator_process_failed" else (12, 2)
+        expected = ((through_validation_qualification, 1)
+                    if handback.reason == "validator_process_failed"
+                    else (through_review_qualification, 2))
         valid = (handback.status == "stopped" and a_only and effects == 2
                  and (admitted, children) == expected
                  and all(child.clean_success and child.cleanup_complete
                          for child in handback.child_outcomes[:-1])
                  and handback.child_outcomes[-1].cleanup_complete
                  and not handback.child_outcomes[-1].clean_success)
+    elif handback.reason in ("validator_evidence_invalid", "reviewer_evidence_invalid"):
+        expected = ((through_validation_qualification, 1)
+                    if handback.reason == "validator_evidence_invalid"
+                    else (through_review_qualification, 2))
+        valid = (handback.status == "stopped" and a_only and effects == 2
+                 and (admitted, children) == expected and prior_children_clean())
     elif handback.reason == "reconstruction_not_independent":
         valid = (handback.status == "stopped" and a_only and effects == 2
-                 and (admitted, children) == (13, 2) and prior_children_clean())
+                 and (admitted, children) == (through_reviewer_observation, 2)
+                 and prior_children_clean())
     elif handback.reason in ("evidence_incomplete", "evidence_mismatch"):
         valid = (handback.status == "stopped" and a_only and effects == 2
-                 and (admitted, children) == (14, 2) and prior_children_clean())
+                 and (admitted, children) == (complete, 2) and prior_children_clean())
     elif handback.reason in (
         "model_input_or_normalization_failed", "model_process_failed",
         "model_process_cleanup_unresolved", "model_workspace_cleanup_unresolved",
@@ -130,7 +149,7 @@ def _validate_reason_reached_facts(handback: RW0D2PreadmissionHandbackV1) -> Non
                         == (handback.evidence_supply is None))
         model_present = children == 3 and handback.model_process is not None
         complete_a = (handback.evidence_checkpoint is not None and effects == 2
-                      and admitted == 14 and children in (2, 3) and paired_input)
+                      and admitted == complete and children in (2, 3) and paired_input)
         if handback.reason == "model_input_or_normalization_failed":
             valid = (handback.status == "stopped" and complete_a
                      and ((children == 2 and handback.model_process is None)
@@ -167,8 +186,9 @@ def _validate_a_to_b_input_binding(handback: RW0D2PreadmissionHandbackV1) -> Non
     basis = checkpoint.d1_handback.phase_basis
     author = checkpoint.d1_handback.author_command
     capsule = checkpoint.capsule_manifest
-    worker_family = checkpoint.admitted_families[5]
-    authority_family = checkpoint.admitted_families[13]
+    layout = _resolve_d2_checked_layout(checkpoint.d1_handback)
+    worker_family = layout.family(checkpoint.admitted_families, "process_result")
+    authority_family = layout.family(checkpoint.admitted_families, "author_authority")
 
     # V01 is derived from the retained phase lineage. B's clock is retained,
     # not resampled or compared with A's earlier observation time.
@@ -385,7 +405,6 @@ class RW0D2PreadmissionHandbackV1:
                 or type(self.committed_bound_effects) is not tuple
                 or len(self.committed_bound_effects) > 2
                 or type(self.checked_admissions) is not tuple
-                or len(self.checked_admissions) > 14
                 or type(self.child_outcomes) is not tuple
                 or len(self.child_outcomes) > 3
                 or type(self.evidence_bindings) is not tuple
@@ -393,6 +412,8 @@ class RW0D2PreadmissionHandbackV1:
             _fail()
         try:
             self.d1_handback.validate()
+            layout = (_resolve_d2_checked_layout(self.d1_handback)
+                      if self.d1_handback.status == "capsule_ready" else None)
             for proof in self.committed_bound_effects:
                 if type(proof) is not RW0D2BoundEffectProofV1:
                     _fail()
@@ -405,10 +426,8 @@ class RW0D2PreadmissionHandbackV1:
                 if type(family) is not RW0C1CheckedEvidenceFamilyV1:
                     _fail()
                 family.validate()
-            if tuple(family.admission_result.kind_rank for family in self.checked_admissions) != (
-                _A_RANK_PREFIX[:len(self.checked_admissions)]
-            ):
-                _fail()
+            if layout is not None:
+                layout.validate_prefix(self.checked_admissions)
             for process in self.child_outcomes:
                 if type(process) is not D1ProcessOutcome:
                     _fail()
@@ -418,7 +437,8 @@ class RW0D2PreadmissionHandbackV1:
             if self.evidence_checkpoint is not None:
                 if (type(self.evidence_checkpoint) is not RW0D2EvidenceCheckpointV1
                         or len(self.committed_bound_effects) != 2
-                        or len(self.checked_admissions) != 14
+                        or layout is None
+                        or len(self.checked_admissions) != len(layout.roles)
                         or len(self.child_outcomes) < 2):
                     _fail()
                 self.evidence_checkpoint.validate()
@@ -465,8 +485,12 @@ class RW0D2PreadmissionHandbackV1:
             if (self.evidence_supply is not None and self.input_context is None
                     or self.input_context is not None and self.evidence_checkpoint is None
                     or self.model_process is not None and self.evidence_supply is None
-                    or len(self.child_outcomes) >= 1 and len(self.checked_admissions) < 10
-                    or len(self.child_outcomes) >= 2 and len(self.checked_admissions) < 12):
+                    or len(self.child_outcomes) >= 1 and (
+                        layout is None or len(self.checked_admissions)
+                        < layout.through("validation_qualification"))
+                    or len(self.child_outcomes) >= 2 and (
+                        layout is None or len(self.checked_admissions)
+                        < layout.through("review_qualification"))):
                 _fail()
             if self.input_context is not None:
                 self.input_context._validate_value()

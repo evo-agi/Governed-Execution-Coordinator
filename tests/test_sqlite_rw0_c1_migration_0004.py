@@ -73,8 +73,8 @@ def _inventory(location: CoordinatorStateLocation) -> tuple[int, int, int]:
 
 def test_catalog_identity_and_literal_statement_inventory() -> None:
     catalog = migration.load_migration_catalog()
-    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4)
-    item = catalog.migrations[-1]
+    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5)
+    item = catalog.migrations[3]  # frozen 0004 oracle inside the 0005 catalog
     assert item.migration_id == MIGRATION_ID
     assert item.sequence == 4
     assert item.min_app_schema == item.max_app_schema == 2
@@ -102,9 +102,9 @@ def test_fresh_generation_two_database_has_exact_rw0_c1_and_cumulative_inventory
 ) -> None:
     location = _location(tmp_path, "fresh")
     inspection = migration.initialize_database(location)
-    assert inspection.current_sequence == inspection.latest_sequence == 4
+    assert inspection.current_sequence == inspection.latest_sequence == 5
     assert migration.CURRENT_APPLICATION_SCHEMA == 2
-    assert _inventory(location) == (62, 110, 5)
+    assert _inventory(location) == (64, 114, 5)
     connection = sqlite3.connect(location.database_path)
     try:
         tables = tuple(
@@ -175,9 +175,9 @@ def test_exact_supported_prefixes_upgrade_to_generation_two_tip(
         verify_managed_invariants=True,
     )
     upgraded = migration.migrate_database(location)
-    assert upgraded.current_sequence == upgraded.latest_sequence == 4
+    assert upgraded.current_sequence == upgraded.latest_sequence == 5
     assert migration.CURRENT_APPLICATION_SCHEMA == 2
-    assert _inventory(location) == (62, 110, 5)
+    assert _inventory(location) == (64, 114, 5)
 
 
 def test_migrations_0001_through_0003_retain_frozen_literal_identities() -> None:

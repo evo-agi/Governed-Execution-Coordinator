@@ -2,20 +2,29 @@
 
 from __future__ import annotations
 
+import pytest
+
 from ge_nwp_coordinator._rw0_d1_offline import artificial_fixture, run_rw0_d1_offline
 from ge_nwp_coordinator._rw0_d2a_offline import run_d2a_checked_evidence
 from ge_nwp_coordinator._sqlite_rw0_c1 import RW0D2CurrentOwnerSnapshotV1
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from ge_nwp_coordinator._rw0_d2a_evidence import (
-    checked_reviewer_separation, checking_disposition, checking_result_set,
+    _resolve_d2_checked_layout, checked_reviewer_separation,
+    checking_disposition, checking_result_set,
 )
 from ge_nwp_coordinator._development_author_effect_establishment_contracts import (
     _development_author_effect_establishment_write_plan,
 )
 from test_rw0_d1_offline_integration import work_spec
+from test_rw0_d2_post_execution_admission_integration import _omit_optional_capture_observation
 
 
-def test_fourteen_checked_members_and_two_independent_children() -> None:
+@pytest.mark.parametrize("worker_count", (2, 3))
+def test_both_exact_checked_layouts_and_two_independent_children(
+    monkeypatch: pytest.MonkeyPatch, worker_count: int,
+) -> None:
+    if worker_count == 2:
+        _omit_optional_capture_observation(monkeypatch)
     work = work_spec()
     fixture = artificial_fixture(work)
     with run_rw0_d1_offline(work, fixture) as run:
@@ -34,9 +43,13 @@ def test_fourteen_checked_members_and_two_independent_children() -> None:
         assert len(checkpoint.policy_sources) == 5
         assert len(checkpoint.policy_matrices) == 2
         assert tuple(len(source.entries) for source in checkpoint.support_sets) == (2, 2, 3, 4, 4)
-        assert len(bundle.checked_families) == 14
+        layout = _resolve_d2_checked_layout(run.handback)
+        assert layout.worker_count == worker_count
+        assert layout.index("validation_qualification") == worker_count + 6
+        assert layout.index("review_qualification") == worker_count + 8
+        assert len(bundle.checked_families) == worker_count + 11
         assert sorted(family.admission_result.kind_rank for family in bundle.checked_families) == (
-            [1] * 3 + [5] + [6] * 2 + [12] * 6 + [13] + [14]
+            [1] * 3 + [5] + [6] * 2 + [12] * (worker_count + 3) + [13] + [14]
         )
         validation, review = bundle.checking_evidence
         assert validation.role == "validator" and review.role == "reviewer"
@@ -46,6 +59,7 @@ def test_fourteen_checked_members_and_two_independent_children() -> None:
         separation, separation_support = checked_reviewer_separation(
             checked_families=bundle.checked_families,
             capsule_manifest=run.handback.capsule_manifest,
+            d1_handback=run.handback,
         )
         assert separation.status == "separate"
         assert len(separation_support.entries) == 2
@@ -55,8 +69,9 @@ def test_fourteen_checked_members_and_two_independent_children() -> None:
         )
         for evidence, qualifier in zip(
             bundle.checking_evidence,
-            (bundle.checked_families[9].evidence_value,
-             bundle.checked_families[11].evidence_value), strict=True,
+            (layout.family(bundle.checked_families, "validation_qualification").evidence_value,
+             layout.family(bundle.checked_families, "review_qualification").evidence_value),
+            strict=True,
         ):
             result_set = checking_result_set(
                 evidence=evidence, qualification=qualifier,
