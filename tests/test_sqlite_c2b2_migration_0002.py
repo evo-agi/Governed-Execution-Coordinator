@@ -16,6 +16,21 @@ from ge_nwp_coordinator.sqlite_errors import SQLiteStateError
 from ge_nwp_coordinator.sqlite_location import CoordinatorStateLocation
 
 
+# This finite 0002 oracle exercises the exact historical generation-2 catalog
+# through 0005. Current-tip 0006/0007 coverage belongs to their own physical
+# migration suites; the production loader is checked separately below.
+_PRODUCTION_CATALOG_LOADER = migration_module.load_migration_catalog
+
+
+@pytest.fixture(autouse=True)
+def _historical_catalog_0005(monkeypatch: pytest.MonkeyPatch) -> None:
+    historical = migration_module.MigrationCatalog(
+        _PRODUCTION_CATALOG_LOADER().migrations[:5]
+    )
+    assert tuple(item.sequence for item in historical.migrations) == (1, 2, 3, 4, 5)
+    monkeypatch.setattr(migration_module, "load_migration_catalog", lambda: historical)
+
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 MIGRATION_0001_PATH = (
     REPOSITORY_ROOT
@@ -4385,6 +4400,9 @@ def test_literal_table_column_key_check_fk_trigger_and_index_inventory() -> None
 
 def test_current_migration_documentation_matches_catalog_and_scopes_historical_0002() -> None:
     catalog = migration_module.load_migration_catalog()
+    production = _PRODUCTION_CATALOG_LOADER()
+    assert tuple(item.sequence for item in production.migrations) == (1, 2, 3, 4, 5, 6, 7)
+    assert production.migrations[-1].migration_id == "0007_rw0_c2_progression_decision"
     migrations = catalog.migrations
     current_tip = migrations[-1].migration_id
     complete_catalog = "[" + ", ".join(item.migration_id for item in migrations) + "]"
@@ -4411,6 +4429,10 @@ def test_current_migration_documentation_matches_catalog_and_scopes_historical_0
     assert current_tip in backend_status
     assert f"current production SQL resource count is `{resource_count}`" in migration_status
     assert f"current production SQL resource count is `{resource_count}`" in backend_status
+    current_catalog = "[" + ", ".join(item.migration_id for item in production.migrations) + "]"
+    assert current_catalog in migration_status
+    assert "current production SQL resource count is `7`" in migration_status
+    assert "current production SQL resource count is `7`" in backend_status
     assert "Migration 0002 is an unchanged historical prefix" in migration_status
     assert "Migration 0002 remains an unchanged historical prefix" in backend_status
     assert "C2B2 did not implement or acquire ownership of migration 0003" in migration_status
@@ -4533,6 +4555,8 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         SECTION41_RESOURCE_NAME,
         RW0_C1_RESOURCE_NAME,
         CURRENT_RESOURCE_NAME,
+        "0006_rw0_c2_scope_admission.sql",
+        "0007_rw0_c2_progression_decision.sql",
     )
 
 

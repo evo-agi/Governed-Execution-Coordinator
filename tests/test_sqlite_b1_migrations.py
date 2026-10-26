@@ -92,6 +92,16 @@ EXPECTED_TABLES = {
     "rw0_c2a_worker_observation_evidence_refs",
     "development_post_execution_proposal_contexts",
     "development_post_execution_proposal_receipts",
+    "rw0_c2_verified_admission_acts",
+    "rw0_c2_scope_admission_facts",
+    "rw0_c2_scope_admission_recording_bases",
+    "rw0_c2_scope_admission_recording_receipts",
+    "rw0_c2_historical_continuity_bases",
+    "rw0_c2_historical_sole_active_bases",
+    "rw0_c2_decision_bases",
+    "rw0_c2_guarded_family_relations",
+    "rw0_c2_guarded_progression_results",
+    "rw0_c2_bootstrap_acceptance_facts",
 }
 
 EXPECTED_LITERAL_MIGRATION_CATALOG = (
@@ -136,6 +146,24 @@ EXPECTED_LITERAL_MIGRATION_CATALOG = (
         "0005_section41_post_execution_proposal_family",
         "0005_section41_post_execution_proposal_family.sql",
         "583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87",
+        2,
+        2,
+        False,
+    ),
+    (
+        6,
+        "0006_rw0_c2_scope_admission",
+        "0006_rw0_c2_scope_admission.sql",
+        "58b2731d52e8e199c010b309a29aa831ffb16d4db4e755d20adb694ce0a7305f",
+        2,
+        2,
+        False,
+    ),
+    (
+        7,
+        "0007_rw0_c2_progression_decision",
+        "0007_rw0_c2_progression_decision.sql",
+        "505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c",
         2,
         2,
         False,
@@ -433,6 +461,16 @@ def _catalog_row_0005(
             applied_at, 2, 2)
 
 
+def _catalog_row_0006(
+    *, migration_id: str | None = None, sequence: int = 6,
+    checksum: str | None = None,
+    applied_at: str = "2026-07-16T00:00:00Z",
+) -> tuple[str, int, str, str, int, int]:
+    expected = EXPECTED_LITERAL_MIGRATION_CATALOG[5]
+    return (migration_id or expected[1], sequence, checksum or expected[3],
+            applied_at, 2, 2)
+
+
 def _migration_catalog_projection(
     catalog: MigrationCatalog,
 ) -> tuple[tuple[int, str, str, str, int, int, bool], ...]:
@@ -617,9 +655,9 @@ def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 5
-    assert inspection.latest_sequence == 5
-    assert inspection.current_migration_id == "0005_section41_post_execution_proposal_family"
+    assert inspection.current_sequence == 7
+    assert inspection.latest_sequence == 7
+    assert inspection.current_migration_id == "0007_rw0_c2_progression_decision"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
@@ -690,7 +728,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 5
+    assert _count(location, "schema_migrations") == 7
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -701,7 +739,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 5
+    assert inspection.current_sequence == inspection.latest_sequence == 7
     assert _file_digest(location.database_path) == before
 
 
@@ -709,7 +747,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=6) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=8) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
         ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
@@ -740,7 +778,8 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
             _catalog_row_0003(),
             _catalog_row_0004(),
             _catalog_row_0005(),
-            _catalog_row_0005(migration_id="0006_future", sequence=6),
+            _catalog_row_0006(),
+            _catalog_row_0006(migration_id="0008_future", sequence=8),
         ],
     )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")

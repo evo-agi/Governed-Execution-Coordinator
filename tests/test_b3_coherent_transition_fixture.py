@@ -198,7 +198,10 @@ def test_fixture_module_exists_only_under_tests_and_exports_no_production_surfac
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()
     assert not list(PACKAGE_DIR.rglob("*fixture*.py"))
     assert not list(PACKAGE_DIR.rglob("*seed*.py"))
-    assert not list(PACKAGE_DIR.rglob("*admission*.py"))
+    assert {path.name for path in PACKAGE_DIR.rglob("*admission*.py")} == {
+        "_rw0_c2_scope_admission_contracts.py",
+        "_sqlite_rw0_c2_scope_admission.py",
+    }
 
     source = TEST_FIXTURE_PATH.read_text(encoding="utf-8")
     for phrase in (
@@ -479,9 +482,9 @@ def test_base_fixture_uses_current_physical_schema_and_builds_historical_exact_g
         assert not fixture.location.state_root.is_relative_to(ROOT)
         inspection = validate_database(fixture.location)
         assert inspection.classification is DatabaseClassification.MANAGED
-        assert inspection.current_sequence == 5
-        assert inspection.latest_sequence == 5
-        assert inspection.current_migration_id == "0005_section41_post_execution_proposal_family"
+        assert inspection.current_sequence == 7
+        assert inspection.latest_sequence == 7
+        assert inspection.current_migration_id == "0007_rw0_c2_progression_decision"
 
         assert fixture.lease_identity_validation.identity_valid is True
         assert fixture.lease_identity_validation.lease_ref == fixture.lease.lease_id
@@ -742,6 +745,8 @@ def test_migration_boundary_related_surfaces_and_repo_artifacts_remain_frozen() 
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
         "0005_section41_post_execution_proposal_family.sql",
+        "0006_rw0_c2_scope_admission.sql",
+        "0007_rw0_c2_progression_decision.sql",
     ]
 
     source_paths = tuple(

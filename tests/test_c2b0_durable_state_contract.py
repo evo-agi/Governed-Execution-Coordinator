@@ -1,5 +1,6 @@
 import ast
 import builtins
+import hashlib
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,86 @@ OWNER_PATH = ROOT / ".docs" / "c2b-durable-development-state.md"
 C2B3A_PLANNING_PATH = ROOT / ".docs" / "c2b3-program-initialization.md"
 C2B3A_ORACLE_PATH = ROOT / "tests" / "test_c2b3_program_initialization_contract.py"
 SQLITE_MIGRATION_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_migration.py"
+
+_P0_C2B_SUFFIX_IDENTITY = (672, '1e587e1a67f5ed21c98c10c3f6dd66e42b0e6bf7e3a0a8ed0f1802ab017e62e6')
+_P1_C2B_SUFFIX_IDENTITY = (1037, '4c907b9f8a9a029b00c1a54104287a8d94f9a6e15ce8238195d26a10f6229db8')
+
+
+def _c2b_pre_p0_bytes(payload: bytes) -> bytes:
+    split_begin = b"\n<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_BEGIN -->\n"
+    split_end = b"<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END -->\n"
+    if payload.count(split_begin) != 1:
+        raise AssertionError('c2b:disclosure_eligibility_successor_boundary')
+    payload, split_tail = payload.split(split_begin, 1)
+    split_successor = split_begin + split_tail
+    if (not split_successor.endswith(split_end)
+            or split_successor.count(b'RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END') != 1):
+        raise AssertionError('c2b:disclosure_eligibility_successor_boundary')
+    normalized_split = ' '.join(split_successor.decode('utf-8', 'strict').split())
+    for phrase in (
+        'universal disclosure/recording posture from acceptance-only unclaimed-scope eligibility',
+        'type-checks current claimed status without requiring `True` or comparing it to the immutable historical basis',
+        'without fresh acceptance reevaluation',
+        'only derived candidate acceptance requires historical and current exhaustive unclaimed-scope assertions',
+        'Nonaccept branches make no unclaimed assertion',
+        'current `False` and no complete local winner remains `unresolved`',
+        'winner disclosure or retry permission',
+        'changes no migration, durable shape, public API, product effect, or live authority',
+    ):
+        if phrase not in normalized_split:
+            raise AssertionError('c2b:disclosure_eligibility_successor_semantics')
+    f1f2_begin = b"\n<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_BEGIN -->\n"
+    f1f2_end = b"<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_END -->\n"
+    if payload.count(f1f2_begin) != 1:
+        raise AssertionError('c2b:f1f2_successor_boundary')
+    payload, f1f2_tail = payload.split(f1f2_begin, 1)
+    f1f2_successor = f1f2_begin + f1f2_tail
+    if (not f1f2_successor.endswith(f1f2_end)
+            or f1f2_successor.count(b'RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_END') != 1):
+        raise AssertionError('c2b:f1f2_successor_boundary')
+    normalized_f1f2 = ' '.join(f1f2_successor.decode('utf-8', 'strict').split())
+    for phrase in (
+        'two material defects', 'exact optional `expected_branch`',
+        'six preassignments remain branch-neutral',
+        "`write=False` disclosure posture before digest comparison",
+        '`write=True` recording posture before route probes',
+        'Recovery with denied or unverifiable disclosure returns `unresolved`',
+        'two possible original acceptance assertions',
+        'adds no public or live authority',
+    ):
+        if phrase not in normalized_f1f2:
+            raise AssertionError('c2b:f1f2_successor_semantics')
+    basis_begin = b"\n<!-- RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_BEGIN -->\n"
+    basis_end = b"<!-- RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_END -->\n"
+    if payload.count(basis_begin) != 1:
+        raise AssertionError('c2b:basis_v2_successor_boundary')
+    payload, basis_tail = payload.split(basis_begin, 1)
+    basis_successor = basis_begin + basis_tail
+    if (not basis_successor.endswith(basis_end)
+            or basis_successor.count(b'RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_END') != 1):
+        raise AssertionError('c2b:basis_v2_successor_boundary')
+    normalized_basis = ' '.join(basis_successor.decode('utf-8', 'strict').split())
+    for phrase in (
+        '21-field decision basis was independently blocked',
+        'current uncommitted basis-v2 repair binds those two closed safe typed mappings',
+        'existing canonical basis BLOB and digest',
+        'Migration 0007 retains six P1 tables with a v2 basis schema-ID CHECK',
+        'Migration 0006 and P0 production bytes are unchanged',
+        'pending independent audit and adds no public or live authority',
+    ):
+        if phrase not in normalized_basis:
+            raise AssertionError('c2b:basis_v2_successor_semantics')
+    p1_size, p1_digest = _P1_C2B_SUFFIX_IDENTITY
+    if (len(payload) < p1_size
+            or hashlib.sha256(payload[-p1_size:]).hexdigest() != p1_digest
+            or payload[-p1_size:].count(b'<!-- RW0_C2_P1_PHYSICAL_C2B_SUCCESSOR_BEGIN -->') != 1):
+        raise AssertionError('c2b:p1_successor_identity')
+    payload = payload[:-p1_size]
+    size, digest = _P0_C2B_SUFFIX_IDENTITY
+    if (len(payload) < size or hashlib.sha256(payload[-size:]).hexdigest() != digest
+            or payload[-size:].count(b'<!-- RW0_C2_P0_PHYSICAL_C2B_SUCCESSOR_BEGIN -->') != 1):
+        raise AssertionError('c2b:p0_successor_identity')
+    return payload[:-size]
 
 C2B3A_PLANNING_PROJECTION_APPROVED_TEXT = (
     "# C2B3 Program Initialization\n"
@@ -4087,7 +4168,7 @@ def _text(path: Path | str) -> str:
 
 
 def _owner() -> str:
-    return _text(OWNER_PATH)
+    return _c2b_pre_p0_bytes(OWNER_PATH.read_bytes()).decode('utf-8')
 
 
 def _compact(text: str) -> str:
@@ -11060,6 +11141,12 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
     section41_post_execution_family_reader_sources = {
         ROOT / "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
     }
+    rw0_c2_p1_bounded_sources = {
+        ROOT / "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_c2_progression_plan.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_c2_progression_rows.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
@@ -11089,6 +11176,7 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
             | rw0_d2_bound_sources
             | rw0_c1_literal_owner_snapshot_contract_sources
             | section41_post_execution_family_reader_sources
+            | rw0_c2_p1_bounded_sources
         )
     )
     assert all(
@@ -11096,6 +11184,7 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
         for path in (
             rw0_c1_literal_owner_snapshot_contract_sources
             | section41_post_execution_family_reader_sources
+            | rw0_c2_p1_bounded_sources
         )
     )
     _assert_sqlite_migration_c2b_structure(migration_source)
@@ -19322,7 +19411,7 @@ def _assert_c2b_local_commit_successor(candidate: bytes) -> bytes:
 
 def test_c2b_local_commit_successor_reconstructs_predecessor() -> None:
     import hashlib
-    current = OWNER_PATH.read_bytes()
+    current = _c2b_pre_p0_bytes(OWNER_PATH.read_bytes())
     assert (len(current), hashlib.sha256(current).hexdigest()) == C2B_LOCAL_COMMIT_SUCCESSOR_IDENTITY
     predecessor = _assert_c2b_local_commit_successor(current)
     assert predecessor.endswith(C2B_UNIT2_CURRENT_STATUS.encode())
@@ -19337,7 +19426,7 @@ def test_c2b_local_commit_successor_reconstructs_predecessor() -> None:
     ('outside_change', 'c2b:local_commit_predecessor_identity'),
 ))
 def test_c2b_local_commit_successor_rejects_exact_mutants(case, boundary):
-    current = OWNER_PATH.read_bytes()
+    current = _c2b_pre_p0_bytes(OWNER_PATH.read_bytes())
     predecessor = _assert_c2b_local_commit_successor(current)
     addition = C2B_LOCAL_COMMIT_CURRENT_STATUS.encode()
     if case == 'missing':
@@ -19387,7 +19476,7 @@ def test_immutable_guard_successor_preserves_historical_evidence():
     import hashlib
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
-    data = (root / '.docs/c2b-durable-development-state.md').read_bytes()
+    data = _c2b_pre_p0_bytes((root / '.docs/c2b-durable-development-state.md').read_bytes())
     opening_size = 1887232
     if hashlib.sha256(data[:opening_size]).hexdigest() != '77bf3d3c6ed710da669db7fa4353f46f3d1e9b4e09636918046d16d94ed962e5':
         raise AssertionError('c2b:complete_opening_prefix')

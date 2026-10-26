@@ -221,12 +221,13 @@ Relation/result preassigned refs never depend on their content digests or the
 final receipt digest. The selector contains no transaction timestamp or
 postcommit-only digest.
 
-`guarded_command_digest_v1` hashes the exact ordered 30 name/value pairs in
+The historical `guarded_command_digest_v1` hashes the exact ordered 30 name/value pairs in
 `command_digest.ordered_preimage` using compact UTF-8 JSON and the domain
 `governed-execution.nwp-rw0-c2-guarded-command-digest.v1.identity`, followed
 by one NUL byte. The fixed command vector digest is
 `a392abcc3f0981b4ac2aeab5d3869aea9f24ba7305b242563e3a41f402b716b1`.
-It is a derived command identity, not a standing grant or another logical
+This v1 digest is blocked predecessor evidence, not the current P1 mutation
+digest. It is a derived command identity, not a standing grant or another logical
 schema. Its six sibling values are independently derived from the 24 primitive
 coordinates before command digest formation. The future guarded command digest semantically covers the closed inclusion
 inventory below: admitted lineage/scope, admission fact and act expectations,
@@ -4215,6 +4216,30 @@ test constrain its meaning.
     "digest": "sha256(domain_utf8+nul+preimage_json_utf8)",
     "fixed_vector_digest": "a392abcc3f0981b4ac2aeab5d3869aea9f24ba7305b242563e3a41f402b716b1"
   },
+  "command_digest_v2": {
+    "name": "guarded_command_digest_v2",
+    "domain": "governed-execution.nwp-rw0-c2-guarded-command-digest.v2.identity",
+    "ordered_preimage_prefix_ref": "command_digest.ordered_preimage",
+    "ordered_preimage_suffix": [
+      ["expected_branch", "command.expected_branch", "null_or_exact_finite_branch_str"]
+    ],
+    "ordered_pair_count": 31,
+    "serialization": "ordered_name_value_pairs_utf8_json_ensure_ascii_false_allow_nan_false_compact",
+    "digest": "sha256(domain_utf8+nul+preimage_json_utf8)",
+    "derivation_order": "after_six_independent_siblings",
+    "preassignments_exclude_expected_branch": true,
+    "replay_identity_includes_expected_branch": true,
+    "finite_expected_branch_values": [
+      null,
+      "candidate_acceptance",
+      "candidate_repair",
+      "attempt_selecting_replan",
+      "program_terminal_reject",
+      "post_execution_program_block"
+    ],
+    "fixed_vector_expected_branch": null,
+    "fixed_vector_digest": "ed40b1bc67f9b4604075a31d1ce2e5a3ecf9247ff02152e4803be24e59d30976"
+  },
   "prospective_fact_identity": {
     "command_field": "preassigned_acceptance_fact_ref",
     "required_all_branches": true,
@@ -5479,3 +5504,166 @@ test constrain its meaning.
 ### Section 41 0005 succession boundary
 
 Migration 0005 now belongs to native Section 41 post-execution proposal/context/receipt recording. It does not change this C2 pure value-versioning contract or select C2 physical persistence. Any earlier prospective 0005 C2 reference is historical; a future C2 additive suffix, if selected, must be later and separately authorized, currently expected no earlier than 0006.
+
+### RW0-C2 P1 versioned replan work-head successor
+
+The closed v1 machine block above is preserved as historical accepted-target
+evidence. The current uncommitted P0/P1 physical implementation candidate uses
+`governed-execution.nwp-rw0-c2-guarded-family-relation.v2`,
+`governed-execution.nwp-rw0-c2-guarded-progression-result.v2`, and
+`governed-execution.nwp-rw0-c2-receipt-graph-profile.v2`. This is a bounded
+successor to the three named values only. At that historical work-head
+checkpoint it did not change the 21-field decision basis; the basis-v2
+successor below supersedes that basis. It preserves the 24-coordinate
+preassignment transcript, six sibling meanings,
+command digest, WorkSpecV1, migration-0002 row meanings, or generic receipt.
+
+Relation v2 preserves v1 order and inserts four fields immediately after
+`historical_head_postimage`: `historical_work_head_ref`,
+`historical_work_head_revision`, `historical_work_head_digest`, and
+`historical_work_head_postimage`. The relation has exactly 30 ordered digest
+preimage fields and final `relation_digest`; its domain is the v2 schema ID plus
+`.identity`. On `attempt_selecting_replan`, all four are non-null and the
+postimage is canonical duplicate-free JSON bytes reconstructing one exact
+existing `DevelopmentWorkItemHeadRowValue`, including `head_digest`. Ref,
+revision, digest, program, selected work item, new work revision, incremented
+revision numbers, `active` state, and single transaction timestamp must agree
+with the decision, revision, membership, WorkSpec binding, and planned CAS
+postimage. Other branches require all four fields null. Migration 0007 stores
+the optional postimage in a bounded BLOB, requires the exact branch/null pair,
+and FKs only `(program_ref, historical_work_head_ref)` to immutable work-head
+identity. No FK treats a historical digest as current mutable state.
+
+The v2 result retains its v1 ordered fields and digest algebra under the v2
+schema/domain and requires profile v2. Profile v2 retains the ten v1 common
+roles and the acceptance-only `acceptance_fact` role. Replan alone adds
+`historical_work_head_postimage` at ordinal zero, bound to the fully checked
+relation postimage's `work_item_ref` and `head_digest`. Acceptance has eleven
+roles including only acceptance; replan has eleven including only the work
+head; repair, terminal reject, and program block each have ten. The relation
+digest and replan graph role independently bind the work-head witness. Missing,
+extra, duplicate, wrong-branch, or wrong-digest roles fail exact family check.
+The generic migration-0002 receipt remains the single receipt.
+
+Fresh replan must CAS both heads, read and type-check both actual postimages
+inside the same fenced transaction, check the complete v2 family, insert the
+receipt last, invalidate the read capability, and make one COMMIT attempt.
+Replay and uncertain-commit recovery use the immutable historical postimages;
+they never compare either postimage to a later mutable head. A complete family
+requires the exact resulting version membership, replan revisions/edges/WorkSpec
+binding, six applicable supplements, branch-exact graph, and generic receipt.
+The accepted v1 predecessor remains a historical target definition, not an
+alternate current 0007 row schema.
+
+### RW0-C2 P1 decision-basis v2 repair successor
+
+An independent audit blocked the later uncommitted 21-field decision-basis v1
+candidate: a fresh `decision_basis_not_current` program block could commit a
+candidate reason determined by transient typed validation/review dispositions,
+but the basis retained only source coordinates. Its final decision reason did
+not identify the candidate reason. Exact replay, checked readback, and recovery
+therefore lacked sufficient immutable evidence. V1 remains parseable historical
+contract evidence and is not accepted by the current P1 mutation path.
+
+The current closed basis schema is
+`governed-execution.nwp-rw0-c2-decision-basis.v2`. Its exact 23 top-level
+fields, in canonical order, are:
+
+1. `schema_id`
+2. `basis_ref`
+3. `verified_admission_act`
+4. `scope_admission_fact`
+5. `decision_current_snapshot`
+6. `proposal_family_projection`
+7. `proposal_evidence_currentness`
+8. `standing_policy_branch_matrix`
+9. `risk_lane_branch_matrix`
+10. `decision_time_authority_branch_matrix`
+11. `decision_time_global_stop_branch_matrix`
+12. `decision_time_source_effect_ceiling_branch_matrix`
+13. `historical_continuity_basis_ref`
+14. `historical_continuity_basis_digest`
+15. `historical_sole_active_basis_ref`
+16. `historical_sole_active_basis_digest`
+17. `bootstrap_guard_evidence`
+18. `recommendation_consistency_evaluation`
+19. `replan_proposal_safe_projection`
+20. `validation_disposition`
+21. `independent_review_disposition`
+22. `captured_at`
+23. `basis_digest`
+
+The two additions are the exact canonical safe mappings of the existing V14
+validation and V15 independent-review typed values consumed by the reducer.
+Their program, version, intent, work, revision, attempt, candidate, attempt
+fence, and source-observation coordinates must match the decision snapshot's
+corresponding source entries. The existing closed typed constructors and
+finite vocabularies reject unknown fields, duplicate JSON keys, subtype
+coercions, and noncanonical encodings. The self-excluding basis digest binds
+both complete mappings within the existing `basis_bytes` size ceiling. No raw
+checker output, narrative, prompt, path, process data, or evidence payload is
+stored.
+
+The private pure `derive_candidate_evidence_reason(validation, review)` is the
+single classification owner for fresh reduction and historical reconstruction.
+It returns one of the five candidate reasons or an existing finite conflict.
+Fresh P1 application rejects detached values that do not exactly match the
+basis-owned values before route probes or writes. Historical replay loads the
+persisted v2 basis, reconstructs both typed dispositions, derives the candidate
+reason, verifies the persisted final reason and branch, and rebuilds and checks
+the complete relation, result, graph, and receipt identities. Candidate reason
+remains derived; no result column or redundant persisted reason was added.
+
+The corrected basis digest changes the command relation, six preassignments,
+command digest, replan-derived refs, WorkSpec digest, relation/result/graph
+digests, and receipt identities without changing their field shapes, roles, or
+semantics. Migration 0007 retains six tables and requires the v2 basis schema
+ID; migration 0006 and all P0 production bytes remain unchanged. This is an
+uncommitted artificial-offline implementation candidate pending independent
+audit. It creates no live custody, executable permission, terminal outcome,
+publication, or product execution.
+
+### RW0-C2 P1 guarded command digest v2 and protected disclosure repair
+
+The v1 guarded-command digest above remains exact historical predecessor
+evidence. The current P1 mutation profile is
+`governed-execution.nwp-rw0-c2-guarded-command-digest.v2.identity`. Its
+ordered preimage is the same 30 relation name/value pairs, followed by the
+31st pair `expected_branch`, encoded as JSON null or one exact built-in string
+from the five finite physical branches. `RecordProgressionDecisionCommandV1`
+owns this digest. The command schema ID remains v1, and migration-0002 receipt
+meaning is unchanged. The fixed vector for the machine block's relation with
+`expected_branch=null` is
+`ed40b1bc67f9b4604075a31d1ce2e5a3ecf9247ff02152e4803be24e59d30976`.
+The six sibling preassignments still derive solely from the 24 primitive
+relation coordinates; `expected_branch` is excluded from that transcript but
+included in exact replay identity. It remains an optimistic conflict
+assertion, never a branch selector or grant. A changed assertion on an occupied
+mutation route is a changed-command conflict.
+
+Receipt-first P1 readback checks fresh current disclosure posture through
+`ArtificialDecisionGuardSourceV1.checked_for(..., write=False)` before digest
+comparison or immutable-family reconstruction. Record mode uses that same
+disclosure gate for an existing receipt, even when current recording is denied.
+When no receipt exists, record mode requires current recording posture before
+route probing; read and recovery require current disclosure posture before
+reporting absence. Recovery returns `unresolved` on any denied, expired,
+mismatched, malformed, or unavailable disclosure posture. It returns
+`definitely_not_committed` only after old-execution exclusion and complete
+route-absence proof. This universal current check validates exact source types,
+time, positive basis-bound continuity and sole-active posture, no foreign
+claim, and the relevant permission. It type-checks current
+`acceptance_exhaustively_unclaimed` as exact `bool` or `None` but neither
+requires `True` nor compares that value to the immutable historical basis.
+After a receipt miss, route/current checks, and authoritative branch
+derivation, `checked_acceptance_eligibility_for(...)` requires both historical
+and current unclaimed assertions to be `True` only for candidate acceptance.
+Nonaccept branches make no unclaimed-scope assertion. A truthful current
+`False` cannot veto exact replay of a committed family or a fresh nonaccept
+branch. For receipt-absent recovery it is contradictory claimed-state evidence:
+without a complete local acceptance winner, classification stays `unresolved`;
+with a complete different winner, original-command absence may be proved
+without retry permission or winner disclosure. Internal competing-acceptance completeness verification
+matches the persisted v2 digest against exactly the two possible original
+acceptance assertions, null and `candidate_acceptance`, and discloses no
+competing result.

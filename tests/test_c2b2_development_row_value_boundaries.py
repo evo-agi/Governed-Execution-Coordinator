@@ -233,6 +233,20 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
             "_development_effect_row_values",
             "_development_program_row_values",
         },
+        # P1 consumes existing typed 0002 values inside its private plan,
+        # physical reader, and writer; these are not public row-value APIs.
+        "_rw0_c2_progression_contracts.py":{"_development_program_row_values"},
+        "_rw0_c2_progression_plan.py":{
+            "_development_decision_row_values",
+            "_development_program_row_values",
+            "_development_row_value_support",
+        },
+        "_rw0_c2_progression_rows.py":{"_development_program_row_values"},
+        "_sqlite_rw0_c2_progression.py":{
+            "_development_decision_row_values",
+            "_development_effect_row_values",
+            "_development_program_row_values",
+        },
     }
     observed_consumers={}
     for path in (ROOT/"src/ge_nwp_coordinator").glob("*.py"):

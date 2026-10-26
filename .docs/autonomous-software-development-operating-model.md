@@ -689,3 +689,27 @@ Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->
+
+<!-- RW0_C2_P0_PHYSICAL_OPERATING_MODEL_CANDIDATE_BEGIN -->
+## RW0-C2 P0 implementation candidate status
+
+The current uncommitted workspace candidate adds artificial-offline physical
+P0 scope-admission recording, replay, and readback using migration 0006.
+Program-independent admission remains outside the development-program receipt
+namespace. The selected implementation program still requires a separate P1
+five-branch decision transaction and a connected proof before acceptance.
+No live source, worker, ES/Bridge route, Git effect, or autonomous loop is
+created by P0.
+<!-- RW0_C2_P0_PHYSICAL_OPERATING_MODEL_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_OPERATING_MODEL_CANDIDATE_BEGIN -->
+## RW0-C2 P1 implementation candidate status
+
+The current uncommitted successor adds a separate private P1 five-branch
+writer on migration 0007. It records bounded progression with an
+acceptance-only fact and replan program/work head CAS plus v2 historical
+witnesses. Connected disposable proof exercises actual D1/D2, Section
+41/C1/V22 output before P1. This is not independent audit, publication, live
+source authority, worker transport, ES/Bridge route, Git effect, or autonomous
+loop authority.
+<!-- RW0_C2_P1_PHYSICAL_OPERATING_MODEL_CANDIDATE_END -->

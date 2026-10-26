@@ -58,8 +58,19 @@ POST_D2_EXTERNAL_IMPORT_PAIRS = frozenset({
     ("_section41_post_execution_proposal_row_values.py", "ge_nwp_coordinator._post_execution_evidence_values"),
     ("_sqlite_section41_post_execution_proposal.py", "ge_nwp_coordinator._post_execution_evidence_values"),
 })
+RW0_C2_P0_P1_EXTERNAL_IMPORT_PAIRS = frozenset({
+    ("_rw0_c2_progression_contracts.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("_rw0_c2_progression_contracts.py", "ge_nwp_coordinator._post_execution_policy_values"),
+    ("_rw0_c2_progression_contracts.py", "ge_nwp_coordinator._section41_post_execution_proposal_family_projection"),
+    ("_rw0_c2_progression_contracts.py", "ge_nwp_coordinator._rw0_c_decision_input_values"),
+    ("_sqlite_rw0_c2_progression.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("sqlite_transition_transaction.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+    ("sqlite_writer_session.py", "ge_nwp_coordinator._post_execution_evidence_values"),
+})
 CURRENT_POST_EXECUTION_EXTERNAL_IMPORT_PAIRS = (
-    CURRENT_D2_EXTERNAL_IMPORT_PAIRS | POST_D2_EXTERNAL_IMPORT_PAIRS
+    CURRENT_D2_EXTERNAL_IMPORT_PAIRS
+    | POST_D2_EXTERNAL_IMPORT_PAIRS
+    | RW0_C2_P0_P1_EXTERNAL_IMPORT_PAIRS
 )
 _POST_EXECUTION_SUPPLIER_MODULES = frozenset({
     "_post_execution_evidence_values",
@@ -1195,10 +1206,12 @@ def _execute_static_boundary_mutation(record_id: str) -> str:
             "0003_cognitive_proposal_and_selection_state.sql",
             "0004_rw0_c1_durable_evidence.sql",
             "0005_section41_post_execution_proposal_family.sql",
+            "0006_rw0_c2_scope_admission.sql",
+            "0007_rw0_c2_progression_decision.sql",
         )
         violates = lambda names: tuple(names) != expected
         assert not violates(baseline)
-        mutated = (*baseline, "0006_post_execution_decision.sql")
+        mutated = (*baseline, "0008_post_execution_decision.sql")
         assert violates(mutated) is descriptor["to"]
         assert not violates(baseline)
         return "implementation_boundary_violation"
@@ -2247,11 +2260,14 @@ def _primary_literal_current_d2_pairs(source_text: str) -> frozenset[tuple[str, 
     return frozenset(pairs)
 
 
-def test_v3g039_current_d2_nine_and_post_d2_five_edges_match_source_and_primary_literal() -> None:
+def test_v3g039_historical_nine_and_five_plus_rw0_c2_seven_edges_match_source_and_primary_literal() -> None:
     assert len(CURRENT_D2_EXTERNAL_IMPORT_PAIRS) == 9
     assert len(POST_D2_EXTERNAL_IMPORT_PAIRS) == 5
+    assert len(RW0_C2_P0_P1_EXTERNAL_IMPORT_PAIRS) == 7
     assert CURRENT_D2_EXTERNAL_IMPORT_PAIRS.isdisjoint(POST_D2_EXTERNAL_IMPORT_PAIRS)
-    assert len(CURRENT_POST_EXECUTION_EXTERNAL_IMPORT_PAIRS) == 14
+    assert CURRENT_D2_EXTERNAL_IMPORT_PAIRS.isdisjoint(RW0_C2_P0_P1_EXTERNAL_IMPORT_PAIRS)
+    assert POST_D2_EXTERNAL_IMPORT_PAIRS.isdisjoint(RW0_C2_P0_P1_EXTERNAL_IMPORT_PAIRS)
+    assert len(CURRENT_POST_EXECUTION_EXTERNAL_IMPORT_PAIRS) == 21
     observed = _current_external_post_execution_import_pairs()
     assert observed == CURRENT_POST_EXECUTION_EXTERNAL_IMPORT_PAIRS
     assert not _production_caller_inventory_violates(observed)
@@ -2273,7 +2289,7 @@ def test_v3g039_rejects_empty_missing_substituted_and_extra_caller_edges() -> No
     }
     state_store_extra = baseline | {_V3G039_STATE_STORE_EDGE}
     assert len(wrong_same_count) == len(baseline)
-    assert len(baseline) == len(set(baseline)) == 14
+    assert len(baseline) == len(set(baseline)) == 21
     assert not _production_caller_inventory_violates(baseline)
     for hostile in (frozenset(), missing, wrong_same_count, unknown_extra, state_store_extra):
         assert hostile != baseline

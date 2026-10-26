@@ -457,10 +457,27 @@ selects no scope or branch, requests no acceptance, and cannot admit, mint,
 renew, or replenish a scope. Admission, positive continuity, sole-active
 posture, and absence of foreign/conflicting lineage claims must be exact for
 every command. Acceptance alone additionally requires exhaustive unclaimed-scope
-proof under the guard owner. Unknown claimed status may permit a nonaccept
+proof under the guard owner. Unknown or explicitly claimed status may permit a nonaccept
 branch only when derivation makes no unclaimed assertion and all other
 preconditions are exact. Failure is `bootstrap_acceptance_guard_conflict`,
 never fallback block. This owner projects the guard interface, not guard tables.
+
+For the bounded private offline P1 implementation, the current source's
+universal check validates exact types, time, positive and basis-bound
+continuity and sole-active posture, no foreign claim, and the relevant
+disclosure or recording permission. Current claimed status is type-checked
+but is not universal posture or protected-result disclosure authority. After
+a receipt miss, recording posture, route/current checks, and authoritative
+branch derivation, only candidate acceptance checks that both the immutable
+basis assertion and current source say exhaustively unclaimed. `False` or
+`None` rejects fresh acceptance with the existing guard conflict; either
+value alone cannot veto a nonaccept branch. Receipt-present exact replay
+requires fresh universal disclosure but never reevaluates current acceptance
+eligibility. Receipt-absent recovery with explicit current `False` and no
+complete local acceptance winner is `unresolved`; a complete competing winner
+may prove original-command noncommit without disclosing that winner or
+granting retry. This separation changes no basis, command, result, receipt,
+or branch grammar and adds no live authority.
 
 Acceptance creates exactly one immutable fact in the same decision/version/head/
 result/receipt family; the four nonaccept branches create none. Receipt-first
@@ -590,6 +607,33 @@ unreachability-boundary proofs, and current-source AST evidence.
 | `implementation` | `{"durable_decision_writer":false,"bootstrap_acceptance_guard":false,"terminal_outcome_owner":false,"production_caller":false,"public_export":false,"runtime_active":false,"rw0_d":false,"rw0_e":false,"execution_substrate_change":false}` |
 | `temporary_source_nonimplementation_guard` | `{"source_root":"src/ge_nwp_coordinator","complete_tree_manifest_status":"superseded_by_authorized_rw0_d1_source_tranche","bounded_scope":"rw0_c2_physical_decision_acceptance_terminal_runtime_only","forbidden_modules_calls_exports_enforced":true,"migration_0005_exists":false,"production_caller_exists":false,"public_export_exists":false,"runtime_active":false}` |
 <!-- RW0_C2_DURABLE_DECISION_HUMAN_CONTRACT_END -->
+
+<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_SUCCESSOR_BEGIN -->
+### RW0-C2 private physical P1 command identity and disclosure successor
+
+The historical semantic `expected_branch` role remains
+`conflict_assertion_only`: it cannot select a branch or authorize a decision.
+The current private P1 physical mutation binds that assertion in the exact
+guarded-command-digest v2 after the six branch-neutral preassignments. Its
+domain is
+`governed-execution.nwp-rw0-c2-guarded-command-digest.v2.identity`; the
+preimage is the historical 30 ordered relation pairs followed by
+`expected_branch` as JSON null or an exact finite branch string. The six
+preassignments exclude it, while exact replay identity includes it. Reusing
+one mutation ref with a different valid assertion is a changed-command
+conflict, never historical replay. The command schema remains v1 and the
+migration-0002 receipt meaning remains exact.
+
+Protected P1 readback, record-mode exact replay, and recovery require fresh
+current positive disclosure posture before returning a committed family.
+Receipt-free record mode requires current recording posture before route
+probing or writes. Receipt-free read and recovery require disclosure posture
+before absence can be reported; recovery additionally requires old-execution
+exclusion and complete route-absence proof. Denied or unverifiable disclosure
+returns `unresolved` from recovery and no committed result from read or
+record. Internal competing-winner completeness verification uses the exact
+persisted command digest and does not expose the competing result.
+<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_SUCCESSOR_END -->
 
 <!-- RW0_C2_DURABLE_DECISION_FINITE_ORACLE_BEGIN -->
 ```json
@@ -1372,3 +1416,34 @@ RW0-D1 now implements only the separately owned artificial offline process/capsu
 ### Physical suffix succession after native Section 41 admission
 
 The additive Section 41 post-execution proposal-family migration 0005 now exists in the current generation-2 catalog. This does not implement this C2 decision reducer. Earlier references reserving 0005 for possible C2 physical decision relations are historical prospective allocations; any separately authorized C2 additive suffix is now later, currently expected no earlier than 0006, with schema and authority still unselected. A checked Section 41 proposal and C1 rank-15 membership are input evidence, never a C2 decision, block, acceptance or terminal fact.
+
+### P1 physical relation/profile successor in the cumulative program
+
+The uncommitted P0/P1 implementation candidate selects migration 0007 for the
+five-branch decision family. The versioned relation/result/profile successor is
+owned in `.docs/rw0-c2-private-value-versioning.md`; it adds a replan-only
+historical work-item-head postimage and exact graph role. This successor
+preserves this owner's reducer, no-write conflicts, version advancement,
+single generic receipt, exact whole-family replay, and three-way recovery.
+The old finite oracle's absence of migration 0005 and physical C2 source is
+historical context, not current 0007 catalog truth. The successor is not an
+implementation-complete claim until its fenced writer, readback, connected
+five-branch proof, and final validation finish.
+
+### Decision-basis v2 physical repair after independent audit
+
+The independently audited uncommitted 21-field basis candidate is a blocked
+predecessor. Its stale-currentness block could commit a final
+`decision_basis_not_current` reason while omitting the exact typed validation
+and independent-review dispositions that selected the distinct candidate
+reason. The current physical P1 candidate introduces decision-basis v2 with
+those two closed safe typed mappings inside the existing canonical basis BLOB.
+The basis digest and dependent identity chain are recomputed. The pure
+candidate-reason classifier is shared by fresh reduction and historical
+reconstruction; replay verifies both the derived candidate reason and its
+finite relationship to the persisted branch/final reason before checking the
+whole family. No result-only reason column, new table, branch rule, effect
+authority, or target finite-oracle rewrite follows. The exact grammar is owned
+by `.docs/rw0-c2-private-value-versioning.md`, and the uncommitted physical
+implementation by `.docs/rw0-c2-physical-p0-p1-implementation.md`. Independent
+acceptance, publication, and live authority remain separate gates.

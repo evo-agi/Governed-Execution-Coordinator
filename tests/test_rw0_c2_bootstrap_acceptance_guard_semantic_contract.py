@@ -191,9 +191,10 @@ PROSE = (
     ('terminal', 'A later terminal fact binds exact acceptance identity/digest and committed decision/result/receipt without guard mutation.'),
     ('es', 'Later ES operation is separately governed and never consumes, replenishes, resets, or reinterprets direct-local allowance.'),
     ('b1', 'The B1 legacy pair is representation/coherence only and is not current durable guard proof.'),
-    ('fencing_before_receipt', 'Universal lineage/admission/continuity/sole-active posture is part of the command and writer admission/fencing prefix, before receipt lookup.'),
-    ('replay_before_eligibility', 'Command-local grammar/basis and writer fencing precede receipt-first replay and collision checks, then authoritative branch derivation and acceptance-only eligibility, construction/application of the atomic family, capability invalidation, one commit attempt, and readback-only uncertainty resolution.'),
-    ('implementation', 'Physical representation, provisioning, readers, writers, safe values, migration treatment, and runtime remain unimplemented and unselected.'),
+    ('fencing_before_receipt', 'Command-local grammar/basis and writer fencing precede private P1 receipt lookup.'),
+    ('replay_before_eligibility', 'Receipt presence requires fresh universal disclosure posture before command-digest association or complete historical-family reconstruction; replay does not reevaluate fresh claimed status or acceptance eligibility.'),
+    ('recording_before_eligibility', 'Receipt absence requires fresh universal recording posture before route and current-state checks, then authoritative branch derivation and acceptance-only eligibility, construction/application of the atomic family, capability invalidation, one commit attempt, and readback-only uncertainty resolution.'),
+    ('implementation', 'Production/live physical representation, provisioning, runtime, and ES routing remain unimplemented and unselected.'),
 )
 
 
@@ -309,17 +310,18 @@ def _assert_guard_ordering_integrity(text, decision_text):
     _require(len(section) == 2, 'guard_ordering_integrity:guard_pipeline')
     section = section[1].split('## Terminal, ES, and compatibility boundaries\n', 1)[0]
     paragraphs = [' '.join(paragraph.split()) for paragraph in section.split('\n\n') if paragraph.strip()]
-    candidates = [paragraph for paragraph in paragraphs if paragraph.startswith('Universal lineage/admission/continuity/sole-active posture')]
+    candidates = [paragraph for paragraph in paragraphs if paragraph.startswith('Command-local grammar/basis and writer fencing')]
     _require(len(candidates) == 1, 'guard_ordering_integrity:fencing_before_receipt')
     sentences = re.split(r'(?<=\.) ', candidates[0])
-    _require(sentences[0] == 'Universal lineage/admission/continuity/sole-active posture is part of the command and writer admission/fencing prefix, before receipt lookup.',
+    _require(sentences[0] == 'Command-local grammar/basis and writer fencing precede private P1 receipt lookup.',
              'guard_ordering_integrity:fencing_before_receipt')
-    _require(sentences[1] == 'Replay does not reevaluate fresh claimed status.', 'guard_ordering_integrity:replay_before_eligibility')
-    chain = re.fullmatch(r'(.+) precede (.+), then (.+), (.+), (.+), (.+), and (.+)\.', sentences[2])
+    _require(sentences[1] == 'Receipt presence requires fresh universal disclosure posture before command-digest association or complete historical-family reconstruction; replay does not reevaluate fresh claimed status or acceptance eligibility.',
+             'guard_ordering_integrity:replay_before_eligibility')
+    chain = re.fullmatch(r'(.+) before (.+), then (.+), (.+), (.+), (.+), and (.+)\.', sentences[2])
     _require(chain is not None, 'guard_ordering_integrity:replay_before_eligibility')
     stages = chain.groups()
-    _require(stages[0] == 'Command-local grammar/basis and writer fencing', 'guard_ordering_integrity:fencing_before_receipt')
-    _require(stages[1] == 'receipt-first replay and collision checks' and stages[2] == 'authoritative branch derivation and acceptance-only eligibility',
+    _require(stages[0] == 'Receipt absence requires fresh universal recording posture', 'guard_ordering_integrity:replay_before_eligibility')
+    _require(stages[1] == 'route and current-state checks' and stages[2] == 'authoritative branch derivation and acceptance-only eligibility',
              'guard_ordering_integrity:replay_before_eligibility')
     _require(stages[3] == 'construction/application of the atomic family', 'guard_ordering_integrity:eligibility_before_family')
     _require(stages[4:] == ('capability invalidation', 'one commit attempt', 'readback-only uncertainty resolution'),
@@ -622,9 +624,10 @@ def test_b1_compatibility_and_focused_nonimplementation(guard):
         'guard:section41_0005_exact_successor',
     )
     _require(
-        not any('rw0_c2' in p.name or 'bootstrap_guard' in p.name
-                for p in migration_root.glob('*.sql')),
-        'guard:c2_migration_absent',
+        {p.name for p in migration_root.glob('*rw0_c2*')}
+        == {'0006_rw0_c2_scope_admission.sql',
+            '0007_rw0_c2_progression_decision.sql'},
+        'guard:p0_p1_migration_successor',
     )
     for relative in ('state_store.py', '__init__.py'):
         text = (source / relative).read_text()
@@ -670,7 +673,7 @@ def test_inventory_hostiles_have_exact_boundaries(group, key, value, boundary):
 def test_prose_only_drift_has_exact_boundary(boundary, sentence):
     text = (ROOT / GUARD).read_text()
     changed = re.sub(r'\s+'.join(re.escape(word) for word in sentence.split()), 'Contradictory target prose.', text, count=1)
-    exact = ('guard_ordering_integrity:' if boundary in ('fencing_before_receipt', 'replay_before_eligibility') else 'guard:prose:') + boundary
+    exact = ('guard_ordering_integrity:' if boundary in ('fencing_before_receipt', 'replay_before_eligibility', 'recording_before_eligibility') else 'guard:prose:') + (('replay_before_eligibility' if boundary == 'recording_before_eligibility' else boundary))
     with pytest.raises(AssertionError, match='^' + re.escape(exact) + '$'):
         _parse(changed)
 
@@ -856,6 +859,27 @@ def _assert_capability_semantic_source(text):
 def _assert_capability_documents_integrity():
     for pid, reference in GUARD_CAPABILITY_EXPECTED.items():
         data = (ROOT / reference['path']).read_bytes()
+        if pid in ('P11', 'P12'):
+            p1_suffix = {
+                'P11': (837, '733268376667429162a6b5a62e8b1a2a695a271e695c3cda5869825e49bd4ede'),
+                'P12': (772, 'aa49da5e056b8dca34a772d8d7c4da4ba5525037d9a2b5517bd8f673566eb367'),
+            }[pid]
+            p1_size, p1_digest = p1_suffix
+            _require(len(data) >= p1_size and
+                     hashlib.sha256(data[-p1_size:]).hexdigest() == p1_digest and
+                     data[-p1_size:].count(b'<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->') == 1,
+                     'guard:capability_semantic_integrity:p1_successor:' + pid)
+            data = data[:-p1_size]
+            suffix = {
+                'P11': (644, '5a6268e7a6a848cf638e5092633d8e773bdf5b9d12498f5deb92aa9119523923'),
+                'P12': (470, '07d99f5eab07a2d57d39a8ce5836ae062b523b2cdfc89c6d2c87f29a5d4bed6e'),
+            }[pid]
+            size, digest = suffix
+            _require(len(data) >= size and
+                     hashlib.sha256(data[-size:]).hexdigest() == digest and
+                     data[-size:].count(b'<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_BEGIN -->') == 1,
+                     'guard:capability_semantic_integrity:p0_successor:' + pid)
+            data = data[:-size]
         identity = (len(data), hashlib.sha256(data).hexdigest())
         _type_exact(identity, reference['replacement_identity'], boundary='guard:capability_semantic_integrity:identity:' + pid)
         _require(identity != reference['old_identity'], 'guard:capability_semantic_integrity:changed:' + pid)
@@ -935,9 +959,9 @@ def test_capability_protected_literal_source_variants(case):
 def test_guard_ordering_integrity_hostile(case, boundary):
     text = (ROOT / GUARD).read_text(); decision_text = (ROOT / C2).read_text()
     if case == 'fencing':
-        text = text.replace('Command-local grammar/basis and writer fencing\nprecede receipt-first replay and\ncollision checks', 'Receipt-first replay and collision disclosure precede\ncommand-local grammar/basis and writer fencing', 1)
+        text = text.replace('Command-local grammar/basis and writer fencing precede private P1 receipt\nlookup.', 'Private P1 receipt lookup precedes command-local grammar/basis and writer fencing.', 1)
     elif case == 'replay':
-        text = text.replace('receipt-first replay and\ncollision checks, then authoritative branch derivation and acceptance-only\neligibility', 'authoritative branch derivation and acceptance-only eligibility, then receipt-first replay and collision checks', 1)
+        text = text.replace('Receipt presence requires fresh universal disclosure posture before\ncommand-digest association', 'Receipt presence checks command-digest association before fresh universal disclosure posture', 1)
     elif case == 'family':
         text = text.replace('construction/application of the atomic family', 'fresh acceptance-only eligibility', 1)
     else:

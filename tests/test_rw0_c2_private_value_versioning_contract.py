@@ -121,6 +121,25 @@ COMMAND_DIGEST = {"includes": INCLUDES, "excludes": EXCLUDES,
                   "serialization": "ordered_name_value_pairs_utf8_json_ensure_ascii_false_allow_nan_false_compact",
                   "digest": "sha256(domain_utf8+nul+preimage_json_utf8)",
                   "fixed_vector_digest": "a392abcc3f0981b4ac2aeab5d3869aea9f24ba7305b242563e3a41f402b716b1"}
+COMMAND_DIGEST_V2 = {
+    "name": "guarded_command_digest_v2",
+    "domain": "governed-execution.nwp-rw0-c2-guarded-command-digest.v2.identity",
+    "ordered_preimage_prefix_ref": "command_digest.ordered_preimage",
+    "ordered_preimage_suffix": [["expected_branch", "command.expected_branch",
+                                 "null_or_exact_finite_branch_str"]],
+    "ordered_pair_count": 31,
+    "serialization": "ordered_name_value_pairs_utf8_json_ensure_ascii_false_allow_nan_false_compact",
+    "digest": "sha256(domain_utf8+nul+preimage_json_utf8)",
+    "derivation_order": "after_six_independent_siblings",
+    "preassignments_exclude_expected_branch": True,
+    "replay_identity_includes_expected_branch": True,
+    "finite_expected_branch_values": [None, "candidate_acceptance", "candidate_repair",
+                                      "attempt_selecting_replan",
+                                      "program_terminal_reject",
+                                      "post_execution_program_block"],
+    "fixed_vector_expected_branch": None,
+    "fixed_vector_digest": "ed40b1bc67f9b4604075a31d1ce2e5a3ecf9247ff02152e4803be24e59d30976",
+}
 ACCEPTANCE_SCHEMA = "governed-execution.nwp-rw0-c2-bootstrap-acceptance-fact.v1"
 PROSPECTIVE_DOMAIN = "governed-execution.nwp-rw0-c2-bootstrap-acceptance-fact.v1.prospective-ref"
 PRIMITIVE_NAMES = "command_profile lineage_ref scope_ref admission_fact_ref admission_fact_digest admission_act_ref admission_act_digest guard_profile applicability continuity_basis_ref continuity_basis_digest continuity_source_ref continuity_source_digest sole_active_basis_ref sole_active_basis_digest sole_active_source_ref sole_active_source_digest mutation_ref program_ref decision_basis_ref decision_basis_digest expected_head_ref expected_head_revision expected_head_digest".split()
@@ -903,7 +922,7 @@ def _validate_dependency_registry(value):
 
 
 def _validate(p):
-    _exact(set(p), {"contract_id", "status", "owners", "canonicalization", "schemas", "authority", "preassignment_basis", "preassignment_siblings", "dependency_registry", "command_digest", "prospective_fact_identity", "admission_binding", "family_relation_fact_fields", "graph", "receipt_graph_profile_definition", "branches", "collision_route_templates", "selector", "replay", "recovery", "recovery_observation_set", "validated_current_recovery_posture", "recovery_projection_signature", "owner_assertion_profile", "normative_clause_registry", "private_contract_vocabulary", "v1", "b1", "boundaries"}, "closed_inventory")
+    _exact(set(p), {"contract_id", "status", "owners", "canonicalization", "schemas", "authority", "preassignment_basis", "preassignment_siblings", "dependency_registry", "command_digest", "command_digest_v2", "prospective_fact_identity", "admission_binding", "family_relation_fact_fields", "graph", "receipt_graph_profile_definition", "branches", "collision_route_templates", "selector", "replay", "recovery", "recovery_observation_set", "validated_current_recovery_posture", "recovery_projection_signature", "owner_assertion_profile", "normative_clause_registry", "private_contract_vocabulary", "v1", "b1", "boundaries"}, "closed_inventory")
     _exact([p["contract_id"], p["status"], p["owners"]],
            ["rw0-c2-private-value-versioning-v1", "accepted_target_not_implemented", OWNERS], "owner_status")
     _exact(p["canonicalization"], CANONICALIZATION, "canonicalization")
@@ -915,6 +934,7 @@ def _validate(p):
     _validate_siblings(p["preassignment_siblings"])
     _validate_dependency_registry(p["dependency_registry"])
     _exact(p["command_digest"], COMMAND_DIGEST, "command_digest")
+    _exact(p["command_digest_v2"], COMMAND_DIGEST_V2, "command_digest_v2")
     _exact(p["prospective_fact_identity"], PROSPECTIVE, "prospective_fact_identity")
     _exact(p["graph"], GRAPH, "receipt_graph")
     _exact(p["receipt_graph_profile_definition"], EXPECTED_STATIC_RECEIPT_PROFILE,
@@ -1759,22 +1779,90 @@ def test_b1_pair_and_migration_catalog_remain_current():
                  for call in catalog.value.elts]
     _exact(resources[:4], V1["migration_catalog"], "source_migration_catalog")
     _exact(resources[:4], p["v1"]["migration_catalog"], "document_migration_catalog")
-    _exact(resources[4:], ["0005_section41_post_execution_proposal_family.sql"],
-           "section41_current_catalog_successor")
+    _exact(resources[4:6], ["0005_section41_post_execution_proposal_family.sql",
+                            "0006_rw0_c2_scope_admission.sql"],
+           "p0_catalog_successor_prefix")
+    _exact(resources[6:], ["0007_rw0_c2_progression_decision.sql"],
+           "p1_current_catalog_successor")
     assert not (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0005_rw0_c2_guard.sql").exists()
     assert {path.name for path in (ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("0005*")} == {
         "0005_section41_post_execution_proposal_family.sql",
     }
 
 
-def test_target_has_no_source_or_public_runtime_surface():
+def test_p0_writer_table_owner_excludes_p1_acceptance_even_when_schema_id_is_constructed():
     src = ROOT / "src/ge_nwp_coordinator"
-    for path in src.rglob("*.py"):
-        text = path.read_text(encoding="utf-8")
-        assert "governed-execution.nwp-rw0-c2-verified-admission-act.v1" not in text
-        assert "governed-execution.nwp-rw0-c2-bootstrap-acceptance-fact.v1" not in text
-        assert "rw0-c2-private-value-versioning-v1" not in text
-    assert not list(src.glob("*_rw0_c2_*"))
+    p0_contracts = _source_tree("_rw0_c2_scope_admission_contracts.py")
+    p0_writer = _source_tree("_sqlite_rw0_c2_scope_admission.py")
+    p1_rows = _source_tree("_rw0_c2_progression_rows.py")
+    p0_tables = {
+        "rw0_c2_verified_admission_acts", "rw0_c2_scope_admission_facts",
+        "rw0_c2_scope_admission_recording_bases",
+        "rw0_c2_scope_admission_recording_receipts",
+    }
+    table_fields = next(node.value for node in p0_contracts.body
+                        if isinstance(node, ast.Assign)
+                        and any(isinstance(target, ast.Name) and target.id == "_TABLE_FIELDS"
+                                for target in node.targets))
+    assert isinstance(table_fields, ast.Dict)
+    assert {ast.literal_eval(key) for key in table_fields.keys} == p0_tables
+    table_names = {name: _assignment(p0_writer, name) for name in (
+        "_ACT_TABLE", "_FACT_TABLE", "_BASIS_TABLE", "_RECEIPT_TABLE")}
+    tables = next(node.value for node in p0_writer.body
+                  if isinstance(node, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == "_TABLES"
+                          for target in node.targets))
+    assert isinstance(tables, ast.Tuple)
+    assert {table_names[node.id] for node in tables.elts if isinstance(node, ast.Name)} == p0_tables
+    assert len(tables.elts) == 4
+    write = next(node for node in p0_writer.body
+                 if isinstance(node, ast.FunctionDef)
+                 and node.name == "write_fresh_after_fencing")
+    loops = [node for node in ast.walk(write) if isinstance(node, ast.For)]
+    assert len(loops) == 1
+    assert isinstance(loops[0].iter, ast.Call)
+    assert isinstance(loops[0].iter.func, ast.Name)
+    assert loops[0].iter.func.id == "zip"
+    assert isinstance(loops[0].iter.args[0], ast.Name)
+    assert loops[0].iter.args[0].id == "_TABLES"
+    assert sum(isinstance(node, ast.Call)
+               and isinstance(node.func, ast.Attribute)
+               and isinstance(node.func.value, ast.Name)
+               and node.func.value.id == "connection"
+               and node.func.attr == "execute"
+               for node in ast.walk(write)) == 1
+
+    # The P1 owner intentionally constructs this schema ID; checking for a
+    # contiguous source literal would miss it and obscure the P0/P1 boundary.
+    p1_contracts = _source_tree("_rw0_c2_progression_contracts.py")
+    prefix = _assignment(p1_contracts, "_PREFIX")
+    assert prefix == PREFIX
+    assert any(isinstance(node, ast.ImportFrom)
+               and node.module == "_rw0_c2_progression_contracts"
+               and any(alias.name == "_PREFIX" for alias in node.names)
+               for node in p1_rows.body)
+    schemas = next(node.value for node in p1_rows.body
+                   if isinstance(node, ast.Assign)
+                   and any(isinstance(target, ast.Name) and target.id == "_SCHEMAS"
+                           for target in node.targets))
+    assert isinstance(schemas, ast.Dict)
+    acceptance_schema = next(value for key, value in zip(schemas.keys, schemas.values, strict=True)
+                             if isinstance(key, ast.Name) and key.id == "_ACCEPTANCE")
+    assert isinstance(acceptance_schema, ast.BinOp)
+    assert isinstance(acceptance_schema.op, ast.Add)
+    assert isinstance(acceptance_schema.left, ast.Name)
+    assert acceptance_schema.left.id == "_PREFIX"
+    assert prefix + ast.literal_eval(acceptance_schema.right) == (
+        "governed-execution.nwp-rw0-c2-bootstrap-acceptance-fact.v1")
+    assert "rw0_c2_bootstrap_acceptance_facts" not in p0_tables
+    assert {p.name for p in src.glob("*_rw0_c2_*")} == {
+        "_rw0_c2_scope_admission_contracts.py",
+        "_sqlite_rw0_c2_scope_admission.py",
+        "_rw0_c2_progression_contracts.py",
+        "_rw0_c2_progression_rows.py",
+        "_rw0_c2_progression_plan.py",
+        "_sqlite_rw0_c2_progression.py",
+    }
     assert not list(src.glob("rw0_c2_*"))
 
 
@@ -4362,6 +4450,29 @@ def test_guarded_command_digest_fixed_vector_is_used_by_selector_and_family():
         if family["acceptance_fact"] is not None:
             assert family["acceptance_fact"]["command_digest"] == actual
         assert _source_exact_receipt_preimage(command, family)["command_digest"] == actual
+
+
+def test_guarded_command_digest_v2_profile_adds_exact_assertion_after_v1_pairs():
+    _, profile = _document()
+    v1 = profile["command_digest"]
+    v2 = profile["command_digest_v2"]
+    command = _command_coordinates()
+    pairs = [[name, command["schema_id" if name == "command_profile" else name]]
+             for name, _source, _type in v1["ordered_preimage"]]
+    assert len(pairs) == 30
+    assert v2["ordered_pair_count"] == len(pairs) + 1
+    assert v2["ordered_preimage_prefix_ref"] == "command_digest.ordered_preimage"
+    assert v2["ordered_preimage_suffix"] == [[
+        "expected_branch", "command.expected_branch", "null_or_exact_finite_branch_str"]]
+    digests = []
+    for assertion in v2["finite_expected_branch_values"]:
+        raw = json.dumps(pairs + [["expected_branch", assertion]],
+                         ensure_ascii=False, allow_nan=False,
+                         separators=(",", ":")).encode("utf-8")
+        digests.append(hashlib.sha256(v2["domain"].encode("utf-8") + b"\0" + raw).hexdigest())
+    assert len(set(digests)) == 6
+    assert digests[0] == v2["fixed_vector_digest"]
+    assert digests[0] != v1["fixed_vector_digest"]
 
 
 @pytest.mark.parametrize("name", PRIMITIVE_NAMES + [field for _, field, _, _ in SIBLING_SPECS])

@@ -1083,3 +1083,30 @@ readiness, ES or Bridge route, product Git authority, service, scheduler, or
 autonomous loop. The original D2 entry and Unit 2 behavioral boundaries above
 remain unchanged.
 <!-- POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->
+
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_BEGIN -->
+## RW0-C2 P0 physical candidate boundary
+
+In the current uncommitted artificial-offline candidate, migration 0006 and
+private P0 source record one independently verified program-independent safe
+admission act/fact family under the existing guarded writer controller. P0
+retains its own receipt, replay, and recovery and creates no program, C2
+decision, acceptance, terminal, or executable permission. The selected P1
+continuation is separate and must not rewrite P0 semantics. Fake source
+evidence does not satisfy live supplier/custody gate B or close F2.
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->
+## RW0-C2 private P1 physical candidate boundary
+
+The P0 block above is an exact historical checkpoint. The current uncommitted
+artificial-offline candidate adds migration 0007 and a separate private P1
+writer for five guarded progression branches, exact whole-family replay, and
+three-way recovery. Replan CAS-updates both program and work heads and retains
+their typed historical postimages in the v2 guarded relation; acceptance alone
+records an immutable acceptance fact. P0's two private production owners and
+migration 0006 remain unchanged. There is no public P1 route, live supplier,
+terminal owner, worker, ES/Bridge route, product Git effect, or executable
+permission. The detailed owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_END -->

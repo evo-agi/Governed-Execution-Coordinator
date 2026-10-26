@@ -226,12 +226,11 @@ collection, or registry disappearance proves transaction or lock outcome. A
 cross-process writer may acquire after the kernel applies unlock before H2,
 T1, X, or public close return; these facts are not atomic.
 
-The current migration application generation is 2, the terminal catalog is
-exactly `0004_rw0_c1_durable_evidence`, and production migration resources are
-exactly `0001_initial.sql`,
-`0002_development_program_and_effect_state.sql`,
-`0003_cognitive_proposal_and_selection_state.sql`, and
-`0004_rw0_c1_durable_evidence.sql`.
+At the historical C1 checkpoint, the migration application generation was 2,
+the terminal catalog was `0004_rw0_c1_durable_evidence`, and the packaged
+resources ran from `0001_initial.sql` through
+`0004_rw0_c1_durable_evidence.sql`. Later additive successors are recorded
+below; this checkpoint is not the current catalog tip.
 Migration 0002 requires SQLite 3.37.0 or newer before any selected-suffix
 administrative effect. Its physical core schema adds no C2B mutation, reader,
 runtime, or execution authority.
@@ -365,9 +364,9 @@ C2B1 exposes split offline operations:
   posture, migration-history/catalog equality, live-schema manifest equality,
   and managed current-state invariants;
 - initialize an absent or empty local database with the complete current
-  catalog (currently `[0001_initial, 0002_development_program_and_effect_state,
-  0003_cognitive_proposal_and_selection_state,
-  0004_rw0_c1_durable_evidence]`);
+  catalog (the uncommitted P0/P1 candidate extends the contiguous 0001–0005
+  prefix through `0006_rw0_c2_scope_admission` and
+  `0007_rw0_c2_progression_decision`);
 - migrate an exact supported non-empty older prefix through the complete
   contiguous packaged suffix.
 
@@ -689,4 +688,18 @@ SQLite reader errors retain their existing safe class.
 
 ### Section 41 0005 operator and mutation recovery successor
 
-The installed current generation-2 catalog now ends at `0005_section41_post_execution_proposal_family`. Only explicit administrative migration moves an exact supported 0004 prefix to 0005; ordinary inspection/validation, writer acquisition and product mutation do not append a suffix. The original common advisory lock, path binding, one guarded writer operation and one commit-attempt uncertainty rules remain. Section 41 A and C1 B are separate transactions with separate read-only three-way recovery. A committed A with B CAS refusal retains A; neither recovery path retries a lost response. Schema counts are 64 user tables, 114 triggers and five explicit indexes. Historical 0004 operational examples remain scoped to their prior tip.
+At the Section 41 checkpoint, the generation-2 catalog ended at `0005_section41_post_execution_proposal_family`. Only explicit administrative migration moved an exact supported 0004 prefix to 0005; ordinary inspection/validation, writer acquisition and product mutation did not append a suffix. The original common advisory lock, path binding, one guarded writer operation and one commit-attempt uncertainty rules remain. Section 41 A and C1 B are separate transactions with separate read-only three-way recovery. A committed A with B CAS refusal retains A; neither recovery path retries a lost response. That checkpoint's schema counts were 64 user tables, 114 triggers and five explicit indexes. Historical 0004 operational examples remain scoped to their prior tip.
+
+### Uncommitted RW0-C2 P0/P1 catalog successor
+
+The current uncommitted candidate keeps application generation 2 and has the
+cumulative tip `0007_rw0_c2_progression_decision`. Migration 0006 adds the
+four program-independent P0 tables; migration 0007 adds the six private P1
+tables. The complete candidate schema has 74 user tables, 134 triggers, and
+five explicit indexes. An exact supported older prefix advances only through
+explicit administrative `migrate_database()`; ordinary inspection, validation,
+writer acquisition, and product mutation do not migrate it. The 0007 basis
+row requires `governed-execution.nwp-rw0-c2-decision-basis.v2` canonical
+bytes; its two typed dispositions support exact replay and read-only recovery.
+This candidate grants no live or product authority, executable permission,
+terminal outcome, or publication.

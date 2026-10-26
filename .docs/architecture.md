@@ -721,3 +721,24 @@ current effect/delivery heads, and performs no dispatch, worker, capsule,
 credential, network, Git, Bridge, or ES effect. Exact later-phase values and
 evidence layouts remain deferred.
 <!-- C2B3_NARROWED_ARCHITECTURE_END -->
+
+<!-- RW0_C2_P0_PHYSICAL_ARCHITECTURE_CANDIDATE_BEGIN -->
+## RW0-C2 artificial-offline physical candidate
+
+The uncommitted P0 candidate adds a private program-independent admission
+recording path through the existing fenced SQLite writer controller and
+migration 0006. It does not alter the Section 41/C1/V22 owner path, public
+StateStore, production callers, worker transport, or effect handling. P1 is a
+separate decision transaction in the same planned candidate.
+<!-- RW0_C2_P0_PHYSICAL_ARCHITECTURE_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_ARCHITECTURE_CANDIDATE_BEGIN -->
+## RW0-C2 P1 artificial-offline physical candidate
+
+The current uncommitted successor adds a separate private five-branch
+development progression transaction on migration 0007 through the existing
+fenced SQLite writer controller. Replan CAS-updates both mutable heads and
+retains both historical postimages. The Section 41/C1/V22 owner path, public
+StateStore, production callers, worker transport, and effect handling are
+unchanged.
+<!-- RW0_C2_P1_PHYSICAL_ARCHITECTURE_CANDIDATE_END -->

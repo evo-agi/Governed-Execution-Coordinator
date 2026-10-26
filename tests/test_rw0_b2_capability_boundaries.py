@@ -149,10 +149,51 @@ PROTECTED_CONTENT_ROWS = (
      ('state_store_writer_session',), 'protected progression authority'),
 )
 
+
+_P0_PROTECTED_APPEND = {
+    'AGENTS.md': (644, '5a6268e7a6a848cf638e5092633d8e773bdf5b9d12498f5deb92aa9119523923',
+                  b'<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_BEGIN -->'),
+    'README.md': (470, '07d99f5eab07a2d57d39a8ce5836ae062b523b2cdfc89c6d2c87f29a5d4bed6e',
+                  b'<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_BEGIN -->'),
+}
+_P1_PROTECTED_APPEND = {
+    'AGENTS.md': (837, '733268376667429162a6b5a62e8b1a2a695a271e695c3cda5869825e49bd4ede',
+                  b'<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->'),
+    'README.md': (772, 'aa49da5e056b8dca34a772d8d7c4da4ba5525037d9a2b5517bd8f673566eb367',
+                  b'<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->'),
+}
+
+
+def _protected_historical_bytes(relative_path: str, payload: bytes) -> bytes:
+    """Verify bounded successors, then retain each old exact identity oracle."""
+    if relative_path == 'tests/test_c2b2_development_row_value_boundaries.py':
+        if (len(payload), hashlib.sha256(payload).hexdigest()) != _P09_RW0_C2_P1_SUCCESSOR_IDENTITY:
+            raise AssertionError('P09:rw0_c2_p1_successor_identity')
+        if payload.count(_P09_RW0_C2_P1_ADDITION) != 1:
+            raise AssertionError('P09:rw0_c2_p1_successor_identity')
+        return payload.replace(_P09_RW0_C2_P1_ADDITION, b'', 1)
+    if relative_path not in _P0_PROTECTED_APPEND:
+        return payload
+    p1_size, p1_digest, p1_marker = _P1_PROTECTED_APPEND[relative_path]
+    if (len(payload) < p1_size or payload[-p1_size:].count(p1_marker) != 1
+            or hashlib.sha256(payload[-p1_size:]).hexdigest() != p1_digest):
+        raise AssertionError(relative_path + ':p1_successor_identity')
+    payload = payload[:-p1_size]
+    size, digest, marker = _P0_PROTECTED_APPEND[relative_path]
+    if (len(payload) < size or payload[-size:].count(marker) != 1
+            or hashlib.sha256(payload[-size:]).hexdigest() != digest):
+        raise AssertionError(relative_path + ':p0_successor_identity')
+    return payload[:-size]
+
+
+def _p11_historical_bytes() -> bytes:
+    return _protected_historical_bytes('AGENTS.md', (ROOT / 'AGENTS.md').read_bytes())
+
 # P09's one post-D2 reader-consumer addition is an exact successor to the
 # protected C2B2 boundary oracle, not a replacement of its historical rules.
 _P09_POST_D2_PREDECESSOR_IDENTITY = (17972, 'f2a7089748f39dc8c40a932ac770edd3ffa7f8ea581b053af101dfda8100c830')
 _P09_POST_D2_SUCCESSOR_IDENTITY = (18232, 'd23abee15a3284674f0f7cf3a89fb5a9813fec1527b6904784b16e2602a71ae7')
+_P09_RW0_C2_P1_SUCCESSOR_IDENTITY = (18923, 'a0c6972f3f51563c6a735865d060ed738fd623f8084f87e90586dd5781bbcf2f')
 _P09_POST_D2_ADDITION = b'''        # The native Section 41 checked reader consumes only the decision
         # row adapter for retained D2 bound-effect mutation receipts.
         "_sqlite_section41_post_execution_proposal.py":{
@@ -160,14 +201,32 @@ _P09_POST_D2_ADDITION = b'''        # The native Section 41 checked reader consu
         },
 '''
 _P09_POST_D2_FOLLOWING = b'        "_rw0_phase_entry_semantic_values.py":{\n'
+_P09_RW0_C2_P1_ADDITION = b'''        # P1 consumes existing typed 0002 values inside its private plan,
+        # physical reader, and writer; these are not public row-value APIs.
+        "_rw0_c2_progression_contracts.py":{"_development_program_row_values"},
+        "_rw0_c2_progression_plan.py":{
+            "_development_decision_row_values",
+            "_development_program_row_values",
+            "_development_row_value_support",
+        },
+        "_rw0_c2_progression_rows.py":{"_development_program_row_values"},
+        "_sqlite_rw0_c2_progression.py":{
+            "_development_decision_row_values",
+            "_development_effect_row_values",
+            "_development_program_row_values",
+        },
+'''
 
 
 def test_p09_exact_post_d2_reader_consumer_successor_preserves_predecessor() -> None:
     current = (ROOT / 'tests/test_c2b2_development_row_value_boundaries.py').read_bytes()
-    assert (len(current), hashlib.sha256(current).hexdigest()) == _P09_POST_D2_SUCCESSOR_IDENTITY
-    assert current.count(_P09_POST_D2_ADDITION) == 1
-    assert current.count(_P09_POST_D2_ADDITION + _P09_POST_D2_FOLLOWING) == 1
-    predecessor = current.replace(_P09_POST_D2_ADDITION, b'', 1)
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _P09_RW0_C2_P1_SUCCESSOR_IDENTITY
+    assert current.count(_P09_RW0_C2_P1_ADDITION) == 1
+    post_d2 = current.replace(_P09_RW0_C2_P1_ADDITION, b'', 1)
+    assert (len(post_d2), hashlib.sha256(post_d2).hexdigest()) == _P09_POST_D2_SUCCESSOR_IDENTITY
+    assert post_d2.count(_P09_POST_D2_ADDITION) == 1
+    assert post_d2.count(_P09_POST_D2_ADDITION + _P09_POST_D2_FOLLOWING) == 1
+    predecessor = post_d2.replace(_P09_POST_D2_ADDITION, b'', 1)
     assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == _P09_POST_D2_PREDECESSOR_IDENTITY
 
 
@@ -243,6 +302,7 @@ def _assert_exact_content_identity(
         payload = path.read_bytes()
     except OSError:
         raise AssertionError(f"{row_id}:required_path") from None
+    payload = _protected_historical_bytes(relative_path, payload)
     if len(payload) != expected_size:
         raise AssertionError(f"{row_id}:protected_size")
     if hashlib.sha256(payload).hexdigest() != expected_sha256:
@@ -988,7 +1048,7 @@ def _guard_replacement_semantic_evidence():
         pid, path, _size, _sha, classes, purpose = row
         if pid not in ('P08', 'P11', 'P12', 'P13'):
             continue
-        data = (ROOT / path).read_bytes()
+        data = _protected_historical_bytes(path, (ROOT / path).read_bytes())
         identity = (len(data), hashlib.sha256(data).hexdigest())
         compact = ' '.join(data.decode('utf-8').split())
         evidence[pid] = {
@@ -1110,7 +1170,7 @@ def _p11_reconstruct_exact_local_commit_predecessor(candidate: bytes) -> bytes:
 
 
 def test_p11_exact_local_commit_successor_reconstructs_full_history() -> None:
-    current = (ROOT / 'AGENTS.md').read_bytes()
+    current = _p11_historical_bytes()
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_LOCAL_COMMIT_SUCCESSOR_IDENTITY
     unit2 = _p11_reconstruct_exact_local_commit_predecessor(current)
     assert unit2 + _P11_LOCAL_COMMIT_NEW == current
@@ -1128,7 +1188,7 @@ def test_p11_exact_local_commit_successor_reconstructs_full_history() -> None:
     ('outside_change', 'p11:local_commit_predecessor_identity'),
 ))
 def test_p11_local_commit_successor_rejects_exact_mutants(case: str, boundary: str) -> None:
-    current = (ROOT / 'AGENTS.md').read_bytes()
+    current = _p11_historical_bytes()
     predecessor = _p11_reconstruct_exact_local_commit_predecessor(current)
     if case == 'missing':
         changed = predecessor
@@ -1208,7 +1268,7 @@ def _p11_reconstruct_exact_unit2_predecessor(candidate: bytes) -> bytes:
 
 
 def test_p11_exact_unit2_successor_reconstructs_all_predecessors() -> None:
-    current = _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    current = _p11_reconstruct_exact_local_commit_predecessor(_p11_historical_bytes())
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_UNIT2_SUCCESSOR_IDENTITY
     prior = _p11_reconstruct_exact_unit2_predecessor(current)
     assert prior + _P11_UNIT2_NEW == current
@@ -1224,7 +1284,7 @@ def test_p11_exact_unit2_successor_reconstructs_all_predecessors() -> None:
     ('outside_change', 'p11:unit2_predecessor_identity'),
 ))
 def test_p11_unit2_successor_rejects_exact_mutants(case: str, boundary: str) -> None:
-    current = _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+    current = _p11_reconstruct_exact_local_commit_predecessor(_p11_historical_bytes())
     predecessor = _p11_reconstruct_exact_unit2_predecessor(current)
     if case == 'missing':
         changed = predecessor
@@ -1295,7 +1355,7 @@ def _p11_reconstruct_exact_post_d2_predecessor(candidate: bytes) -> bytes:
 
 def test_p11_exact_native_post_d2_successor_reconstructs_integrated_predecessor() -> None:
     current = _p11_reconstruct_exact_unit2_predecessor(
-        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+        _p11_reconstruct_exact_local_commit_predecessor(_p11_historical_bytes())
     )
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P11_POST_D2_SUCCESSOR_IDENTITY
     predecessor = _p11_reconstruct_exact_post_d2_predecessor(current)
@@ -1317,7 +1377,7 @@ def test_p11_native_post_d2_successor_rejects_exact_mutants(
     case: str, boundary: str,
 ) -> None:
     current = _p11_reconstruct_exact_unit2_predecessor(
-        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+        _p11_reconstruct_exact_local_commit_predecessor(_p11_historical_bytes())
     )
     predecessor = _p11_reconstruct_exact_post_d2_predecessor(current)
     if case == 'missing':
@@ -1427,7 +1487,7 @@ def _p11_reconstruct_exact_status_predecessor(candidate: bytes) -> bytes:
 
 def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> None:
     current = _p11_reconstruct_exact_unit2_predecessor(
-        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+        _p11_reconstruct_exact_local_commit_predecessor(_p11_historical_bytes())
     )
     historical_current = _p11_reconstruct_exact_post_d2_predecessor(current)
     assert (len(historical_current), hashlib.sha256(historical_current).hexdigest()) == _P11_STATUS_SUCCESSOR_IDENTITY
@@ -1465,7 +1525,7 @@ def test_p11_exact_d2_status_successor_reconstructs_historical_governance() -> N
 def test_p11_status_successor_rejects_bounded_mutations(case: str, boundary: str) -> None:
     current = _p11_reconstruct_exact_post_d2_predecessor(
         _p11_reconstruct_exact_unit2_predecessor(
-        _p11_reconstruct_exact_local_commit_predecessor((ROOT / 'AGENTS.md').read_bytes())
+        _p11_reconstruct_exact_local_commit_predecessor(_p11_historical_bytes())
     )
     )
     assert _p11_reconstruct_exact_status_predecessor(current)

@@ -317,3 +317,26 @@ mechanics, and live proof. No full-custodian successor is selected by default.
 ### Section 41 offline proof versus live admission
 
 The current additive migration 0005 records a synthetic Section 41 post-execution proposal family and supports private C1 rank-15 admission. Its process-owned local state and fake children do not satisfy the live external custody, enrollment, source authentication, continuity or standing-policy admission requirements of this contract. Historical prospective references to C2 use of migration 0005 are superseded as allocations only; any C2 physical suffix must be later and separately selected, currently expected no earlier than 0006.
+
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_SUCCESSOR_BEGIN -->
+## Artificial-offline P0 physical candidate (implementation successor)
+
+The preceding v1 machine block remains the accepted semantic contract. In the
+`codex/rw0-c2-p0-p1-physical-program-v1` uncommitted candidate, migration
+`0006_rw0_c2_scope_admission` represents only the program-independent P0
+family. Four immutable STRICT tables retain the verified safe act, the
+admission fact, the historical recording basis, and the recording receipt.
+Act, lineage, and scope have independent unique fact routes; the four
+enrollment/incarnation/process/storage coordinates are source-bound historical
+evidence, not independent SQLite uniqueness claims. A result is reconstructed
+from checked basis and receipt rows. P0 uses the guarded writer transaction
+controller, one COMMIT attempt, receipt-first replay, and read-only three-way
+recovery. It creates no program, C2 decision, acceptance, or terminal row.
+
+This is an artificial-offline source candidate over task-owned disposable
+state. Its fake source observation does not pass live supplier or custody gate
+B; a retained act or receipt never grants current permission. The original
+target-only status prose above describes the pre-implementation state and is
+superseded only for this bounded candidate by this section. P1 remains a
+separate transaction in the same intended program.
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_SUCCESSOR_END -->

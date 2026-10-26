@@ -906,6 +906,19 @@ def _text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def _historical_rw0_cross_reference_text(path: str) -> str:
+    text = _text(path)
+    successor_markers = {
+        SUPPORTING_PATHS[0]: "<!-- RW0_C2_P0_PHYSICAL_OPERATING_MODEL_CANDIDATE_BEGIN -->",
+        SUPPORTING_PATHS[2]: "<!-- RW0_C2_P0_PHYSICAL_AUTHORITY_CANDIDATE_BEGIN -->",
+    }
+    marker = successor_markers.get(path)
+    if marker is None:
+        return text
+    assert text.count(marker) == 1
+    return text.partition(marker)[0]
+
+
 def _compact(value: str) -> str:
     return " ".join(value.split())
 
@@ -2184,7 +2197,10 @@ def _capability_status_visible_body(
 
 
 def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
-    live_map = {path: _text(path) for path, _root in CROSS_REFERENCE_OWNERS}
+    live_map = {
+        path: _historical_rw0_cross_reference_text(path)
+        for path, _root in CROSS_REFERENCE_OWNERS
+    }
     live_body = _assert_complete_rw0_cross_reference_map(live_map)
 
     wire_owners = (
@@ -2193,7 +2209,7 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
     )
     wire_bodies: list[str] = []
     for path, root, heading, level in wire_owners:
-        source = _text(path)
+        source = _historical_rw0_cross_reference_text(path)
         assert (
             "Exact custodian, transport, framing, Codex seam, schema, "
             "terminal-outcome representation, latch, and physical backends "
@@ -2262,7 +2278,7 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
     """)
     capability_bodies: list[str] = []
     for path, root, heading, level in wire_owners:
-        source = _text(path)
+        source = _historical_rw0_cross_reference_text(path)
         body = _capability_status_visible_body(path, source, root, heading, level)
         capability_bodies.append(body)
         assert body == expected_capability_status
@@ -2474,7 +2490,9 @@ def test_c2b_is_append_only_and_section_42_remains_final_h2() -> None:
     opening = payload[:C2B_OPENING_SIZE]
     assert len(opening) == C2B_OPENING_SIZE
     assert hashlib.sha256(opening).hexdigest() == C2B_OPENING_SHA256
-    text = payload.decode("utf-8")
+    successor = b"<!-- RW0_C2_P0_PHYSICAL_C2B_SUCCESSOR_BEGIN -->"
+    assert payload.count(successor) == 1
+    text = payload.partition(successor)[0].decode("utf-8")
     begin, _end, headings, visible = _visible_marker_span(
         text, C2B_CROSS_REFERENCE_BEGIN, C2B_CROSS_REFERENCE_END,
         role="rw0.c2b_cross_reference",

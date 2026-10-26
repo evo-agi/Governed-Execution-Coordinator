@@ -127,10 +127,15 @@ CURRENT_D2_CONSUMERS = {
         "src/ge_nwp_coordinator/_section41_post_execution_proposal_mutation_contracts.py",
         "src/ge_nwp_coordinator/_section41_post_execution_proposal_row_values.py",
         "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
+        "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+        "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
+        "src/ge_nwp_coordinator/sqlite_writer_session.py",
     }),
     "_post_execution_policy_values.py": frozenset({
         "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
         "src/ge_nwp_coordinator/_rw0_d2a_handback.py",
+        "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
     }),
     "_finite_backlog_risk_source_adapter.py": frozenset({
         "src/ge_nwp_coordinator/_rw0_d2a_evidence.py",
@@ -138,9 +143,12 @@ CURRENT_D2_CONSUMERS = {
     }),
     "_section41_post_execution_proposal_family_projection.py": frozenset({
         "src/ge_nwp_coordinator/_rw0_d2_post_execution_continuation.py",
+        "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
     }),
     "_section41_post_execution_role_resolution.py": frozenset(),
-    "_rw0_c_decision_input_values.py": frozenset(),
+    "_rw0_c_decision_input_values.py": frozenset({
+        "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
+    }),
 }
 CURRENT_D2_SOURCE_FILES = frozenset({
     "_rw0_d2a_evidence.py", "_rw0_d2a_fake_reviewer.py",
@@ -204,7 +212,7 @@ def test_no_io_sqlite_runtime_or_external_effect_imports() -> None:
         assert {"open", "exec", "eval", "compile"}.isdisjoint(calls), relative
 
 
-def test_section41_0005_is_exact_and_no_c2_suffix_is_present() -> None:
+def test_section41_0005_is_exact_with_separate_p0_and_p1_c2_suffixes() -> None:
     migrations = sorted(path.name for path in (SOURCE / "sqlite_migrations").glob("*.sql"))
     assert migrations == [
         "0001_initial.sql",
@@ -212,8 +220,9 @@ def test_section41_0005_is_exact_and_no_c2_suffix_is_present() -> None:
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
         "0005_section41_post_execution_proposal_family.sql",
+        "0006_rw0_c2_scope_admission.sql",
+        "0007_rw0_c2_progression_decision.sql",
     ]
-    assert not list((SOURCE / "sqlite_migrations").glob("0006*"))
     assert not (SOURCE / "sqlite_state.py").exists()
 
 
@@ -340,7 +349,9 @@ def test_each_of_8_remaining_seams_is_concretely_absent_and_non_authorizing(reco
                 isinstance(node, ast.Attribute) and node.attr in {"execute", "executemany", "commit"}
                 for node in ast.walk(tree)
             )
-        assert _production_importers("_rw0_c_decision_input_values.py") == ()
+        assert _production_importers("_rw0_c_decision_input_values.py") == (
+            "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
+        )
     elif seam_id == "S004":
         assert all(name not in CLASS_BY_V for name in ("V35", "V36", "V37"))
         assert "RW0CTerminal" not in combined

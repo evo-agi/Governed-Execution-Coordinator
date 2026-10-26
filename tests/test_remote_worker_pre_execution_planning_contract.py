@@ -2407,6 +2407,13 @@ def _read_owner_bytes() -> bytes:
     return OWNER_PATH.read_bytes()
 
 
+def _historical_column_order_owner_bytes() -> bytes:
+    owner = _read_owner_bytes()
+    boundary = b"<!-- RW0_C2_P0_PHYSICAL_C2B_SUCCESSOR_BEGIN -->"
+    assert owner.count(boundary) == 1
+    return owner.partition(boundary)[0]
+
+
 def _section_41_bytes(
     source: bytes | None = None, *, enforce_frozen_bytes: bool = True
 ) -> tuple[bytes, bytes]:
@@ -4581,9 +4588,14 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
         owners[spec.relative_path] = path.read_bytes()
     observed = _assert_complete_cross_reference_inventory(owners)
     assert len(observed) == 11
-    live_rw0_map = {
-        path: owners[path] for path, _root in _RW0_CURRENT_CROSS_REFERENCE_OWNERS
-    }
+    # This map owns the frozen cross-reference through its END marker. Later
+    # governed sections in the live documents are separate successors.
+    rw0_end_marker = b"<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->"
+    live_rw0_map = {}
+    for path, _root in _RW0_CURRENT_CROSS_REFERENCE_OWNERS:
+        full = owners[path]
+        assert full.count(rw0_end_marker) == 1
+        live_rw0_map[path] = full.split(rw0_end_marker, 1)[0] + rw0_end_marker
     live_rw0_body = _assert_complete_rw0_cross_reference_map(live_rw0_map)
 
     def mapped(path: str, candidate: bytes) -> str:
@@ -4598,7 +4610,7 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
     rw0_bodies: list[str] = []
     unexpected_rw0_acceptances: list[str] = []
     for path, root_title in _RW0_CURRENT_CROSS_REFERENCE_OWNERS:
-        source = owners[path]
+        source = live_rw0_map[path]
         body = _assert_live_rw0_cross_reference(
             source, path=path, root_title=root_title
         )
@@ -5724,7 +5736,7 @@ def _current_column_order_owner_payload(owner: bytes) -> bytes:
 def _parse_current_column_order_owner(
     source: bytes | None = None,
 ) -> dict[str, object]:
-    owner = _read_owner_bytes() if source is None else source
+    owner = _historical_column_order_owner_bytes() if source is None else source
     payload = _current_column_order_owner_payload(owner)
     value = _s41_parse_literal(payload)
     assert tuple(value) == ("coordinator_section41_current_column_order_closure",)
@@ -11942,7 +11954,7 @@ def test_one_canonical_physical_collection_derives_entire_family(
 
 
 def test_current_column_order_owner_rejects_relocated_successor_literal() -> None:
-    owner = _read_owner_bytes()
+    owner = _historical_column_order_owner_bytes()
 
     def assert_rw0_append_boundary(source: bytes) -> None:
         assert len(source) > RW0_C2B_OPENING_SIZE
@@ -12076,7 +12088,7 @@ def test_current_column_order_owner_rejects_relocated_successor_literal() -> Non
 
 
 def test_current_column_order_owner_rejects_text_bearing_pseudo_closer_shadow() -> None:
-    owner = _read_owner_bytes()
+    owner = _historical_column_order_owner_bytes()
     designated_heading = (
         "### " + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
     ).encode("utf-8")
@@ -12217,7 +12229,7 @@ def test_current_column_order_owner_rejects_complete_wrapper_hidden_inside_outer
         )
         return value["coordinator_section41_current_column_order_closure"]
 
-    owner = _read_owner_bytes()
+    owner = _historical_column_order_owner_bytes()
     designated_heading = (
         "### " + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
     ).encode("utf-8")
@@ -12344,7 +12356,7 @@ def test_current_column_order_owner_respects_indented_atx_boundaries_and_closing
             for heading in structure.headings
         )
 
-    owner = _read_owner_bytes()
+    owner = _historical_column_order_owner_bytes()
     designated_line = (
         "### " + CURRENT_COLUMN_ORDER_OWNER_H3 + "\n"
     ).encode("utf-8")

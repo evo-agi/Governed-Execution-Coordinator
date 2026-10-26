@@ -547,6 +547,8 @@ def test_docs_cross_reference_b3c1a_b3c1b_and_no_mutation_or_migration_exists() 
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
         "0005_section41_post_execution_proposal_family.sql",
+        "0006_rw0_c2_scope_admission.sql",
+        "0007_rw0_c2_progression_decision.sql",
     ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

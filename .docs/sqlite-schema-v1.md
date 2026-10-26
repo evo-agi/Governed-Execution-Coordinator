@@ -385,8 +385,8 @@ typed-reader slice: admitted backlog validation, exact limit provenance, zero
 scalar budget posture, READY-only dependency receipts, global-stop-current row
 reconstruction, and internal timestamp envelopes. Migration 0002 is the
 generation-2 physical C2B2 extension, migration 0003 is the cognitive
-proposal-selection extension, and migration 0004 is the current terminal C1
-durable-evidence extension; all leave migration 0001 and those historical row
+proposal-selection extension, and migration 0004 was the terminal C1
+durable-evidence extension at that checkpoint; all leave migration 0001 and those historical row
 meanings unchanged. Any later contract needing additional facts
 not representable by the cumulative generation-2 schema requires separately
 audited schema/model evolution and must not modify migration 0001.
@@ -465,6 +465,24 @@ The migration also does not seed executable authorization. The reserved
 a future authorization tranche defines and implements an accepted insertion and
 verification path.
 
+### Uncommitted RW0-C2 P0/P1 generation-2 schema successor
+
+The current uncommitted candidate extends the contiguous catalog through
+`0006_rw0_c2_scope_admission` and `0007_rw0_c2_progression_decision` while
+retaining application generation 2 and all 0001–0005 bytes. The cumulative
+packaged-SQL manifest contains 74 user tables, 134 triggers, and five explicit
+indexes. Migration 0006 contributes four immutable program-independent P0
+tables; migration 0007 contributes six immutable private P1 tables. Migration
+0007's decision-basis row permits only
+`governed-execution.nwp-rw0-c2-decision-basis.v2` in its `schema_id` CHECK.
+The two added typed dispositions are carried inside the existing bounded
+canonical `basis_bytes` BLOB and its digest; there is no new result column,
+table, index, or trigger for the v2 correction. An exact older prefix requires
+explicit administrative migration to the current tip. No ordinary open or
+product mutation appends a suffix, and physical representability grants no
+live, executable, terminal, or publication authority. The exact P0/P1 owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+
 ## B3c4a/B3c4b Schema Decision
 
 B3c4a confirms schema 0001 is sufficient for the pure/static transition write
@@ -477,7 +495,7 @@ version. B3c4a adds no correctness-required durable fact, and B3c4b adds no
 schema-ID bump, no migration 0002, and no edit to migration 0001.
 
 <!-- RW0_C1_CURRENT_STATUS_BEGIN -->
-**Current cumulative schema through migration 0004.**
+**Historical C1 cumulative schema through migration 0004.**
 
 Migration `0004_rw0_c1_durable_evidence` is an additive generation-2 suffix and
 does not edit the schema-v1 snapshot or migrations 0001-0003. It adds exactly
@@ -489,6 +507,6 @@ completeness, decision, latch, terminal state, worker, runtime, transport,
 capsule custody, or external integration table.
 <!-- RW0_C1_CURRENT_STATUS_END -->
 
-### Current additive Section 41 0005 schema successor
+### Historical additive Section 41 0005 schema successor
 
-`0005_section41_post_execution_proposal_family` adds only `development_post_execution_proposal_contexts` (11 ordered columns) and `development_post_execution_proposal_receipts` (25 ordered columns). Both are STRICT and immutable with immediate restricted foreign keys, exact phase-qualified routes and zero seed rows. Each has UPDATE and DELETE guards; there are no new explicit indexes. Generation 2 cumulative totals are 64 user tables, 114 triggers and five explicit indexes. Context safe-basis BLOBs are at most 131072 canonical bytes; DDL ref FKs do not themselves prove digest equality, which the typed writer and full checked reader verify. The four earlier SQL resources and their historical inventories remain unchanged; 0004 was their tip, 0005 is the current tip. The exact field/identity contract is `.docs/section41-post-execution-proposal-family.md`.
+`0005_section41_post_execution_proposal_family` adds only `development_post_execution_proposal_contexts` (11 ordered columns) and `development_post_execution_proposal_receipts` (25 ordered columns). Both are STRICT and immutable with immediate restricted foreign keys, exact phase-qualified routes and zero seed rows. Each has UPDATE and DELETE guards; there are no new explicit indexes. Generation 2 cumulative totals at that checkpoint were 64 user tables, 114 triggers and five explicit indexes. Context safe-basis BLOBs are at most 131072 canonical bytes; DDL ref FKs do not themselves prove digest equality, which the typed writer and full checked reader verify. The four earlier SQL resources and their historical inventories remain unchanged; 0004 was their tip, and 0005 was the Section 41 checkpoint tip. The exact field/identity contract is `.docs/section41-post-execution-proposal-family.md`.

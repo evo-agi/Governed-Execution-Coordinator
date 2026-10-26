@@ -599,3 +599,16 @@ or public API.
 ### Section 41 catalog succession
 
 The current packaged generation-2 SQLite tip is additive `0005_section41_post_execution_proposal_family`, superseding only previous current-tip references to 0004; the current production SQL resource count is `5`. The new resource adds two immutable STRICT tables and four guards, with no explicit indexes or seeds, for cumulative 64/114/5 table/trigger/explicit-index counts. The four earlier migration bytes and owners are unchanged. An exact older 0004 database needs explicit administrative migration. The existing filesystem binding, writer authority, observational validation, transaction uncertainty and recovery architecture remain in force; Section 41 A uses the existing controller and C1 B remains a separate owner transaction.
+
+### RW0-C2 physical catalog succession in the uncommitted workspace
+
+The current packaged generation-2 workspace tip is
+`0007_rw0_c2_progression_decision`; the current production SQL resource count
+is `7`. Migration 0006 adds four private program-independent P0 admission
+tables and eight immutable guards. Migration 0007 adds six private P1
+progression supplemental tables and twelve immutable guards. The exact
+cumulative schema has 74 user tables, 134 triggers, and five explicit indexes;
+0001–0005 schema objects are unchanged. Exact older prefixes require explicit
+administrative migration. The earlier 0005 current-tip statement records the
+Section 41 predecessor, while P0/P1 remain an artificial-offline uncommitted
+candidate under the existing filesystem, writer, and transaction boundaries.

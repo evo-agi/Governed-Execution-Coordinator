@@ -133,3 +133,20 @@ above remains frozen. C2B2 did not implement or acquire ownership of
 migration 0003, 0004 or 0005; Section 41 owns 0005 through
 `.docs/section41-post-execution-proposal-family.md`.
 <!-- SECTION41_0005_CURRENT_CATALOG_SUCCESSOR_END -->
+
+<!-- RW0_C2_0007_CURRENT_CATALOG_SUCCESSOR_BEGIN -->
+### Current workspace catalog after the RW0-C2 P0/P1 physical candidate
+
+The complete current generation-2 workspace catalog is
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence, 0005_section41_post_execution_proposal_family, 0006_rw0_c2_scope_admission, 0007_rw0_c2_progression_decision]`.
+Its short sequence is `[0001, 0002, 0003, 0004, 0005, 0006, 0007]` and the
+current production SQL resource count is `7`. The terminal migration is
+`0007_rw0_c2_progression_decision`; the cumulative schema has 74 user tables,
+134 triggers, and five explicit indexes. Migration 0006 adds the four private
+program-independent P0 admission tables; migration 0007 adds the six private
+P1 progression supplemental tables. Both are uncommitted artificial-offline
+candidate source. The predecessor 0001–0005 migrations and their literal
+oracles remain unchanged. Earlier current-tip statements in this document
+describe their named historical tranches. Migration 0002 remains an unchanged
+historical prefix and C2B2 acquires no P0/P1 progression authority.
+<!-- RW0_C2_0007_CURRENT_CATALOG_SUCCESSOR_END -->

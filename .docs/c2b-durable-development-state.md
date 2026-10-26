@@ -25054,3 +25054,90 @@ acceptance, terminal outcome, executable permission, production provider or
 worker readiness, ES or Bridge route, product Git authority, service,
 scheduler, or autonomous loop.
 <!-- SECTION41_POST_D2_CUMULATIVE_LOCAL_COMMIT_CURRENT_SUCCESSOR_END -->
+
+<!-- RW0_C2_P0_PHYSICAL_C2B_SUCCESSOR_BEGIN -->
+## RW0-C2 program-independent P0 physical successor
+
+The uncommitted artificial-offline candidate appends migration 0006 after
+Section 41 migration 0005, without changing application generation 2 or any
+0001–0005 byte. The four P0 tables are outside the program-bound 0002 receipt
+grammar and create no development decision or program state. The exact
+P0-to-P1 relationship remains two separately owned transactions in one
+implementation program; P1 has not yet been implemented at this checkpoint.
+Historical target and migration-0005 predecessor text above remains intact.
+<!-- RW0_C2_P0_PHYSICAL_C2B_SUCCESSOR_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_C2B_SUCCESSOR_BEGIN -->
+## RW0-C2 private P1 physical successor
+
+The preceding P0 block is an exact historical checkpoint. The current
+uncommitted artificial-offline candidate adds migration 0007 with six P1
+supplemental tables without changing migration 0006 or existing 0002 row
+meanings. The private P1 fenced writer records one of five development
+progression branches in a separate transaction; acceptance alone adds an
+immutable acceptance fact, and replan updates both program and work heads
+with retained v2 historical postimages. The generic 0002 receipt stays the
+sole decision receipt. P1's private contracts, plan, row, and SQLite modules
+consume the existing typed 0002 row-value adapters without widening their
+public surface or changing their row meanings. Exact family replay and
+three-way recovery require complete typed immutable evidence. This is no
+public or live authority. The detailed owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P1_PHYSICAL_C2B_SUCCESSOR_END -->
+
+<!-- RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_BEGIN -->
+The first uncommitted P1 candidate with a 21-field decision basis was
+independently blocked because its persisted basis omitted the exact typed
+validation/review dispositions that select a candidate reason under a durable
+program block. The current uncommitted basis-v2 repair binds those two closed
+safe typed mappings in the existing canonical basis BLOB and digest. One pure
+classifier serves fresh reduction and historical replay, while the persisted
+final reason and branch are checked against the derived candidate reason.
+Migration 0007 retains six P1 tables with a v2 basis schema-ID CHECK;
+generation 2 and the 74-table/134-trigger/five-index cumulative shape remain.
+Migration 0006 and P0 production bytes are unchanged. This repair is pending
+independent audit and adds no public or live authority.
+<!-- RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_END -->
+
+<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_BEGIN -->
+The independent cumulative artifact audit found two material defects in the
+uncommitted P0→P1 Decision Basis v2 candidate: `expected_branch` was not
+covered by persisted exact command identity, and protected P1 replay/read/
+recovery could disclose a committed result without fresh current disclosure
+posture. The private repair keeps the command schema, migration-0002 receipt
+meaning, Decision Basis v2, all seven migrations, and P0 bytes unchanged.
+The current P1 command-level guarded-command-digest v2 hashes the historical
+30 relation pairs followed by the exact optional `expected_branch`; six
+preassignments remain branch-neutral. Receipt-first P1 readback checks the
+current source's `write=False` disclosure posture before digest comparison or
+family reconstruction. A receipt-free record requires `write=True` recording
+posture before route probes. Recovery with denied or unverifiable disclosure
+returns `unresolved`, and a different complete acceptance winner is verified
+internally by finite matching of its persisted v2 digest against the two
+possible original acceptance assertions. This remains a private artificial
+offline candidate pending independent audit and adds no public or live
+authority. The detailed physical owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_END -->
+
+<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_BEGIN -->
+The bounded private artificial-offline P1 successor separates current
+universal disclosure/recording posture from acceptance-only unclaimed-scope
+eligibility. `ArtificialDecisionGuardSourceV1.checked_for(...)` requires exact
+types, a valid time window, positive basis-bound continuity and sole-active
+posture, no foreign claim, and the relevant permission; it type-checks current
+claimed status without requiring `True` or comparing it to the immutable
+historical basis. Receipt-present replay/read/recovery checks current universal
+disclosure before v2 command association and complete family reconstruction,
+then returns the original committed family without fresh acceptance
+reevaluation. Receipt-absent record checks universal recording before routes,
+current state, and authoritative branch; only derived candidate acceptance
+requires historical and current exhaustive unclaimed-scope assertions.
+Nonaccept branches make no unclaimed assertion. Receipt-absent recovery with
+current `False` and no complete local winner remains `unresolved`; a complete
+competing acceptance winner may prove original-command noncommit without
+winner disclosure or retry permission. This successor changes no migration,
+durable shape, public API, product effect, or live authority, and remains
+pending independent audit. The physical owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END -->

@@ -2,9 +2,10 @@
 
 ## Status and owner split
 
-Classification: `ACCEPTED TARGET CONTRACT`, with physical implementation a
-`REOPENED FUTURE SEAM`. This explicitly supersedes accepted-target mutable-latch
-requirements; it does not change current implemented behavior. Historical latch
+Classification: `ACCEPTED TARGET CONTRACT`. Production/live physical realization
+remains a `REOPENED FUTURE SEAM`; a bounded private artificial-offline P0→P1
+physical candidate now implements only the exact behavior identified below.
+This explicitly supersedes accepted-target mutable-latch requirements. Historical latch
 material remains historical/proof precursor evidence. Tests and reports are
 projections, not authority. The operating model remains composition authority.
 
@@ -80,9 +81,25 @@ and exact command-family route. Local absence receives no credit. Universal
 posture failure or acceptance eligibility failure is
 `bootstrap_acceptance_guard_conflict`: no-write, never durable block.
 Nonaccept branches create no acceptance fact and make no unclaimed-scope assertion.
-Unknown claimed status alone may permit nonaccept only when universal posture,
+Unknown or explicitly claimed status alone may permit nonaccept only when universal posture,
 authoritative derivation, and every other precondition are exact and derivation
 does not rely on unclaimed status. Nonaccept never initializes or repairs guard truth.
+
+In the bounded private offline P1 implementation, universal current posture is
+the exact source type and fields, valid time window, positive and basis-bound
+continuity and sole-active observations, no foreign claim with exact historical
+binding, and the relevant disclosure or recording permission. The current
+`acceptance_exhaustively_unclaimed` value must be an exact `bool` or `None` but
+is neither universal permission nor protected-result disclosure evidence. Only
+after a receipt miss, universal recording posture, route and current-state
+checks, and authoritative branch derivation does candidate acceptance require
+both the historical basis assertion and current source value to be `True`.
+Current `False` or `None` yields `bootstrap_acceptance_guard_conflict` for fresh
+acceptance. No nonaccept branch checks current claimed status for eligibility,
+creates an acceptance fact, or asserts that scope is unclaimed. Current private
+universal-source failure retains its existing safe basis/posture conflict;
+the accepted target's universal guard rejection class above does not replace
+that bounded physical error mapping.
 
 ## Immutable acceptance family and digest order
 
@@ -99,11 +116,12 @@ whole-family recovery. Acceptance may bind decision/version/head, and result/
 receipt may bind acceptance identity/digest. Acceptance never requires final
 result/receipt digests; command digest never requires timestamp or postcommit projection.
 
-Universal lineage/admission/continuity/sole-active posture is part of the command
-and writer admission/fencing prefix, before receipt lookup. Replay does not
-reevaluate fresh claimed status. Command-local grammar/basis and writer fencing
-precede receipt-first replay and
-collision checks, then authoritative branch derivation and acceptance-only
+Command-local grammar/basis and writer fencing precede private P1 receipt
+lookup. Receipt presence requires fresh universal disclosure posture before
+command-digest association or complete historical-family reconstruction;
+replay does not reevaluate fresh claimed status or acceptance eligibility.
+Receipt absence requires fresh universal recording posture before route and
+current-state checks, then authoritative branch derivation and acceptance-only
 eligibility, construction/application of the atomic family, capability invalidation,
 one commit attempt, and readback-only uncertainty resolution. Existing ordinary
 command/basis/current-head reasons retain their owner; identity/route collision
@@ -118,6 +136,13 @@ new family exhaustively absent without fragment, alias, collision, or read fault
 is `definitely_not_committed`. Otherwise classification is `unresolved`.
 Decision without fact or fact without decision is unresolved.
 A competing complete winner can prove original-family absence but never permits fresh retry in the claimed scope.
+If current status explicitly says claimed but no complete local acceptance
+winner proves that claim, receipt-absent recovery is `unresolved`, even when
+the original routes appear absent. A complete competing winner may still prove
+the original command `definitely_not_committed` without disclosing the winner
+or granting fresh eligibility. An exact original family remains
+`committed_exact` under positive universal disclosure regardless of current
+claimed status.
 Recovery creates no decision, fact, timestamp, branch reevaluation, fragment repair,
 scope change, or renewal; unresolved never permits automatic retry.
 
@@ -142,11 +167,12 @@ uniqueness, commitment, atomic membership, or recovery. A new target consumer is
 gated on a separately accepted safe-value compatibility/versioning decision.
 Rename/removal, field grammar, or proof responsibility requires another tranche.
 
-Physical representation, provisioning, readers, writers, safe values, migration treatment, and runtime remain unimplemented and unselected.
-No source, schema, migration, provisioner, writer, reader, recovery path, production
-caller, public surface, runtime, RW0-D/E, or ES change is added. Current migrations
-and source remain untouched. Full source preservation belongs to existing
-structural guards and repository provenance; this owner adds no source manifest.
+Production/live physical representation, provisioning, runtime, and ES routing
+remain unimplemented and unselected. The bounded private artificial-offline
+P0→P1 physical candidate is documented in
+`.docs/rw0-c2-physical-p0-p1-implementation.md`; this semantic owner adds no
+schema, migration, public surface, product effect, or source manifest. Full
+source preservation belongs to structural guards and repository provenance.
 
 ## Closed finite inventories
 
