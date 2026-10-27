@@ -133,3 +133,34 @@ above remains frozen. C2B2 did not implement or acquire ownership of
 migration 0003, 0004 or 0005; Section 41 owns 0005 through
 `.docs/section41-post-execution-proposal-family.md`.
 <!-- SECTION41_0005_CURRENT_CATALOG_SUCCESSOR_END -->
+
+<!-- RW0_C2_0007_CURRENT_CATALOG_SUCCESSOR_BEGIN -->
+### Current workspace catalog after the RW0-C2 P0/P1 physical candidate
+
+The complete current generation-2 workspace catalog is
+`[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence, 0005_section41_post_execution_proposal_family, 0006_rw0_c2_scope_admission, 0007_rw0_c2_progression_decision]`.
+Its short sequence is `[0001, 0002, 0003, 0004, 0005, 0006, 0007]` and the
+current production SQL resource count is `7`. The terminal migration is
+`0007_rw0_c2_progression_decision`; the cumulative schema has 74 user tables,
+134 triggers, and five explicit indexes. Migration 0006 adds the four private
+program-independent P0 admission tables; migration 0007 adds the six private
+P1 progression supplemental tables. Both are uncommitted artificial-offline
+candidate source. The predecessor 0001–0005 migrations and their literal
+oracles remain unchanged. Earlier current-tip statements in this document
+describe their named historical tranches. Migration 0002 remains an unchanged
+historical prefix and C2B2 acquires no P0/P1 progression authority.
+<!-- RW0_C2_0007_CURRENT_CATALOG_SUCCESSOR_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### RW0-C2 0007 committed-source catalog status
+
+The preceding 0007 candidate block is preserved as an exact historical
+checkpoint. Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit
+`8704e6c7988250598809f3a0daf88c3e11493488` records it; neither fact changes migration 0002's prefix ownership.
+The current source catalog remains seven generation-2 resources through
+`0007_rw0_c2_progression_decision`, with 74 user tables, 134 triggers, and
+five explicit indexes. Migration 0006 supplies four P0-only tables; migration
+0007 supplies six P1 supplemental tables. Older managed prefixes still require
+explicit administrative migration. This local source status implies no live
+supplier, product mutation permission, or publication.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

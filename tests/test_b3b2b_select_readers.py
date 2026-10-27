@@ -531,6 +531,12 @@ EXPECTED_PRODUCTION_READER_IMPORTS = (
         ("_read_global_stop_current",),
     ),
     (
+        "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+        1,
+        "sqlite_transition_read_scope",
+        ("_read_global_stop_current",),
+    ),
+    (
         "src/ge_nwp_coordinator/sqlite_transition_transaction.py",
         0,
         READER_FACADE_MODULE,
@@ -572,6 +578,12 @@ EXPECTED_PRODUCTION_READER_EDGES = (
     (
         "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",
         "_read_phase_development_owner_rows",
+        "_read_global_stop_current",
+        1,
+    ),
+    (
+        "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+        "_require_current",
         "_read_global_stop_current",
         1,
     ),
@@ -645,6 +657,8 @@ _INITIALIZER_OWNER_NAME = (
 )
 _RW0_C1_CONSUMER_PATH = "src/ge_nwp_coordinator/_sqlite_rw0_c1.py"
 _RW0_C1_OWNER_NAME = "_read_phase_development_owner_rows"
+_RW0_C2_P1_CONSUMER_PATH = "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py"
+_RW0_C2_P1_OWNER_NAME = "_require_current"
 _TRANSACTION_CONSUMER_PATH = (
     "src/ge_nwp_coordinator/sqlite_transition_transaction.py"
 )
@@ -726,6 +740,15 @@ _EXPECTED_RW0_C1_OWNER_HEADER_SHAPE = (
     "Name(id='object', ctx=Load()), Name(id='object', ctx=Load()), "
     "Name(id='object', ctx=Load()), Name(id='object', ctx=Load()), "
     "Name(id='object', ctx=Load())], ctx=Load()), ctx=Load())",
+    None,
+)
+_EXPECTED_RW0_C2_P1_OWNER_HEADER_SHAPE = (
+    (),
+    (),
+    "arguments(args=[arg(arg='capability', annotation=Name(id='object', "
+    "ctx=Load())), arg(arg='command', "
+    "annotation=Name(id='RecordProgressionDecisionCommandV1', ctx=Load()))])",
+    "Name(id='_P1CurrentRows', ctx=Load())",
     None,
 )
 _EXPECTED_CONTROLLER_OWNER_HEADER_SHAPE = ((), (), (), ())
@@ -912,6 +935,7 @@ def _require_exact_live_authorized_reader_owners(
         _PRE_EXECUTION_CONSUMER_PATH,
         _INITIALIZER_CONSUMER_PATH,
         _RW0_C1_CONSUMER_PATH,
+        _RW0_C2_P1_CONSUMER_PATH,
         _TRANSACTION_CONSUMER_PATH,
     }:
         return {}
@@ -1014,6 +1038,24 @@ def _require_exact_live_authorized_reader_owners(
             _RW0_C1_OWNER_NAME,
         )
         return {_RW0_C1_OWNER_NAME: selected_owner}
+
+    if relative_path == _RW0_C2_P1_CONSUMER_PATH:
+        selected_owner = _require_direct_definition(
+            tree.body,
+            name=_RW0_C2_P1_OWNER_NAME,
+            expected_type=ast.FunctionDef,
+        )
+        if (
+            type(selected_owner) is not ast.FunctionDef
+            or _function_owner_header_shape(selected_owner)
+            != _EXPECTED_RW0_C2_P1_OWNER_HEADER_SHAPE
+        ):
+            raise AssertionError(_PRIVATE_READER_OWNER_NOT_LIVE)
+        _require_selected_code_object(module_code, selected_owner)
+        _require_single_namespace_definition_binding(
+            module_code, _RW0_C2_P1_OWNER_NAME,
+        )
+        return {_RW0_C2_P1_OWNER_NAME: selected_owner}
 
     selected_controller = _require_direct_definition(
         tree.body,
@@ -3112,6 +3154,8 @@ def test_tests_only_schema_setup_is_not_a_fixture_or_production_capability_progr
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
         "0005_section41_post_execution_proposal_family.sql",
+        "0006_rw0_c2_scope_admission.sql",
+        "0007_rw0_c2_progression_decision.sql",
     ]
     assert json.loads(json.dumps({"capability": "tests-only"})) == {"capability": "tests-only"}
 

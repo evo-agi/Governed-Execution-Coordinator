@@ -165,3 +165,36 @@ ES runtime, or production adapter. External-copy validation and independent
 audit remain pending. The detailed owner is
 `.docs/rw0-d2-offline-evidence-and-review.md`.
 <!-- RW0_D2_CURRENT_STATUS_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+**Current C2 cross-stage status successor.**
+
+Wire remains pure representation/classification and owns no persistence,
+admission, decision, acceptance, or runtime. The earlier statements that all
+RW0-C durability or C2 persistence was future remain exact stage snapshots;
+later separate C2 owners now implement private artificial-offline P0/P1 durable
+families. Physical transport, process plumbing, live source authentication,
+provider, credentials, ES routing, terminal outcome, and RW0-E remain future.
+
+The independently accepted, bounded private artificial-offline P0→P1 source is
+Git tree `161ed4b544baf970cc26428b9805a106ea0f3edf`, locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488` with sole parent
+`4519630d0db967066beb21b4ace5004e76827716`. Its exact-byte local gate
+recorded 9,473 collected/executed/JUnit/passed, zero failures, errors, and
+skips, and three known Python 3.13 multithreaded-fork `DeprecationWarning`s.
+That gate performed no push, upstream creation, PR, merge, publication,
+deployment, or product effect. Git objects and refs remain commit and
+publication truth; audit, validation, provenance, reports, and status prose
+are evidence only.
+
+The separate current C2 implementation records P0 immutable admission history,
+never current permission. P1 persists one of five durable decision branches and
+creates an acceptance fact only on `candidate_acceptance`; the fact is not
+terminal truth, executable permission, live custody, runtime admission, or
+deployment authority. Decision Basis v2, guarded-command-digest v2, the
+historical work-head witness, universal disclosure posture, and acceptance-only
+eligibility are current private mechanics. F03 and F05 remain open nonblocking
+observations. There is no live enrollment/custody supplier, terminal outcome,
+production provider/worker, ES/Bridge route, product Git effect, public service,
+queue, scheduler, deployment, or autonomous loop.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

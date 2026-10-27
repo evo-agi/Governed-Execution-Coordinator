@@ -2350,6 +2350,8 @@ def test_new_module_is_private_unexported_and_static_shape_is_closed() -> None:
         "0003_cognitive_proposal_and_selection_state.sql",
         "0004_rw0_c1_durable_evidence.sql",
         "0005_section41_post_execution_proposal_family.sql",
+        "0006_rw0_c2_scope_admission.sql",
+        "0007_rw0_c2_progression_decision.sql",
     ]
 def test_open_faulting_connection_setup_baseexception_closes_exact_local_connection_and_preserves_primary(
     tmp_path: Path,

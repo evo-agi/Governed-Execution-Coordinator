@@ -38,6 +38,8 @@ _C2B2_MIGRATION_ID = "0002_development_program_and_effect_state"
 _SECTION41_MIGRATION_ID = "0003_cognitive_proposal_and_selection_state"
 _RW0_C1_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
 _POST_EXECUTION_PROPOSAL_MIGRATION_ID = "0005_section41_post_execution_proposal_family"
+_RW0_C2_SCOPE_ADMISSION_MIGRATION_ID = "0006_rw0_c2_scope_admission"
+_RW0_C2_PROGRESSION_DECISION_MIGRATION_ID = "0007_rw0_c2_progression_decision"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -134,6 +136,16 @@ EXPECTED_TABLES = frozenset(
         "rw0_c2a_worker_observation_evidence_refs",
         "development_post_execution_proposal_contexts",
         "development_post_execution_proposal_receipts",
+        "rw0_c2_verified_admission_acts",
+        "rw0_c2_scope_admission_facts",
+        "rw0_c2_scope_admission_recording_bases",
+        "rw0_c2_scope_admission_recording_receipts",
+        "rw0_c2_historical_continuity_bases",
+        "rw0_c2_historical_sole_active_bases",
+        "rw0_c2_decision_bases",
+        "rw0_c2_guarded_family_relations",
+        "rw0_c2_guarded_progression_results",
+        "rw0_c2_bootstrap_acceptance_facts",
     }
 )
 
@@ -221,6 +233,26 @@ _EMPTY_AFTER_POST_EXECUTION_PROPOSAL_MIGRATION_TABLES = frozenset(
     {
         "development_post_execution_proposal_contexts",
         "development_post_execution_proposal_receipts",
+    }
+)
+
+_EMPTY_AFTER_RW0_C2_SCOPE_ADMISSION_MIGRATION_TABLES = frozenset(
+    {
+        "rw0_c2_verified_admission_acts",
+        "rw0_c2_scope_admission_facts",
+        "rw0_c2_scope_admission_recording_bases",
+        "rw0_c2_scope_admission_recording_receipts",
+    }
+)
+
+_EMPTY_AFTER_RW0_C2_PROGRESSION_DECISION_MIGRATION_TABLES = frozenset(
+    {
+        "rw0_c2_historical_continuity_bases",
+        "rw0_c2_historical_sole_active_bases",
+        "rw0_c2_decision_bases",
+        "rw0_c2_guarded_family_relations",
+        "rw0_c2_guarded_progression_results",
+        "rw0_c2_bootstrap_acceptance_facts",
     }
 )
 
@@ -446,6 +478,26 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="Section 41 native post-execution proposal context and receipt",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_RW0_C2_SCOPE_ADMISSION_MIGRATION_ID,
+        sequence=6,
+        resource_name="0006_rw0_c2_scope_admission.sql",
+        literal_checksum="58b2731d52e8e199c010b309a29aa831ffb16d4db4e755d20adb694ce0a7305f",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="RW0-C2 program-independent scope-admission recording",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_RW0_C2_PROGRESSION_DECISION_MIGRATION_ID,
+        sequence=7,
+        resource_name="0007_rw0_c2_progression_decision.sql",
+        literal_checksum="505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="RW0-C2 guarded progression decision and acceptance evidence",
     ),
 )
 
@@ -2357,6 +2409,10 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_rw0_c1_migration_tables(connection)
     if migration.migration_id == _POST_EXECUTION_PROPOSAL_MIGRATION_ID:
         _verify_empty_post_execution_proposal_migration_tables(connection)
+    if migration.migration_id == _RW0_C2_SCOPE_ADMISSION_MIGRATION_ID:
+        _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C2_SCOPE_ADMISSION_MIGRATION_TABLES)
+    if migration.migration_id == _RW0_C2_PROGRESSION_DECISION_MIGRATION_ID:
+        _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C2_PROGRESSION_DECISION_MIGRATION_TABLES)
 
 
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:

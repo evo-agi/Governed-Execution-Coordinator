@@ -5,6 +5,9 @@ import hashlib
 from pathlib import Path
 
 import pytest
+from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
+    _rw0_c2_current_drift_predecessor,
+)
 
 import ge_nwp_coordinator as package
 import ge_nwp_coordinator._rw0_phase_entry_semantic_values as phase
@@ -31,6 +34,8 @@ from tests.test_rw0_b2_wire_cancellation_control_values import (
 ROOT = Path(__file__).resolve().parents[1]
 STATUS_BEGIN = "<!-- RW0_B2_WIRE_CURRENT_STATUS_BEGIN -->"
 STATUS_END = "<!-- RW0_B2_WIRE_CURRENT_STATUS_END -->"
+# The exact Wire-stage status below is historical where it places C2 durability
+# in the future; the separate current C2 successor is required below.
 EXPECTED_STATUS = "RW0-B2-Wire now implements private, pure, no-I/O NWPF v1 representational framing, canonical command/result codecs, closed worker-result grammar, safe supplied cancellation-request and process source-claim values, and pure process/result classification. It also implements the separate private, pure, no-I/O cancellation-control evidence profile `rw0-wire-cancellation-control-v1` with digest `4d6f84552b852a4c4073b4238591afd271072f648424eca9e744def436165288`, exact-current author/validation/review cancellation-control relations, and pure `invalid`/`incomplete`/`finite` supplied-control-evidence classification. The additive cancellation-control profile does not replace or enter the fixed NWPF v1 frames, Capability continues to bind only `rw0-wire-nwpf-v1`, and the profile remains distinct from B1 physical host cancellation-mechanism evidence. Physical transport framing and stream/process plumbing remain deferred, as do pre-read allocation, supervisor/worker implementation, cancellation delivery, concrete direct-local or ES wrapper/correlation mechanics, persistence, source authentication, process proof, CLI/App Server integration, credentials, provider/session behavior, and live execution. The fixed protocol profile is `rw0-wire-nwpf-v1` with digest `470cb5bf96acd3163cea4e60b8fb6fdb2844ebb18db871d014eceae5fd596454`; `.docs/rw0-b2-wire-protocol.md` is the detailed owner. RW0-B2-Wire does not own or alter RW0-B1 or C2A schema, canonical-identity, semantic-outcome, or authority contracts; their protected owner reconstruction and occurrence-work accounting are hardened separately for fail-closed Capability composition. No worker, process, contact, persistence, authority, acceptance, or Codex mechanism is implemented. Capability is implemented separately as private, pure, no-I/O semantics owned by `.docs/rw0-b2-capability.md` and does not widen Wire ownership. RW0-B1, RW0-B2-Wire, and RW0-B2-Capability private semantics are current implemented contracts; RW0-C/D/E durable, transport, process, provider, credential, live-proof, and runtime mechanics remain future, and Execution Substrate retains admission and runtime ownership."
 STATUS_PATHS = (
     ROOT / ".docs/rw0-remote-worker-contact-phase-entry.md",
@@ -384,6 +389,8 @@ def test_module_remains_private_no_export_no_caller_and_no_io(monkeypatch) -> No
 
 
 def test_five_status_projections_and_owner_contract_are_synchronized() -> None:
+    wire_path = '.docs/rw0-b2-wire-protocol.md'
+    _rw0_c2_current_drift_predecessor(wire_path, (ROOT / wire_path).read_bytes())
     for path in STATUS_PATHS:
         text = path.read_text(encoding="utf-8")
         assert text.count(STATUS_BEGIN) == text.count(STATUS_END) == 1

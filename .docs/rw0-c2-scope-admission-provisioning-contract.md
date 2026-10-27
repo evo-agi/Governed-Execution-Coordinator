@@ -317,3 +317,61 @@ mechanics, and live proof. No full-custodian successor is selected by default.
 ### Section 41 offline proof versus live admission
 
 The current additive migration 0005 records a synthetic Section 41 post-execution proposal family and supports private C1 rank-15 admission. Its process-owned local state and fake children do not satisfy the live external custody, enrollment, source authentication, continuity or standing-policy admission requirements of this contract. Historical prospective references to C2 use of migration 0005 are superseded as allocations only; any C2 physical suffix must be later and separately selected, currently expected no earlier than 0006.
+
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_SUCCESSOR_BEGIN -->
+## Artificial-offline P0 physical candidate (implementation successor)
+
+The preceding v1 machine block remains the accepted semantic contract. In the
+`codex/rw0-c2-p0-p1-physical-program-v1` uncommitted candidate, migration
+`0006_rw0_c2_scope_admission` represents only the program-independent P0
+family. Four immutable STRICT tables retain the verified safe act, the
+admission fact, the historical recording basis, and the recording receipt.
+Act, lineage, and scope have independent unique fact routes; the four
+enrollment/incarnation/process/storage coordinates are source-bound historical
+evidence, not independent SQLite uniqueness claims. A result is reconstructed
+from checked basis and receipt rows. P0 uses the guarded writer transaction
+controller, one COMMIT attempt, receipt-first replay, and read-only three-way
+recovery. It creates no program, C2 decision, acceptance, or terminal row.
+
+This is an artificial-offline source candidate over task-owned disposable
+state. Its fake source observation does not pass live supplier or custody gate
+B; a retained act or receipt never grants current permission. The original
+target-only status prose above describes the pre-implementation state and is
+superseded only for this bounded candidate by this section. P1 remains a
+separate transaction in the same intended program.
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_SUCCESSOR_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+**P0 local-commit status successor.**
+
+The preceding P0 physical-candidate block is preserved checkpoint-stage text.
+Migration `0006_rw0_c2_scope_admission` and its four-table P0 private family
+are now in the independently accepted, locally committed P0→P1 source. P0
+remains separately attributable and usable before a program. Its recording
+creates no P1 decision, current permission, terminal fact, or live allowance.
+Migration `0007_rw0_c2_progression_decision` and P1 belong to a separate owner
+and do not rewrite P0 recording semantics. Live supplier/custody gate B remains
+open.
+
+The independently accepted, bounded private artificial-offline P0→P1 source is
+Git tree `161ed4b544baf970cc26428b9805a106ea0f3edf`, locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488` with sole parent
+`4519630d0db967066beb21b4ace5004e76827716`. Its exact-byte local gate
+recorded 9,473 collected/executed/JUnit/passed, zero failures, errors, and
+skips, and three known Python 3.13 multithreaded-fork `DeprecationWarning`s.
+That gate performed no push, upstream creation, PR, merge, publication,
+deployment, or product effect. Git objects and refs remain commit and
+publication truth; audit, validation, provenance, reports, and status prose
+are evidence only.
+
+The separate current C2 implementation records P0 immutable admission history,
+never current permission. P1 persists one of five durable decision branches and
+creates an acceptance fact only on `candidate_acceptance`; the fact is not
+terminal truth, executable permission, live custody, runtime admission, or
+deployment authority. Decision Basis v2, guarded-command-digest v2, the
+historical work-head witness, universal disclosure posture, and acceptance-only
+eligibility are current private mechanics. F03 and F05 remain open nonblocking
+observations. There is no live enrollment/custody supplier, terminal outcome,
+production provider/worker, ES/Bridge route, product Git effect, public service,
+queue, scheduler, deployment, or autonomous loop.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

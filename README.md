@@ -699,3 +699,43 @@ gates; this source status grants neither. `.docs/rw0-d2-offline-evidence-and-rev
 ### Native post-D2 offline proposal admission successor
 
 The private adjacent post-D2 continuation now runs the original D2 proof once, records a native Section 41 post-execution proposal family in fenced transaction A, checks its twelve persisted common owner rows, admits one C1 rank-15 member in separate transaction B, and feeds fresh guarded readbacks to unchanged pure V22. The five model recommendations remain proposal evidence. This does not make a C2 decision, acceptance, terminal outcome or executable permission. The current packaged SQLite tip is additive migration `0005_section41_post_execution_proposal_family`, still generation 2; exact 0004 databases require explicit administrative migration. The bounded owner is `.docs/section41-post-execution-proposal-family.md`; earlier 0004-tip and absent-0005 status text describes the preserved D2/C1 historical tranches.
+
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_BEGIN -->
+## RW0-C2 physical candidate
+
+The uncommitted artificial-offline candidate includes private P0
+program-independent scope-admission recording on migration 0006. It has no
+live supplier, production caller, executable effect, or terminal persistence.
+The selected P0→P1 implementation program is incomplete until its distinct
+P1 decision family and connected validation are finished.
+<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->
+## RW0-C2 private P1 physical successor
+
+The preceding P0 block is historical checkpoint text. The current uncommitted
+artificial-offline candidate adds a separate private P1 five-branch
+progression writer on migration 0007. Replan retains exact historical program
+and work-head postimages; acceptance alone records an immutable fact. Exact
+replay and three-way recovery remain under the guarded writer controller.
+Connected disposable D1/D2, Section 41/C1/V22, and P1 tests are
+implementation evidence, not independent audit or live acceptance. There is
+no live supplier, public caller, executable effect, or terminal persistence.
+See `.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 local implementation status
+
+The P0 and P1 candidate blocks above remain historical checkpoints.
+Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf`; local commit `8704e6c7988250598809f3a0daf88c3e11493488`
+records that exact tree on `codex/rw0-c2-p0-p1-physical-program-v1` with
+sole parent `4519630d0db967066beb21b4ace5004e76827716` and no upstream. The local commit gate reconciled 9,473
+collected, executed, JUnit, and passed IDs in order, with zero failures,
+errors, and skips and three known Python 3.13 fork deprecation warnings.
+No push, PR, merge, publication, deployment, or product effect occurred.
+Git objects and refs own commit truth. This remains a private artificial-offline
+proof: P0 admission history is not current authority; P1's acceptance-only
+fact is not terminal truth or executable permission. The detailed current
+contract is `.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

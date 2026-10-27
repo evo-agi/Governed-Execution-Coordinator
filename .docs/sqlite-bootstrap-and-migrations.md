@@ -662,4 +662,49 @@ writable activity, is non-destructive, and seeds zero rows.
 
 ### Section 41 migration 0005 additive successor
 
-The complete production catalog is now `[0001, 0002, 0003, 0004, 0005_section41_post_execution_proposal_family]` at application generation 2. The 0005 SQL resource has SHA-256 `583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87`, adds two STRICT zero-seed tables and four immutable guards, and adds no explicit index. The cumulative schema has 64 user tables, 114 triggers and five explicit indexes. Fresh initialization applies all five; an exact supported 0004 prefix requires explicit `migrate_database()` before ordinary validation, writer acquisition or mutation, which never auto-migrate. The four earlier SQL resources remain byte-exact. Existing SQLite 3.37.0 preflight and cumulative packaged-SQL schema verification apply to this suffix. Prior 0004-tip wording is a historical owner snapshot.
+At the Section 41 checkpoint, the complete catalog was `[0001, 0002, 0003, 0004, 0005_section41_post_execution_proposal_family]` at application generation 2. The 0005 SQL resource has SHA-256 `583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87`, adds two STRICT zero-seed tables and four immutable guards, and adds no explicit index. The cumulative schema at that checkpoint had 64 user tables, 114 triggers and five explicit indexes. Fresh initialization applied all five; an exact supported 0004 prefix required explicit `migrate_database()` before ordinary validation, writer acquisition or mutation, which never auto-migrate. The four earlier SQL resources remain byte-exact. Existing SQLite 3.37.0 preflight and cumulative packaged-SQL schema verification apply to this suffix. Prior 0004-tip wording is a historical owner snapshot; the current uncommitted candidate tip is 0007 below.
+
+<!-- RW0_C2_P0_MIGRATION_0006_CANDIDATE_BEGIN -->
+## RW0-C2 P0 migration 0006 candidate
+
+Migration `0006_rw0_c2_scope_admission` is additive, application generation
+2, and program-independent. It creates four immutable STRICT tables and eight
+UPDATE/DELETE rejection triggers, with no explicit index. Fresh initialization
+applies the complete current catalog; an exact older managed prefix advances
+only through explicit `migrate_database()`. Ordinary writer acquisition and
+product mutation never migrate. Migrations 0001–0005 remain byte-identical.
+This section records the artificial-offline uncommitted implementation
+candidate, not a live admission supplier or durability acceptance.
+<!-- RW0_C2_P0_MIGRATION_0006_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_MIGRATION_0007_CANDIDATE_BEGIN -->
+## RW0-C2 P1 migration 0007 candidate
+
+The uncommitted application-generation-2 catalog tip is now
+`0007_rw0_c2_progression_decision`, SHA-256
+`505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c`.
+It adds exactly six immutable STRICT supplemental tables and twelve
+UPDATE/DELETE rejection triggers; the cumulative schema has 74 user tables,
+134 triggers, and five explicit indexes. Its guarded relation stores four
+bounded nullable work-head witness columns, all required only for replan, with
+a nullable identity FK to the existing work head. The v2 result requires the
+v2 receipt graph profile. The decision-basis row CHECK requires the current
+decision-basis v2 schema ID; its two typed dispositions remain inside the
+existing canonical basis BLOB. Migrations 0001–0006 remain byte-identical. An exact
+0006 prefix requires explicit administrative migration; ordinary inspection,
+writer acquisition, and product mutation never auto-migrate. This suffix adds
+no public mutation API or live authorization.
+<!-- RW0_C2_P1_MIGRATION_0007_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 committed-source migration status
+
+The 0006 P0 and 0007 P1 candidate blocks above are exact historical
+checkpoints. Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit
+`8704e6c7988250598809f3a0daf88c3e11493488` records its seven-resource generation-2 catalog. Migration 0006
+remains a four-table P0-only family; migration 0007 remains a six-table P1
+supplement. SQL bytes, hashes, schema counts, and the explicit migration-only
+rule are unchanged. Ordinary inspection, validation, writer acquisition, and
+product mutation do not auto-migrate. This local source commit neither
+publishes the branch nor establishes live admission or executable permission.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

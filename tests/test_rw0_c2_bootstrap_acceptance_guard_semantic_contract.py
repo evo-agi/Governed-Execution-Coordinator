@@ -191,9 +191,10 @@ PROSE = (
     ('terminal', 'A later terminal fact binds exact acceptance identity/digest and committed decision/result/receipt without guard mutation.'),
     ('es', 'Later ES operation is separately governed and never consumes, replenishes, resets, or reinterprets direct-local allowance.'),
     ('b1', 'The B1 legacy pair is representation/coherence only and is not current durable guard proof.'),
-    ('fencing_before_receipt', 'Universal lineage/admission/continuity/sole-active posture is part of the command and writer admission/fencing prefix, before receipt lookup.'),
-    ('replay_before_eligibility', 'Command-local grammar/basis and writer fencing precede receipt-first replay and collision checks, then authoritative branch derivation and acceptance-only eligibility, construction/application of the atomic family, capability invalidation, one commit attempt, and readback-only uncertainty resolution.'),
-    ('implementation', 'Physical representation, provisioning, readers, writers, safe values, migration treatment, and runtime remain unimplemented and unselected.'),
+    ('fencing_before_receipt', 'Command-local grammar/basis and writer fencing precede private P1 receipt lookup.'),
+    ('replay_before_eligibility', 'Receipt presence requires fresh universal disclosure posture before command-digest association or complete historical-family reconstruction; replay does not reevaluate fresh claimed status or acceptance eligibility.'),
+    ('recording_before_eligibility', 'Receipt absence requires fresh universal recording posture before route and current-state checks, then authoritative branch derivation and acceptance-only eligibility, construction/application of the atomic family, capability invalidation, one commit attempt, and readback-only uncertainty resolution.'),
+    ('implementation', 'Production/live physical representation, provisioning, runtime, and ES routing remain unimplemented and unselected.'),
 )
 
 
@@ -309,17 +310,18 @@ def _assert_guard_ordering_integrity(text, decision_text):
     _require(len(section) == 2, 'guard_ordering_integrity:guard_pipeline')
     section = section[1].split('## Terminal, ES, and compatibility boundaries\n', 1)[0]
     paragraphs = [' '.join(paragraph.split()) for paragraph in section.split('\n\n') if paragraph.strip()]
-    candidates = [paragraph for paragraph in paragraphs if paragraph.startswith('Universal lineage/admission/continuity/sole-active posture')]
+    candidates = [paragraph for paragraph in paragraphs if paragraph.startswith('Command-local grammar/basis and writer fencing')]
     _require(len(candidates) == 1, 'guard_ordering_integrity:fencing_before_receipt')
     sentences = re.split(r'(?<=\.) ', candidates[0])
-    _require(sentences[0] == 'Universal lineage/admission/continuity/sole-active posture is part of the command and writer admission/fencing prefix, before receipt lookup.',
+    _require(sentences[0] == 'Command-local grammar/basis and writer fencing precede private P1 receipt lookup.',
              'guard_ordering_integrity:fencing_before_receipt')
-    _require(sentences[1] == 'Replay does not reevaluate fresh claimed status.', 'guard_ordering_integrity:replay_before_eligibility')
-    chain = re.fullmatch(r'(.+) precede (.+), then (.+), (.+), (.+), (.+), and (.+)\.', sentences[2])
+    _require(sentences[1] == 'Receipt presence requires fresh universal disclosure posture before command-digest association or complete historical-family reconstruction; replay does not reevaluate fresh claimed status or acceptance eligibility.',
+             'guard_ordering_integrity:replay_before_eligibility')
+    chain = re.fullmatch(r'(.+) before (.+), then (.+), (.+), (.+), (.+), and (.+)\.', sentences[2])
     _require(chain is not None, 'guard_ordering_integrity:replay_before_eligibility')
     stages = chain.groups()
-    _require(stages[0] == 'Command-local grammar/basis and writer fencing', 'guard_ordering_integrity:fencing_before_receipt')
-    _require(stages[1] == 'receipt-first replay and collision checks' and stages[2] == 'authoritative branch derivation and acceptance-only eligibility',
+    _require(stages[0] == 'Receipt absence requires fresh universal recording posture', 'guard_ordering_integrity:replay_before_eligibility')
+    _require(stages[1] == 'route and current-state checks' and stages[2] == 'authoritative branch derivation and acceptance-only eligibility',
              'guard_ordering_integrity:replay_before_eligibility')
     _require(stages[3] == 'construction/application of the atomic family', 'guard_ordering_integrity:eligibility_before_family')
     _require(stages[4:] == ('capability invalidation', 'one commit attempt', 'readback-only uncertainty resolution'),
@@ -622,9 +624,10 @@ def test_b1_compatibility_and_focused_nonimplementation(guard):
         'guard:section41_0005_exact_successor',
     )
     _require(
-        not any('rw0_c2' in p.name or 'bootstrap_guard' in p.name
-                for p in migration_root.glob('*.sql')),
-        'guard:c2_migration_absent',
+        {p.name for p in migration_root.glob('*rw0_c2*')}
+        == {'0006_rw0_c2_scope_admission.sql',
+            '0007_rw0_c2_progression_decision.sql'},
+        'guard:p0_p1_migration_successor',
     )
     for relative in ('state_store.py', '__init__.py'):
         text = (source / relative).read_text()
@@ -670,7 +673,7 @@ def test_inventory_hostiles_have_exact_boundaries(group, key, value, boundary):
 def test_prose_only_drift_has_exact_boundary(boundary, sentence):
     text = (ROOT / GUARD).read_text()
     changed = re.sub(r'\s+'.join(re.escape(word) for word in sentence.split()), 'Contradictory target prose.', text, count=1)
-    exact = ('guard_ordering_integrity:' if boundary in ('fencing_before_receipt', 'replay_before_eligibility') else 'guard:prose:') + boundary
+    exact = ('guard_ordering_integrity:' if boundary in ('fencing_before_receipt', 'replay_before_eligibility', 'recording_before_eligibility') else 'guard:prose:') + (('replay_before_eligibility' if boundary == 'recording_before_eligibility' else boundary))
     with pytest.raises(AssertionError, match='^' + re.escape(exact) + '$'):
         _parse(changed)
 
@@ -730,7 +733,12 @@ def test_four_document_guard_projection():
     end = '<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->'
     bodies = []
     for relative in ('.docs/autonomous-software-development-operating-model.md', '.docs/worker-execution-boundary.md', '.docs/authority-boundaries.md', '.docs/durable-state-model.md'):
-        text = (ROOT / relative).read_text()
+        payload = (ROOT / relative).read_bytes()
+        if relative in ('.docs/worker-execution-boundary.md', '.docs/durable-state-model.md'):
+            # Compare the exact historical shared projection after verifying
+            # its separately governed, owner-local current C2 successor.
+            payload, _status = _rw0_c2_current_drift_predecessor(relative, payload)
+        text = payload.decode('utf-8')
         body = _region(text, begin, end)
         compact = ' '.join(body.split())
         _require('The accepted direct-local C2B decision alone atomically creates the immutable bootstrap-acceptance fact in its guarded writer transaction' in compact, 'guard:four_body_immutable_fact:' + relative)
@@ -856,6 +864,43 @@ def _assert_capability_semantic_source(text):
 def _assert_capability_documents_integrity():
     for pid, reference in GUARD_CAPABILITY_EXPECTED.items():
         data = (ROOT / reference['path']).read_bytes()
+        if pid in ('P11', 'P12'):
+            current, status_suffix = {
+                'P11': ((74410, 'c8ccf0552265d172a659a30be898fffd35cc70fad4821a350c3a9bf00e8f6b5d'),
+                        (1664, '35b0ef1755c05f0a58ca6b073dcfcbacb333d2a78e0725e9d72012b2aa725f03')),
+                'P12': ((50883, '97af30802aea371b231e6509df62743006218065b3decbeb3bcc3db94df98981'),
+                        (1063, '9a10331a1876103db243e8bc7d4abc8a5c876bb00a7fea9abb4ab505a42dad55')),
+            }[pid]
+            status_size, status_digest = status_suffix
+            status_begin = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+            status_end = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+            _require((len(data), hashlib.sha256(data).hexdigest()) == current and
+                     len(data) >= status_size and data.endswith(status_end) and
+                     data.count(status_begin) == data.count(status_end) == 1 and
+                     data[-status_size:].startswith(status_begin) and
+                     hashlib.sha256(data[-status_size:]).hexdigest() == status_digest,
+                     'guard:capability_semantic_integrity:local_status_successor:' + pid)
+            data = data[:-status_size]
+            p1_suffix = {
+                'P11': (837, '733268376667429162a6b5a62e8b1a2a695a271e695c3cda5869825e49bd4ede'),
+                'P12': (772, 'aa49da5e056b8dca34a772d8d7c4da4ba5525037d9a2b5517bd8f673566eb367'),
+            }[pid]
+            p1_size, p1_digest = p1_suffix
+            _require(len(data) >= p1_size and
+                     hashlib.sha256(data[-p1_size:]).hexdigest() == p1_digest and
+                     data[-p1_size:].count(b'<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->') == 1,
+                     'guard:capability_semantic_integrity:p1_successor:' + pid)
+            data = data[:-p1_size]
+            suffix = {
+                'P11': (644, '5a6268e7a6a848cf638e5092633d8e773bdf5b9d12498f5deb92aa9119523923'),
+                'P12': (470, '07d99f5eab07a2d57d39a8ce5836ae062b523b2cdfc89c6d2c87f29a5d4bed6e'),
+            }[pid]
+            size, digest = suffix
+            _require(len(data) >= size and
+                     hashlib.sha256(data[-size:]).hexdigest() == digest and
+                     data[-size:].count(b'<!-- RW0_C2_P0_PHYSICAL_CANDIDATE_BEGIN -->') == 1,
+                     'guard:capability_semantic_integrity:p0_successor:' + pid)
+            data = data[:-size]
         identity = (len(data), hashlib.sha256(data).hexdigest())
         _type_exact(identity, reference['replacement_identity'], boundary='guard:capability_semantic_integrity:identity:' + pid)
         _require(identity != reference['old_identity'], 'guard:capability_semantic_integrity:changed:' + pid)
@@ -935,9 +980,9 @@ def test_capability_protected_literal_source_variants(case):
 def test_guard_ordering_integrity_hostile(case, boundary):
     text = (ROOT / GUARD).read_text(); decision_text = (ROOT / C2).read_text()
     if case == 'fencing':
-        text = text.replace('Command-local grammar/basis and writer fencing\nprecede receipt-first replay and\ncollision checks', 'Receipt-first replay and collision disclosure precede\ncommand-local grammar/basis and writer fencing', 1)
+        text = text.replace('Command-local grammar/basis and writer fencing precede private P1 receipt\nlookup.', 'Private P1 receipt lookup precedes command-local grammar/basis and writer fencing.', 1)
     elif case == 'replay':
-        text = text.replace('receipt-first replay and\ncollision checks, then authoritative branch derivation and acceptance-only\neligibility', 'authoritative branch derivation and acceptance-only eligibility, then receipt-first replay and collision checks', 1)
+        text = text.replace('Receipt presence requires fresh universal disclosure posture before\ncommand-digest association', 'Receipt presence checks command-digest association before fresh universal disclosure posture', 1)
     elif case == 'family':
         text = text.replace('construction/application of the atomic family', 'fresh acceptance-only eligibility', 1)
     else:
@@ -1915,3 +1960,466 @@ def test_actual_call_probe_source_hostile(case, boundary):
     changed = text.replace(old, new, 1)
     with pytest.raises(AssertionError, match='^' + re.escape(boundary) + '$'):
         _assert_actual_call_source(changed)
+
+
+# Fixed identities for the accepted local-commit status successor. The
+# predecessor values are the exact 8704e6c source bytes, not values derived
+# from the document currently under test.
+_RW0_C2_STATUS_DOCUMENT_IDENTITIES = {
+    '.docs/architecture.md': ((47673, 'f97ca75f31e4ba07960bc5ce3a163ea073647308edcadf6b907326b12e76c185'), (46550, 'b4c2842a7bbb7250773c61f32a393b5217fb92b9031135e721e591f9481d5b5a'), (1123, 'ee1a733b8cbcbc125dcb69e1914d4053394db7052dfcb90119c9ea82dabf4085')),
+    '.docs/autonomous-software-development-operating-model.md': ((44606, '142d5de8ec88946797abee43c663656769aaa020ee004afd87ea5270b0eed70b'), (43426, '967b3923b3baaa4b13c4c4fdd6c3931cfedea87ed77b05616365250973abe268'), (1180, '3984c7dfdf027b7d8b65fb490f7e0c089936ef438cf567699595ea7cec3523fe')),
+    '.docs/c2b-durable-development-state.md': ((1905508, '021017a920a4cc522ca8470f31aa0ebdc2f4888724b897efcbaf30e643ff4b6c'), (1903684, 'db3575b1e4e5af92b06e3c824c5edf37e68b6ce66bc0098c17d0967885cbf19d'), (1824, 'cb0022d57602d7f01b2248311f08772515647db528c08f7bc0121be37e608a91')),
+    '.docs/c2b2-migration-0002.md': ((9910, '32b0a2b8c6f5844ba38c368529a646f7534382ec2e315dda98322b8a3c49f8ed'), (9016, '06694d621f29e47147da89a43a8272c40cb67503bf52adeaa4a00edff0b0b2fc'), (894, '9fe7b6a96e910b01f198363a0f4cbbd694343489fadf8656859e76c500f4d72c')),
+    '.docs/rw0-c2-durable-progression-decision-semantic-contract.md': ((78615, '9b5681e2bf0baaa39f3a952d685eb2f8b53b36e885ae2ac35d33599fa66c6c5f'), (77504, 'e79085d0187d9609837346f689258cca5b48c5af0c451863c8bfc020c5fb61cd'), (1111, '702a1061bf3f2c4d0c3c8c6fab3c6773181052822a426e7896832521b71b4ac6')),
+    '.docs/rw0-c2-physical-p0-p1-implementation.md': ((19787, '0521d72f3efd40ba98dbed46cd83188fed72885e8c6261c7a7e26f6b2f20cf09'), (17353, '8f8da7a1f0da21a30a5dad72b95e50e3122314a0ec295bd6d10979ffee06d437'), (2520, 'd50d033f463df885d476d1be9a411f15172fc12b2c51c6aeaf20ea7fcd768860')),
+    '.docs/rw0-c2-private-value-versioning.md': ((219832, '94cab1875ff34d42ad2aebe8c62c8450a845116b19117970382e72a8069f830c'), (219007, '3ba06106f2cfe11df4f827fb2bf82d8138623522e559cb65e49cb4942aeeb4d4'), (825, '354368e0a34b0f33b87ce2ab4b0414cb298f1612388befc5b97e64f301917220')),
+    '.docs/sqlite-bootstrap-and-migrations.md': ((39203, 'bb43419ac210f3cf79240fed0cdf65c350bf089aca27448f4d32ca75aca281f3'), (38375, 'df6811bd85835f6fe324c2e495e315c3a21f502920707e885819284643206704'), (828, '00fd81d6ac60563bd1b21e3dd581f6d48fce11da2ec69e1eb75a70e3c4b3a539')),
+    '.docs/sqlite-operations-and-recovery.md': ((44035, '6c37bce23e6c06b7a7e52511a8bef16943dd10e3edac14307c274a9971e7fcd2'), (43072, '9edee2aaba5d0285b7cc0b83fb485479a34caaf41665e7ed0ae23abe8002a514'), (952, 'f4aeb9e1bd234d3318f6aae2040016d69900f102788307ce969941e59708a694')),
+    '.docs/sqlite-schema-v1.md': ((26209, '1377bfff325ca86b1dea93a08612edbfe338e6ee39d0dab82322eb36d17dbd90'), (25374, 'f4dbbc8f10a6022957899e7e98f6afbe9890845ae917a4791f5890ba665a0a29'), (835, '6698529c198c538ab8b9025e0200b71b8f305d3126c6154420527e2da4cebf52')),
+    '.docs/sqlite-state-backend-adr.md': ((35543, 'ab26abb8ccb2eef1b22a4fc3e90301031c49bea8e3fe904d06de6dd75c648ab4'), (34760, 'dd5e9a5491ee10a7eab7fa555712f1c57dc7d362eed28b4b381b3c8292503296'), (783, 'e60d1d9cc381da2fa782d0228bfbb6db19a90d0de7358cdbfd1d62625265ee41')),
+    'AGENTS.md': ((74410, 'c8ccf0552265d172a659a30be898fffd35cc70fad4821a350c3a9bf00e8f6b5d'), (72746, 'b4fcb9789db884d1c7962d3196e6c6bac1fa6b6c968ab8a2493cc7301f569d77'), (1664, '35b0ef1755c05f0a58ca6b073dcfcbacb333d2a78e0725e9d72012b2aa725f03')),
+    'README.md': ((50883, '97af30802aea371b231e6509df62743006218065b3decbeb3bcc3db94df98981'), (49820, '8a10258ae59c52a3bdb254975ac782fa6a7a6b0f0dbdbd7c9dbc79764f733760'), (1063, '9a10331a1876103db243e8bc7d4abc8a5c876bb00a7fea9abb4ab505a42dad55')),
+}
+_RW0_C2_STATUS_BEGIN = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+_RW0_C2_STATUS_END = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+_RW0_C2_ACCEPTED_TREE = b'161ed4b544baf970cc26428b9805a106ea0f3edf'
+_RW0_C2_LOCAL_COMMIT = b'8704e6c7988250598809f3a0daf88c3e11493488'
+_RW0_C2_PHYSICAL_OLD_OPENING = b'''Status: uncommitted P0-to-P1 artificial-offline implementation candidate. The
+exact saved and reopened P0 checkpoint and v2 work-head identity checkpoint
+are complete. The prior work-head stop remains historical evidence below and
+was superseded by the authorized v2 engineering decision. An independent audit
+blocked the later 21-field basis candidate because stale-currentness block
+replay could not reconstruct its candidate reason. The present basis-v2 repair
+is another uncommitted candidate pending independent audit. The private fenced
+P1 writer, readback, replay, and three-way recovery are present in source;
+publication and live operation remain separate gates.'''
+_RW0_C2_PHYSICAL_NEW_OPENING = b'''Status: independently accepted private artificial-offline P0\xe2\x86\x92P1 source,
+locally committed as `8704e6c7988250598809f3a0daf88c3e11493488` at tree `161ed4b544baf970cc26428b9805a106ea0f3edf`; publication and live operation
+remain separate gates. The exact P0/work-head checkpoints and blocked
+21-field basis predecessor below remain historical evidence. The current
+basis-v2, command-digest-v2, and disclosure/eligibility-split repairs were
+accepted together by the independent artifact audit. The private fenced P1
+writer, readback, replay, and three-way recovery are present in source.'''
+_RW0_C2_OPERATIONS_OLD = (
+    b'catalog (the uncommitted P0/P1 candidate extends the contiguous 0001\xe2\x80\x930005\n'
+    b'  prefix through'
+)
+_RW0_C2_OPERATIONS_NEW = (
+    b'catalog (the locally committed private P0/P1 source extends the contiguous 0001\xe2\x80\x930005\n'
+    b'  prefix through'
+)
+
+
+def _rw0_c2_status_predecessor(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+    current, predecessor, suffix = _RW0_C2_STATUS_DOCUMENT_IDENTITIES[relative_path]
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) == current,
+             'guard:rw0_c2_status:current_identity:' + relative_path)
+    size, digest = suffix
+    _require(payload.count(_RW0_C2_STATUS_BEGIN) == 1 and
+             payload.count(_RW0_C2_STATUS_END) == 1 and
+             payload.endswith(_RW0_C2_STATUS_END) and
+             payload[-size:].startswith(_RW0_C2_STATUS_BEGIN) and
+             hashlib.sha256(payload[-size:]).hexdigest() == digest,
+             'guard:rw0_c2_status:append_identity:' + relative_path)
+    status = payload[-size:]
+    restored = payload[:-size]
+    if relative_path == '.docs/rw0-c2-physical-p0-p1-implementation.md':
+        _require(restored.count(_RW0_C2_PHYSICAL_NEW_OPENING) == 1,
+                 'guard:rw0_c2_status:physical_replacement')
+        restored = restored.replace(_RW0_C2_PHYSICAL_NEW_OPENING,
+                                    _RW0_C2_PHYSICAL_OLD_OPENING, 1)
+    elif relative_path == '.docs/sqlite-operations-and-recovery.md':
+        _require(restored.count(_RW0_C2_OPERATIONS_NEW) == 1,
+                 'guard:rw0_c2_status:operations_replacement')
+        restored = restored.replace(_RW0_C2_OPERATIONS_NEW,
+                                    _RW0_C2_OPERATIONS_OLD, 1)
+    _require((len(restored), hashlib.sha256(restored).hexdigest()) == predecessor,
+             'guard:rw0_c2_status:predecessor_identity:' + relative_path)
+    return restored, status
+
+
+def _assert_rw0_c2_status_semantics(status: bytes) -> None:
+    compact = b' '.join(status.split())
+    for token in (_RW0_C2_ACCEPTED_TREE, _RW0_C2_LOCAL_COMMIT):
+        _require(token in compact, 'guard:rw0_c2_status:accepted_identity')
+    _require(b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->' in status and
+             b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->' in status,
+             'guard:rw0_c2_status:marker_semantics')
+    for forbidden in (b'committed to trunk_dev', b'published to origin',
+                      b'production worker is ready', b'terminal outcome is recorded'):
+        _require(forbidden not in compact, 'guard:rw0_c2_status:nonclaim')
+
+
+def test_rw0_c2_status_successor_reconstructs_all_committed_predecessors() -> None:
+    assert len(_RW0_C2_STATUS_DOCUMENT_IDENTITIES) == 13
+    for relative_path in _RW0_C2_STATUS_DOCUMENT_IDENTITIES:
+        payload = (ROOT / relative_path).read_bytes()
+        predecessor, status = _rw0_c2_status_predecessor(relative_path, payload)
+        assert predecessor and status
+        _assert_rw0_c2_status_semantics(status)
+
+
+def test_rw0_c2_status_successor_current_private_contract_and_nonclaims() -> None:
+    physical = (ROOT / '.docs/rw0-c2-physical-p0-p1-implementation.md').read_bytes()
+    _, status = _rw0_c2_status_predecessor(
+        '.docs/rw0-c2-physical-p0-p1-implementation.md', physical)
+    compact = b' '.join(status.split())
+    for phrase in (
+        b'P0 and P1 are separate fenced physical transactions',
+        b'P0 records a verified admission act/fact',
+        b'without current authority',
+        b'one of five progression branches',
+        b'only candidate acceptance records an acceptance fact',
+        b'not terminal truth',
+        b'Decision Basis v2',
+        b'guarded-command-digest.v2.identity',
+        b'historical work-head witness',
+        b'Fresh universal disclosure',
+        b'only for fresh candidate acceptance',
+        b'F03 remains a nonblocking observation',
+        b'F05 remains a nonblocking observation',
+        b'Earlier full-ref and raw-index observation limits',
+        b'No push, PR, merge, publication, deployment, or product effect',
+        b'No live enrollment or custody supplier',
+        b'production provider or worker',
+        b'ES/Bridge route',
+        b'product Git effect',
+        b'service, queue, scheduler, deployment, or autonomous loop',
+    ):
+        _require(phrase in compact, 'guard:rw0_c2_status:physical_semantics:' + phrase.decode())
+    operating = (ROOT / '.docs/autonomous-software-development-operating-model.md').read_bytes()
+    _, operating_status = _rw0_c2_status_predecessor(
+        '.docs/autonomous-software-development-operating-model.md', operating)
+    assert b'9,473 collected/executed/JUnit/passed' in operating_status
+    assert b'three known Python 3.13 fork' in operating_status
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('missing', 'current_identity'),
+    ('duplicate', 'current_identity'),
+    ('historical_change', 'current_identity'),
+    ('status_overclaim', 'current_identity'),
+))
+def test_rw0_c2_status_successor_exact_negative_specimens(case, boundary) -> None:
+    path = 'AGENTS.md'
+    original = (ROOT / path).read_bytes()
+    _, suffix = _rw0_c2_status_predecessor(path, original)
+    changed = {
+        'missing': original[:-len(suffix)],
+        'duplicate': original + suffix,
+        'historical_change': b'X' + original[1:],
+        'status_overclaim': original.replace(b'No push, PR,\nmerge',
+                                             b'Yes push, PR,\nmerge', 1),
+    }[case]
+    assert changed != original
+    with pytest.raises(AssertionError, match='^guard:rw0_c2_status:' + boundary):
+        _rw0_c2_status_predecessor(path, changed)
+
+
+@pytest.mark.parametrize('old,new,boundary', (
+    (b'8704e6c7988250598809f3a0daf88c3e11493488', b'4519630d0db967066beb21b4ace5004e76827716',
+     'guard:rw0_c2_status:accepted_identity'),
+    (b'No live enrollment\nor custody supplier', b'Live enrollment and custody supplier',
+     'guard:rw0_c2_status:physical_semantics'),
+    (b'F03 remains a nonblocking observation', b'F03 is closed',
+     'guard:rw0_c2_status:physical_semantics'),
+    (b'F05 remains a nonblocking observation', b'F05 is closed',
+     'guard:rw0_c2_status:physical_semantics'),
+))
+def test_rw0_c2_status_successor_semantic_negative_specimens(old, new, boundary) -> None:
+    physical = (ROOT / '.docs/rw0-c2-physical-p0-p1-implementation.md').read_bytes()
+    _, status = _rw0_c2_status_predecessor(
+        '.docs/rw0-c2-physical-p0-p1-implementation.md', physical)
+    changed = status.replace(old, new, 1)
+    assert changed != status and changed.count(_RW0_C2_STATUS_BEGIN) == 1
+    with pytest.raises(AssertionError, match='^' + boundary):
+        _assert_rw0_c2_status_semantics(changed)
+        compact = b' '.join(changed.split())
+        for phrase in (b'No live enrollment or custody supplier',
+                       b'F03 remains a nonblocking observation',
+                       b'F05 remains a nonblocking observation'):
+            _require(phrase in compact, 'guard:rw0_c2_status:physical_semantics')
+
+
+# Fixed identities for the six independently reviewed current-drift repairs.
+# Each predecessor is the exact a34d28... endpoint; these values are literals,
+# never computed from the actual file under test at test runtime.
+_RW0_C2_REPAIR_IDENTITIES = {'.docs/durable-state-model.md': {'anchor': '<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->',
+                                  'current': (44156,
+                                              '93d6fcd4a5db3c02ee73475ecff465cbec43bdcfda140cb3a6b85499ec4d393e'),
+                                  'historical_literal': 'RW0-C2 physical decision persistence,',
+                                  'insert': (2103,
+                                             'f5f3f15fe39edaf4a5d124bec7b7a44e78c1af20981456ec2b5d68530bb73a13'),
+                                  'offset': 42053,
+                                  'owner_required': ('B1, Wire,',
+                                                     'private P0/P1 physical persistence',
+                                                     'RW0-E remain future'),
+                                  'predecessor': (42053,
+                                                  '7f9cba19f491322dd2fc0f1656ac6b76e698723a6700d1f9919d22b2196e9e80'),
+                                  'side': 'after_shared_end'},
+ '.docs/rw0-b2-wire-protocol.md': {'anchor': '<!-- RW0_D2_CURRENT_STATUS_END -->\n',
+                                   'current': (28130,
+                                               '7fcfacb31c4506a536fc3890f6d71d6058040930c23b52481444ed4d18f4b345'),
+                                   'historical_literal': 'owns future durable facts',
+                                   'insert': (2046,
+                                              'a30da0de417c76ba5c2cfe16f8ae2421b0eb0aca3bd6183fa6b213b67a1ac388'),
+                                   'offset': 26084,
+                                   'owner_required': ('Wire remains pure representation/classification',
+                                                      'owns no persistence',
+                                                      'Physical transport'),
+                                   'predecessor': (26084,
+                                                   'ac1091f043f5fa6042ced1e919c740a08af975b7df1e5e97b66634f85cb68e69'),
+                                   'side': 'after'},
+ '.docs/rw0-c2-scope-admission-provisioning-contract.md': {'anchor': '<!-- '
+                                                                     'RW0_C2_P0_PHYSICAL_CANDIDATE_SUCCESSOR_END '
+                                                                     '-->\n',
+                                                           'current': (27786,
+                                                                       '474067391e0b813d0e2b38ddbc725c34f40cb7672982a5857093767f83fdcf74'),
+                                                           'historical_literal': 'uncommitted candidate',
+                                                           'insert': (2128,
+                                                                      'e2656c3eb0fa34ba69b18a0b92cf033958f8f7796360a9bb039c37b46e2e3ca6'),
+                                                           'offset': 25658,
+                                                           'owner_required': ('four-table P0 private '
+                                                                              'family',
+                                                                              'separately attributable '
+                                                                              'and usable before a '
+                                                                              'program',
+                                                                              'Live supplier/custody '
+                                                                              'gate B remains open'),
+                                                           'predecessor': (25658,
+                                                                           '05648279930b7058fe1be7d86fe449213ed13b98ec37e226be50140e99c431b1'),
+                                                           'side': 'after'},
+ '.docs/rw0-d1-offline-process-and-capsule-spine.md': {'anchor': '',
+                                                       'current': (7608,
+                                                                   'a98d6ff185bb698228c7266308f3a5ff5163b2e6f05a0746eb755d2df7e4436e'),
+                                                       'historical_literal': 'RW0-C2 persistence '
+                                                                             'remains later.',
+                                                       'insert': (1984,
+                                                                  '62e13a702ca22af03cc657909b0a5534fc005f90ad0ac91d14ef002a47dd984e'),
+                                                       'offset': 5624,
+                                                       'owner_required': ('D1 still neither',
+                                                                          'D1 capsule',
+                                                                          'RW0-E'),
+                                                       'predecessor': (5624,
+                                                                       'b537fbe074717aacdfaefd2cf32cd22c46046034ae115453ddded4e2dc25201b'),
+                                                       'side': 'eof'},
+ '.docs/rw0-remote-worker-contact-phase-entry.md': {'anchor': '<!-- '
+                                                              'COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_END '
+                                                              '-->',
+                                                    'current': (61619,
+                                                                '4cb9dc4fd900aa9507ca4840d55f35d76460ec936c86d357c32f3eb44df1b814'),
+                                                    'historical_literal': 'Physical representation, '
+                                                                          'provisioning, safe values, '
+                                                                          'and mutation',
+                                                    'insert': (2033,
+                                                               '270f54b1f613caf3b7ef020a40f3112818d58a97782e11c305d6c7afeecf766d'),
+                                                    'offset': 59536,
+                                                    'owner_required': ('replay/readback, and recovery',
+                                                                       'does not make a live accept '
+                                                                       'writer callable',
+                                                                       'Terminal-outcome persistence'),
+                                                    'predecessor': (59586,
+                                                                    'bee20ed00c7e6f86db3394351f0cbe29626413c635cd9a982416984b288e6fbd'),
+                                                    'side': 'before'},
+ '.docs/worker-execution-boundary.md': {'anchor': '<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END '
+                                                  '-->',
+                                        'current': (34516,
+                                                    '1e58585fe3a561207abe0ac25f22d333eea4f31a59eca94ec753c64478c92e83'),
+                                        'historical_literal': 'RW0-C2 physical decision persistence,',
+                                        'insert': (2107,
+                                                   '081f99a52ba627eccc6bb680fda5dc9439e42b7bc5d9c23304e12cac45fb83d3'),
+                                        'offset': 32409,
+                                        'owner_required': ('neither P0/P1 persistence nor live runtime',
+                                                           'Physical worker transport',
+                                                           'ES routing'),
+                                        'predecessor': (32409,
+                                                        '3cfc1208d96e1f59a81dcd70dce5d43d89f2cb70cc5af6eca453650c33742769'),
+                                        'side': 'after_shared_end'}}
+_RW0_C2_REPAIR_BEGIN = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->'
+_RW0_C2_REPAIR_END = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->'
+
+
+def _rw0_c2_current_drift_reconstruct_unsealed(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+    fixed = _RW0_C2_REPAIR_IDENTITIES[relative_path]
+    start = fixed['offset']
+    size, insert_sha = fixed['insert']
+    _require(payload.count(_RW0_C2_REPAIR_BEGIN) == 1 and
+             payload.count(_RW0_C2_REPAIR_END) == 1 and
+             payload.index(_RW0_C2_REPAIR_BEGIN) < payload.index(_RW0_C2_REPAIR_END),
+             'guard:rw0_c2_repair:markers:' + relative_path)
+    anchor = fixed['anchor'].encode()
+    if fixed['side'] == 'after_shared_end':
+        _require(payload.count(anchor) == 1 and
+                 payload.index(_RW0_C2_REPAIR_BEGIN) > payload.index(anchor) and
+                 payload.index(_RW0_C2_REPAIR_BEGIN) == payload.index(anchor) + len(anchor) + 2,
+                 'guard:rw0_c2_repair:location:' + relative_path)
+    _require(start <= payload.index(_RW0_C2_REPAIR_BEGIN) <
+             payload.index(_RW0_C2_REPAIR_END) < start + size,
+             'guard:rw0_c2_repair:insertion_identity:' + relative_path)
+    _require(len(payload) >= start + size,
+             'guard:rw0_c2_repair:insertion_identity:' + relative_path)
+    addition = payload[start:start + size]
+    _require(hashlib.sha256(addition).hexdigest() == insert_sha,
+             'guard:rw0_c2_repair:insertion_identity:' + relative_path)
+    previous = payload[:start] + payload[start + size:]
+    if fixed['side'] == 'before':
+        _require(payload[start + size:].startswith(anchor),
+                 'guard:rw0_c2_repair:location:' + relative_path)
+    elif fixed['side'] == 'after_shared_end':
+        _require(payload[:start].endswith(anchor + b'\n') and
+                 addition.startswith(b'\n' + _RW0_C2_REPAIR_BEGIN) and
+                 payload[start + size:] == b'' and
+                 payload[:start] == previous,
+                 'guard:rw0_c2_repair:location:' + relative_path)
+    else:
+        _require(payload[:start].endswith(anchor) if anchor else start == len(previous),
+                 'guard:rw0_c2_repair:location:' + relative_path)
+    expected = fixed['predecessor']
+    _require((len(previous), hashlib.sha256(previous).hexdigest()) == expected,
+             'guard:rw0_c2_repair:predecessor_identity:' + relative_path)
+    _require(fixed['historical_literal'].encode() in previous,
+             'guard:rw0_c2_repair:historical_passage:' + relative_path)
+    return previous, addition
+
+
+def _rw0_c2_current_drift_predecessor(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+    fixed = _RW0_C2_REPAIR_IDENTITIES[relative_path]
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) == fixed['current'],
+             'guard:rw0_c2_repair:current_identity:' + relative_path)
+    return _rw0_c2_current_drift_reconstruct_unsealed(relative_path, payload)
+
+
+def _assert_rw0_c2_repair_status_semantics(relative_path: str, addition: bytes) -> None:
+    compact = b' '.join(addition.split())
+    _require(compact.count(_RW0_C2_REPAIR_BEGIN) == 1 and
+             compact.count(_RW0_C2_REPAIR_END) == 1 and
+             compact.index(_RW0_C2_REPAIR_BEGIN) < compact.index(_RW0_C2_REPAIR_END),
+             'guard:rw0_c2_repair:markers:' + relative_path)
+    for label, token in (
+        ('publication', b'publication was performed'),
+        ('p0_permission', b'P0 grants current permission'),
+        ('terminal', b'terminal outcome is recorded'),
+        ('live', b'live supplier is available'),
+        ('es', b'ES route is active'),
+        ('bridge', b'Bridge route is active'),
+        ('product_git', b'product Git effect executed'),
+        ('autonomy', b'autonomous loop is active'),
+    ):
+        _require(token not in compact, 'guard:rw0_c2_repair:nonclaim:' + label)
+    for token in (
+        b'161ed4b544baf970cc26428b9805a106ea0f3edf',
+        b'8704e6c7988250598809f3a0daf88c3e11493488',
+        b'4519630d0db967066beb21b4ace5004e76827716',
+    ):
+        _require(token in compact, 'guard:rw0_c2_repair:accepted_identity')
+    required = (
+        ('gate', b'9,473 collected/executed/JUnit/passed'),
+        ('gate', b'three known Python 3.13 multithreaded-fork'),
+        ('publication', b'That gate performed no push, upstream creation, PR, merge, publication,'),
+        ('git_truth', b'Git objects and refs remain commit and publication truth'),
+        ('evidence', b'are evidence only'),
+        ('private', b'bounded private artificial-offline P0'),
+        ('p0_permission', b'never current permission'),
+        ('p1', b'one of five durable decision branches'),
+        ('p1', b'only on `candidate_acceptance`'),
+        ('terminal', b'not terminal truth, executable permission, live custody, runtime admission, or deployment authority'),
+        ('mechanics', b'Decision Basis v2, guarded-command-digest v2'),
+        ('mechanics', b'historical work-head witness, universal disclosure posture, and acceptance-only eligibility'),
+        ('observations', b'F03 and F05 remain open nonblocking observations'),
+        ('live', b'There is no live enrollment/custody supplier, terminal outcome, production provider/worker, ES/Bridge route, product Git effect, public service, queue, scheduler, deployment, or autonomous loop.'),
+    )
+    for label, token in required:
+        _require(token in compact, 'guard:rw0_c2_repair:' + label)
+    for token in _RW0_C2_REPAIR_IDENTITIES[relative_path]['owner_required']:
+        _require(token.encode() in compact, 'guard:rw0_c2_repair:owner:' + relative_path)
+
+
+def test_rw0_c2_current_drift_six_owner_local_successors_and_predecessors() -> None:
+    assert len(_RW0_C2_REPAIR_IDENTITIES) == 6
+    for relative_path in _RW0_C2_REPAIR_IDENTITIES:
+        path = ROOT / relative_path
+        metadata = path.lstat()
+        _require(path.is_file() and not path.is_symlink() and
+                 (metadata.st_mode & 0o7777) == 0o644,
+                 'guard:rw0_c2_repair:regular_mode:' + relative_path)
+        predecessor, addition = _rw0_c2_current_drift_predecessor(
+            relative_path, path.read_bytes())
+        _require(predecessor and addition, 'guard:rw0_c2_repair:presence:' + relative_path)
+        _assert_rw0_c2_repair_status_semantics(relative_path, addition)
+    # The previously accepted thirteen-document predecessor chain still runs
+    # through its separate fixed-identity test above.
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('omitted', 'markers'), ('duplicate', 'markers'),
+    ('reordered_marker', 'markers'), ('historical_mutation', 'predecessor_identity'),
+))
+def test_rw0_c2_current_drift_exact_negative_specimens(case: str, boundary: str) -> None:
+    path = '.docs/durable-state-model.md'
+    original = (ROOT / path).read_bytes()
+    _previous, addition = _rw0_c2_current_drift_predecessor(path, original)
+    offset = _RW0_C2_REPAIR_IDENTITIES[path]['offset']
+    if case == 'omitted':
+        changed = original[:offset] + original[offset + len(addition):]
+    elif case == 'duplicate':
+        changed = original[:offset] + addition + addition + original[offset + len(addition):]
+    elif case == 'reordered_marker':
+        changed_addition = addition.replace(_RW0_C2_REPAIR_BEGIN, b'__BEGIN__', 1).replace(
+            _RW0_C2_REPAIR_END, _RW0_C2_REPAIR_BEGIN, 1).replace(
+            b'__BEGIN__', _RW0_C2_REPAIR_END, 1)
+        changed = original[:offset] + changed_addition + original[offset + len(addition):]
+    else:
+        changed = b'X' + original[1:]
+    assert changed != original
+    with pytest.raises(AssertionError, match='^guard:rw0_c2_repair:' + boundary):
+        _rw0_c2_current_drift_reconstruct_unsealed(path, changed)
+
+
+@pytest.mark.parametrize('path', (
+    '.docs/durable-state-model.md',
+    '.docs/worker-execution-boundary.md',
+))
+@pytest.mark.parametrize('case', ('before_end', 'inside_shared_body'))
+def test_rw0_c2_current_drift_shared_architecture_map_placement_negatives(path: str, case: str) -> None:
+    predecessor, addition = _rw0_c2_current_drift_predecessor(path, (ROOT / path).read_bytes())
+    block = addition[1:]
+    if case == 'before_end':
+        position = predecessor.index(_RW0_C2_REPAIR_IDENTITIES[path]['anchor'].encode())
+    else:
+        begin = b'<!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_BEGIN -->\n'
+        position = predecessor.index(begin) + len(begin)
+    changed = predecessor[:position] + block + b'\n' + predecessor[position:]
+    _require(changed != (ROOT / path).read_bytes(), 'guard:rw0_c2_repair:negative_specimen')
+    with pytest.raises(AssertionError, match='^guard:rw0_c2_repair:location:' + re.escape(path) + '$'):
+        _rw0_c2_current_drift_reconstruct_unsealed(path, changed)
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('accepted_tree', 'accepted_identity'), ('local_commit', 'accepted_identity'),
+    ('publication', 'nonclaim:publication'), ('p0_permission', 'nonclaim:p0_permission'),
+    ('terminal', 'nonclaim:terminal'), ('live', 'nonclaim:live'),
+    ('es', 'nonclaim:es'), ('bridge', 'nonclaim:bridge'),
+    ('product_git', 'nonclaim:product_git'), ('autonomy', 'nonclaim:autonomy'),
+))
+def test_rw0_c2_current_drift_semantic_negative_specimens(case: str, boundary: str) -> None:
+    path = '.docs/rw0-c2-scope-admission-provisioning-contract.md'
+    _previous, addition = _rw0_c2_current_drift_predecessor(path, (ROOT / path).read_bytes())
+    if case == 'accepted_tree':
+        changed = addition.replace(b'161ed4b544baf970cc26428b9805a106ea0f3edf', b'0' * 40, 1)
+    elif case == 'local_commit':
+        changed = addition.replace(b'8704e6c7988250598809f3a0daf88c3e11493488', b'0' * 40, 1)
+    else:
+        claim = {
+            'publication': b'publication was performed',
+            'p0_permission': b'P0 grants current permission',
+            'terminal': b'terminal outcome is recorded',
+            'live': b'live supplier is available',
+            'es': b'ES route is active',
+            'bridge': b'Bridge route is active',
+            'product_git': b'product Git effect executed',
+            'autonomy': b'autonomous loop is active',
+        }[case]
+        changed = addition.replace(_RW0_C2_REPAIR_END, claim + b'\n' + _RW0_C2_REPAIR_END, 1)
+    assert changed != addition
+    with pytest.raises(AssertionError, match='^guard:rw0_c2_repair:' + boundary + '$'):
+        _assert_rw0_c2_repair_status_semantics(path, changed)

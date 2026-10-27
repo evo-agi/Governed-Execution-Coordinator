@@ -471,3 +471,25 @@ Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->
+
+<!-- RW0_C2_P0_PHYSICAL_AUTHORITY_CANDIDATE_BEGIN -->
+## RW0-C2 P0 physical candidate authority
+
+The private P0 SQLite path records an independently verified safe external
+admission act and fact in a separate program-independent family. It does not
+issue standing policy, authenticate a real enrollment, infer process/storage
+custody, or grant executable authority. The artificial-offline proof uses a
+test-owned typed source observation only. The P1 decision owner, acceptance
+fact, terminal owner, worker, ES, Bridge, Git effects, and live supplier remain
+separate and are not delegated to the P0 receipt.
+<!-- RW0_C2_P0_PHYSICAL_AUTHORITY_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_AUTHORITY_CANDIDATE_BEGIN -->
+## RW0-C2 P1 physical candidate authority
+
+The separate private P1 writer records a five-branch development decision and
+an acceptance-only fact under its own fenced transaction and generic receipt.
+Its v2 historical work-head witness does not become standing authority or a
+current mutable-head claim. Terminal owner, worker, ES, Bridge, Git effects,
+and live supplier remain separate and are not delegated to the P1 receipt.
+<!-- RW0_C2_P1_PHYSICAL_AUTHORITY_CANDIDATE_END -->

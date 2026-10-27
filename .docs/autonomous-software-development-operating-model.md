@@ -689,3 +689,44 @@ Execution Substrate retains admission and runtime authority.
 <!-- RW0_B2_CAPABILITY_CURRENT_STATUS_END -->
 
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CROSS_REFERENCE_END -->
+
+<!-- RW0_C2_P0_PHYSICAL_OPERATING_MODEL_CANDIDATE_BEGIN -->
+## RW0-C2 P0 implementation candidate status
+
+The current uncommitted workspace candidate adds artificial-offline physical
+P0 scope-admission recording, replay, and readback using migration 0006.
+Program-independent admission remains outside the development-program receipt
+namespace. The selected implementation program still requires a separate P1
+five-branch decision transaction and a connected proof before acceptance.
+No live source, worker, ES/Bridge route, Git effect, or autonomous loop is
+created by P0.
+<!-- RW0_C2_P0_PHYSICAL_OPERATING_MODEL_CANDIDATE_END -->
+
+<!-- RW0_C2_P1_PHYSICAL_OPERATING_MODEL_CANDIDATE_BEGIN -->
+## RW0-C2 P1 implementation candidate status
+
+The current uncommitted successor adds a separate private P1 five-branch
+writer on migration 0007. It records bounded progression with an
+acceptance-only fact and replan program/work head CAS plus v2 historical
+witnesses. Connected disposable proof exercises actual D1/D2, Section
+41/C1/V22 output before P1. This is not independent audit, publication, live
+source authority, worker transport, ES/Bridge route, Git effect, or autonomous
+loop authority.
+<!-- RW0_C2_P1_PHYSICAL_OPERATING_MODEL_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 accepted local implementation status
+
+The P0/P1 candidate blocks above remain exact historical checkpoint text.
+Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit `8704e6c7988250598809f3a0daf88c3e11493488`
+records that bounded private artificial-offline source with sole parent `4519630d0db967066beb21b4ace5004e76827716`
+and no upstream. The gate reconciled 9,473 collected/executed/JUnit/passed
+cases with zero failures, errors, or skips and three known Python 3.13 fork
+deprecation warnings. P0 admission history does not grant current authority;
+P1 makes one five-branch decision and only acceptance records the fact. That
+fact is not terminal truth or executable permission. The D1/D2, Section 41,
+C1, and V22 composition boundaries remain. Git owns commit/ref truth; the
+audit, gate, and this status are evidence only. No push, PR, merge, publication,
+deployment, product effect, live custody supplier, production worker,
+ES/Bridge route, service, queue, scheduler, or autonomous loop follows.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

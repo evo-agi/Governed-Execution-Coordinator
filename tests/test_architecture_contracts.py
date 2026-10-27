@@ -904,7 +904,15 @@ def test_docs_pin_authority_boundaries() -> None:
         "Durable State Model",
     )
     assert tuple(zip(cross_paths, root_titles, strict=True)) == RW0_ARCHITECTURE_MAP_SPECS
-    live_cross_map = {path: _text(path) for path in cross_paths}
+    # The cross-reference is a frozen historical owner block. Later governed
+    # sections follow its END marker in each live document, so exercise the
+    # strict parser on that exact prefix; trailing-prose mutants below still
+    # prove the marker boundary rejects an ungoverned extension.
+    live_cross_map = {}
+    for path in cross_paths:
+        source = _text(path)
+        assert source.count(cross_end) == 1
+        live_cross_map[path] = source.split(cross_end, 1)[0] + cross_end
     live_map_body = _assert_complete_rw0_architecture_map(live_cross_map)
 
     def mapped(path: str, candidate: str) -> str:
@@ -1699,7 +1707,12 @@ def test_current_status_drift_corrections_are_documented() -> None:
     assert "Public global-stop mutation now delegates through the guarded B4c public wrapper to B4b private atomic global-stop persistence." in operations
     assert "The public wrappers own no SQL, receipt verification, evaluator, sequence allocation, write, rollback, COMMIT, or uncertainty handling" in operations
 
-    architecture = _text(".docs/architecture.md")
+    full_architecture = _text(".docs/architecture.md")
+    assert full_architecture.count(_C2B3D_ARCHITECTURE_END) == 1
+    historical, successor = full_architecture.split(_C2B3D_ARCHITECTURE_END, 1)
+    assert "<!-- RW0_C2_P0_PHYSICAL_ARCHITECTURE_CANDIDATE_BEGIN -->" in successor
+    assert "<!-- RW0_C2_P1_PHYSICAL_ARCHITECTURE_CANDIDATE_BEGIN -->" in successor
+    architecture = historical + _C2B3D_ARCHITECTURE_END + "\n"
     _assert_c2b3d_architecture_summary_document(architecture)
     for mutation in (
         "commit-omission",

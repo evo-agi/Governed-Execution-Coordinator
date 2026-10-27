@@ -988,6 +988,10 @@ MIGRATION_SHA256 = {
     "0004_rw0_c1_durable_evidence.sql": "967b9c2deb43da625f9ce82d43c9538bfd2fa27c02f3abdfcb12eb3a2aef8cec",
     "0005_section41_post_execution_proposal_family.sql": "583c14e2018c84a942e2e72bbb57d24ae39b2470dc4c286c5f775afe1ef9ea87",
 }
+CURRENT_MIGRATION_SHA256 = MIGRATION_SHA256 | {
+    "0006_rw0_c2_scope_admission.sql": "58b2731d52e8e199c010b309a29aa831ffb16d4db4e755d20adb694ce0a7305f",
+    "0007_rw0_c2_progression_decision.sql": "505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c",
+}
 
 
 def _between(text: str, begin: str, end: str) -> str:
@@ -6830,17 +6834,17 @@ def test_current_pure_owner_modules_remain_present_without_public_exports() -> N
     assert _assignment(decision_tree, "__all__") == ()
 
 
-def test_migration_inventory_and_bytes_are_exactly_0001_through_section41_0005() -> None:
+def test_migration_inventory_preserves_0001_through_0005_and_has_exact_p0_p1_successors() -> None:
     migration_root = ROOT / "src" / "ge_nwp_coordinator" / "sqlite_migrations"
     sql_paths = tuple(sorted(migration_root.glob("*.sql")))
-    assert tuple(path.name for path in sql_paths) == tuple(MIGRATION_SHA256)
+    assert tuple(path.name for path in sql_paths) == tuple(CURRENT_MIGRATION_SHA256)
     assert {path.name for path in migration_root.glob("0005*")} == {
         "0005_section41_post_execution_proposal_family.sql",
     }
     assert {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sql_paths
-    } == MIGRATION_SHA256
+    } == CURRENT_MIGRATION_SHA256
 
 
 def _replay_family(original, mutation_ref, command_digest):
@@ -6895,3 +6899,19 @@ def test_model_after_guard_c2_phase_cannot_be_called_early(contract):
     prepared = _interpret_pre_model(contract, _baseline(contract))
     with pytest.raises(AssertionError, match='^c2:model_after_guard:guard_gate$'):
         _model_consistency_phase(contract, prepared)
+
+
+def test_private_p1_successor_keeps_assertion_nonselecting_and_digest_covered(owner_text):
+    start = "<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_SUCCESSOR_BEGIN -->"
+    end = "<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_SUCCESSOR_END -->"
+    assert owner_text.count(start) == owner_text.count(end) == 1
+    successor = " ".join(owner_text.split(start, 1)[1].split(end, 1)[0].split())
+    for required in (
+        "conflict_assertion_only", "guarded-command-digest.v2.identity",
+        "historical 30 ordered relation pairs", "expected_branch",
+        "preassignments exclude it", "exact replay identity includes it",
+        "current positive disclosure posture", "current recording posture",
+        "exclusion and complete route-absence proof",
+        "competing-winner completeness verification",
+    ):
+        assert required in successor

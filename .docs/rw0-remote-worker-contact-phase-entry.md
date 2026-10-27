@@ -543,4 +543,37 @@ requires replan and a new WorkSpec under the scenario-class ceiling.
 RW0-D1 is a current private artificial offline process and capsule proof. The guarded Coordinator program-initialization, C2B3D author-effect, Section 41 selection, and RW0-C1 phase writers remain the sole durable owners. A separate fake planner and fake coding worker run under the bounded D1 supervisor; the parent captures one temporary candidate, builds and independently verifies a CandidateCapsuleManifestV1, removes the mutable workspace, and returns a transient typed handback with separate parent-only disposable-state custody. The preassigned fixture base_git_oid is a WorkSpec coordinate, not Git authentication. RW0-D2 validation/review/model closure is next; RW0-C2 physical decision persistence follows D2. D1 grants no live provider/credential or source authentication, ES route, Git/publication effect, terminal acceptance, public service/CLI, or RW0-E runtime authority. The detailed implementation owner is .docs/rw0-d1-offline-process-and-capsule-spine.md.
 <!-- RW0_D1_CURRENT_STATUS_END -->
 
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+**Current C2 phase-entry status successor.**
+
+The earlier phase maps, B2 Capability projection, and D1 block remain exact
+stage snapshots. A separate C2 owner now implements and locally commits
+private artificial-offline P0/P1 representation, safe values, writers,
+replay/readback, and recovery. This does not make a live accept writer callable.
+Terminal-outcome persistence, real supplier/custody, physical worker contact,
+RW0-E, provider, credentials, ES routing, and runtime remain future.
+
+The independently accepted, bounded private artificial-offline P0→P1 source is
+Git tree `161ed4b544baf970cc26428b9805a106ea0f3edf`, locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488` with sole parent
+`4519630d0db967066beb21b4ace5004e76827716`. Its exact-byte local gate
+recorded 9,473 collected/executed/JUnit/passed, zero failures, errors, and
+skips, and three known Python 3.13 multithreaded-fork `DeprecationWarning`s.
+That gate performed no push, upstream creation, PR, merge, publication,
+deployment, or product effect. Git objects and refs remain commit and
+publication truth; audit, validation, provenance, reports, and status prose
+are evidence only.
+
+The separate current C2 implementation records P0 immutable admission history,
+never current permission. P1 persists one of five durable decision branches and
+creates an acceptance fact only on `candidate_acceptance`; the fact is not
+terminal truth, executable permission, live custody, runtime admission, or
+deployment authority. Decision Basis v2, guarded-command-digest v2, the
+historical work-head witness, universal disclosure posture, and acceptance-only
+eligibility are current private mechanics. F03 and F05 remain open nonblocking
+observations. There is no live enrollment/custody supplier, terminal outcome,
+production provider/worker, ES/Bridge route, product Git effect, public service,
+queue, scheduler, deployment, or autonomous loop.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
 <!-- COORDINATOR_RW0_PHASE_ENTRY_CONTRACT_END -->

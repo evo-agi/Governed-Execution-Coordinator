@@ -6834,6 +6834,188 @@ class _SQLiteWriterSession(WriterSession):
             command, mode="record", run=run, safe_basis_bytes=safe_basis_bytes,
         )
 
+    def _record_scope_admission(self, command: object, source: object) -> object:
+        return self._run_scope_admission_operation(command, source, mode="record")
+
+    def _read_scope_admission(self, command: object, source: object) -> object:
+        return self._run_scope_admission_operation(command, source, mode="read")
+
+    def _recover_scope_admission(self, command: object, source: object) -> object:
+        return self._run_scope_admission_operation(command, source, mode="recovery")
+
+    def _record_progression_decision(
+        self, command: object, source: object,
+        validation: object, review: object,
+    ) -> object:
+        return self._run_progression_operation(
+            command, source, mode="record", validation=validation, review=review,
+        )
+
+    def _read_progression_decision(self, command: object, source: object) -> object:
+        return self._run_progression_operation(command, source, mode="read")
+
+    def _recover_progression_decision(self, command: object, source: object) -> object:
+        return self._run_progression_operation(command, source, mode="recovery")
+
+    def _run_progression_operation(
+        self, command: object, source: object, *, mode: str,
+        validation: object = None, review: object = None,
+    ) -> object:
+        """Private artificial P1 entry under the existing operation guard."""
+        try:
+            from ge_nwp_coordinator._rw0_c2_progression_contracts import (
+                ArtificialDecisionGuardSourceV1, AdmittedCommandRelationV1,
+                DecisionBasisV2, RecordProgressionDecisionCommandV1,
+            )
+            from ge_nwp_coordinator._post_execution_evidence_values import (
+                ValidationDispositionV1, IndependentReviewDispositionV1,
+            )
+            from ge_nwp_coordinator._rw0_c1_mutation_contracts import _RW0C1CommitCloseWitness
+            if (type(command) is not RecordProgressionDecisionCommandV1
+                or type(source) is not ArtificialDecisionGuardSourceV1
+                or mode not in {"record", "read", "recovery"}
+                or (mode == "record") != (type(validation) is ValidationDispositionV1
+                                          and type(review) is IndependentReviewDispositionV1)
+                or mode != "record" and (validation is not None or review is not None)):
+                raise ValueError("invalid private P1 entry")
+            AdmittedCommandRelationV1.from_json(command.relation.canonical_bytes)
+            DecisionBasisV2.from_json(command.basis.canonical_bytes)
+            RecordProgressionDecisionCommandV1(
+                command.relation, command.basis,
+                command.expected_branch, command.replan_proposal,
+            )
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+            ))
+        witness = _RW0C1CommitCloseWitness() if mode == "record" else None
+        resource_reference = weakref.ref(self._resource)
+        correlation: _OperationInvocationCorrelation | None = None
+        try:
+            correlation = self._resource._new_operation_invocation_correlation()
+            bound_guard = self._resource.operation_guard
+            keywords = ({"_invocation_correlation": correlation}
+                        if type(bound_guard) is MethodType else {})
+            with bound_guard(self, **keywords) as operation_lease:
+                from ge_nwp_coordinator.sqlite_transition_transaction import _run_progression_operation
+                result = _run_progression_operation(
+                    operation_lease=operation_lease,
+                    command=command, source=source,
+                    validation=validation, review=review,
+                    mode=mode, commit_close_witness=witness,
+                )
+                if type(result) is _SafeMutationFailureDisposition:
+                    _raise_safe_mutation_store_error(_safe_mutation_error_from_disposition(result))
+            resource = resource_reference()
+            _stabilize_rw0_c1_outer_operation_close(resource, correlation)
+            if witness is not None:
+                _complete_rw0_c1_writer_post_operation(
+                    commit_close_witness=witness, recovery_close_witness=None,
+                )
+            return result
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(correlation)
+                except BaseException:
+                    pass
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+            if witness is not None and witness.ordinary_failure_is_commit_uncertain:
+                _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                ))
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                if witness is not None and witness.ordinary_failure_is_commit_uncertain
+                else SQLiteMutationStoreErrorCode.MUTATION_FAILED
+            ))
+
+    def _run_scope_admission_operation(
+        self, command: object, source: object, *, mode: str,
+    ) -> object:
+        """Private artificial-offline P0 entry under the existing operation guard."""
+        try:
+            from ge_nwp_coordinator._rw0_c2_scope_admission_contracts import (
+                ArtificialAdmissionSourceV1, ScopeAdmissionCommandV1,
+            )
+            from ge_nwp_coordinator._rw0_c1_mutation_contracts import _RW0C1CommitCloseWitness
+            if (type(command) is not ScopeAdmissionCommandV1
+                    or type(source) is not ArtificialAdmissionSourceV1
+                    or mode not in {"record", "read", "recovery"}):
+                raise ValueError("invalid private P0 entry")
+            ScopeAdmissionCommandV1.from_json(command.canonical_bytes)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+            ))
+        witness = _RW0C1CommitCloseWitness() if mode == "record" else None
+        resource_reference = weakref.ref(self._resource)
+        correlation: _OperationInvocationCorrelation | None = None
+        try:
+            correlation = self._resource._new_operation_invocation_correlation()
+            bound_guard = self._resource.operation_guard
+            keywords = ({"_invocation_correlation": correlation}
+                        if type(bound_guard) is MethodType else {})
+            with bound_guard(self, **keywords) as operation_lease:
+                from ge_nwp_coordinator.sqlite_transition_transaction import _run_scope_admission_operation
+                result = _run_scope_admission_operation(
+                    operation_lease=operation_lease,
+                    command=command,
+                    source=source,
+                    mode=mode,
+                    commit_close_witness=witness,
+                )
+                if type(result) is _SafeMutationFailureDisposition:
+                    _raise_safe_mutation_store_error(_safe_mutation_error_from_disposition(result))
+            resource = resource_reference()
+            _stabilize_rw0_c1_outer_operation_close(resource, correlation)
+            if witness is not None:
+                _complete_rw0_c1_writer_post_operation(
+                    commit_close_witness=witness,
+                    recovery_close_witness=None,
+                )
+            return result
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(correlation)
+                except BaseException:
+                    pass
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+            if witness is not None and witness.ordinary_failure_is_commit_uncertain:
+                _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                ))
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph,
+            )
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                if witness is not None and witness.ordinary_failure_is_commit_uncertain
+                else SQLiteMutationStoreErrorCode.MUTATION_FAILED
+            ))
+
     def _read_post_execution_proposal(self, command: object) -> object:
         return self._run_post_execution_proposal_operation(command, mode="read")
 

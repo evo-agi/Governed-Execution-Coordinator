@@ -4132,6 +4132,19 @@ def _assert_live_c2b3d_summary_document(
     return region
 
 
+def _frozen_c2b3d_summary_document(spec: _LiveC2B3DSummarySpec) -> str:
+    source = _read_owned_path(spec.path)
+    if spec.role == "architecture":
+        # The frozen C2B3D owner was the final heading at its tranche.
+        # P0/P1 addenda are governed separately after its end marker.
+        assert source.count(spec.end_boundary) == 1
+        predecessor, successors = source.split(spec.end_boundary, 1)
+        assert "<!-- RW0_C2_P0_PHYSICAL_ARCHITECTURE_CANDIDATE_BEGIN -->" in successors
+        assert "<!-- RW0_C2_P1_PHYSICAL_ARCHITECTURE_CANDIDATE_BEGIN -->" in successors
+        return predecessor + spec.end_boundary + "\n"
+    return source
+
+
 def _replace_compact_summary_phrase(
     region: str,
     phrase: str,
@@ -4265,6 +4278,19 @@ def _broken_section_42_entire_suffix_checker(source: bytes) -> bool:
 def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
     source = _read_owned_bytes(OWNER_PATH) if source_bytes is None else source_bytes
     assert type(source) is bytes, "C2B3C_STATUS_INVALID"
+    local_begin = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    local_end = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    if source_bytes is None or local_begin in source:
+        local_size = 1824
+        assert ((len(source), hashlib.sha256(source).hexdigest()) ==
+                (1905508, '021017a920a4cc522ca8470f31aa0ebdc2f4888724b897efcbaf30e643ff4b6c')
+                and source.count(local_begin) == source.count(local_end) == 1
+                and source.endswith(local_end)
+                and source[-local_size:].startswith(local_begin)
+                and hashlib.sha256(source[-local_size:]).hexdigest() ==
+                'cb0022d57602d7f01b2248311f08772515647db528c08f7bc0121be37e608a91'), (
+                    "C2B3C_STATUS_INVALID")
+        source = source[:-local_size]
     prefix = source[:EXPECTED_OWNER_OPENING_UTF8_LENGTH]
     assert len(prefix) == EXPECTED_OWNER_OPENING_UTF8_LENGTH, (
         "C2B3C_STATUS_INVALID"
@@ -4276,7 +4302,79 @@ def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
     committed_end = EXPECTED_OWNER_OPENING_UTF8_LENGTH + len(expected)
     committed = source[EXPECTED_OWNER_OPENING_UTF8_LENGTH:committed_end]
     assert committed == expected, "C2B3C_STATUS_INVALID"
-    extension = source[committed_end:].decode("utf-8", "strict")
+    extension_bytes = source[committed_end:]
+    p0_successor = b"\n<!-- RW0_C2_P0_PHYSICAL_C2B_SUCCESSOR_BEGIN -->"
+    if p0_successor in extension_bytes:
+        historical_extension, current_successors = extension_bytes.split(p0_successor, 1)
+        current_successors = p0_successor + current_successors
+        frozen_p0_p1 = current_successors[:1709]
+        assert len(frozen_p0_p1) == 1709 and hashlib.sha256(
+            frozen_p0_p1
+        ).hexdigest() == "b66e21f46bcd59c0ac78f2c6e989a560ae4fdedc4167e6327aee41f46e5c9bf4", (
+            "C2B3C_STATUS_INVALID"
+        )
+        repair_successor = current_successors[1709:]
+        split_begin = b"\n<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_BEGIN -->\n"
+        split_end = b"<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END -->\n"
+        assert repair_successor.count(split_begin) == 1, "C2B3C_STATUS_INVALID"
+        repair_successor, split_tail = repair_successor.split(split_begin, 1)
+        split_successor = split_begin + split_tail
+        assert (split_successor.endswith(split_end)
+                and split_successor.count(
+                    b"RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END") == 1), (
+                    "C2B3C_STATUS_INVALID")
+        normalized_split = " ".join(split_successor.decode("utf-8", "strict").split())
+        for phrase in (
+            "universal disclosure/recording posture from acceptance-only unclaimed-scope eligibility",
+            "type-checks current claimed status without requiring `True` or comparing it to the immutable historical basis",
+            "without fresh acceptance reevaluation",
+            "only derived candidate acceptance requires historical and current exhaustive unclaimed-scope assertions",
+            "Nonaccept branches make no unclaimed assertion",
+            "current `False` and no complete local winner remains `unresolved`",
+            "winner disclosure or retry permission",
+            "changes no migration, durable shape, public API, product effect, or live authority",
+        ):
+            assert phrase in normalized_split, "C2B3C_STATUS_INVALID"
+        f1f2_begin = b"\n<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_BEGIN -->\n"
+        f1f2_end = b"<!-- RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_END -->\n"
+        assert repair_successor.count(f1f2_begin) == 1, "C2B3C_STATUS_INVALID"
+        repair_successor, f1f2_tail = repair_successor.split(f1f2_begin, 1)
+        f1f2_successor = f1f2_begin + f1f2_tail
+        assert (f1f2_successor.endswith(f1f2_end)
+                and f1f2_successor.count(
+                    b"RW0_C2_P1_COMMAND_DIGEST_V2_DISCLOSURE_C2B_SUCCESSOR_END") == 1), (
+                    "C2B3C_STATUS_INVALID")
+        normalized_f1f2 = " ".join(f1f2_successor.decode("utf-8", "strict").split())
+        for phrase in (
+            "two material defects", "exact optional `expected_branch`",
+            "six preassignments remain branch-neutral",
+            "`write=False` disclosure posture before digest comparison",
+            "`write=True` recording posture before route probes",
+            "Recovery with denied or unverifiable disclosure returns `unresolved`",
+            "two possible original acceptance assertions",
+            "adds no public or live authority",
+        ):
+            assert phrase in normalized_f1f2, "C2B3C_STATUS_INVALID"
+        begin = b"\n<!-- RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_BEGIN -->\n"
+        end = b"<!-- RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_END -->\n"
+        assert repair_successor.startswith(begin) and repair_successor.endswith(end), (
+            "C2B3C_STATUS_INVALID"
+        )
+        repair_text = repair_successor.decode("utf-8", "strict")
+        assert repair_text.count("RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_BEGIN") == 1
+        assert repair_text.count("RW0_C2_BASIS_V2_REPAIR_C2B_SUCCESSOR_END") == 1
+        normalized_repair = " ".join(repair_text.split())
+        for phrase in (
+            "21-field decision basis was independently blocked",
+            "current uncommitted basis-v2 repair binds those two closed safe typed mappings",
+            "existing canonical basis BLOB and digest",
+            "Migration 0007 retains six P1 tables with a v2 basis schema-ID CHECK",
+            "Migration 0006 and P0 production bytes are unchanged",
+            "pending independent audit and adds no public or live authority",
+        ):
+            assert phrase in normalized_repair, "C2B3C_STATUS_INVALID"
+        extension_bytes = historical_extension
+    extension = extension_bytes.decode("utf-8", "strict")
     extension_structure = _summary_markdown_structure(extension)
     assert all(heading.level >= 3 for heading in extension_structure.headings), (
         "C2B3C_STATUS_INVALID"
@@ -4479,7 +4577,7 @@ def test_current_status_regions_are_reconciled_without_historical_rewrite() -> N
     summary_documents: dict[Path, str] = {}
     for spec in LIVE_C2B3D_SUMMARY_INVENTORY:
         if spec.path not in summary_documents:
-            summary_documents[spec.path] = _read_owned_path(spec.path)
+            summary_documents[spec.path] = _frozen_c2b3d_summary_document(spec)
         _assert_live_c2b3d_summary_document(summary_documents[spec.path], spec)
 
     reader_status = _read_owned_path(READER_STATUS_PATH).split(
@@ -4963,7 +5061,7 @@ def test_current_status_rejects_c2b3c_audit_acceptance_preclaim() -> None:
         _assert_current_status(mutated)
 
     for spec in LIVE_C2B3D_SUMMARY_INVENTORY:
-        document = _read_owned_path(spec.path)
+        document = _frozen_c2b3d_summary_document(spec)
         authority_preclaim = _mutate_live_c2b3d_summary(
             document,
             spec,

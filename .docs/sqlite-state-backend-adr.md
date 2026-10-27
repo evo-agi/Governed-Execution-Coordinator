@@ -599,3 +599,29 @@ or public API.
 ### Section 41 catalog succession
 
 The current packaged generation-2 SQLite tip is additive `0005_section41_post_execution_proposal_family`, superseding only previous current-tip references to 0004; the current production SQL resource count is `5`. The new resource adds two immutable STRICT tables and four guards, with no explicit indexes or seeds, for cumulative 64/114/5 table/trigger/explicit-index counts. The four earlier migration bytes and owners are unchanged. An exact older 0004 database needs explicit administrative migration. The existing filesystem binding, writer authority, observational validation, transaction uncertainty and recovery architecture remain in force; Section 41 A uses the existing controller and C1 B remains a separate owner transaction.
+
+### RW0-C2 physical catalog succession in the uncommitted workspace
+
+The current packaged generation-2 workspace tip is
+`0007_rw0_c2_progression_decision`; the current production SQL resource count
+is `7`. Migration 0006 adds four private program-independent P0 admission
+tables and eight immutable guards. Migration 0007 adds six private P1
+progression supplemental tables and twelve immutable guards. The exact
+cumulative schema has 74 user tables, 134 triggers, and five explicit indexes;
+0001–0005 schema objects are unchanged. Exact older prefixes require explicit
+administrative migration. The earlier 0005 current-tip statement records the
+Section 41 predecessor, while P0/P1 remain an artificial-offline uncommitted
+candidate under the existing filesystem, writer, and transaction boundaries.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### RW0-C2 locally committed catalog status
+
+The preceding uncommitted-workspace catalog paragraph records its candidate
+checkpoint. Independently accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` was locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488`. The current packaged source catalog remains generation 2 through
+0007 with seven resources, 74 tables, 134 triggers, and five explicit indexes;
+0006 P0 and 0007 P1 stay distinct additive families. Existing filesystem,
+writer, transaction, explicit migration, and recovery boundaries remain.
+This local source status grants no live supplier, product permission, terminal
+outcome, or publication.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

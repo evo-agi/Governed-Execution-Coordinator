@@ -4,7 +4,7 @@ This module is not admission, not authorization, not production state initializa
 and not runtime authority. It directly seeds a historical schema-0001 B3/B4 graph
 inside a temporary current-generation managed SQLite database, then validates the
 seeded rows through existing Coordinator row contracts. The cumulative physical
-schema is generation 2 / migration 0005; the seeded graph's meanings remain the
+schema is generation 2 / migration 0007; the seeded graph's meanings remain the
 existing schema-0001 meanings.
 """
 
@@ -86,8 +86,8 @@ _LEASE_ID = "lease-b3-fixture"
 _BACKLOG_ID = "backlog-b3-fixture"
 _WORK_ITEM_ID = "wi-b3-fixture"
 _DEPENDENCY_DECISION_REF = "deps-b3-fixture-ready"
-_CURRENT_PHYSICAL_SEQUENCE = 5
-_CURRENT_PHYSICAL_MIGRATION_ID = "0005_section41_post_execution_proposal_family"
+_CURRENT_PHYSICAL_SEQUENCE = 7
+_CURRENT_PHYSICAL_MIGRATION_ID = "0007_rw0_c2_progression_decision"
 _FIXTURE_WRITER_GENERATION = 2
 _C2B2_PHYSICAL_TABLES = (
     "development_program_heads",

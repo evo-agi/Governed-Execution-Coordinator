@@ -130,6 +130,32 @@ from ge_nwp_coordinator._sqlite_section41_post_execution_proposal import (
     recover_after_fencing as _recover_post_execution_proposal_after_fencing,
     write_fresh_after_fencing as _write_post_execution_proposal_after_fencing,
 )
+from ge_nwp_coordinator._rw0_c2_scope_admission_contracts import (
+    ArtificialAdmissionSourceV1,
+    ScopeAdmissionCommandV1,
+    ScopeAdmissionCommittedV1,
+    ScopeAdmissionConflictV1,
+    ScopeAdmissionRecoveryV1,
+)
+from ge_nwp_coordinator._sqlite_rw0_c2_scope_admission import (
+    read_after_fencing as _read_scope_admission_after_fencing,
+    recover_after_fencing as _recover_scope_admission_after_fencing,
+    write_fresh_after_fencing as _write_scope_admission_after_fencing,
+)
+from ge_nwp_coordinator._rw0_c2_progression_contracts import (
+    ArtificialDecisionGuardSourceV1, ProgressionDecisionCommittedV1,
+    ProgressionDecisionConflictV1, ProgressionDecisionRecoveryV1,
+    RecordProgressionDecisionCommandV1,
+)
+from ge_nwp_coordinator._sqlite_rw0_c2_progression import (
+    _FreshProgression,
+    read_after_fencing as _read_progression_after_fencing,
+    recover_after_fencing as _recover_progression_after_fencing,
+    write_fresh_after_fencing as _write_progression_after_fencing,
+)
+from ge_nwp_coordinator._post_execution_evidence_values import (
+    ValidationDispositionV1, IndependentReviewDispositionV1,
+)
 from ge_nwp_coordinator.lease import derive_lease_runtime_decision
 from ge_nwp_coordinator.persistence_contracts import (
     AdmittedBacklogRecordEnvelope,
@@ -1124,6 +1150,221 @@ class _CoordinatorMutationTransactionController:
     def run_rw0_d2_current_owner_snapshot(self, *, basis: object) -> RW0D2CurrentOwnerSnapshotV1:
         result = self._run_rw0_d2_current_owner_snapshot_transaction(basis=basis)
         if type(result) is not RW0D2CurrentOwnerSnapshotV1:
+            raise _mutation_failed()
+        return result
+
+    def run_scope_admission_operation(
+        self, *, command: ScopeAdmissionCommandV1,
+        source: ArtificialAdmissionSourceV1, mode: str,
+    ) -> ScopeAdmissionCommittedV1 | ScopeAdmissionConflictV1 | ScopeAdmissionRecoveryV1:
+        if (type(command) is not ScopeAdmissionCommandV1
+                or type(source) is not ArtificialAdmissionSourceV1
+                or mode not in {"record", "read", "recovery"}):
+            raise _mutation_failed()
+        # The only retained implementation entry is explicitly artificial.
+        ScopeAdmissionCommandV1.from_json(command.canonical_bytes)
+        return self._run_scope_admission_transaction(command=command, source=source, mode=mode)
+
+    def _run_scope_admission_transaction(
+        self, *, command: ScopeAdmissionCommandV1,
+        source: ArtificialAdmissionSourceV1, mode: str,
+    ) -> ScopeAdmissionCommittedV1 | ScopeAdmissionConflictV1 | ScopeAdmissionRecoveryV1:
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result: ScopeAdmissionCommittedV1 | ScopeAdmissionConflictV1 | ScopeAdmissionRecoveryV1 | None = None
+        failure: BaseException | None = None
+        cleanup: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                if self._run_until_writer_fencing_resolution() is not _WriterIssuanceMatch.MATCH:
+                    raise _mutation_failed()
+                if mode == "recovery":
+                    result = _recover_scope_admission_after_fencing(
+                        self._capability, command, source,
+                    )
+                else:
+                    try:
+                        historical = _read_scope_admission_after_fencing(
+                            self._capability, command, source,
+                            disclosure=mode != "record",
+                        )
+                    except ValueError as error:
+                        if str(error) != "scope_admission_operation_identity_conflict":
+                            raise
+                        if mode == "record":
+                            result = ScopeAdmissionConflictV1(
+                                "scope_admission_provisioning.operation_identity_conflict"
+                            )
+                            historical = None
+                        else:
+                            raise _database_integrity_failure() from None
+                    if result is None and historical is not None:
+                        if mode == "record":
+                            # A historical receipt is disclosed only under current
+                            # protected-disclosure permission, not recording authority.
+                            source.checked_for(command, disclosure=True)
+                        result = historical
+                    elif result is None and mode == "read":
+                        raise _database_integrity_failure()
+                    elif result is None:
+                        connection = self._connection
+                        if type(connection) is not sqlite3.Connection:
+                            raise _mutation_failed()
+                        timestamp = _capture_transaction_timestamp()
+                        self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+                        candidate = _write_scope_admission_after_fencing(
+                            self._capability, connection, command, source, timestamp,
+                        )
+                        if type(candidate) is ScopeAdmissionCommittedV1:
+                            self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+                            result = self._commit_after_fresh_writes(
+                                candidate, force_cleanup_on_uncertainty=True,
+                            )
+                        elif type(candidate) is ScopeAdmissionConflictV1:
+                            result = candidate
+                        else:
+                            raise _database_integrity_failure()
+                if not self._commit_attempt_started:
+                    cleanup = self._resolve_rollback_before_commit()
+            except (_WriterSessionAuthorityClosed, _WriterSessionAuthorityUnavailable):
+                failure = _mutation_failed()
+            except (WriterSessionError, SQLiteMutationStoreError) as error:
+                failure = error
+            except Exception:
+                failure = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if failure is not None and not self._commit_attempt_started:
+                cleanup = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    failure = _commit_outcome_unknown()
+                    cleanup = None
+                    result = None
+                else:
+                    cleanup = cleanup or _mutation_failed()
+        witness = self._rw0_c1_commit_close_witness
+        if (type(witness) is _RW0C1CommitCloseWitness
+                and witness.ordinary_failure_is_commit_uncertain
+                and (cleanup is not None or failure is not None or result is None)):
+            failure = _commit_outcome_unknown()
+            cleanup = None
+            result = None
+        if cleanup is not None:
+            if mode == "recovery":
+                return ScopeAdmissionRecoveryV1("unresolved")
+            raise cleanup
+        if failure is not None:
+            if mode == "recovery":
+                return ScopeAdmissionRecoveryV1("unresolved")
+            raise failure
+        if result is None:
+            raise _mutation_failed()
+        return result
+
+    def run_progression_operation(
+        self, *, command: RecordProgressionDecisionCommandV1,
+        source: ArtificialDecisionGuardSourceV1,
+        validation: ValidationDispositionV1 | None,
+        review: IndependentReviewDispositionV1 | None,
+        mode: str,
+    ) -> ProgressionDecisionCommittedV1 | ProgressionDecisionConflictV1 | ProgressionDecisionRecoveryV1:
+        if (type(command) is not RecordProgressionDecisionCommandV1
+            or type(source) is not ArtificialDecisionGuardSourceV1
+            or mode not in {"record", "read", "recovery"}
+            or (mode == "record") != (type(validation) is ValidationDispositionV1
+                                      and type(review) is IndependentReviewDispositionV1)
+            or mode != "record" and (validation is not None or review is not None)):
+            raise _mutation_failed()
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result: ProgressionDecisionCommittedV1 | ProgressionDecisionConflictV1 | ProgressionDecisionRecoveryV1 | None = None
+        failure: BaseException | None = None
+        cleanup: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                if self._run_until_writer_fencing_resolution() is not _WriterIssuanceMatch.MATCH:
+                    raise _mutation_failed()
+                timestamp = _capture_transaction_timestamp()
+                if mode == "recovery":
+                    result = _recover_progression_after_fencing(
+                        self._capability, command, source, timestamp,
+                    )
+                elif mode == "read":
+                    result = _read_progression_after_fencing(
+                        self._capability, command, source, timestamp)
+                    if result is None:
+                        raise _database_integrity_failure()
+                else:
+                    connection = self._connection
+                    if type(connection) is not sqlite3.Connection:
+                        raise _mutation_failed()
+                    self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+                    candidate = _write_progression_after_fencing(
+                        self._capability, connection, command, source,
+                        validation, review, timestamp,
+                    )
+                    if type(candidate) is _FreshProgression:
+                        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+                        result = self._commit_after_fresh_writes(
+                            candidate.committed, force_cleanup_on_uncertainty=True,
+                        )
+                    elif type(candidate) in (ProgressionDecisionCommittedV1,
+                                            ProgressionDecisionConflictV1):
+                        result = candidate
+                    else:
+                        raise _database_integrity_failure()
+                if not self._commit_attempt_started:
+                    cleanup = self._resolve_rollback_before_commit()
+            except (_WriterSessionAuthorityClosed, _WriterSessionAuthorityUnavailable):
+                failure = _mutation_failed()
+            except (WriterSessionError, SQLiteMutationStoreError) as error:
+                failure = error
+            except Exception:
+                failure = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if failure is not None and not self._commit_attempt_started:
+                cleanup = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    failure = _commit_outcome_unknown()
+                    cleanup = None
+                    result = None
+                else:
+                    cleanup = cleanup or _mutation_failed()
+        witness = self._rw0_c1_commit_close_witness
+        if (type(witness) is _RW0C1CommitCloseWitness
+            and witness.ordinary_failure_is_commit_uncertain
+            and (cleanup is not None or failure is not None or result is None)):
+            failure = _commit_outcome_unknown()
+            cleanup = None
+            result = None
+        if cleanup is not None:
+            if mode == "recovery":
+                return ProgressionDecisionRecoveryV1("unresolved")
+            raise cleanup
+        if failure is not None:
+            if mode == "recovery":
+                return ProgressionDecisionRecoveryV1("unresolved")
+            raise failure
+        if result is None:
             raise _mutation_failed()
         return result
 
@@ -2836,6 +3077,8 @@ class _CoordinatorMutationTransactionController:
             RW0C1EstablishPhaseResultV1,
             RW0C1AdmitEvidenceResultV1,
             RecordPostExecutionProposalResultV1,
+            ScopeAdmissionCommittedV1,
+            ProgressionDecisionCommittedV1,
         )
         commit_close_witness = self._rw0_c1_commit_close_witness
         if require_complete_close_proof and type(
@@ -3718,6 +3961,101 @@ def _run_post_execution_proposal_operation(
         operation_lease = None  # type: ignore[assignment]
         run = None
         safe_basis_bytes = None
+    return result
+
+
+def _run_scope_admission_operation(
+    *, operation_lease: _WriterSessionOperationLease,
+    command: ScopeAdmissionCommandV1,
+    source: ArtificialAdmissionSourceV1,
+    mode: str,
+    commit_close_witness: _RW0C1CommitCloseWitness | None = None,
+) -> ScopeAdmissionCommittedV1 | ScopeAdmissionConflictV1 | ScopeAdmissionRecoveryV1 | _SafeMutationFailureDisposition:
+    if (type(operation_lease) is not _WriterSessionOperationLease
+            or type(command) is not ScopeAdmissionCommandV1
+            or type(source) is not ArtificialAdmissionSourceV1
+            or mode not in {"record", "read", "recovery"}
+            or (mode == "record") != (type(commit_close_witness) is _RW0C1CommitCloseWitness)):
+        return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        result = controller.run_scope_admission_operation(
+            command=command, source=source, mode=mode,
+        )
+    except SQLiteMutationStoreError as error:
+        if (type(commit_close_witness) is _RW0C1CommitCloseWitness
+                and commit_close_witness.ordinary_failure_is_commit_uncertain):
+            return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN)
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if mode == "recovery":
+            return ScopeAdmissionRecoveryV1("unresolved")
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            if type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            else SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        operation_lease = None  # type: ignore[assignment]
+        source = None  # type: ignore[assignment]
+    return result
+
+
+def _run_progression_operation(
+    *, operation_lease: _WriterSessionOperationLease,
+    command: RecordProgressionDecisionCommandV1,
+    source: ArtificialDecisionGuardSourceV1,
+    validation: ValidationDispositionV1 | None,
+    review: IndependentReviewDispositionV1 | None,
+    mode: str,
+    commit_close_witness: _RW0C1CommitCloseWitness | None = None,
+) -> ProgressionDecisionCommittedV1 | ProgressionDecisionConflictV1 | ProgressionDecisionRecoveryV1 | _SafeMutationFailureDisposition:
+    if (type(operation_lease) is not _WriterSessionOperationLease
+        or type(command) is not RecordProgressionDecisionCommandV1
+        or type(source) is not ArtificialDecisionGuardSourceV1
+        or mode not in {"record", "read", "recovery"}
+        or (mode == "record") != (type(commit_close_witness) is _RW0C1CommitCloseWitness)):
+        return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        result = controller.run_progression_operation(
+            command=command, source=source, validation=validation,
+            review=review, mode=mode,
+        )
+    except SQLiteMutationStoreError as error:
+        if (type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain):
+            return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN)
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if mode == "recovery":
+            return ProgressionDecisionRecoveryV1("unresolved")
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            if type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            else SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
+        )
+    finally:
+        controller = None
+        operation_lease = None  # type: ignore[assignment]
+        source = None  # type: ignore[assignment]
     return result
 
 
