@@ -723,3 +723,19 @@ implementation evidence, not independent audit or live acceptance. There is
 no live supplier, public caller, executable effect, or terminal persistence.
 See `.docs/rw0-c2-physical-p0-p1-implementation.md`.
 <!-- RW0_C2_P1_PHYSICAL_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 local implementation status
+
+The P0 and P1 candidate blocks above remain historical checkpoints.
+Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf`; local commit `8704e6c7988250598809f3a0daf88c3e11493488`
+records that exact tree on `codex/rw0-c2-p0-p1-physical-program-v1` with
+sole parent `4519630d0db967066beb21b4ace5004e76827716` and no upstream. The local commit gate reconciled 9,473
+collected, executed, JUnit, and passed IDs in order, with zero failures,
+errors, and skips and three known Python 3.13 fork deprecation warnings.
+No push, PR, merge, publication, deployment, or product effect occurred.
+Git objects and refs own commit truth. This remains a private artificial-offline
+proof: P0 admission history is not current authority; P1's acceptance-only
+fact is not terminal truth or executable permission. The detailed current
+contract is `.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

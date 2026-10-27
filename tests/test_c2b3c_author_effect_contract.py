@@ -4278,6 +4278,19 @@ def _broken_section_42_entire_suffix_checker(source: bytes) -> bool:
 def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
     source = _read_owned_bytes(OWNER_PATH) if source_bytes is None else source_bytes
     assert type(source) is bytes, "C2B3C_STATUS_INVALID"
+    local_begin = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    local_end = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    if source_bytes is None or local_begin in source:
+        local_size = 1824
+        assert ((len(source), hashlib.sha256(source).hexdigest()) ==
+                (1905508, '021017a920a4cc522ca8470f31aa0ebdc2f4888724b897efcbaf30e643ff4b6c')
+                and source.count(local_begin) == source.count(local_end) == 1
+                and source.endswith(local_end)
+                and source[-local_size:].startswith(local_begin)
+                and hashlib.sha256(source[-local_size:]).hexdigest() ==
+                'cb0022d57602d7f01b2248311f08772515647db528c08f7bc0121be37e608a91'), (
+                    "C2B3C_STATUS_INVALID")
+        source = source[:-local_size]
     prefix = source[:EXPECTED_OWNER_OPENING_UTF8_LENGTH]
     assert len(prefix) == EXPECTED_OWNER_OPENING_UTF8_LENGTH, (
         "C2B3C_STATUS_INVALID"

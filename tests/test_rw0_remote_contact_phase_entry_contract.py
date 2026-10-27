@@ -9,6 +9,9 @@ from typing import NamedTuple
 import pytest
 
 import test_rw0_b1_boundaries as _b1_owner_test_module
+from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
+    _rw0_c2_current_drift_predecessor,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -908,6 +911,15 @@ def _text(path: str) -> str:
 
 def _historical_rw0_cross_reference_text(path: str) -> str:
     text = _text(path)
+    if path in (
+        '.docs/worker-execution-boundary.md',
+        '.docs/durable-state-model.md',
+    ):
+        # The old shared projection remains byte-exact inside a later,
+        # separately checked current C2 owner-local successor.
+        predecessor, _status = _rw0_c2_current_drift_predecessor(
+            path, text.encode('utf-8'))
+        text = predecessor.decode('utf-8')
     successor_markers = {
         SUPPORTING_PATHS[0]: "<!-- RW0_C2_P0_PHYSICAL_OPERATING_MODEL_CANDIDATE_BEGIN -->",
         SUPPORTING_PATHS[2]: "<!-- RW0_C2_P0_PHYSICAL_AUTHORITY_CANDIDATE_BEGIN -->",
@@ -2197,6 +2209,10 @@ def _capability_status_visible_body(
 
 
 def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
+    # The phase-entry owner's old C2-future projection is a protected stage
+    # snapshot, with a separately checked current C2 successor.
+    _rw0_c2_current_drift_predecessor(
+        OWNER_PATH, (ROOT / OWNER_PATH).read_bytes())
     live_map = {
         path: _historical_rw0_cross_reference_text(path)
         for path, _root in CROSS_REFERENCE_OWNERS
@@ -2252,6 +2268,8 @@ def test_four_supporting_cross_references_are_unique_and_normalized() -> None:
             "RW0-C/D/E", "Execution Substrate",
     ), role="rw0.wire_status")
 
+    # This exact Capability-stage projection is historical where it describes
+    # C2 physical persistence as future; the owner-local successor is current.
     expected_capability_status = _compact("""
         RW0-B2-Capability implements private, pure, no-I/O worker-mechanism capability
         declaration, independently authored supplied observation, and Coordinator

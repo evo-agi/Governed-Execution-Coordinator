@@ -510,3 +510,16 @@ capsule custody, or external integration table.
 ### Historical additive Section 41 0005 schema successor
 
 `0005_section41_post_execution_proposal_family` adds only `development_post_execution_proposal_contexts` (11 ordered columns) and `development_post_execution_proposal_receipts` (25 ordered columns). Both are STRICT and immutable with immediate restricted foreign keys, exact phase-qualified routes and zero seed rows. Each has UPDATE and DELETE guards; there are no new explicit indexes. Generation 2 cumulative totals at that checkpoint were 64 user tables, 114 triggers and five explicit indexes. Context safe-basis BLOBs are at most 131072 canonical bytes; DDL ref FKs do not themselves prove digest equality, which the typed writer and full checked reader verify. The four earlier SQL resources and their historical inventories remain unchanged; 0004 was their tip, and 0005 was the Section 41 checkpoint tip. The exact field/identity contract is `.docs/section41-post-execution-proposal-family.md`.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### RW0-C2 committed-source generation-2 schema status
+
+The preceding P0/P1 candidate block is preserved as historical source status.
+The independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit `8704e6c7988250598809f3a0daf88c3e11493488`
+records its existing seven-resource generation-2 catalog. Migration 0006
+continues to provide four immutable P0 admission tables; migration 0007
+continues to provide six immutable P1 supplemental tables. The cumulative
+packaged schema remains 74 user tables, 134 triggers, and five explicit
+indexes; no migration 0008 or terminal table is introduced. Physical
+representability is not live, executable, terminal, or publication authority.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

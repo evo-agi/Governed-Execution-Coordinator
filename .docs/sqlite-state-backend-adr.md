@@ -612,3 +612,16 @@ cumulative schema has 74 user tables, 134 triggers, and five explicit indexes;
 administrative migration. The earlier 0005 current-tip statement records the
 Section 41 predecessor, while P0/P1 remain an artificial-offline uncommitted
 candidate under the existing filesystem, writer, and transaction boundaries.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### RW0-C2 locally committed catalog status
+
+The preceding uncommitted-workspace catalog paragraph records its candidate
+checkpoint. Independently accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` was locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488`. The current packaged source catalog remains generation 2 through
+0007 with seven resources, 74 tables, 134 triggers, and five explicit indexes;
+0006 P0 and 0007 P1 stay distinct additive families. Existing filesystem,
+writer, transaction, explicit migration, and recovery boundaries remain.
+This local source status grants no live supplier, product permission, terminal
+outcome, or publication.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

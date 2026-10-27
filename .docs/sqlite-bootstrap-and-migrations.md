@@ -695,3 +695,16 @@ existing canonical basis BLOB. Migrations 0001–0006 remain byte-identical. An 
 writer acquisition, and product mutation never auto-migrate. This suffix adds
 no public mutation API or live authorization.
 <!-- RW0_C2_P1_MIGRATION_0007_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 committed-source migration status
+
+The 0006 P0 and 0007 P1 candidate blocks above are exact historical
+checkpoints. Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit
+`8704e6c7988250598809f3a0daf88c3e11493488` records its seven-resource generation-2 catalog. Migration 0006
+remains a four-table P0-only family; migration 0007 remains a six-table P1
+supplement. SQL bytes, hashes, schema counts, and the explicit migration-only
+rule are unchanged. Ordinary inspection, validation, writer acquisition, and
+product mutation do not auto-migrate. This local source commit neither
+publishes the branch nor establishes live admission or executable permission.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

@@ -25141,3 +25141,30 @@ durable shape, public API, product effect, or live authority, and remains
 pending independent audit. The physical owner is
 `.docs/rw0-c2-physical-p0-p1-implementation.md`.
 <!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 independently accepted local-commit successor
+
+The earlier P0, P1, basis-v2, command-digest-v2, and disclosure/eligibility
+blocks above preserve their exact candidate-stage history. The independent
+artifact audit accepted the cumulative Git-compatible tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and
+local commit `8704e6c7988250598809f3a0daf88c3e11493488` records that tree with sole parent `4519630d0db967066beb21b4ace5004e76827716` on the topic
+branch without upstream. The commit gate reconciled 9,473 collected,
+executed, JUnit, and passed IDs in exact order, with zero failures/errors/skips
+and three known Python 3.13 multithreaded-fork deprecation warnings. There
+was no push, PR, merge, publication, deployment, or product effect.
+
+The current private artificial-offline physical contracts retain separate P0
+admission and P1 decision transactions. P0 is historical admission evidence,
+never current permission. P1 makes one five-branch decision and only an
+acceptance branch records the immutable acceptance fact; that fact is not a
+terminal outcome. Decision Basis v2, guarded-command-digest v2, the typed
+historical work-head witness, universal current disclosure, and acceptance-only
+unclaimed-scope eligibility remain the current bounded implementation. F03
+and F05 remain open nonblocking observations. Git objects and refs own local
+commit/ref truth; this status, audit, and validation are evidence only. No
+live custody supplier, executable permission, production provider or worker,
+ES/Bridge route, product Git effect, service, queue, scheduler, deployment,
+or autonomous loop is established. The detailed source owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

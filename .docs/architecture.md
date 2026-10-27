@@ -742,3 +742,20 @@ retains both historical postimages. The Section 41/C1/V22 owner path, public
 StateStore, production callers, worker transport, and effect handling are
 unchanged.
 <!-- RW0_C2_P1_PHYSICAL_ARCHITECTURE_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 accepted local architecture status
+
+The P0 and P1 candidate blocks above are exact historical checkpoints.
+Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit `8704e6c7988250598809f3a0daf88c3e11493488`
+records it with sole parent `4519630d0db967066beb21b4ace5004e76827716` and no upstream. P0 admission and P1
+five-branch progression remain separate private fenced transactions. P0
+receipt/history gives no current authority; P1 acceptance-only fact gives no
+terminal truth. Decision Basis v2, guarded-command-digest v2, historical
+work-head witness, universal disclosure, and acceptance-only eligibility are
+current private contracts. This artificial-offline source adds no public
+StateStore route, live supplier, executable permission, production worker,
+ES/Bridge route, product Git effect, service, queue, scheduler, deployment,
+or autonomous operation. Git owns commit/ref truth; audit and status are
+evidence, with no publication claim.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

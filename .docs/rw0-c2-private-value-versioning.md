@@ -5667,3 +5667,16 @@ without retry permission or winner disclosure. Internal competing-acceptance com
 matches the persisted v2 digest against exactly the two possible original
 acceptance assertions, null and `candidate_acceptance`, and discloses no
 competing result.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### P0/P1 accepted local-source status for current private values
+
+The work-head and basis-v2 candidate paragraphs above remain exact historical
+checkpoints; their v1 machine block and value grammar are unchanged. The
+current Decision Basis v2, guarded-command-digest v2, relation/result/profile
+v2 historical work-head witness, universal current disclosure, and
+acceptance-only current eligibility are the bounded private contracts in
+independently accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf`, locally committed as `8704e6c7988250598809f3a0daf88c3e11493488`. This status
+adds no schema field, vector, digest input, public surface, live authority,
+terminal result, product effect, or publication.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

@@ -9,6 +9,9 @@ import types
 from pathlib import Path
 
 import pytest
+from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
+    _rw0_c2_current_drift_predecessor,
+)
 
 import ge_nwp_coordinator._rw0_worker_mechanism_capability_values as capability
 from ge_nwp_coordinator._rw0_worker_mechanism_capability_values import (
@@ -34,6 +37,8 @@ STATUS_PATHS = (
     ROOT / ".docs/durable-state-model.md",
     ROOT / ".docs/worker-execution-boundary.md",
 )
+# Exact Capability-stage prose remains historical where it says C2 physical
+# persistence is future. The current C2 status is checked separately below.
 EXPECTED_STATUS = """RW0-B2-Capability implements private, pure, no-I/O worker-mechanism capability
 declaration, independently authored supplied observation, and Coordinator
 qualification values plus one pure qualification relation. It binds the fixed
@@ -163,6 +168,27 @@ _P1_PROTECTED_APPEND = {
                   b'<!-- RW0_C2_P1_PHYSICAL_CANDIDATE_BEGIN -->'),
 }
 
+_RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES = {
+    'AGENTS.md': ((74410, 'c8ccf0552265d172a659a30be898fffd35cc70fad4821a350c3a9bf00e8f6b5d'),
+                  (1664, '35b0ef1755c05f0a58ca6b073dcfcbacb333d2a78e0725e9d72012b2aa725f03')),
+    'README.md': ((50883, '97af30802aea371b231e6509df62743006218065b3decbeb3bcc3db94df98981'),
+                  (1063, '9a10331a1876103db243e8bc7d4abc8a5c876bb00a7fea9abb4ab505a42dad55')),
+}
+
+
+def _peel_rw0_c2_local_status(relative_path: str, payload: bytes) -> bytes:
+    current, suffix = _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES[relative_path]
+    marker = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    size, digest = suffix
+    if ((len(payload), hashlib.sha256(payload).hexdigest()) != current
+            or len(payload) < size or not payload.endswith(end)
+            or payload.count(marker) != 1 or payload.count(end) != 1
+            or hashlib.sha256(payload[-size:]).hexdigest() != digest
+            or not payload[-size:].startswith(marker)):
+        raise AssertionError(relative_path + ':local_status_successor_identity')
+    return payload[:-size]
+
 
 def _protected_historical_bytes(relative_path: str, payload: bytes) -> bytes:
     """Verify bounded successors, then retain each old exact identity oracle."""
@@ -174,6 +200,7 @@ def _protected_historical_bytes(relative_path: str, payload: bytes) -> bytes:
         return payload.replace(_P09_RW0_C2_P1_ADDITION, b'', 1)
     if relative_path not in _P0_PROTECTED_APPEND:
         return payload
+    payload = _peel_rw0_c2_local_status(relative_path, payload)
     p1_size, p1_digest, p1_marker = _P1_PROTECTED_APPEND[relative_path]
     if (len(payload) < p1_size or payload[-p1_size:].count(p1_marker) != 1
             or hashlib.sha256(payload[-p1_size:]).hexdigest() != p1_digest):
@@ -686,6 +713,13 @@ def test_owner_and_five_status_projections_are_visible_unique_and_synchronized()
         bodies.append(normalize(body))
     assert len(set(bodies)) == 1
     assert bodies[0] == normalize(EXPECTED_STATUS)
+    for relative in (
+        '.docs/rw0-remote-worker-contact-phase-entry.md',
+        '.docs/durable-state-model.md',
+        '.docs/worker-execution-boundary.md',
+    ):
+        _rw0_c2_current_drift_predecessor(
+            relative, (ROOT / relative).read_bytes())
 
     owner_mutants = (
         owner.replace(OWNER_END, OWNER_END + "\ntrailing visible owner prose"),

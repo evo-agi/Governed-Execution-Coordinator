@@ -1110,3 +1110,27 @@ terminal owner, worker, ES/Bridge route, product Git effect, or executable
 permission. The detailed owner is
 `.docs/rw0-c2-physical-p0-p1-implementation.md`.
 <!-- RW0_C2_P1_PHYSICAL_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 accepted local implementation status
+
+The preceding P0 and P1 candidate blocks are exact historical checkpoints.
+Independent artifact audit accepted Git-compatible tree `161ed4b544baf970cc26428b9805a106ea0f3edf`. The exact
+implementation was committed locally as `8704e6c7988250598809f3a0daf88c3e11493488` with sole parent `4519630d0db967066beb21b4ace5004e76827716`
+on `codex/rw0-c2-p0-p1-physical-program-v1`, without an upstream. The local
+commit gate collected, executed, and recorded 9,473 passing JUnit cases in
+identical order, with three known Python 3.13 multithreaded-fork
+`DeprecationWarning` records and no failures, errors, or skips. No push, PR,
+merge, publication, deployment, or product effect occurred. Git objects and
+refs own commit and publication truth; audit, validation, and status records
+are evidence only. The bounded private artificial-offline P0 and P1 source
+remains separate fenced transactions: P0 records admission history without
+current permission, and P1 records one five-branch decision with an acceptance
+fact only on acceptance. Decision Basis v2, guarded-command-digest v2, the
+historical work-head witness, universal disclosure, and acceptance-only
+eligibility are current private contracts. F03 and F05 remain nonblocking
+observations. No live custody supplier, terminal outcome, executable
+permission, production provider/worker, ES/Bridge route, product Git effect,
+service, queue, scheduler, or autonomous loop follows. The current owner is
+`.docs/rw0-c2-physical-p0-p1-implementation.md`.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

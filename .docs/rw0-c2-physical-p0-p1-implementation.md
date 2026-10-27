@@ -1,14 +1,12 @@
 # RW0-C2 artificial-offline physical program
 
-Status: uncommitted P0-to-P1 artificial-offline implementation candidate. The
-exact saved and reopened P0 checkpoint and v2 work-head identity checkpoint
-are complete. The prior work-head stop remains historical evidence below and
-was superseded by the authorized v2 engineering decision. An independent audit
-blocked the later 21-field basis candidate because stale-currentness block
-replay could not reconstruct its candidate reason. The present basis-v2 repair
-is another uncommitted candidate pending independent audit. The private fenced
-P1 writer, readback, replay, and three-way recovery are present in source;
-publication and live operation remain separate gates.
+Status: independently accepted private artificial-offline P0→P1 source,
+locally committed as `8704e6c7988250598809f3a0daf88c3e11493488` at tree `161ed4b544baf970cc26428b9805a106ea0f3edf`; publication and live operation
+remain separate gates. The exact P0/work-head checkpoints and blocked
+21-field basis predecessor below remain historical evidence. The current
+basis-v2, command-digest-v2, and disclosure/eligibility-split repairs were
+accepted together by the independent artifact audit. The private fenced P1
+writer, readback, replay, and three-way recovery are present in source.
 
 ## Owner split
 
@@ -271,3 +269,40 @@ use controlled typed validation variations on the same actual owner
 coordinates. This private implementation remains uncommitted and unaudited.
 It grants no live evidence source, current external grant, product Git effect,
 terminal fact, service, worker transport, or production admission.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## Accepted local source and residual boundaries
+
+Independent artifact audit accepted exact Git-compatible tree `161ed4b544baf970cc26428b9805a106ea0f3edf`; local
+commit `8704e6c7988250598809f3a0daf88c3e11493488` has sole parent `4519630d0db967066beb21b4ace5004e76827716`, records that tree on
+`codex/rw0-c2-p0-p1-physical-program-v1`, and has no upstream. The gate
+reconciled 9,473 collected/executed/JUnit/passed IDs in exact order with zero
+failures, errors, or skips and three known Python 3.13 multithreaded-fork
+`DeprecationWarning` records. No push, PR, merge, publication, deployment, or
+product effect occurred. Git objects and refs own current commit/ref truth;
+independent audit, validation, provenance, closeout, and this text are evidence
+only, not Coordinator durable authority or effect permission.
+
+The earlier candidate-stage paragraphs in this owner preserve their historical
+source chronology; this block supersedes their present-tense uncommitted,
+unaudited, and pending-audit status. Current source remains a bounded private
+artificial-offline proof over task-owned SQLite and controlled fake processes.
+P0 and P1 are separate fenced physical transactions. P0 records a verified
+admission act/fact, basis, and receipt as history without current authority.
+P1 records one of five progression branches; only candidate acceptance records
+an acceptance fact, which is not terminal truth. Decision Basis v2 and
+`guarded-command-digest.v2.identity` preserve exact branch assertion identity;
+relation/result/profile v2 retain the historical work-head witness. Fresh
+universal disclosure guards replay, read, and recovery, while current
+unclaimed-scope eligibility is required only for fresh candidate acceptance.
+
+F03 remains a nonblocking observation: this bounded P0 implementation does
+not implement every earlier target-only selector/wrapper field, with no
+observed authority bypass. F05 remains a nonblocking observation: P0 samples
+time before its fresh collision probe, potentially changing no-write error
+precedence only. Earlier full-ref and raw-index observation limits remain
+historical limits; the gate did not backdate those proofs. No live enrollment
+or custody supplier, external standing authority, terminal owner, executable
+permission, production provider or worker, ES/Bridge route, product Git
+effect, service, queue, scheduler, deployment, or autonomous loop is claimed.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

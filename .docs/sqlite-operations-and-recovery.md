@@ -364,7 +364,7 @@ C2B1 exposes split offline operations:
   posture, migration-history/catalog equality, live-schema manifest equality,
   and managed current-state invariants;
 - initialize an absent or empty local database with the complete current
-  catalog (the uncommitted P0/P1 candidate extends the contiguous 0001–0005
+  catalog (the locally committed private P0/P1 source extends the contiguous 0001–0005
   prefix through `0006_rw0_c2_scope_admission` and
   `0007_rw0_c2_progression_decision`);
 - migrate an exact supported non-empty older prefix through the complete
@@ -703,3 +703,18 @@ row requires `governed-execution.nwp-rw0-c2-decision-basis.v2` canonical
 bytes; its two typed dispositions support exact replay and read-only recovery.
 This candidate grants no live or product authority, executable permission,
 terminal outcome, or publication.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### RW0-C2 committed-source operations status
+
+The preceding uncommitted 0007 catalog block is a preserved candidate-stage
+checkpoint. Tree `161ed4b544baf970cc26428b9805a106ea0f3edf` was independently accepted and locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488`; the generation-2 seven-resource catalog and explicit older-prefix
+migration rule are unchanged. P0 admission and P1 five-branch decision use
+separate private fenced transactions with their own receipt/recovery. P0
+history is not current permission; P1 acceptance is not terminal truth.
+Commit-uncertainty, replay, and no automatic retry boundaries remain. The
+local Git commit is not a product Git-effect handler or publication. No live
+supplier, executable authority, ES/Bridge route, service, queue, scheduler,
+deployment, or autonomous operation follows.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

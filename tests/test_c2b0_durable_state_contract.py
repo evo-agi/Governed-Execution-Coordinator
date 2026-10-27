@@ -20,9 +20,21 @@ SQLITE_MIGRATION_PATH = ROOT / "src/ge_nwp_coordinator/sqlite_migration.py"
 
 _P0_C2B_SUFFIX_IDENTITY = (672, '1e587e1a67f5ed21c98c10c3f6dd66e42b0e6bf7e3a0a8ed0f1802ab017e62e6')
 _P1_C2B_SUFFIX_IDENTITY = (1037, '4c907b9f8a9a029b00c1a54104287a8d94f9a6e15ce8238195d26a10f6229db8')
+_RW0_C2_LOCAL_STATUS_OWNER_IDENTITY = (1905508, '021017a920a4cc522ca8470f31aa0ebdc2f4888724b897efcbaf30e643ff4b6c')
+_RW0_C2_LOCAL_STATUS_SUFFIX_IDENTITY = (1824, 'cb0022d57602d7f01b2248311f08772515647db528c08f7bc0121be37e608a91')
 
 
 def _c2b_pre_p0_bytes(payload: bytes) -> bytes:
+    status_begin = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    status_end = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    status_size, status_digest = _RW0_C2_LOCAL_STATUS_SUFFIX_IDENTITY
+    if ((len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_C2_LOCAL_STATUS_OWNER_IDENTITY
+            or len(payload) < status_size or payload.count(status_begin) != 1
+            or payload.count(status_end) != 1 or not payload.endswith(status_end)
+            or not payload[-status_size:].startswith(status_begin)
+            or hashlib.sha256(payload[-status_size:]).hexdigest() != status_digest):
+        raise AssertionError('c2b:rw0_c2_local_status_successor_identity')
+    payload = payload[:-status_size]
     split_begin = b"\n<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_BEGIN -->\n"
     split_end = b"<!-- RW0_C2_P1_DISCLOSURE_ELIGIBILITY_SPLIT_C2B_SUCCESSOR_END -->\n"
     if payload.count(split_begin) != 1:

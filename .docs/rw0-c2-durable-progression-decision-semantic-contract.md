@@ -1447,3 +1447,20 @@ authority, or target finite-oracle rewrite follows. The exact grammar is owned
 by `.docs/rw0-c2-private-value-versioning.md`, and the uncommitted physical
 implementation by `.docs/rw0-c2-physical-p0-p1-implementation.md`. Independent
 acceptance, publication, and live authority remain separate gates.
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+### Accepted local P0/P1 physical decision status
+
+The 21-field blocked basis, earlier incomplete P1, and basis-v2 repair
+paragraphs above retain their historical wording. Independent artifact audit
+accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf`, and local commit `8704e6c7988250598809f3a0daf88c3e11493488` records the bounded private
+artificial-offline implementation. P0 admission is a separate historical
+recording transaction and grants no current authority. P1 is one fenced
+five-branch decision transaction, with acceptance fact only for acceptance;
+that fact is not a terminal result. Decision Basis v2, guarded-command-digest
+v2, exact historical work-head witness, universal disclosure, and
+acceptance-only current eligibility are implemented private contracts. The
+pure decision grammar and owner split above remain unchanged. No live source,
+executable permission, product Git effect, ES/Bridge route, service, queue,
+scheduler, deployment, autonomy, or publication follows.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

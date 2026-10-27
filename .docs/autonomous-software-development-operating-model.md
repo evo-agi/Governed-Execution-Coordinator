@@ -713,3 +713,20 @@ witnesses. Connected disposable proof exercises actual D1/D2, Section
 source authority, worker transport, ES/Bridge route, Git effect, or autonomous
 loop authority.
 <!-- RW0_C2_P1_PHYSICAL_OPERATING_MODEL_CANDIDATE_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+## RW0-C2 P0/P1 accepted local implementation status
+
+The P0/P1 candidate blocks above remain exact historical checkpoint text.
+Independent artifact audit accepted tree `161ed4b544baf970cc26428b9805a106ea0f3edf` and local commit `8704e6c7988250598809f3a0daf88c3e11493488`
+records that bounded private artificial-offline source with sole parent `4519630d0db967066beb21b4ace5004e76827716`
+and no upstream. The gate reconciled 9,473 collected/executed/JUnit/passed
+cases with zero failures, errors, or skips and three known Python 3.13 fork
+deprecation warnings. P0 admission history does not grant current authority;
+P1 makes one five-branch decision and only acceptance records the fact. That
+fact is not terminal truth or executable permission. The D1/D2, Section 41,
+C1, and V22 composition boundaries remain. Git owns commit/ref truth; the
+audit, gate, and this status are evidence only. No push, PR, merge, publication,
+deployment, product effect, live custody supplier, production worker,
+ES/Bridge route, service, queue, scheduler, or autonomous loop follows.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

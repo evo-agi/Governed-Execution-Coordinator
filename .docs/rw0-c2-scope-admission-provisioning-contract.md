@@ -340,3 +340,38 @@ target-only status prose above describes the pre-implementation state and is
 superseded only for this bounded candidate by this section. P1 remains a
 separate transaction in the same intended program.
 <!-- RW0_C2_P0_PHYSICAL_CANDIDATE_SUCCESSOR_END -->
+
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->
+**P0 local-commit status successor.**
+
+The preceding P0 physical-candidate block is preserved checkpoint-stage text.
+Migration `0006_rw0_c2_scope_admission` and its four-table P0 private family
+are now in the independently accepted, locally committed P0→P1 source. P0
+remains separately attributable and usable before a program. Its recording
+creates no P1 decision, current permission, terminal fact, or live allowance.
+Migration `0007_rw0_c2_progression_decision` and P1 belong to a separate owner
+and do not rewrite P0 recording semantics. Live supplier/custody gate B remains
+open.
+
+The independently accepted, bounded private artificial-offline P0→P1 source is
+Git tree `161ed4b544baf970cc26428b9805a106ea0f3edf`, locally committed as
+`8704e6c7988250598809f3a0daf88c3e11493488` with sole parent
+`4519630d0db967066beb21b4ace5004e76827716`. Its exact-byte local gate
+recorded 9,473 collected/executed/JUnit/passed, zero failures, errors, and
+skips, and three known Python 3.13 multithreaded-fork `DeprecationWarning`s.
+That gate performed no push, upstream creation, PR, merge, publication,
+deployment, or product effect. Git objects and refs remain commit and
+publication truth; audit, validation, provenance, reports, and status prose
+are evidence only.
+
+The separate current C2 implementation records P0 immutable admission history,
+never current permission. P1 persists one of five durable decision branches and
+creates an acceptance fact only on `candidate_acceptance`; the fact is not
+terminal truth, executable permission, live custody, runtime admission, or
+deployment authority. Decision Basis v2, guarded-command-digest v2, the
+historical work-head witness, universal disclosure posture, and acceptance-only
+eligibility are current private mechanics. F03 and F05 remain open nonblocking
+observations. There is no live enrollment/custody supplier, terminal outcome,
+production provider/worker, ES/Bridge route, product Git effect, public service,
+queue, scheduler, deployment, or autonomous loop.
+<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->

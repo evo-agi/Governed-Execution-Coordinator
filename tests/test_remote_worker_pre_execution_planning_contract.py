@@ -14,6 +14,9 @@ from typing import NamedTuple
 import unicodedata
 
 import pytest
+from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
+    _rw0_c2_current_drift_predecessor,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -4594,6 +4597,11 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
     live_rw0_map = {}
     for path, _root in _RW0_CURRENT_CROSS_REFERENCE_OWNERS:
         full = owners[path]
+        if path in ('.docs/worker-execution-boundary.md',
+                    '.docs/durable-state-model.md'):
+            # Compare the fixed historical shared body only after checking
+            # its owner-local current C2 successor and exact predecessor.
+            full, _status = _rw0_c2_current_drift_predecessor(path, full)
         assert full.count(rw0_end_marker) == 1
         live_rw0_map[path] = full.split(rw0_end_marker, 1)[0] + rw0_end_marker
     live_rw0_body = _assert_complete_rw0_cross_reference_map(live_rw0_map)
