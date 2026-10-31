@@ -315,6 +315,19 @@ def _assert_complete_rw0_architecture_map(documents: dict[str, str]) -> str:
 
 
 def _rw0_live_owner_body(text: str) -> str:
+    local_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    local_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    if local_begin in text:
+        _require(text.count(local_begin) == text.count(local_end) == 1,
+                 'rw0.architecture: exact local commit status markers')
+        start = text.index(local_begin)
+        end_position = text.index(local_end, start) + len(local_end)
+        successor = text[start:end_position].encode('utf-8')
+        _require(len(successor) == 2746 and hashlib.sha256(successor).hexdigest() ==
+                 '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c' and
+                 text[:start].endswith('<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'),
+                 'rw0.architecture: exact local commit status identity and placement')
+        text = text[:start] + text[end_position:]
     successor_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
     successor_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
     if successor_begin in text:

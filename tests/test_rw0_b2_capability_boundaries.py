@@ -191,12 +191,35 @@ _RW0_NORMAL_TERMINAL_P09_IDENTITY = (19320, '15bd748914eb55f3427d02cf53eeace7529
 _RW0_NORMAL_TERMINAL_P09_ADDITION = b'''        "_rw0_terminal_head_witness.py":{\n            "_development_effect_row_values",\n            "_development_program_row_values",\n        },\n        "_rw0_terminal_outcome_plan.py":{\n            "_development_decision_row_values",\n        },\n        "_sqlite_rw0_terminal_outcome.py":{\n            "_development_decision_row_values",\n            "_development_program_row_values",\n        },\n'''
 
 
+# Exact local-commit status successor to the three bounded capability docs.
+_RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES = {
+    'AGENTS.md': (78298, '798429772e14d564701f93be43e8bc2da23893f05f4f99abc2f3a040e696e8c7'),
+    'README.md': (54619, 'e54ea88e20143f0b1eaf612388adb31f8f5db63c9a5901db606a5641fa899f3f'),
+    '.docs/software-development-progression-boundary.md': (32361, 'ff4bf801de9101892a28ffb992d4ad620ab38065097d95e24cb17b33e35d4df7'),
+}
+_RW0_LOCAL_TERMINAL_CAPABILITY_SUFFIX = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
+
 def _peel_rw0_normal_terminal_successor(relative_path: str, payload: bytes) -> bytes:
     if relative_path == 'tests/test_c2b2_development_row_value_boundaries.py':
         if ((len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_NORMAL_TERMINAL_P09_IDENTITY
                 or payload.count(_RW0_NORMAL_TERMINAL_P09_ADDITION) != 1):
             raise AssertionError('P09:terminal_successor_identity')
         return payload.replace(_RW0_NORMAL_TERMINAL_P09_ADDITION, b'', 1)
+    if relative_path in _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES:
+        current = _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES[relative_path]
+        size, digest = _RW0_LOCAL_TERMINAL_CAPABILITY_SUFFIX
+        begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+        end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+        if (payload.count(begin) != 1 or payload.count(end) != 1
+                or not payload.endswith(end) or not payload[-size:].startswith(begin)
+                or hashlib.sha256(payload[-size:]).hexdigest() != digest
+                or (len(payload), hashlib.sha256(payload).hexdigest()) != current):
+            raise AssertionError(relative_path + ':terminal_successor_identity:local_commit')
+        predecessor = payload[:-size]
+        if ((len(predecessor), hashlib.sha256(predecessor).hexdigest()) !=
+                _RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES[relative_path][0]):
+            raise AssertionError(relative_path + ':terminal_successor_identity:local_predecessor')
+        payload = predecessor
     if relative_path not in _RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES:
         return payload
     current, suffix = _RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES[relative_path]

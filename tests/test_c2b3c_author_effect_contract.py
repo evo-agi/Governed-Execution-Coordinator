@@ -4275,9 +4275,24 @@ def _broken_section_42_entire_suffix_checker(source: bytes) -> bool:
     )
 
 
+_RW0_LOCAL_TERMINAL_C2B_OWNER_IDENTITY = (1909248, 'bdf3ed6a8189dedd224c2d742884429aeda13d799ecf13a1fa16c2c1c991d274')
+_RW0_LOCAL_TERMINAL_C2B_SUFFIX_IDENTITY = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
+
 def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
     source = _read_owned_bytes(OWNER_PATH) if source_bytes is None else source_bytes
     assert type(source) is bytes, "C2B3C_STATUS_INVALID"
+    local_begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    local_end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    if source_bytes is None or local_begin in source:
+        local_size, local_digest = _RW0_LOCAL_TERMINAL_C2B_SUFFIX_IDENTITY
+        assert ((len(source), hashlib.sha256(source).hexdigest()) ==
+                _RW0_LOCAL_TERMINAL_C2B_OWNER_IDENTITY
+                and source.count(local_begin) == source.count(local_end) == 1
+                and source.endswith(local_end)
+                and source[-local_size:].startswith(local_begin)
+                and hashlib.sha256(source[-local_size:]).hexdigest() == local_digest), (
+                    "C2B3C_STATUS_INVALID")
+        source = source[:-local_size]
     terminal_begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
     terminal_end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
     if source_bytes is None or terminal_begin in source:

@@ -2010,8 +2010,216 @@ _RW0_NORMAL_TERMINAL_OTHER_IDENTITIES = {
 }
 
 
+# The later local-commit status is a fixed successor to the exact committed
+# candidate-stage documents. These literals are frozen from the accepted edit,
+# never derived from a document while a test is evaluating that document.
+_RW0_LOCAL_TERMINAL_STATUS_IDENTITIES = {
+    '.docs/architecture.md': ((51426, '2381e1afc3b22e6414beaf48c679109fbf5e8e8eb4f48aae68f43224c10178e5'),
+        (48680, '382235ce4b8374e4af9c9e4c58f106bfad685d1e281130f49fad85ef10f62463')),
+    '.docs/authority-boundaries.md': ((41922, '4e8d0a5f499b31fc83e7144abd0a38c463983e2540ee8567ced9ebc08c9b0549'),
+        (39176, 'd98037d3f14a870d2a6ce974ae899962d5bad899f53b6a724a992b30e571291d')),
+    '.docs/autonomous-software-development-operating-model.md': ((48324, '18dc97e1092ad41d5d747d71cc468447597abae2ea6ab0ddb82fce854add34b7'),
+        (45578, 'bfc134807c33a59d595121151193d3d6dfe76959eb964bd8d66a12a8a179c26c')),
+    '.docs/c2b-durable-development-state.md': ((1909248, 'bdf3ed6a8189dedd224c2d742884429aeda13d799ecf13a1fa16c2c1c991d274'),
+        (1906502, 'aeee29055e776d6c55f689d1de03cb0fa647e1c46e001d22ec8a7451859a54ed')),
+    '.docs/c2b2-migration-0002.md': ((14154, 'cbacd025ffb8524b9769c75cf0ad2be026f5b6b7ed9730e754fa5704f864b71b'),
+        (11408, 'ba9ecfe211c47810d9ec1b7d792a031783654665fb009c22217be4819646ccb4')),
+    '.docs/durable-state-model.md': ((47921, '13523fdfa4dd5344dc4a95de7c090afc339a2516bd97b630e645940b913d3ed0'),
+        (45175, '3bd5597bff63d05f03fef0f841d2294cdfe087bad1d10d226fde3700f44797ad')),
+    '.docs/rw0-b1-pure-phase-values.md': ((38882, '966dfe81ecba50b8e185dc47f69a463869485e552c6fa5001cfcbc9d4249108a'),
+        (36136, '7957bb990607fa0b979a25956a288fc6313521856ea8ffe8931513bac50671e4')),
+    '.docs/rw0-c2-durable-progression-decision-semantic-contract.md': ((82408, '7393061f61c4a783277be41e149b2ae9b3fc49a06ac5c1ee01e53f361aadc056'),
+        (79662, '579e89e87a9c4d8e5da53d6aa91ef331f1bce3d0e83e8a615ff87b4d2a66edc3')),
+    '.docs/rw0-c2-first-live-proof-posture.md': ((22074, '1bf09d17266debd5b0758d8ac7e2592734bfae02e35a13d86ae5e8e778239cf1'),
+        (19328, 'ffd3ffac6329ea8f67f1796f4440bfe02ac1391cb35033bd818bbb8e4a5ee5b2')),
+    '.docs/rw0-c2-physical-p0-p1-implementation.md': ((23641, '9b78a53abf6583a09dd3de207452ddbf6e5f5d655af027f44f309d5f4b5512b9'),
+        (20895, '5939195ff98198890e6a29ee9cf915597e96e364693478d2434f50236b184ef4')),
+    '.docs/rw0-c2-private-value-versioning.md': ((223578, '267220a7e81400b31bb33bbc71b2e2d79b673e62a24c6828e4d3de4886a209b6'),
+        (220832, '908e08d924300b94d2e3aa726a2575bdaab3a24784aa21630c96d35791d79468')),
+    '.docs/rw0-remote-worker-contact-phase-entry.md': ((65397, '2021ae46e8dce5d40057d1cf84d69177db2a63953f488716322ea9f2d49cd7c2'),
+        (62651, '97433cddf62d795c04680a611425dc1132094c784b41f1d564ce742c3d3b02b0')),
+    '.docs/rw0-terminal-outcome-physical-closure.md': ((19889, '8dc761f3be97905fa980a31df04dcd3bc36e781b51af65ffa052050739ad953e'),
+        (17143, 'e29661b01c48dee59138a191e8b6ca005b672b86a9e46c33c78a4e458638ce38')),
+    '.docs/software-development-progression-boundary.md': ((32361, 'ff4bf801de9101892a28ffb992d4ad620ab38065097d95e24cb17b33e35d4df7'),
+        (29615, 'd76f13ace3759ed6f7dc586142254b4aac092e8a177adad1b0435f96329aca92')),
+    '.docs/sqlite-bootstrap-and-migrations.md': ((43109, '95feb34848d62ba55d3bac7a67d187f85db20b8144da6b282044e2fa3fb1dbc0'),
+        (40363, '3514a6d100cbc647b6cc8e45a9e94456256d4431d1a29587feefa397e4932902')),
+    '.docs/sqlite-operations-and-recovery.md': ((48849, '4c6030ecaa25fe6aba170e89973553ed4c3d6c548ecd6c3791b7795692e5d37e'),
+        (46103, 'b163068f9113e576db29b8b92503efbc5056dcd38bf1b4a5dee9388c16ad70a6')),
+    '.docs/sqlite-schema-v1.md': ((29957, 'f302822cf32c9ff478c1c7f37351211e1fc97a47e8558b3b2ecd021648f57ea4'),
+        (27211, '2cf2b5e18e4eb9c45b0395556e4304465445d701936549221b40525da46378dd')),
+    '.docs/sqlite-state-backend-adr.md': ((39374, '9c4ec4237034fca9ef292df6d0c12bbcc02df257d1d7658e725e4bfb268a27a9'),
+        (36628, 'f94ac9a85674bae068abe5262198cf36c9c17567b9c9042db90debca23fd47e1')),
+    '.docs/worker-execution-boundary.md': ((38234, 'deb4e0a9572ae43f1b80bf23a282e85b52b6adb329f0fe87fe5253e4cc66fa1f'),
+        (35488, 'e4029cd33dee5c1b81b5c74897620d69aaf90a28f8570bbf455882fda58763d4')),
+    '.docs/writer-session-authority.md': ((61686, 'd1c1468496d33ecc50410ac62abfb60c58129b3a7535f6856d9661f8980325a2'),
+        (58940, 'da98f0ec790a5ebe31660dc6a641366c1bb8740a527aeb6781af1e1d5627c163')),
+    'AGENTS.md': ((78298, '798429772e14d564701f93be43e8bc2da23893f05f4f99abc2f3a040e696e8c7'),
+        (75552, '4d947ee8f6b20e40f6f20755ae3a28fd5603ca99dda97cb436fa35dd0db7c482')),
+    'README.md': ((54619, 'e54ea88e20143f0b1eaf612388adb31f8f5db63c9a5901db606a5641fa899f3f'),
+        (51873, 'b1fff34a97decde7e14eb8f346b3568aee97cb539f7da1e9d4f7f2e9aab9f96f')),
+}
+_RW0_LOCAL_TERMINAL_SUFFIX = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
+_RW0_LOCAL_TERMINAL_OWNER_INSERT = (2746, 'da49cd43c77d08af6939f09588007ba42138599a68e9cea6435c782947fedd40')
+
+
+_RW0_LOCAL_TERMINAL_BEGIN = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+_RW0_LOCAL_TERMINAL_END = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+_RW0_LOCAL_TERMINAL_PRIOR_END = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
+_RW0_LOCAL_TERMINAL_OWNER_PREFIX = b'# RW0 normal terminal outcome physical closure\n\n'
+
+
+def _rw0_local_terminal_status_predecessor(relative_path: str, payload: bytes,
+                                           *, boundary: str) -> tuple[bytes, bytes]:
+    current, expected_predecessor = _RW0_LOCAL_TERMINAL_STATUS_IDENTITIES[relative_path]
+    if relative_path == '.docs/rw0-terminal-outcome-physical-closure.md':
+        size, digest = _RW0_LOCAL_TERMINAL_OWNER_INSERT
+        begin = _RW0_LOCAL_TERMINAL_BEGIN[1:]
+        _require(payload.startswith(_RW0_LOCAL_TERMINAL_OWNER_PREFIX + begin) and
+                 payload.count(begin) == payload.count(_RW0_LOCAL_TERMINAL_END) == 1 and
+                 len(payload) >= len(_RW0_LOCAL_TERMINAL_OWNER_PREFIX) + size,
+                 boundary + ':local_owner_placement')
+        start = len(_RW0_LOCAL_TERMINAL_OWNER_PREFIX)
+        addition = payload[start:start + size]
+        _require(addition.endswith(_RW0_LOCAL_TERMINAL_END + b'\n') and
+                 hashlib.sha256(addition).hexdigest() == digest,
+                 boundary + ':local_owner_insert_identity')
+        predecessor = payload[:start] + payload[start + size:]
+    else:
+        size, digest = _RW0_LOCAL_TERMINAL_SUFFIX
+        _require(payload.count(_RW0_LOCAL_TERMINAL_BEGIN) ==
+                 payload.count(_RW0_LOCAL_TERMINAL_END) == 1 and
+                 payload.endswith(_RW0_LOCAL_TERMINAL_END) and
+                 len(payload) >= size and
+                 payload[-size:].startswith(_RW0_LOCAL_TERMINAL_BEGIN) and
+                 payload[:-size].endswith(_RW0_LOCAL_TERMINAL_PRIOR_END),
+                 boundary + ':local_append_placement:' + relative_path)
+        addition = payload[-size:]
+        _require(hashlib.sha256(addition).hexdigest() == digest,
+                 boundary + ':local_append_identity:' + relative_path)
+        predecessor = payload[:-size]
+    _require((len(predecessor), hashlib.sha256(predecessor).hexdigest()) ==
+             expected_predecessor,
+             boundary + ':local_predecessor_identity:' + relative_path)
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) == current,
+             boundary + ':local_current_identity:' + relative_path)
+    return predecessor, addition
+
+
+def _assert_rw0_local_terminal_status_semantics(status: bytes) -> None:
+    compact = b' '.join(status.split())
+    required = (
+        b'cumulative independent audit accepted Git-compatible tree',
+        b'after its current-ledger consistency repair',
+        b'4691af58ae0ee3107b4e2e9b6b1508032944e357',
+        b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356',
+        b'61d0330aba1160f7f5e7d9c541a325222d1c61e5',
+        b'feat: add RW0 normal terminal closure',
+        b'9,568 selector-free tests',
+        b'zero failures, errors, skips, xfails, or xpasses',
+        b'three known Python 3.13 multithreaded-fork deprecation warnings',
+        b'no push, PR, merge, publication, deployment, service/runtime contact, or product effect',
+        b'0008_rw0_terminal_outcome',
+        b'normal `accept`, `repair`, `replan`, `terminal_reject`, and `block`',
+        b'P0 grants no current permission',
+        b'P1 is prior decision history, not terminal truth',
+        b'without mutation or replenishment',
+        b'may shape-check the current global-stop singleton before writer fencing',
+        b'receipt-present terminal read, replay, and recovery verify saved full head postimages',
+        b'fresh receipt miss retains current-head, current-stop, recording, and disclosure checks',
+        b'old whole-operation zero-current-stop-SELECT audit failure remains historical',
+        b'Git objects and refs own commit and publication truth',
+        b'evidence only', b'no executable permission, three cancel selectors',
+        b'Existing F03/F05 nonblocking provenance limits retain their recorded scope',
+        b'Candidate-stage status elsewhere in this document is preserved history',
+    )
+    for phrase in (b'grants executable permission', b'cancel selectors are implemented',
+                   b'published to origin', b'product Git effect executed',
+                   b'live supplier is qualified'):
+        _require(phrase not in compact, 'guard:rw0_local_terminal_status:authority_overclaim')
+    for phrase in required:
+        _require(phrase in compact, 'guard:rw0_local_terminal_status:semantic_required')
+
+
+def test_rw0_local_terminal_status_successor_preserves_all_committed_documents() -> None:
+    assert len(_RW0_LOCAL_TERMINAL_STATUS_IDENTITIES) == 22
+    for relative_path in _RW0_LOCAL_TERMINAL_STATUS_IDENTITIES:
+        predecessor, addition = _rw0_local_terminal_status_predecessor(
+            relative_path, (ROOT / relative_path).read_bytes(),
+            boundary='guard:rw0_local_terminal_status')
+        assert predecessor and addition
+        _assert_rw0_local_terminal_status_semantics(addition)
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('omitted', 'local_append_placement'),
+    ('duplicate', 'local_append_placement'),
+    ('truncated', 'local_append_placement'),
+    ('reordered', 'local_append_placement'),
+    ('relocated_before_predecessor', 'local_append_placement'),
+    ('historical_mutation', 'local_predecessor_identity'),
+    ('wrong_commit', 'local_append_identity'),
+    ('wrong_tree', 'local_append_identity'),
+))
+def test_rw0_local_terminal_status_exact_negative_controls(case: str, boundary: str) -> None:
+    relative_path = 'AGENTS.md'
+    current = (ROOT / relative_path).read_bytes()
+    predecessor, addition = _rw0_local_terminal_status_predecessor(
+        relative_path, current, boundary='guard:rw0_local_terminal_status')
+    if case == 'omitted':
+        mutant = predecessor
+    elif case == 'duplicate':
+        mutant = current + addition
+    elif case == 'truncated':
+        mutant = current[:-1]
+    elif case == 'reordered':
+        changed = addition.replace(b'_BEGIN', b'_TEMP', 1).replace(
+            b'_END', b'_BEGIN', 1).replace(b'_TEMP', b'_END', 1)
+        mutant = predecessor + changed
+    elif case == 'relocated_before_predecessor':
+        mutant = addition + predecessor
+    elif case == 'historical_mutation':
+        mutant = b'X' + predecessor[1:] + addition
+    elif case == 'wrong_commit':
+        mutant = current.replace(b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356', b'0' * 40, 1)
+    else:
+        mutant = current.replace(b'4691af58ae0ee3107b4e2e9b6b1508032944e357', b'0' * 40, 1)
+    assert mutant != current
+    with pytest.raises(AssertionError, match='^guard:rw0_local_terminal_status:' + boundary):
+        _rw0_local_terminal_status_predecessor(
+            relative_path, mutant, boundary='guard:rw0_local_terminal_status')
+
+
+def test_rw0_local_terminal_status_owner_placement_and_semantic_causality() -> None:
+    owner = '.docs/rw0-terminal-outcome-physical-closure.md'
+    current = (ROOT / owner).read_bytes()
+    predecessor, addition = _rw0_local_terminal_status_predecessor(
+        owner, current, boundary='guard:rw0_local_terminal_status')
+    assert predecessor.startswith(b'# RW0 normal terminal outcome physical closure\n\nStatus: uncommitted')
+    assert b'The later cumulative audit remains BLOCKED' in predecessor
+    assert b'whole-operation zero-current-stop-SELECT requirement failed' in predecessor
+    assert b'F01 and the O1 test counter' in predecessor
+    moved = predecessor + addition
+    with pytest.raises(AssertionError, match='^guard:rw0_local_terminal_status:local_owner_placement$'):
+        _rw0_local_terminal_status_predecessor(
+            owner, moved, boundary='guard:rw0_local_terminal_status')
+    for old,new,diagnostic in (
+        (b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356', b'0' * 40, 'semantic_required'),
+        (b'4691af58ae0ee3107b4e2e9b6b1508032944e357', b'0' * 40, 'semantic_required'),
+        (b'no executable permission', b'grants executable permission', 'authority_overclaim'),
+    ):
+        changed = addition.replace(old, new, 1)
+        assert changed != addition
+        with pytest.raises(AssertionError, match='^guard:rw0_local_terminal_status:' + diagnostic + '$'):
+            _assert_rw0_local_terminal_status_semantics(changed)
+
+
 def _rw0_normal_terminal_status_predecessor(relative_path: str, payload: bytes,
-                                            *, boundary: str) -> bytes:
+                                            *, boundary: str,
+                                            local_status_peeled: bool = False) -> bytes:
+    if not local_status_peeled:
+        payload, _local_status = _rw0_local_terminal_status_predecessor(
+            relative_path, payload, boundary=boundary)
     fixed = (_RW0_NORMAL_TERMINAL_STATUS_IDENTITIES |
              _RW0_NORMAL_TERMINAL_OTHER_IDENTITIES)[relative_path]
     current, suffix = fixed
@@ -2056,9 +2264,11 @@ _RW0_C2_OPERATIONS_NEW = (
 )
 
 
-def _rw0_c2_status_predecessor(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+def _rw0_c2_status_predecessor(relative_path: str, payload: bytes,
+                               *, local_status_peeled: bool = False) -> tuple[bytes, bytes]:
     payload = _rw0_normal_terminal_status_predecessor(
-        relative_path, payload, boundary='guard:rw0_c2_status')
+        relative_path, payload, boundary='guard:rw0_c2_status',
+        local_status_peeled=local_status_peeled)
     current, predecessor, suffix = _RW0_C2_STATUS_DOCUMENT_IDENTITIES[relative_path]
     _require((len(payload), hashlib.sha256(payload).hexdigest()) == current,
              'guard:rw0_c2_status:current_identity:' + relative_path)
@@ -2151,17 +2361,22 @@ def test_rw0_c2_status_successor_current_private_contract_and_nonclaims() -> Non
 def test_rw0_c2_status_successor_exact_negative_specimens(case, boundary) -> None:
     path = 'AGENTS.md'
     original = (ROOT / path).read_bytes()
-    _, suffix = _rw0_c2_status_predecessor(path, original)
+    # These specimens target the older P0/P1 status predicate, so first peel
+    # the later fixed local-commit block without changing the historical oracle.
+    candidate_stage, _local_status = _rw0_local_terminal_status_predecessor(
+        path, original, boundary='guard:rw0_local_terminal_status')
+    _, suffix = _rw0_c2_status_predecessor(
+        path, candidate_stage, local_status_peeled=True)
     changed = {
-        'missing': original[:-len(suffix)],
-        'duplicate': original + suffix,
-        'historical_change': b'X' + original[1:],
-        'status_overclaim': original.replace(b'No push, PR,\nmerge',
-                                             b'Yes push, PR,\nmerge', 1),
+        'missing': candidate_stage[:-len(suffix)],
+        'duplicate': candidate_stage + suffix,
+        'historical_change': b'X' + candidate_stage[1:],
+        'status_overclaim': candidate_stage.replace(b'No push, PR,\nmerge',
+                                                   b'Yes push, PR,\nmerge', 1),
     }[case]
-    assert changed != original
+    assert changed != candidate_stage
     with pytest.raises(AssertionError, match='^guard:rw0_c2_status:' + boundary):
-        _rw0_c2_status_predecessor(path, changed)
+        _rw0_c2_status_predecessor(path, changed, local_status_peeled=True)
 
 
 @pytest.mark.parametrize('old,new,boundary', (
@@ -2187,6 +2402,184 @@ def test_rw0_c2_status_successor_semantic_negative_specimens(old, new, boundary)
                        b'F03 remains a nonblocking observation',
                        b'F05 remains a nonblocking observation'):
             _require(phrase in compact, 'guard:rw0_c2_status:physical_semantics')
+
+
+# The later terminal commit is a fixed cross-stage successor in three owners
+# whose final P0/P1 status blocks were otherwise left as current global text.
+# These current and predecessor identities are literals, never taken from the
+# document being checked at test runtime.
+_RW0_TERMINAL_CROSS_STAGE_REPAIR_IDENTITIES = {
+    '.docs/rw0-b2-wire-protocol.md': (
+        (29964, '502a6bf83a994dfece29726d695b57722dc4e512b36f7d95eef12bee65032b65'),
+        (28130, '7fcfacb31c4506a536fc3890f6d71d6058040930c23b52481444ed4d18f4b345'),
+    ),
+    '.docs/rw0-d1-offline-process-and-capsule-spine.md': (
+        (9442, '1b943647fdbbeec3e6f5d25da94591ced2fb385a5fb9813d921131c34f9e3753'),
+        (7608, 'a98d6ff185bb698228c7266308f3a5ff5163b2e6f05a0746eb755d2df7e4436e'),
+    ),
+    '.docs/rw0-c2-scope-admission-provisioning-contract.md': (
+        (29620, 'd99c216cdcf1fb72fab2a85746ce9f72b27f6d929f8f3294de2dbb96324ddd02'),
+        (27786, '474067391e0b813d0e2b38ddbc725c34f40cb7672982a5857093767f83fdcf74'),
+    ),
+}
+_RW0_TERMINAL_CROSS_STAGE_REPAIR_BEGIN = (
+    b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CROSS_STAGE_STATUS_REPAIR_BEGIN -->\n'
+)
+_RW0_TERMINAL_CROSS_STAGE_REPAIR_END = (
+    b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CROSS_STAGE_STATUS_REPAIR_END -->\n'
+)
+_RW0_TERMINAL_CROSS_STAGE_PREVIOUS_END = (
+    b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+)
+_RW0_TERMINAL_CROSS_STAGE_SUFFIX = (
+    1834, 'b9ecf41b6f9a37944f45578b9905ce4cb0a0654fcb9f2a740c7d4f31d7db9ea0'
+)
+
+
+def _rw0_terminal_cross_stage_repair_predecessor(
+    relative_path: str, payload: bytes,
+) -> tuple[bytes, bytes]:
+    current, previous = _RW0_TERMINAL_CROSS_STAGE_REPAIR_IDENTITIES[relative_path]
+    size, digest = _RW0_TERMINAL_CROSS_STAGE_SUFFIX
+    boundary = 'guard:rw0_terminal_cross_stage_repair:'
+    _require(type(payload) is bytes and len(payload) >= size and
+             payload.count(_RW0_TERMINAL_CROSS_STAGE_REPAIR_BEGIN) == 1 and
+             payload.count(_RW0_TERMINAL_CROSS_STAGE_REPAIR_END) == 1 and
+             payload.endswith(_RW0_TERMINAL_CROSS_STAGE_REPAIR_END) and
+             payload[-size:].startswith(_RW0_TERMINAL_CROSS_STAGE_REPAIR_BEGIN),
+             boundary + 'structure:' + relative_path)
+    predecessor, addition = payload[:-size], payload[-size:]
+    _require(predecessor.endswith(_RW0_TERMINAL_CROSS_STAGE_PREVIOUS_END) and
+             predecessor.count(_RW0_TERMINAL_CROSS_STAGE_PREVIOUS_END) == 1,
+             boundary + 'placement:' + relative_path)
+    _require(hashlib.sha256(addition).hexdigest() == digest,
+             boundary + 'addition_identity:' + relative_path)
+    _require((len(predecessor), hashlib.sha256(predecessor).hexdigest()) == previous,
+             boundary + 'predecessor_identity:' + relative_path)
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) == current,
+             boundary + 'current_identity:' + relative_path)
+    return predecessor, addition
+
+
+def _assert_rw0_terminal_cross_stage_repair_semantics(addition: bytes) -> None:
+    compact = b' '.join(addition.split())
+    boundary = 'guard:rw0_terminal_cross_stage_repair:'
+    for forbidden in (
+        b'Wire owns terminal closure', b'D1 owns terminal closure',
+        b'P0 owns terminal closure', b'P0 grants current permission',
+        b'published to origin', b'executable permission is granted',
+        b'terminal cancellation profile is implemented',
+    ):
+        _require(forbidden not in compact, boundary + 'authority_overclaim')
+    required = (
+        b'immediately preceding `RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR` block',
+        b'preserved P0/P1 local-commit-stage snapshot',
+        b'future or absent describes that stage; it is not current global Coordinator status',
+        b'P0 itself still creates no terminal fact',
+        b'independently accepted normal-terminal source at Git tree',
+        b'4691af58ae0ee3107b4e2e9b6b1508032944e357',
+        b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356',
+        b'61d0330aba1160f7f5e7d9c541a325222d1c61e5',
+        b'feat: add RW0 normal terminal closure',
+        b'0008_rw0_terminal_outcome', b'current source/catalog suffix',
+        b'artificial_offline_normal.v1',
+        b'normal `accept`, `repair`, `replan`, `terminal_reject`, and `block`',
+        b'P0 scope admission, P1 progression decision with its acceptance-only fact, and terminal closure are separate private fenced transactions and facts',
+        b'P0 grants no current permission',
+        b'P1 remains prior decision history rather than terminal truth',
+        b'Wire, D1, and P0 retain their own bounded contracts',
+        b'none gains terminal ownership, executable permission, live authority, or effect authority',
+        b'No push, PR, merge, publication, deployment, live supplier/custody, worker/provider contact, ES/Bridge route, product Git effect, service, queue, scheduler, terminal cancellation profile, or autonomous loop follows',
+        b'Git objects and refs own commit and publication truth',
+        b'Audit, validation, provenance, reports, and status prose are evidence only',
+    )
+    for phrase in required:
+        _require(phrase in compact, boundary + 'semantic_required')
+
+
+def test_rw0_terminal_cross_stage_repair_reconstructs_exact_three_predecessors() -> None:
+    additions = []
+    for relative_path in _RW0_TERMINAL_CROSS_STAGE_REPAIR_IDENTITIES:
+        predecessor, addition = _rw0_terminal_cross_stage_repair_predecessor(
+            relative_path, (ROOT / relative_path).read_bytes())
+        _require(predecessor and addition, 'guard:rw0_terminal_cross_stage_repair:presence')
+        _assert_rw0_terminal_cross_stage_repair_semantics(addition)
+        additions.append(addition)
+        # The older six-owner P0/P1 check must still reach its exact prior
+        # current identity, marker, insertion, and historical predecessor.
+        _rw0_c2_current_drift_predecessor(relative_path, (ROOT / relative_path).read_bytes())
+    assert len(additions) == 3 and additions[0] == additions[1] == additions[2]
+
+
+@pytest.mark.parametrize('case', (
+    'omitted', 'duplicate', 'truncated', 'reordered_marker',
+    'before_prior', 'inside_prior', 'historical_mutation',
+    'wrong_commit', 'wrong_tree', 'wrong_parent',
+))
+def test_rw0_terminal_cross_stage_repair_exact_negative_controls(case: str) -> None:
+    path = '.docs/rw0-b2-wire-protocol.md'
+    current = (ROOT / path).read_bytes()
+    predecessor, addition = _rw0_terminal_cross_stage_repair_predecessor(path, current)
+    prior_begin = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->'
+    if case == 'omitted':
+        mutant = predecessor
+    elif case == 'duplicate':
+        mutant = current + addition
+    elif case == 'truncated':
+        mutant = current[:-1]
+    elif case == 'reordered_marker':
+        mutant = current.replace(b'CROSS_STAGE_STATUS_REPAIR_BEGIN', b'CROSS_STAGE_STATUS_REPAIR_TEMP', 1).replace(
+            b'CROSS_STAGE_STATUS_REPAIR_END', b'CROSS_STAGE_STATUS_REPAIR_BEGIN', 1).replace(
+            b'CROSS_STAGE_STATUS_REPAIR_TEMP', b'CROSS_STAGE_STATUS_REPAIR_END', 1)
+    elif case == 'before_prior':
+        position = predecessor.index(prior_begin)
+        mutant = predecessor[:position] + addition + predecessor[position:]
+    elif case == 'inside_prior':
+        position = predecessor.index(prior_begin) + len(prior_begin)
+        mutant = predecessor[:position] + addition + predecessor[position:]
+    elif case == 'historical_mutation':
+        mutant = b'X' + predecessor[1:] + addition
+    else:
+        original, replacement = {
+            'wrong_commit': (b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356', b'0' * 40),
+            'wrong_tree': (b'4691af58ae0ee3107b4e2e9b6b1508032944e357', b'0' * 40),
+            'wrong_parent': (b'61d0330aba1160f7f5e7d9c541a325222d1c61e5', b'0' * 40),
+        }[case]
+        mutant = predecessor + addition.replace(original, replacement, 1)
+    assert mutant != current
+    with pytest.raises(AssertionError, match='^guard:rw0_terminal_cross_stage_repair:'):
+        _rw0_terminal_cross_stage_repair_predecessor(path, mutant)
+
+
+@pytest.mark.parametrize('case', (
+    'wrong_commit', 'wrong_tree', 'wrong_parent', 'stage_reclassification',
+    'wire_ownership', 'd1_ownership', 'p0_ownership', 'permission_overclaim',
+))
+def test_rw0_terminal_cross_stage_repair_isolated_semantic_negatives(case: str) -> None:
+    _predecessor, addition = _rw0_terminal_cross_stage_repair_predecessor(
+        '.docs/rw0-b2-wire-protocol.md',
+        (ROOT / '.docs/rw0-b2-wire-protocol.md').read_bytes())
+    replacements = {
+        'wrong_commit': (b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356', b'0' * 40),
+        'wrong_tree': (b'4691af58ae0ee3107b4e2e9b6b1508032944e357', b'0' * 40),
+        'wrong_parent': (b'61d0330aba1160f7f5e7d9c541a325222d1c61e5', b'0' * 40),
+        'stage_reclassification': (b'it is not current global Coordinator status', b'it is current global Coordinator status'),
+    }
+    if case in replacements:
+        old, new = replacements[case]
+        mutant = addition.replace(old, new, 1)
+    else:
+        claim = {
+            'wire_ownership': b'Wire owns terminal closure',
+            'd1_ownership': b'D1 owns terminal closure',
+            'p0_ownership': b'P0 owns terminal closure',
+            'permission_overclaim': b'executable permission is granted',
+        }[case]
+        mutant = addition.replace(_RW0_TERMINAL_CROSS_STAGE_REPAIR_END,
+                                  claim + b'\n' + _RW0_TERMINAL_CROSS_STAGE_REPAIR_END, 1)
+    assert mutant != addition
+    with pytest.raises(AssertionError, match='^guard:rw0_terminal_cross_stage_repair:(semantic_required|authority_overclaim)$'):
+        _assert_rw0_terminal_cross_stage_repair_semantics(mutant)
 
 
 # Fixed identities for the six independently reviewed current-drift repairs.
@@ -2331,6 +2724,9 @@ def _rw0_c2_current_drift_reconstruct_unsealed(relative_path: str, payload: byte
 
 
 def _rw0_c2_current_drift_predecessor(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+    if relative_path in _RW0_TERMINAL_CROSS_STAGE_REPAIR_IDENTITIES:
+        payload, _terminal_repair = _rw0_terminal_cross_stage_repair_predecessor(
+            relative_path, payload)
     if relative_path in _RW0_NORMAL_TERMINAL_OTHER_IDENTITIES:
         payload = _rw0_normal_terminal_status_predecessor(
             relative_path, payload, boundary='guard:rw0_c2_repair')
