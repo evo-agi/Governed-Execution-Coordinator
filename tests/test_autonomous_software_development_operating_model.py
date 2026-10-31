@@ -1131,6 +1131,7 @@ def test_c1_adds_no_source_schema_packaging_or_runtime_enablement() -> None:
         "0005_section41_post_execution_proposal_family.sql",
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
+        "0008_rw0_terminal_outcome.sql",
     ]
     assert (ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c1.py").is_file()
     assert "0004_rw0_c1_durable_evidence" in _text(".docs/rw0-c1-durable-evidence.md")

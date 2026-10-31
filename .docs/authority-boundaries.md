@@ -493,3 +493,11 @@ Its v2 historical work-head witness does not become standing authority or a
 current mutable-head claim. Terminal owner, worker, ES, Bridge, Git effects,
 and live supplier remain separate and are not delegated to the P1 receipt.
 <!-- RW0_C2_P1_PHYSICAL_AUTHORITY_CANDIDATE_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->
+## RW0 normal terminal closure current candidate
+
+The uncommitted `artificial_offline_normal.v1` candidate adds a separate private Coordinator terminal writer on generation-2 migration 0008. It consumes checked P0, phase, Section 41 A, C1 rank-15/V22 and P1 evidence under one fenced transaction and records only the five normal outcomes: accept, repair, replan, terminal_reject and block. The P1 decision remains prior decision history; its acceptance fact is bound only for accept and is never mutated. Cancellation, live supplier/contact, ES routing, Git effects, publication and executable permission remain outside this candidate. See `.docs/rw0-terminal-outcome-physical-closure.md`.
+
+The terminal receipt is a replay association and the result a projection, never executable permission. No grant issuance, worker contact, runtime, Git effect or publication authority follows.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->

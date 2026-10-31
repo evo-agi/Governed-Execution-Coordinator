@@ -175,6 +175,42 @@ _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES = {
                   (1063, '9a10331a1876103db243e8bc7d4abc8a5c876bb00a7fea9abb4ab505a42dad55')),
 }
 
+# The normal terminal candidate is a later bounded current successor. Peel it
+# only after authenticating its complete bytes, then retain the old P09/P11/P13
+# identities and all of their historical mutation oracles unchanged.
+_RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES = {
+    'AGENTS.md': ((75552, '4d947ee8f6b20e40f6f20755ae3a28fd5603ca99dda97cb436fa35dd0db7c482'),
+                  (1142, '84f8d8ea0a360c9ed20ec654b0b6f6abf58578e2f39a3395f312ad4ea13a8110')),
+    'README.md': ((51873, 'b1fff34a97decde7e14eb8f346b3568aee97cb539f7da1e9d4f7f2e9aab9f96f'),
+                  (990, '58d4e8e08df9f7cc6ee93722a25292f4f9c4d84ebc21a8fa4d7d65e74edc988a')),
+    '.docs/software-development-progression-boundary.md': (
+        (29615, 'd76f13ace3759ed6f7dc586142254b4aac092e8a177adad1b0435f96329aca92'),
+        (961, '7c9cbc5f08da2e653823990937fcd2fce8eade9262cb464a920a0974901ae409')),
+}
+_RW0_NORMAL_TERMINAL_P09_IDENTITY = (19320, '15bd748914eb55f3427d02cf53eeace7529ec7812b883352e2f33f3577aaecad')
+_RW0_NORMAL_TERMINAL_P09_ADDITION = b'''        "_rw0_terminal_head_witness.py":{\n            "_development_effect_row_values",\n            "_development_program_row_values",\n        },\n        "_rw0_terminal_outcome_plan.py":{\n            "_development_decision_row_values",\n        },\n        "_sqlite_rw0_terminal_outcome.py":{\n            "_development_decision_row_values",\n            "_development_program_row_values",\n        },\n'''
+
+
+def _peel_rw0_normal_terminal_successor(relative_path: str, payload: bytes) -> bytes:
+    if relative_path == 'tests/test_c2b2_development_row_value_boundaries.py':
+        if ((len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_NORMAL_TERMINAL_P09_IDENTITY
+                or payload.count(_RW0_NORMAL_TERMINAL_P09_ADDITION) != 1):
+            raise AssertionError('P09:terminal_successor_identity')
+        return payload.replace(_RW0_NORMAL_TERMINAL_P09_ADDITION, b'', 1)
+    if relative_path not in _RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES:
+        return payload
+    current, suffix = _RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES[relative_path]
+    begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
+    size, digest = suffix
+    if ((len(payload), hashlib.sha256(payload).hexdigest()) != current
+            or len(payload) < size or not payload.endswith(end)
+            or payload.count(begin) != 1 or payload.count(end) != 1
+            or not payload[-size:].startswith(begin)
+            or hashlib.sha256(payload[-size:]).hexdigest() != digest):
+        raise AssertionError(relative_path + ':terminal_successor_identity')
+    return payload[:-size]
+
 
 def _peel_rw0_c2_local_status(relative_path: str, payload: bytes) -> bytes:
     current, suffix = _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES[relative_path]
@@ -192,6 +228,7 @@ def _peel_rw0_c2_local_status(relative_path: str, payload: bytes) -> bytes:
 
 def _protected_historical_bytes(relative_path: str, payload: bytes) -> bytes:
     """Verify bounded successors, then retain each old exact identity oracle."""
+    payload = _peel_rw0_normal_terminal_successor(relative_path, payload)
     if relative_path == 'tests/test_c2b2_development_row_value_boundaries.py':
         if (len(payload), hashlib.sha256(payload).hexdigest()) != _P09_RW0_C2_P1_SUCCESSOR_IDENTITY:
             raise AssertionError('P09:rw0_c2_p1_successor_identity')
@@ -211,6 +248,28 @@ def _protected_historical_bytes(relative_path: str, payload: bytes) -> bytes:
             or hashlib.sha256(payload[-size:]).hexdigest() != digest):
         raise AssertionError(relative_path + ':p0_successor_identity')
     return payload[:-size]
+
+
+@pytest.mark.parametrize('relative_path', (
+    'AGENTS.md', 'README.md',
+    '.docs/software-development-progression-boundary.md',
+    'tests/test_c2b2_development_row_value_boundaries.py',
+))
+def test_rw0_normal_terminal_successor_reconstructs_protected_predecessor(
+    relative_path: str,
+) -> None:
+    current = (ROOT / relative_path).read_bytes()
+    predecessor = _peel_rw0_normal_terminal_successor(relative_path, current)
+    expected = {
+        'AGENTS.md': _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES['AGENTS.md'][0],
+        'README.md': _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES['README.md'][0],
+        '.docs/software-development-progression-boundary.md': (
+            28654, 'b8761655ee42512c0e77ab8c774c2b2d3d8f9ac36a9bd0c74872ad4bf2994419'),
+        'tests/test_c2b2_development_row_value_boundaries.py': _P09_RW0_C2_P1_SUCCESSOR_IDENTITY,
+    }[relative_path]
+    assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == expected
+    with pytest.raises(AssertionError, match='terminal_successor_identity'):
+        _peel_rw0_normal_terminal_successor(relative_path, current + b'X')
 
 
 def _p11_historical_bytes() -> bytes:
@@ -246,7 +305,9 @@ _P09_RW0_C2_P1_ADDITION = b'''        # P1 consumes existing typed 0002 values i
 
 
 def test_p09_exact_post_d2_reader_consumer_successor_preserves_predecessor() -> None:
-    current = (ROOT / 'tests/test_c2b2_development_row_value_boundaries.py').read_bytes()
+    current = _peel_rw0_normal_terminal_successor(
+        'tests/test_c2b2_development_row_value_boundaries.py',
+        (ROOT / 'tests/test_c2b2_development_row_value_boundaries.py').read_bytes())
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P09_RW0_C2_P1_SUCCESSOR_IDENTITY
     assert current.count(_P09_RW0_C2_P1_ADDITION) == 1
     post_d2 = current.replace(_P09_RW0_C2_P1_ADDITION, b'', 1)

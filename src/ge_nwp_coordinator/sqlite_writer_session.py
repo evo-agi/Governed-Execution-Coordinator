@@ -6857,6 +6857,89 @@ class _SQLiteWriterSession(WriterSession):
     def _recover_progression_decision(self, command: object, source: object) -> object:
         return self._run_progression_operation(command, source, mode="recovery")
 
+    def _record_terminal_outcome(self, command: object, source: object) -> object:
+        return self._run_terminal_operation(command, source, mode="record")
+
+    def _read_terminal_outcome(self, command: object, source: object) -> object:
+        return self._run_terminal_operation(command, source, mode="read")
+
+    def _recover_terminal_outcome(self, command: object, source: object) -> object:
+        return self._run_terminal_operation(command, source, mode="recovery")
+
+    def _run_terminal_operation(
+        self, command: object, source: object, *, mode: str,
+    ) -> object:
+        """Private normal terminal entry under the existing operation guard."""
+        try:
+            from ge_nwp_coordinator._rw0_terminal_outcome_contracts import (
+                RecordRW0TerminalOutcomeCommandV1,
+            )
+            from ge_nwp_coordinator._rw0_c2_progression_contracts import (
+                ArtificialDecisionGuardSourceV1,
+            )
+            from ge_nwp_coordinator._rw0_c1_mutation_contracts import _RW0C1CommitCloseWitness
+            if (type(command) is not RecordRW0TerminalOutcomeCommandV1
+                or type(source) is not ArtificialDecisionGuardSourceV1
+                or mode not in {"record", "read", "recovery"}):
+                raise ValueError("invalid private terminal entry")
+            RecordRW0TerminalOutcomeCommandV1(
+                command.safe_bytes, command.p1_command,
+                command.section41_command, command.c1_rank15,
+            )
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            if mode == "recovery":
+                from ge_nwp_coordinator._rw0_terminal_outcome_contracts import TerminalRecoveryV1
+                return TerminalRecoveryV1("unresolved")
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE))
+        witness = _RW0C1CommitCloseWitness() if mode == "record" else None
+        resource_reference = weakref.ref(self._resource)
+        correlation: _OperationInvocationCorrelation | None = None
+        try:
+            correlation = self._resource._new_operation_invocation_correlation()
+            bound_guard = self._resource.operation_guard
+            keywords = ({"_invocation_correlation": correlation}
+                        if type(bound_guard) is MethodType else {})
+            with bound_guard(self, **keywords) as operation_lease:
+                from ge_nwp_coordinator.sqlite_transition_transaction import _run_terminal_operation
+                result = _run_terminal_operation(
+                    operation_lease=operation_lease,
+                    command=command, source=source, mode=mode,
+                    commit_close_witness=witness,
+                )
+                if type(result) is _SafeMutationFailureDisposition:
+                    _raise_safe_mutation_store_error(_safe_mutation_error_from_disposition(result))
+            resource = resource_reference()
+            _stabilize_rw0_c1_outer_operation_close(resource, correlation)
+            if witness is not None:
+                _complete_rw0_c1_writer_post_operation(
+                    commit_close_witness=witness, recovery_close_witness=None)
+            return result
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(correlation)
+                except BaseException:
+                    pass
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph)
+            raise
+        except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+            if witness is not None and witness.ordinary_failure_is_commit_uncertain:
+                _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN))
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph)
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                if witness is not None and witness.ordinary_failure_is_commit_uncertain
+                else SQLiteMutationStoreErrorCode.MUTATION_FAILED))
+
     def _run_progression_operation(
         self, command: object, source: object, *, mode: str,
         validation: object = None, review: object = None,

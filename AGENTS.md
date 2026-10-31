@@ -1134,3 +1134,11 @@ permission, production provider/worker, ES/Bridge route, product Git effect,
 service, queue, scheduler, or autonomous loop follows. The current owner is
 `.docs/rw0-c2-physical-p0-p1-implementation.md`.
 <!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->
+## RW0 normal terminal closure current candidate
+
+The uncommitted `artificial_offline_normal.v1` candidate adds a separate private Coordinator terminal writer on generation-2 migration 0008. It consumes checked P0, phase, Section 41 A, C1 rank-15/V22 and P1 evidence under one fenced transaction and records only the five normal outcomes: accept, repair, replan, terminal_reject and block. The P1 decision remains prior decision history; its acceptance fact is bound only for accept and is never mutated. Cancellation, live supplier/contact, ES routing, Git effects, publication and executable permission remain outside this candidate. See `.docs/rw0-terminal-outcome-physical-closure.md`.
+
+The original P1 command remains a transient required operand, including private replan text. Fresh record requires current recording and disclosure; historical read/replay/recovery require disclosure only. The current catalog tip is 0008, with 78 tables, 142 triggers and five explicit indexes. Independent audit remains pending.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->

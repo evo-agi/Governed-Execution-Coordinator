@@ -31,6 +31,7 @@ EXPECTED_PRODUCTION_READER_IMPORTERS = (
     "_sqlite_development_pre_execution_plan_disposition.py",
     "_sqlite_development_program_initialization.py",
     "_sqlite_rw0_c1.py",
+    "_sqlite_rw0_terminal_outcome.py",
 )
 EXPECTED_SECTION41_READER_CALLS = (
     "_read_development_attempt_fence_command_effect_aggregate",
@@ -1062,24 +1063,40 @@ def _assert_current_private_reader_composition_documentation(
     integration_heading = "## Current Integration And Remaining Nonimplementation"
     composition_begin = "<!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_BEGIN -->"
     composition_end = "<!-- C2B2_CURRENT_PRODUCTION_READER_COMPOSITION_END -->"
+    successor_begin = "<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_SUCCESSOR_BEGIN -->"
+    successor_end = "<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_SUCCESSOR_END -->"
+    additive_begin = "<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_MAPPING_BEGIN -->"
+    additive_end = "<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_MAPPING_END -->"
     if any(source.count(marker) != 1 for marker in (composition_begin, composition_end)):
+        raise AssertionError(diagnostic)
+    if (any(source.count(marker) != 1 for marker in (
+        successor_begin, successor_end, additive_begin, additive_end))
+        or not source.rstrip().endswith(successor_end)):
         raise AssertionError(diagnostic)
     try:
         status = source.split(status_heading, 1)[1].split(source_heading, 1)[0]
         integration = source.split(integration_heading, 1)[1]
         payload = integration.split(composition_begin, 1)[1].split(composition_end, 1)[0].strip()
+        successor = source.split(successor_begin, 1)[1].split(successor_end, 1)[0]
+        additive_payload = successor.split(additive_begin, 1)[1].split(additive_end, 1)[0].strip()
     except (IndexError, ValueError):
         raise AssertionError(diagnostic) from None
-    if not payload.startswith("```json\n") or not payload.endswith("\n```"):
+    if (not payload.startswith("```json\n") or not payload.endswith("\n```")
+        or not additive_payload.startswith("```json\n")
+        or not additive_payload.endswith("\n```")):
         raise AssertionError(diagnostic)
     try:
         documented_usage = json.loads(payload.removeprefix("```json\n").removesuffix("\n```"))
+        additive_usage = json.loads(additive_payload.removeprefix("```json\n").removesuffix("\n```"))
     except (TypeError, ValueError):
         raise AssertionError(diagnostic) from None
     expected_usage = {
         module_name: sorted(calls)
         for module_name, calls in production_usage.items()
     }
+    terminal_name = "_sqlite_rw0_terminal_outcome.py"
+    historical_usage = {name: calls for name, calls in expected_usage.items()
+                        if name != terminal_name}
     if (
         type(documented_usage) is not dict
         or any(type(key) is not str for key in documented_usage)
@@ -1087,12 +1104,14 @@ def _assert_current_private_reader_composition_documentation(
             type(calls) is not list or any(type(call) is not str for call in calls)
             for calls in documented_usage.values()
         )
-        or documented_usage != expected_usage
+        or documented_usage != historical_usage
+        or additive_usage != {terminal_name: expected_usage[terminal_name]}
     ):
         raise AssertionError(diagnostic)
 
     compact_status = " ".join(status.split())
     compact_integration = " ".join(integration.split())
+    compact_successor = " ".join(successor.split())
     required_status = (
         "bounded reader layer remains exactly twelve private roles and twenty-four "
         "bounded query contracts",
@@ -1137,6 +1156,13 @@ def _assert_current_private_reader_composition_documentation(
     if (
         any(phrase not in compact_status for phrase in required_status)
         or any(phrase not in compact_integration for phrase in required_integration)
+        or any(phrase not in compact_successor for phrase in (
+            "Current source-derived production composition has six private importer modules",
+            "existing effect and delivery head roles through the same nominal fenced capability",
+            "twelve reader roles, twenty-four query specifications",
+            "Migration 0008 is the current packaged tip at application generation 2",
+            "No new C2B2 reader query, public `StateStore` method, or package-root export",
+        ))
         or any(phrase in " ".join(source.lower().split()) for phrase in forbidden)
     ):
         raise AssertionError(diagnostic)
@@ -1218,6 +1244,10 @@ def test_current_living_documents_match_source_derived_private_reader_compositio
                 "_read_development_program_head_and_current_version",
                 "_read_development_work_item_head_and_revision_by_exact_ref",
                 "_read_development_work_spec_safe_binding",
+            },
+            "_sqlite_rw0_terminal_outcome.py": {
+                "_read_development_delivery_head",
+                "_read_development_effect_head",
             },
         }
     assert len(EXPECTED_SECTION41_READER_CALLS) == 7

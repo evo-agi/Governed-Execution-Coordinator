@@ -991,6 +991,7 @@ MIGRATION_SHA256 = {
 CURRENT_MIGRATION_SHA256 = MIGRATION_SHA256 | {
     "0006_rw0_c2_scope_admission.sql": "58b2731d52e8e199c010b309a29aa831ffb16d4db4e755d20adb694ce0a7305f",
     "0007_rw0_c2_progression_decision.sql": "505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c",
+    "0008_rw0_terminal_outcome.sql": "a199ea64b4546d441cde00d8c7def62405ed28a89841a181dc6ba93871845254",
 }
 
 

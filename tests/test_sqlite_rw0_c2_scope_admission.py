@@ -121,11 +121,14 @@ def test_p0_preprogram_commit_replay_and_readback(tmp_path):
         "rw0_c2_bootstrap_acceptance_facts",
     ):
         assert _count(location, table) == 0
-    with sqlite3.connect(location.database_path) as connection:
-        assert connection.execute(
-            "SELECT count(*) FROM sqlite_schema WHERE type='table' AND "
-            "name LIKE '%terminal_outcome%'"
-        ).fetchone()[0] == 0
+    # P0 admission alone must leave the later terminal family unpopulated.
+    for table in (
+        "rw0_terminal_contexts",
+        "rw0_terminal_outcomes",
+        "rw0_terminal_results",
+        "rw0_terminal_receipts",
+    ):
+        assert _count(location, table) == 0
 
 
 def test_p0_exact_replay_requires_disclosure_but_not_renewed_recording(tmp_path):

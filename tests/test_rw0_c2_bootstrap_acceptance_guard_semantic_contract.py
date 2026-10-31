@@ -864,6 +864,10 @@ def _assert_capability_semantic_source(text):
 def _assert_capability_documents_integrity():
     for pid, reference in GUARD_CAPABILITY_EXPECTED.items():
         data = (ROOT / reference['path']).read_bytes()
+        if pid in ('P11', 'P12', 'P13'):
+            data = _rw0_normal_terminal_status_predecessor(
+                reference['path'], data,
+                boundary='guard:capability_semantic_integrity')
         if pid in ('P11', 'P12'):
             current, status_suffix = {
                 'P11': ((74410, 'c8ccf0552265d172a659a30be898fffd35cc70fad4821a350c3a9bf00e8f6b5d'),
@@ -1980,6 +1984,48 @@ _RW0_C2_STATUS_DOCUMENT_IDENTITIES = {
     'AGENTS.md': ((74410, 'c8ccf0552265d172a659a30be898fffd35cc70fad4821a350c3a9bf00e8f6b5d'), (72746, 'b4fcb9789db884d1c7962d3196e6c6bac1fa6b6c968ab8a2493cc7301f569d77'), (1664, '35b0ef1755c05f0a58ca6b073dcfcbacb333d2a78e0725e9d72012b2aa725f03')),
     'README.md': ((50883, '97af30802aea371b231e6509df62743006218065b3decbeb3bcc3db94df98981'), (49820, '8a10258ae59c52a3bdb254975ac782fa6a7a6b0f0dbdbd7c9dbc79764f733760'), (1063, '9a10331a1876103db243e8bc7d4abc8a5c876bb00a7fea9abb4ab505a42dad55')),
 }
+# Explicitly authorized 0008 normal-terminal successor. Each pair pins the
+# complete current document and the exact appended successor. Stripping it
+# must recover the already pinned P0/P1 local-commit bytes above.
+_RW0_NORMAL_TERMINAL_STATUS_IDENTITIES = {
+    '.docs/architecture.md': ((48680, '382235ce4b8374e4af9c9e4c58f106bfad685d1e281130f49fad85ef10f62463'), (1007, '42f42c9dcfe176d4a95b3a204177c38c661e37be6f00aed94fbf377214b30053')),
+    '.docs/autonomous-software-development-operating-model.md': ((45578, 'bfc134807c33a59d595121151193d3d6dfe76959eb964bd8d66a12a8a179c26c'), (972, '3af788a782a0f2e504128e3d5adcd7e64620430c3ddf58e780dda24a7abebb0a')),
+    '.docs/c2b-durable-development-state.md': ((1906502, 'aeee29055e776d6c55f689d1de03cb0fa647e1c46e001d22ec8a7451859a54ed'), (994, 'b90b2b2b1f3cca2aee41db543d828b373e34f29c906514ad04466dd6b08ef0b1')),
+    '.docs/c2b2-migration-0002.md': ((11408, 'ba9ecfe211c47810d9ec1b7d792a031783654665fb009c22217be4819646ccb4'), (1498, 'ca763e43cd47ad30f5320f34dd1ab09426025632930aadb7f8c9688d15a9d9f0')),
+    '.docs/rw0-c2-durable-progression-decision-semantic-contract.md': ((79662, '579e89e87a9c4d8e5da53d6aa91ef331f1bce3d0e83e8a615ff87b4d2a66edc3'), (1047, '8a4361e7049d4b07349f87807c43d841fc2e763bf662fcf69c3586b8a75ad88d')),
+    '.docs/rw0-c2-physical-p0-p1-implementation.md': ((20895, '5939195ff98198890e6a29ee9cf915597e96e364693478d2434f50236b184ef4'), (1108, 'aec04bc397687bda1fa0327109dcf95bbac21895e7f1c8e2516c873e64e7a718')),
+    '.docs/rw0-c2-private-value-versioning.md': ((220832, '908e08d924300b94d2e3aa726a2575bdaab3a24784aa21630c96d35791d79468'), (1000, 'a5b6e5bd5964743bc3c5aede0d37a6bf8f7b75cc55ba73c2dca4be789e5f9cd6')),
+    '.docs/sqlite-bootstrap-and-migrations.md': ((40363, '3514a6d100cbc647b6cc8e45a9e94456256d4431d1a29587feefa397e4932902'), (1160, 'b1eb7c0a10e66c586a38b5941c5e7fba7160fac3ed09da642bc0cd06eb724534')),
+    '.docs/sqlite-operations-and-recovery.md': ((46103, 'b163068f9113e576db29b8b92503efbc5056dcd38bf1b4a5dee9388c16ad70a6'), (2068, 'a2475e04e1293ba95d7dd6802f539d7239f7e01822e10d1652ca4397a5d9b558')),
+    '.docs/sqlite-schema-v1.md': ((27211, '2cf2b5e18e4eb9c45b0395556e4304465445d701936549221b40525da46378dd'), (1002, '6266edab744892004a76db1d79aae5829277cba328a0c4ac227930cd6a844c02')),
+    '.docs/sqlite-state-backend-adr.md': ((36628, 'f94ac9a85674bae068abe5262198cf36c9c17567b9c9042db90debca23fd47e1'), (1085, 'aee0d57623196e106bf901006be9b9060be1815140720c758d61380c69bbb4ea')),
+    'AGENTS.md': ((75552, '4d947ee8f6b20e40f6f20755ae3a28fd5603ca99dda97cb436fa35dd0db7c482'), (1142, '84f8d8ea0a360c9ed20ec654b0b6f6abf58578e2f39a3395f312ad4ea13a8110')),
+    'README.md': ((51873, 'b1fff34a97decde7e14eb8f346b3568aee97cb539f7da1e9d4f7f2e9aab9f96f'), (990, '58d4e8e08df9f7cc6ee93722a25292f4f9c4d84ebc21a8fa4d7d65e74edc988a')),
+}
+_RW0_NORMAL_TERMINAL_OTHER_IDENTITIES = {
+    '.docs/durable-state-model.md': ((45175, '3bd5597bff63d05f03fef0f841d2294cdfe087bad1d10d226fde3700f44797ad'), (1019, '03df0a095f3937751cbd0124ab650e65e0b31ca727a3791f1b18f5f84a191f9a')),
+    '.docs/worker-execution-boundary.md': ((35488, 'e4029cd33dee5c1b81b5c74897620d69aaf90a28f8570bbf455882fda58763d4'), (972, '6d6af7a601682948db89982fa7e0ab609b5a4e6d34ee1040861bb74a619e1412')),
+    '.docs/rw0-remote-worker-contact-phase-entry.md': ((62651, '97433cddf62d795c04680a611425dc1132094c784b41f1d564ce742c3d3b02b0'), (1032, 'ce5f018db674f72d072eb6a7f200bee578d23a7e1d7d1641249ea750482af763')),
+    '.docs/software-development-progression-boundary.md': ((29615, 'd76f13ace3759ed6f7dc586142254b4aac092e8a177adad1b0435f96329aca92'), (961, '7c9cbc5f08da2e653823990937fcd2fce8eade9262cb464a920a0974901ae409')),
+}
+
+
+def _rw0_normal_terminal_status_predecessor(relative_path: str, payload: bytes,
+                                            *, boundary: str) -> bytes:
+    fixed = (_RW0_NORMAL_TERMINAL_STATUS_IDENTITIES |
+             _RW0_NORMAL_TERMINAL_OTHER_IDENTITIES)[relative_path]
+    current, suffix = fixed
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) == current,
+             boundary + ':current_identity:' + relative_path)
+    suffix_size, suffix_hash = suffix
+    begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
+    _require(payload.count(begin) == payload.count(end) == 1 and
+             payload.endswith(end) and payload[-suffix_size:].startswith(begin) and
+             hashlib.sha256(payload[-suffix_size:]).hexdigest() == suffix_hash,
+             boundary + ':append_identity:' + relative_path)
+    return payload[:-suffix_size]
+
 _RW0_C2_STATUS_BEGIN = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
 _RW0_C2_STATUS_END = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
 _RW0_C2_ACCEPTED_TREE = b'161ed4b544baf970cc26428b9805a106ea0f3edf'
@@ -2011,6 +2057,8 @@ _RW0_C2_OPERATIONS_NEW = (
 
 
 def _rw0_c2_status_predecessor(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+    payload = _rw0_normal_terminal_status_predecessor(
+        relative_path, payload, boundary='guard:rw0_c2_status')
     current, predecessor, suffix = _RW0_C2_STATUS_DOCUMENT_IDENTITIES[relative_path]
     _require((len(payload), hashlib.sha256(payload).hexdigest()) == current,
              'guard:rw0_c2_status:current_identity:' + relative_path)
@@ -2283,6 +2331,9 @@ def _rw0_c2_current_drift_reconstruct_unsealed(relative_path: str, payload: byte
 
 
 def _rw0_c2_current_drift_predecessor(relative_path: str, payload: bytes) -> tuple[bytes, bytes]:
+    if relative_path in _RW0_NORMAL_TERMINAL_OTHER_IDENTITIES:
+        payload = _rw0_normal_terminal_status_predecessor(
+            relative_path, payload, boundary='guard:rw0_c2_repair')
     fixed = _RW0_C2_REPAIR_IDENTITIES[relative_path]
     _require((len(payload), hashlib.sha256(payload).hexdigest()) == fixed['current'],
              'guard:rw0_c2_repair:current_identity:' + relative_path)
@@ -2356,8 +2407,10 @@ def test_rw0_c2_current_drift_six_owner_local_successors_and_predecessors() -> N
 ))
 def test_rw0_c2_current_drift_exact_negative_specimens(case: str, boundary: str) -> None:
     path = '.docs/durable-state-model.md'
-    original = (ROOT / path).read_bytes()
-    _previous, addition = _rw0_c2_current_drift_predecessor(path, original)
+    current = (ROOT / path).read_bytes()
+    original = _rw0_normal_terminal_status_predecessor(
+        path, current, boundary='guard:rw0_c2_repair')
+    _previous, addition = _rw0_c2_current_drift_predecessor(path, current)
     offset = _RW0_C2_REPAIR_IDENTITIES[path]['offset']
     if case == 'omitted':
         changed = original[:offset] + original[offset + len(addition):]

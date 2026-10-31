@@ -4401,8 +4401,8 @@ def test_literal_table_column_key_check_fk_trigger_and_index_inventory() -> None
 def test_current_migration_documentation_matches_catalog_and_scopes_historical_0002() -> None:
     catalog = migration_module.load_migration_catalog()
     production = _PRODUCTION_CATALOG_LOADER()
-    assert tuple(item.sequence for item in production.migrations) == (1, 2, 3, 4, 5, 6, 7)
-    assert production.migrations[-1].migration_id == "0007_rw0_c2_progression_decision"
+    assert tuple(item.sequence for item in production.migrations) == (1, 2, 3, 4, 5, 6, 7, 8)
+    assert production.migrations[-1].migration_id == "0008_rw0_terminal_outcome"
     migrations = catalog.migrations
     current_tip = migrations[-1].migration_id
     complete_catalog = "[" + ", ".join(item.migration_id for item in migrations) + "]"
@@ -4557,6 +4557,7 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         CURRENT_RESOURCE_NAME,
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
+        "0008_rw0_terminal_outcome.sql",
     )
 
 

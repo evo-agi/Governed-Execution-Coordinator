@@ -306,3 +306,11 @@ or custody supplier, external standing authority, terminal owner, executable
 permission, production provider or worker, ES/Bridge route, product Git
 effect, service, queue, scheduler, deployment, or autonomous loop is claimed.
 <!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->
+## RW0 normal terminal closure current candidate
+
+The uncommitted `artificial_offline_normal.v1` candidate adds a separate private Coordinator terminal writer on generation-2 migration 0008. It consumes checked P0, phase, Section 41 A, C1 rank-15/V22 and P1 evidence under one fenced transaction and records only the five normal outcomes: accept, repair, replan, terminal_reject and block. The P1 decision remains prior decision history; its acceptance fact is bound only for accept and is never mutated. Cancellation, live supplier/contact, ES routing, Git effects, publication and executable permission remain outside this candidate. See `.docs/rw0-terminal-outcome-physical-closure.md`.
+
+The integrated P0/P1 baseline is PR #17 squash `61d0330aba1160f7f5e7d9c541a325222d1c61e5`, tree `44c7dee402d46b3e16dc389ae0824b4297dfec1f`. Earlier candidate and local-commit blocks are historical. P0/P1 source and SQL meanings remain unchanged. This terminal successor awaits independent audit.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->

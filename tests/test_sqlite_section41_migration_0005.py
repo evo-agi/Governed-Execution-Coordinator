@@ -38,7 +38,7 @@ def _inventory(connection: sqlite3.Connection) -> tuple[int, int, int]:
 
 def test_literal_catalog_preserves_four_earlier_resources_and_generation_two() -> None:
     catalog = migration.load_migration_catalog()
-    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7)
+    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7, 8)
     assert tuple((item.migration_id, len(item.sql_bytes),
                   hashlib.sha256(item.sql_bytes).hexdigest())
                  for item in catalog.migrations[:4]) == _EARLIER
@@ -62,9 +62,9 @@ def test_fresh_tip_has_exact_tables_columns_foreign_keys_guards_and_zero_seed(
 ) -> None:
     location = _location(tmp_path, "fresh")
     inspection = migration.initialize_database(location)
-    assert inspection.current_sequence == inspection.latest_sequence == 7
+    assert inspection.current_sequence == inspection.latest_sequence == 8
     with sqlite3.connect(location.database_path) as db:
-        assert _inventory(db) == (74, 134, 5)
+        assert _inventory(db) == (78, 142, 5)
         for table, columns in ((_CONTEXT_TABLE, _CONTEXT_COLUMNS),
                                (_RECEIPT_TABLE, _RECEIPT_COLUMNS)):
             assert tuple(row[1] for row in db.execute(f'PRAGMA table_xinfo("{table}")')) == columns
@@ -81,7 +81,7 @@ def test_fresh_tip_has_exact_tables_columns_foreign_keys_guards_and_zero_seed(
             assert foreign and all(row[5] == "RESTRICT" and row[6] == "RESTRICT"
                                    for row in foreign)
         assert db.execute("PRAGMA foreign_key_check").fetchall() == []
-    assert migration.validate_database(location).current_sequence == 7
+    assert migration.validate_database(location).current_sequence == 8
 
 
 def test_populated_exact_0004_prefix_requires_explicit_upgrade_and_preserves_owner(
@@ -107,9 +107,9 @@ def test_populated_exact_0004_prefix_requires_explicit_upgrade_and_preserves_own
     with sqlite3.connect(location.database_path) as db:
         assert db.execute("SELECT max(sequence) FROM schema_migrations").fetchone()[0] == 4
     upgraded = migration.migrate_database(location)
-    assert upgraded.current_sequence == upgraded.latest_sequence == 7
+    assert upgraded.current_sequence == upgraded.latest_sequence == 8
     with sqlite3.connect(location.database_path) as db:
-        assert _inventory(db) == (74, 134, 5)
+        assert _inventory(db) == (78, 142, 5)
         assert db.execute("SELECT writer_ref,generation FROM writer_ownership").fetchone() == (
             "writer-synthetic", 1,
         )

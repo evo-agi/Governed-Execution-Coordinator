@@ -523,3 +523,11 @@ packaged schema remains 74 user tables, 134 triggers, and five explicit
 indexes; no migration 0008 or terminal table is introduced. Physical
 representability is not live, executable, terminal, or publication authority.
 <!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->
+## RW0 normal terminal closure current candidate
+
+The uncommitted `artificial_offline_normal.v1` candidate adds a separate private Coordinator terminal writer on generation-2 migration 0008. It consumes checked P0, phase, Section 41 A, C1 rank-15/V22 and P1 evidence under one fenced transaction and records only the five normal outcomes: accept, repair, replan, terminal_reject and block. The P1 decision remains prior decision history; its acceptance fact is bound only for accept and is never mutated. Cancellation, live supplier/contact, ES routing, Git effects, publication and executable permission remain outside this candidate. See `.docs/rw0-terminal-outcome-physical-closure.md`.
+
+The current packaged SQL tip is 0008 at application generation 2: 78 tables, 142 triggers and five explicit indexes. Historical schema-0001 fixture and migrations 0001–0007 are unchanged.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->

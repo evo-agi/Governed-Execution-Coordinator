@@ -535,6 +535,7 @@ def test_b1_static_scan_keeps_sqlite_out_of_state_store_and_runtime_service() ->
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c2_scope_admission.py",
             "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
         "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",

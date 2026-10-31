@@ -773,6 +773,7 @@ def test_b3b1_public_export_schema_and_local_boundaries_are_unchanged() -> None:
         "0005_section41_post_execution_proposal_family.sql",
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
+        "0008_rw0_terminal_outcome.sql",
     ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

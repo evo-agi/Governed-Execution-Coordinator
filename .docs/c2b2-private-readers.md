@@ -291,3 +291,33 @@ reads current global stop through the existing private reader. The D2 B entry
 uses a guarded C1 owner snapshot that borrows the same fenced controller and
 existing owner readers. The frozen 12 roles, 24 query specifications, schema,
 and public reader surface are unchanged.
+
+<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_SUCCESSOR_BEGIN -->
+### RW0 normal terminal private reader consumer successor
+
+The earlier five-importer status and exact mapping above are retained as the
+preterminal composition snapshot. Current source-derived production composition
+has six private importer modules: those five plus
+`_sqlite_rw0_terminal_outcome.py`. The terminal checked owner reads only the
+existing effect and delivery head roles through the same nominal fenced
+capability. Its exact additive role mapping is:
+
+<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_MAPPING_BEGIN -->
+```json
+{
+  "_sqlite_rw0_terminal_outcome.py": [
+    "_read_development_delivery_head",
+    "_read_development_effect_head"
+  ]
+}
+```
+<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_MAPPING_END -->
+
+The complete current mapping is the preserved five-importer mapping plus this
+one closed entry. The twelve reader roles, twenty-four query specifications,
+private nominal capability, owner semantics and public surface are unchanged.
+The terminal family owns its own durable fact; these readers remain checked
+observations and confer no execution or publication authority. Migration 0008
+is the current packaged tip at application generation 2. No new C2B2 reader
+query, public `StateStore` method, or package-root export is introduced.
+<!-- RW0_NORMAL_TERMINAL_READER_CURRENT_SUCCESSOR_END -->

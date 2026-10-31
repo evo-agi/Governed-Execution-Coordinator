@@ -1464,3 +1464,11 @@ pure decision grammar and owner split above remain unchanged. No live source,
 executable permission, product Git effect, ES/Bridge route, service, queue,
 scheduler, deployment, autonomy, or publication follows.
 <!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->
+## RW0 normal terminal closure current candidate
+
+The uncommitted `artificial_offline_normal.v1` candidate adds a separate private Coordinator terminal writer on generation-2 migration 0008. It consumes checked P0, phase, Section 41 A, C1 rank-15/V22 and P1 evidence under one fenced transaction and records only the five normal outcomes: accept, repair, replan, terminal_reject and block. The P1 decision remains prior decision history; its acceptance fact is bound only for accept and is never mutated. Cancellation, live supplier/contact, ES routing, Git effects, publication and executable permission remain outside this candidate. See `.docs/rw0-terminal-outcome-physical-closure.md`.
+
+P1's five branches, acceptance-only fact, Decision Basis v2 and guarded command digest v2 remain unchanged. The terminal reader verifies complete P1 history from the exact original transient command, including private replan material.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->

@@ -222,6 +222,7 @@ def test_section41_0005_is_exact_with_separate_p0_and_p1_c2_suffixes() -> None:
         "0005_section41_post_execution_proposal_family.sql",
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
+        "0008_rw0_terminal_outcome.sql",
     ]
     assert not (SOURCE / "sqlite_state.py").exists()
 

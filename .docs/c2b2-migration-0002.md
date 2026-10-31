@@ -164,3 +164,12 @@ five explicit indexes. Migration 0006 supplies four P0-only tables; migration
 explicit administrative migration. This local source status implies no live
 supplier, product mutation permission, or publication.
 <!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->
+## RW0 normal terminal closure current candidate
+
+The uncommitted `artificial_offline_normal.v1` candidate adds a separate private Coordinator terminal writer on generation-2 migration 0008. It consumes checked P0, phase, Section 41 A, C1 rank-15/V22 and P1 evidence under one fenced transaction and records only the five normal outcomes: accept, repair, replan, terminal_reject and block. The P1 decision remains prior decision history; its acceptance fact is bound only for accept and is never mutated. Cancellation, live supplier/contact, ES routing, Git effects, publication and executable permission remain outside this candidate. See `.docs/rw0-terminal-outcome-physical-closure.md`.
+
+The current contiguous catalog ends at `0008_rw0_terminal_outcome` at application generation 2, with 78 tables, 142 triggers and five explicit indexes. Exact older prefixes require explicit administrative migration; ordinary operations do not auto-migrate.
+The complete current catalog is `[0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence, 0005_section41_post_execution_proposal_family, 0006_rw0_c2_scope_admission, 0007_rw0_c2_progression_decision, 0008_rw0_terminal_outcome]`; its short sequence is `[0001, 0002, 0003, 0004, 0005, 0006, 0007, 0008]`. The current production SQL resource count is `8`.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->

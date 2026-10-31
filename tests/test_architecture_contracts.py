@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import re
 
 import pytest
@@ -314,6 +315,18 @@ def _assert_complete_rw0_architecture_map(documents: dict[str, str]) -> str:
 
 
 def _rw0_live_owner_body(text: str) -> str:
+    successor_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
+    successor_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
+    if successor_begin in text:
+        _require(text.count(successor_begin) == text.count(successor_end) == 1,
+                 'rw0.architecture: exact normal terminal successor markers')
+        start = text.index(successor_begin)
+        end_position = text.index(successor_end, start) + len(successor_end)
+        successor = text[start:end_position].encode('utf-8')
+        _require(len(successor) == 1032 and hashlib.sha256(successor).hexdigest() ==
+                 'ce5f018db674f72d072eb6a7f200bee578d23a7e1d7d1641249ea750482af763',
+                 'rw0.architecture: exact normal terminal successor identity')
+        text = text[:start] + text[end_position:]
     headings, lines = _rw0_visible_events(text)
     begin, end = _rw0_visible_marker_pair(
         lines,
