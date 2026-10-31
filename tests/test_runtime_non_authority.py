@@ -68,6 +68,10 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_rw0_c2_progression_contracts.py",
         "src/ge_nwp_coordinator/_rw0_c2_progression_plan.py",
         "src/ge_nwp_coordinator/_rw0_c2_progression_rows.py",
+        "src/ge_nwp_coordinator/_rw0_terminal_head_witness.py",
+        "src/ge_nwp_coordinator/_rw0_terminal_outcome_contracts.py",
+        "src/ge_nwp_coordinator/_rw0_terminal_outcome_plan.py",
+        "src/ge_nwp_coordinator/_rw0_terminal_outcome_rows.py",
         "src/ge_nwp_coordinator/_section41_post_execution_proposal_family_projection.py",
         "src/ge_nwp_coordinator/_section41_post_execution_proposal_mutation_contracts.py",
         "src/ge_nwp_coordinator/_section41_post_execution_proposal_row_values.py",
@@ -83,6 +87,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/_sqlite_rw0_c1_readers.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c2_scope_admission.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
         "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
         "src/ge_nwp_coordinator/_rw0_phase_entry_semantic_values.py",
         "src/ge_nwp_coordinator/_rw0_wire_protocol_values.py",
@@ -111,6 +116,7 @@ EXPECTED_PRODUCTION_PATHS = frozenset(
         "src/ge_nwp_coordinator/sqlite_migrations/0005_section41_post_execution_proposal_family.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0006_rw0_c2_scope_admission.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0007_rw0_c2_progression_decision.sql",
+        "src/ge_nwp_coordinator/sqlite_migrations/0008_rw0_terminal_outcome.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/__init__.py",
         "src/ge_nwp_coordinator/sqlite_mutation_transaction_contracts.py",
         "src/ge_nwp_coordinator/sqlite_security.py",
@@ -984,6 +990,7 @@ def test_sqlite_import_surface_is_exact() -> None:
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c2_scope_admission.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
         "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",
@@ -1012,6 +1019,7 @@ def test_c2b2_private_readers_have_no_public_or_production_caller_surface() -> N
         "src/ge_nwp_coordinator/_sqlite_development_pre_execution_plan_disposition.py",
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c1.py",
+        "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
     }
     for source in (package_source, state_source, writer_source):
         assert "read_development" not in source

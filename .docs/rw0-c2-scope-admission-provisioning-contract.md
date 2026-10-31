@@ -375,3 +375,15 @@ observations. There is no live enrollment/custody supplier, terminal outcome,
 production provider/worker, ES/Bridge route, product Git effect, public service,
 queue, scheduler, deployment, or autonomous loop.
 <!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CROSS_STAGE_STATUS_REPAIR_BEGIN -->
+**Current cross-stage terminal-closure status repair.**
+
+The immediately preceding `RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR` block is the preserved P0/P1 local-commit-stage snapshot. Any statement there that terminal outcome remained future or absent describes that stage; it is not current global Coordinator status after the later terminal commit. P0 itself still creates no terminal fact.
+
+The independently accepted normal-terminal source at Git tree `4691af58ae0ee3107b4e2e9b6b1508032944e357` was locally committed as `d3fd741c872b26aa2dfe927ab6dccc638cdcf356`, with sole parent `61d0330aba1160f7f5e7d9c541a325222d1c61e5` and subject `feat: add RW0 normal terminal closure`. Migration `0008_rw0_terminal_outcome` is the current source/catalog suffix. The separate private `artificial_offline_normal.v1` terminal owner records only normal `accept`, `repair`, `replan`, `terminal_reject`, and `block`.
+
+P0 scope admission, P1 progression decision with its acceptance-only fact, and terminal closure are separate private fenced transactions and facts. P0 grants no current permission; P1 remains prior decision history rather than terminal truth. Wire, D1, and P0 retain their own bounded contracts; none gains terminal ownership, executable permission, live authority, or effect authority from the later terminal owner.
+
+No push, PR, merge, publication, deployment, live supplier/custody, worker/provider contact, ES/Bridge route, product Git effect, service, queue, scheduler, terminal cancellation profile, or autonomous loop follows from this local commit. Git objects and refs own commit and publication truth. Audit, validation, provenance, reports, and status prose are evidence only.
+<!-- RW0_NORMAL_TERMINAL_CLOSURE_CROSS_STAGE_STATUS_REPAIR_END -->

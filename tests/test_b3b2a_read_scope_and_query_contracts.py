@@ -588,6 +588,7 @@ def test_b3b2a_runtime_import_is_the_only_new_sqlite_importer() -> None:
         "src/ge_nwp_coordinator/_sqlite_development_program_initialization.py",
         "src/ge_nwp_coordinator/_sqlite_rw0_c2_scope_admission.py",
             "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
+            "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
         "src/ge_nwp_coordinator/_sqlite_section41_post_execution_proposal.py",
         "src/ge_nwp_coordinator/sqlite_connection.py",
         "src/ge_nwp_coordinator/sqlite_migration.py",

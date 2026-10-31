@@ -102,6 +102,10 @@ EXPECTED_TABLES = {
     "rw0_c2_guarded_family_relations",
     "rw0_c2_guarded_progression_results",
     "rw0_c2_bootstrap_acceptance_facts",
+    "rw0_terminal_contexts",
+    "rw0_terminal_outcomes",
+    "rw0_terminal_results",
+    "rw0_terminal_receipts",
 }
 
 EXPECTED_LITERAL_MIGRATION_CATALOG = (
@@ -164,6 +168,15 @@ EXPECTED_LITERAL_MIGRATION_CATALOG = (
         "0007_rw0_c2_progression_decision",
         "0007_rw0_c2_progression_decision.sql",
         "505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c",
+        2,
+        2,
+        False,
+    ),
+    (
+        8,
+        "0008_rw0_terminal_outcome",
+        "0008_rw0_terminal_outcome.sql",
+        "a199ea64b4546d441cde00d8c7def62405ed28a89841a181dc6ba93871845254",
         2,
         2,
         False,
@@ -655,9 +668,9 @@ def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 7
-    assert inspection.latest_sequence == 7
-    assert inspection.current_migration_id == "0007_rw0_c2_progression_decision"
+    assert inspection.current_sequence == 8
+    assert inspection.latest_sequence == 8
+    assert inspection.current_migration_id == "0008_rw0_terminal_outcome"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
@@ -728,7 +741,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 7
+    assert _count(location, "schema_migrations") == 8
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -739,7 +752,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 7
+    assert inspection.current_sequence == inspection.latest_sequence == 8
     assert _file_digest(location.database_path) == before
 
 
@@ -747,7 +760,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=8) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=9) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
         ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
@@ -779,7 +792,7 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
             _catalog_row_0004(),
             _catalog_row_0005(),
             _catalog_row_0006(),
-            _catalog_row_0006(migration_id="0008_future", sequence=8),
+            _catalog_row_0006(migration_id="0009_future", sequence=9),
         ],
     )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")

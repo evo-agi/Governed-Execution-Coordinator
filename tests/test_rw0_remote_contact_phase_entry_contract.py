@@ -1192,6 +1192,33 @@ def _heading_chain(
 
 
 def _owner_visible_body(text: str) -> str:
+    local_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    local_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    if local_begin in text:
+        assert text.count(local_begin) == text.count(local_end) == 1, (
+            'rw0.owner: exact local commit status markers')
+        start = text.index(local_begin)
+        end_position = text.index(local_end, start) + len(local_end)
+        successor = text[start:end_position].encode('utf-8')
+        assert (len(successor) == 2746 and hashlib.sha256(successor).hexdigest() ==
+                '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c' and
+                text[:start].endswith('<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n')), (
+                    'rw0.owner: exact local commit status identity and placement')
+        text = text[:start] + text[end_position:]
+    # The separately accepted 0008 status successor is exact and outside the
+    # historical phase-entry owner markers. Parse the original owner unchanged.
+    successor_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
+    successor_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
+    if successor_begin in text:
+        assert text.count(successor_begin) == text.count(successor_end) == 1, (
+            'rw0.owner: exact normal terminal successor markers')
+        start = text.index(successor_begin)
+        end_position = text.index(successor_end, start) + len(successor_end)
+        successor = text[start:end_position].encode('utf-8')
+        assert len(successor) == 1032 and hashlib.sha256(successor).hexdigest() == (
+            'ce5f018db674f72d072eb6a7f200bee578d23a7e1d7d1641249ea750482af763'
+        ), 'rw0.owner: exact normal terminal successor identity'
+        text = text[:start] + text[end_position:]
     begin, end, headings, visible = _visible_marker_span(
         text, CONTRACT_BEGIN, CONTRACT_END, role="rw0.owner"
     )

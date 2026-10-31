@@ -153,6 +153,16 @@ from ge_nwp_coordinator._sqlite_rw0_c2_progression import (
     recover_after_fencing as _recover_progression_after_fencing,
     write_fresh_after_fencing as _write_progression_after_fencing,
 )
+from ge_nwp_coordinator._rw0_terminal_outcome_contracts import (
+    RecordRW0TerminalOutcomeCommandV1, TerminalCommittedV1,
+    TerminalConflictV1, TerminalRecoveryV1,
+)
+from ge_nwp_coordinator._sqlite_rw0_terminal_outcome import (
+    FreshTerminal,
+    read_after_fencing as _read_terminal_after_fencing,
+    recover_after_fencing as _recover_terminal_after_fencing,
+    write_fresh_after_fencing as _write_terminal_after_fencing,
+)
 from ge_nwp_coordinator._post_execution_evidence_values import (
     ValidationDispositionV1, IndependentReviewDispositionV1,
 )
@@ -1363,6 +1373,94 @@ class _CoordinatorMutationTransactionController:
         if failure is not None:
             if mode == "recovery":
                 return ProgressionDecisionRecoveryV1("unresolved")
+            raise failure
+        if result is None:
+            raise _mutation_failed()
+        return result
+
+    def run_terminal_operation(
+        self, *, command: RecordRW0TerminalOutcomeCommandV1,
+        source: ArtificialDecisionGuardSourceV1, mode: str,
+    ) -> TerminalCommittedV1 | TerminalConflictV1 | TerminalRecoveryV1:
+        """One private normal terminal operation in the existing fenced controller."""
+        if (type(command) is not RecordRW0TerminalOutcomeCommandV1
+            or type(source) is not ArtificialDecisionGuardSourceV1
+            or mode not in {"record", "read", "recovery"}):
+            raise _mutation_failed()
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result: TerminalCommittedV1 | TerminalConflictV1 | TerminalRecoveryV1 | None = None
+        failure: BaseException | None = None
+        cleanup: SQLiteMutationStoreError | None = None
+        try:
+            try:
+                if self._run_until_writer_fencing_resolution() is not _WriterIssuanceMatch.MATCH:
+                    raise _mutation_failed()
+                timestamp = _capture_transaction_timestamp()
+                if mode == "recovery":
+                    result = _recover_terminal_after_fencing(
+                        self._capability, command, source, timestamp)
+                elif mode == "read":
+                    result = _read_terminal_after_fencing(
+                        self._capability, command, source, timestamp)
+                    if result is None:
+                        raise _database_integrity_failure()
+                else:
+                    connection = self._connection
+                    if type(connection) is not sqlite3.Connection:
+                        raise _mutation_failed()
+                    self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+                    candidate = _write_terminal_after_fencing(
+                        self._capability, connection, command, source, timestamp)
+                    if type(candidate) is FreshTerminal:
+                        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+                        result = self._commit_after_fresh_writes(
+                            candidate.committed, force_cleanup_on_uncertainty=True)
+                    elif type(candidate) in (TerminalCommittedV1, TerminalConflictV1):
+                        result = candidate
+                    else:
+                        raise _database_integrity_failure()
+                if not self._commit_attempt_started:
+                    cleanup = self._resolve_rollback_before_commit()
+            except (_WriterSessionAuthorityClosed, _WriterSessionAuthorityUnavailable):
+                failure = _mutation_failed()
+            except (WriterSessionError, SQLiteMutationStoreError) as error:
+                failure = error
+            except Exception:
+                failure = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if failure is not None and not self._commit_attempt_started:
+                cleanup = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    failure = _commit_outcome_unknown()
+                    cleanup = None
+                    result = None
+                else:
+                    cleanup = cleanup or _mutation_failed()
+        witness = self._rw0_c1_commit_close_witness
+        if (type(witness) is _RW0C1CommitCloseWitness
+            and witness.ordinary_failure_is_commit_uncertain
+            and (cleanup is not None or failure is not None or result is None)):
+            failure = _commit_outcome_unknown()
+            cleanup = None
+            result = None
+        if cleanup is not None:
+            if mode == "recovery":
+                return TerminalRecoveryV1("unresolved")
+            raise cleanup
+        if failure is not None:
+            if mode == "recovery":
+                return TerminalRecoveryV1("unresolved")
             raise failure
         if result is None:
             raise _mutation_failed()
@@ -3079,6 +3177,7 @@ class _CoordinatorMutationTransactionController:
             RecordPostExecutionProposalResultV1,
             ScopeAdmissionCommittedV1,
             ProgressionDecisionCommittedV1,
+            TerminalCommittedV1,
         )
         commit_close_witness = self._rw0_c1_commit_close_witness
         if require_complete_close_proof and type(
@@ -4052,6 +4151,50 @@ def _run_progression_operation(
             and commit_close_witness.ordinary_failure_is_commit_uncertain
             else SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE
         )
+    finally:
+        controller = None
+        operation_lease = None  # type: ignore[assignment]
+        source = None  # type: ignore[assignment]
+    return result
+
+
+def _run_terminal_operation(
+    *, operation_lease: _WriterSessionOperationLease,
+    command: RecordRW0TerminalOutcomeCommandV1,
+    source: ArtificialDecisionGuardSourceV1,
+    mode: str,
+    commit_close_witness: _RW0C1CommitCloseWitness | None = None,
+) -> TerminalCommittedV1 | TerminalConflictV1 | TerminalRecoveryV1 | _SafeMutationFailureDisposition:
+    if (type(operation_lease) is not _WriterSessionOperationLease
+        or type(command) is not RecordRW0TerminalOutcomeCommandV1
+        or type(source) is not ArtificialDecisionGuardSourceV1
+        or mode not in {"record", "read", "recovery"}
+        or (mode == "record") != (type(commit_close_witness) is _RW0C1CommitCloseWitness)):
+        return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        result = controller.run_terminal_operation(
+            command=command, source=source, mode=mode)
+    except SQLiteMutationStoreError as error:
+        if (type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain):
+            return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN)
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if mode == "recovery":
+            return TerminalRecoveryV1("unresolved")
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            if type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            else SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)
     finally:
         controller = None
         operation_lease = None  # type: ignore[assignment]

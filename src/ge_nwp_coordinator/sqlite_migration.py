@@ -40,6 +40,7 @@ _RW0_C1_MIGRATION_ID = "0004_rw0_c1_durable_evidence"
 _POST_EXECUTION_PROPOSAL_MIGRATION_ID = "0005_section41_post_execution_proposal_family"
 _RW0_C2_SCOPE_ADMISSION_MIGRATION_ID = "0006_rw0_c2_scope_admission"
 _RW0_C2_PROGRESSION_DECISION_MIGRATION_ID = "0007_rw0_c2_progression_decision"
+_RW0_TERMINAL_OUTCOME_MIGRATION_ID = "0008_rw0_terminal_outcome"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -253,6 +254,15 @@ _EMPTY_AFTER_RW0_C2_PROGRESSION_DECISION_MIGRATION_TABLES = frozenset(
         "rw0_c2_guarded_family_relations",
         "rw0_c2_guarded_progression_results",
         "rw0_c2_bootstrap_acceptance_facts",
+    }
+)
+
+_EMPTY_AFTER_RW0_TERMINAL_OUTCOME_MIGRATION_TABLES = frozenset(
+    {
+        "rw0_terminal_contexts",
+        "rw0_terminal_outcomes",
+        "rw0_terminal_results",
+        "rw0_terminal_receipts",
     }
 )
 
@@ -498,6 +508,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="RW0-C2 guarded progression decision and acceptance evidence",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_RW0_TERMINAL_OUTCOME_MIGRATION_ID,
+        sequence=8,
+        resource_name="0008_rw0_terminal_outcome.sql",
+        literal_checksum="a199ea64b4546d441cde00d8c7def62405ed28a89841a181dc6ba93871845254",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="Private artificial-offline normal RW0 terminal outcome",
     ),
 )
 
@@ -2413,6 +2433,8 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C2_SCOPE_ADMISSION_MIGRATION_TABLES)
     if migration.migration_id == _RW0_C2_PROGRESSION_DECISION_MIGRATION_ID:
         _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C2_PROGRESSION_DECISION_MIGRATION_TABLES)
+    if migration.migration_id == _RW0_TERMINAL_OUTCOME_MIGRATION_ID:
+        _verify_empty_tables(connection, _EMPTY_AFTER_RW0_TERMINAL_OUTCOME_MIGRATION_TABLES)
 
 
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:

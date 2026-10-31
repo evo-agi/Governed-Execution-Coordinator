@@ -22,9 +22,53 @@ _P0_C2B_SUFFIX_IDENTITY = (672, '1e587e1a67f5ed21c98c10c3f6dd66e42b0e6bf7e3a0a8e
 _P1_C2B_SUFFIX_IDENTITY = (1037, '4c907b9f8a9a029b00c1a54104287a8d94f9a6e15ce8238195d26a10f6229db8')
 _RW0_C2_LOCAL_STATUS_OWNER_IDENTITY = (1905508, '021017a920a4cc522ca8470f31aa0ebdc2f4888724b897efcbaf30e643ff4b6c')
 _RW0_C2_LOCAL_STATUS_SUFFIX_IDENTITY = (1824, 'cb0022d57602d7f01b2248311f08772515647db528c08f7bc0121be37e608a91')
+_RW0_TERMINAL_CURRENT_OWNER_IDENTITY = (1906502, 'aeee29055e776d6c55f689d1de03cb0fa647e1c46e001d22ec8a7451859a54ed')
+_RW0_TERMINAL_CURRENT_SUFFIX_IDENTITY = (994, 'b90b2b2b1f3cca2aee41db543d828b373e34f29c906514ad04466dd6b08ef0b1')
+
+
+_RW0_TERMINAL_LOCAL_COMMIT_OWNER_IDENTITY = (1909248, 'bdf3ed6a8189dedd224c2d742884429aeda13d799ecf13a1fa16c2c1c991d274')
+_RW0_TERMINAL_LOCAL_COMMIT_SUFFIX_IDENTITY = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
+
+def _strip_rw0_terminal_local_commit_status(payload: bytes) -> bytes:
+    begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    size, digest = _RW0_TERMINAL_LOCAL_COMMIT_SUFFIX_IDENTITY
+    if (payload.count(begin) != 1 or payload.count(end) != 1
+            or not payload.endswith(end) or not payload[-size:].startswith(begin)
+            or hashlib.sha256(payload[-size:]).hexdigest() != digest
+            or (len(payload), hashlib.sha256(payload).hexdigest()) !=
+            _RW0_TERMINAL_LOCAL_COMMIT_OWNER_IDENTITY):
+        raise AssertionError('c2b:rw0_terminal_local_commit_status_identity')
+    predecessor = payload[:-size]
+    if ((len(predecessor), hashlib.sha256(predecessor).hexdigest()) !=
+            _RW0_TERMINAL_CURRENT_OWNER_IDENTITY):
+        raise AssertionError('c2b:rw0_terminal_local_commit_status_predecessor')
+    return predecessor
+
+
+def _strip_rw0_terminal_current_successor(payload: bytes) -> bytes:
+    begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CURRENT_SUCCESSOR_END -->\n'
+    size, digest = _RW0_TERMINAL_CURRENT_SUFFIX_IDENTITY
+    if ((len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_TERMINAL_CURRENT_OWNER_IDENTITY
+            or len(payload) < size or payload.count(begin) != 1
+            or payload.count(end) != 1 or not payload.endswith(end)
+            or not payload[-size:].startswith(begin)
+            or hashlib.sha256(payload[-size:]).hexdigest() != digest):
+        raise AssertionError('c2b:rw0_terminal_current_successor_identity')
+    compact = b' '.join(payload[-size:].split())
+    for phrase in (b'artificial_offline_normal.v1', b'generation-2 migration 0008',
+                   b'five normal outcomes', b'P1 decision remains prior decision history',
+                   b'Cancellation, live supplier/contact', b'78 tables, 142 triggers',
+                   b'0001\xe2\x80\x930007 bytes'):
+        if phrase not in compact:
+            raise AssertionError('c2b:rw0_terminal_current_successor_semantics')
+    return payload[:-size]
 
 
 def _c2b_pre_p0_bytes(payload: bytes) -> bytes:
+    payload = _strip_rw0_terminal_local_commit_status(payload)
+    payload = _strip_rw0_terminal_current_successor(payload)
     status_begin = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
     status_end = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
     status_size, status_digest = _RW0_C2_LOCAL_STATUS_SUFFIX_IDENTITY
@@ -4181,6 +4225,23 @@ def _text(path: Path | str) -> str:
 
 def _owner() -> str:
     return _c2b_pre_p0_bytes(OWNER_PATH.read_bytes()).decode('utf-8')
+
+
+def test_rw0_terminal_current_successor_preserves_exact_c2b_predecessor() -> None:
+    current = OWNER_PATH.read_bytes()
+    candidate_stage = _strip_rw0_terminal_local_commit_status(current)
+    predecessor = _strip_rw0_terminal_current_successor(candidate_stage)
+    assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == _RW0_C2_LOCAL_STATUS_OWNER_IDENTITY
+    assert predecessor.endswith(b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n')
+    for changed in (candidate_stage[:-1],
+                    candidate_stage + candidate_stage[-_RW0_TERMINAL_CURRENT_SUFFIX_IDENTITY[0]:],
+                    candidate_stage.replace(b'five normal outcomes', b'six normal outcomes', 1)):
+        with pytest.raises(AssertionError, match='^c2b:rw0_terminal_current_successor_identity$'):
+            _strip_rw0_terminal_current_successor(changed)
+    for changed in (current[:-1], current + current[-_RW0_TERMINAL_LOCAL_COMMIT_SUFFIX_IDENTITY[0]:],
+                    current.replace(b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356', b'0' * 40, 1)):
+        with pytest.raises(AssertionError, match='^c2b:rw0_terminal_local_commit_status_identity$'):
+            _strip_rw0_terminal_local_commit_status(changed)
 
 
 def _compact(text: str) -> str:
@@ -11159,6 +11220,12 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
         ROOT / "src/ge_nwp_coordinator/_rw0_c2_progression_rows.py",
         ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_c2_progression.py",
     }
+    rw0_terminal_bounded_sources = {
+        ROOT / "src/ge_nwp_coordinator/_rw0_terminal_outcome_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_terminal_outcome_plan.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_terminal_outcome_rows.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
@@ -11189,6 +11256,7 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
             | rw0_c1_literal_owner_snapshot_contract_sources
             | section41_post_execution_family_reader_sources
             | rw0_c2_p1_bounded_sources
+                | rw0_terminal_bounded_sources
         )
     )
     assert all(
@@ -11197,6 +11265,7 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
             rw0_c1_literal_owner_snapshot_contract_sources
             | section41_post_execution_family_reader_sources
             | rw0_c2_p1_bounded_sources
+                | rw0_terminal_bounded_sources
         )
     )
     _assert_sqlite_migration_c2b_structure(migration_source)

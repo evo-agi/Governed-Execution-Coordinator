@@ -73,8 +73,8 @@ def _inventory(location: CoordinatorStateLocation) -> tuple[int, int, int]:
 
 def test_catalog_identity_and_literal_statement_inventory() -> None:
     catalog = migration.load_migration_catalog()
-    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7)
-    item = catalog.migrations[3]  # frozen 0004 oracle inside the 0007 catalog
+    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7, 8)
+    item = catalog.migrations[3]  # frozen 0004 oracle inside the current catalog
     assert item.migration_id == MIGRATION_ID
     assert item.sequence == 4
     assert item.min_app_schema == item.max_app_schema == 2
@@ -102,9 +102,9 @@ def test_fresh_generation_two_database_has_exact_rw0_c1_and_cumulative_inventory
 ) -> None:
     location = _location(tmp_path, "fresh")
     inspection = migration.initialize_database(location)
-    assert inspection.current_sequence == inspection.latest_sequence == 7
+    assert inspection.current_sequence == inspection.latest_sequence == 8
     assert migration.CURRENT_APPLICATION_SCHEMA == 2
-    assert _inventory(location) == (74, 134, 5)
+    assert _inventory(location) == (78, 142, 5)
     connection = sqlite3.connect(location.database_path)
     try:
         tables = tuple(
@@ -128,11 +128,15 @@ def test_fresh_generation_two_database_has_exact_rw0_c1_and_cumulative_inventory
             "rw0_c2_guarded_progression_results",
             "rw0_c2_bootstrap_acceptance_facts",
         }
-        assert set(tables) == set(RW0_C1_TABLES) | p0_tables | p1_tables
+        terminal_tables = {
+            "rw0_terminal_contexts", "rw0_terminal_outcomes",
+            "rw0_terminal_results", "rw0_terminal_receipts",
+        }
+        assert set(tables) == set(RW0_C1_TABLES) | p0_tables | p1_tables | terminal_tables
         assert all(
             connection.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0]
             == 0
-            for table in (*RW0_C1_TABLES, *p0_tables, *p1_tables)
+            for table in (*RW0_C1_TABLES, *p0_tables, *p1_tables, *terminal_tables)
         )
         trigger_names = {
             row[0]
@@ -143,7 +147,7 @@ def test_fresh_generation_two_database_has_exact_rw0_c1_and_cumulative_inventory
         }
         assert trigger_names == {
             f"{table}_{operation}"
-            for table in (*RW0_C1_TABLES, *p0_tables, *p1_tables)
+            for table in (*RW0_C1_TABLES, *p0_tables, *p1_tables, *terminal_tables)
             for operation in ("no_update", "no_delete")
         }
         index_names = {
@@ -189,9 +193,9 @@ def test_exact_supported_prefixes_upgrade_to_generation_two_tip(
         verify_managed_invariants=True,
     )
     upgraded = migration.migrate_database(location)
-    assert upgraded.current_sequence == upgraded.latest_sequence == 7
+    assert upgraded.current_sequence == upgraded.latest_sequence == 8
     assert migration.CURRENT_APPLICATION_SCHEMA == 2
-    assert _inventory(location) == (74, 134, 5)
+    assert _inventory(location) == (78, 142, 5)
 
 
 def test_migrations_0001_through_0003_retain_frozen_literal_identities() -> None:

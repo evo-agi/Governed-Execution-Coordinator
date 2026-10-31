@@ -16,6 +16,7 @@ import unicodedata
 import pytest
 from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
     _rw0_c2_current_drift_predecessor,
+    _rw0_local_terminal_status_predecessor,
 )
 
 
@@ -4588,7 +4589,15 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
     for spec in _CROSS_REFERENCE_OWNER_INVENTORY:
         path = ROOT / spec.relative_path
         assert not path.is_symlink() and path.resolve(strict=True) == path
-        owners[spec.relative_path] = path.read_bytes()
+        owner = path.read_bytes()
+        if spec.relative_path == '.docs/software-development-progression-boundary.md':
+            # The fixed local-commit status heading follows this historical
+            # cross-reference's end-of-document range. Reconstruct the exact
+            # predecessor before testing that range and its negative controls.
+            owner, _status = _rw0_local_terminal_status_predecessor(
+                spec.relative_path, owner,
+                boundary='guard:pre_execution_cross_reference_status')
+        owners[spec.relative_path] = owner
     observed = _assert_complete_cross_reference_inventory(owners)
     assert len(observed) == 11
     # This map owns the frozen cross-reference through its END marker. Later

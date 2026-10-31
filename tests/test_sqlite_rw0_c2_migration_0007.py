@@ -31,7 +31,7 @@ def _inventory(connection):
 
 
 def test_literal_0007_catalog_and_unchanged_predecessor():
-    catalog = migration.load_migration_catalog()
+    catalog = migration.MigrationCatalog(migration.load_migration_catalog().migrations[:7])
     assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7)
     assert catalog.migrations[5].checksum == (
         "58b2731d52e8e199c010b309a29aa831ffb16d4db4e755d20adb694ce0a7305f"
@@ -49,10 +49,12 @@ def test_literal_0007_catalog_and_unchanged_predecessor():
 
 def test_fresh_current_0007_schema_is_exact_and_empty(tmp_path):
     location = CoordinatorStateLocation.from_trusted_root(tmp_path / "fresh")
-    result = migration.initialize_database(location)
+    catalog = migration.MigrationCatalog(migration.load_migration_catalog().migrations[:7])
+    result = migration._initialize_database_with_catalog(
+        location, catalog, current_app_schema=2, verify_managed_invariants=True)
     assert result.classification is migration.DatabaseClassification.MANAGED
     assert result.current_sequence == result.latest_sequence == 7
-    assert migration.validate_database(location) == result
+    assert migration.validate_database(location).classification is migration.DatabaseClassification.UNKNOWN
     with sqlite3.connect(location.database_path) as connection:
         assert _inventory(connection) == (74, 134, 5)
         relation_columns = tuple(row[1] for row in connection.execute(
@@ -120,10 +122,13 @@ def test_complete_0006_prefix_requires_explicit_0007_upgrade(tmp_path):
             pass
     with sqlite3.connect(location.database_path) as connection:
         assert connection.execute("SELECT max(sequence) FROM schema_migrations").fetchone()[0] == 6
-    upgraded = migration.migrate_database(location)
+    catalog_0007 = migration.MigrationCatalog(full.migrations[:7])
+    upgraded = migration._migrate_database_with_catalog(
+        location, catalog_0007, current_app_schema=2,
+        verify_managed_invariants=True)
     assert upgraded.current_sequence == upgraded.latest_sequence == 7
     with sqlite3.connect(location.database_path) as connection:
         assert _inventory(connection) == (74, 134, 5)
         assert all(connection.execute(f'SELECT count(*) FROM "{table}"').fetchone()[0] == 0
                    for table in _TABLES)
-    assert migration.validate_database(location) == upgraded
+    assert migration.validate_database(location).classification is migration.DatabaseClassification.UNKNOWN
