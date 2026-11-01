@@ -9,6 +9,9 @@ from pathlib import Path
 from typing import NamedTuple
 
 import pytest
+from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
+    _rw0_post_merge_status_predecessor,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -4281,6 +4284,9 @@ _RW0_LOCAL_TERMINAL_C2B_SUFFIX_IDENTITY = (2746, '123d4c562ecc39e492aa6636912abb
 def _section_42_committed_status(source_bytes: bytes | None = None) -> str:
     source = _read_owned_bytes(OWNER_PATH) if source_bytes is None else source_bytes
     assert type(source) is bytes, "C2B3C_STATUS_INVALID"
+    if source_bytes is None or b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->' in source:
+        source, _post_merge_status = _rw0_post_merge_status_predecessor(
+            '.docs/c2b-durable-development-state.md', source)
     local_begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
     local_end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
     if source_bytes is None or local_begin in source:
@@ -4655,7 +4661,8 @@ def test_current_status_regions_are_reconciled_without_historical_rewrite() -> N
     section_42_status = _section_42_committed_status()
     assert "private, non-executable Section 41" in section_42_status
 
-    owner_source = _read_owned_bytes(OWNER_PATH)
+    owner_source, _post_merge_status = _rw0_post_merge_status_predecessor(
+        '.docs/c2b-durable-development-state.md', _read_owned_bytes(OWNER_PATH))
     opening = owner_source[:EXPECTED_OWNER_OPENING_UTF8_LENGTH]
     committed_block = EXPECTED_SECTION_42_COMMITTED_STATUS.encode("utf-8")
     subordinate_extension = (

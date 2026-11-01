@@ -11,6 +11,7 @@ import pytest
 import test_rw0_b1_boundaries as _b1_owner_test_module
 from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
     _rw0_c2_current_drift_predecessor,
+    _rw0_post_merge_status_predecessor,
 )
 
 
@@ -1192,6 +1193,10 @@ def _heading_chain(
 
 
 def _owner_visible_body(text: str) -> str:
+    if '<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->' in text:
+        predecessor, _post_merge_status = _rw0_post_merge_status_predecessor(
+            OWNER_PATH, text.encode('utf-8'))
+        text = predecessor.decode('utf-8')
     local_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
     local_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
     if local_begin in text:
@@ -2061,7 +2066,9 @@ def _validate_owner(text: str) -> None:
 
 
 def test_one_authoritative_owner_and_unique_markers() -> None:
-    owner = _owner_text()
+    owner, _post_merge_status = _rw0_post_merge_status_predecessor(
+        OWNER_PATH, _owner_text().encode('utf-8'))
+    owner = owner.decode('utf-8')
     begin, end, _headings, _visible = _visible_marker_span(
         owner, CONTRACT_BEGIN, CONTRACT_END, role="rw0.owner"
     )

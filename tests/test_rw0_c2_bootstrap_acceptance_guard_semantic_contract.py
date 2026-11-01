@@ -2010,6 +2010,251 @@ _RW0_NORMAL_TERMINAL_OTHER_IDENTITIES = {
 }
 
 
+# Opening integration-tree predecessors and exact status-only successors.
+# These are fixed literals from the verified bc10382e tree and this patch;
+# no test derives an expected identity from the document under test.
+_RW0_POST_MERGE_STATUS_IDENTITIES = {
+    '.docs/architecture.md': ((51426, '2381e1afc3b22e6414beaf48c679109fbf5e8e8eb4f48aae68f43224c10178e5'),
+        (54198, '99b0a3f2b3b542a33aef92d0a65f211cc1023f0ab66fa1c6e91e403e6a3ef2fb')),
+    '.docs/authority-boundaries.md': ((41922, '4e8d0a5f499b31fc83e7144abd0a38c463983e2540ee8567ced9ebc08c9b0549'),
+        (44694, '00bf49de620acd584c361e692609b1c4eed96fa5d840f252286b930a4b301a5a')),
+    '.docs/autonomous-software-development-operating-model.md': ((48324, '18dc97e1092ad41d5d747d71cc468447597abae2ea6ab0ddb82fce854add34b7'),
+        (51096, '2f44ff23e06e5cea2379662827b0723ad07d599d275c5710d9821ec0e4fa63d3')),
+    '.docs/c2b-durable-development-state.md': ((1909248, 'bdf3ed6a8189dedd224c2d742884429aeda13d799ecf13a1fa16c2c1c991d274'),
+        (1912020, '5f83b36c09133a943a3581390ab832705eec3ed042da8eb96648e212ae0dea27')),
+    '.docs/c2b2-migration-0002.md': ((14154, 'cbacd025ffb8524b9769c75cf0ad2be026f5b6b7ed9730e754fa5704f864b71b'),
+        (16926, '1b419f6531069c046df4c270eb4af05aa68b5dec867e4ec592c61c7a9683b2ac')),
+    '.docs/durable-state-model.md': ((47921, '13523fdfa4dd5344dc4a95de7c090afc339a2516bd97b630e645940b913d3ed0'),
+        (50693, '84a1fc957b36ee808a693e381b82a0ee0e1a43c49c8f3e08a06dbd82a76e77a6')),
+    '.docs/rw0-b1-pure-phase-values.md': ((38882, '966dfe81ecba50b8e185dc47f69a463869485e552c6fa5001cfcbc9d4249108a'),
+        (41654, '6c092734b4858ce44e4322c200dbfef168752927ba08c1b64db51ec4bd2f8a03')),
+    '.docs/rw0-b2-wire-protocol.md': ((29964, '502a6bf83a994dfece29726d695b57722dc4e512b36f7d95eef12bee65032b65'),
+        (32736, '117f23cf90721c99cb45c32e35b67a4f229d3ff1e7972db89dd43596efc76682')),
+    '.docs/rw0-c2-durable-progression-decision-semantic-contract.md': ((82408, '7393061f61c4a783277be41e149b2ae9b3fc49a06ac5c1ee01e53f361aadc056'),
+        (85180, '876923f251fc37a55e53716bd7216d89240f969bb8f4c328d75a78541c152c81')),
+    '.docs/rw0-c2-first-live-proof-posture.md': ((22074, '1bf09d17266debd5b0758d8ac7e2592734bfae02e35a13d86ae5e8e778239cf1'),
+        (24846, 'b8379c26992668d285bc4ead0d19c8b30e66c181f8d005a63c180eae7f9ca686')),
+    '.docs/rw0-c2-physical-p0-p1-implementation.md': ((23641, '9b78a53abf6583a09dd3de207452ddbf6e5f5d655af027f44f309d5f4b5512b9'),
+        (26413, '6505ace56cb53232e64e8be2da3bd2ca8aca2a8eda8b238d51c6f432353530be')),
+    '.docs/rw0-c2-private-value-versioning.md': ((223578, '267220a7e81400b31bb33bbc71b2e2d79b673e62a24c6828e4d3de4886a209b6'),
+        (226350, '3f5a78c3107c3021222eb185d5aecbed0994b823bb1025bec6aff7be4aed9b69')),
+    '.docs/rw0-c2-scope-admission-provisioning-contract.md': ((29620, 'd99c216cdcf1fb72fab2a85746ce9f72b27f6d929f8f3294de2dbb96324ddd02'),
+        (32392, 'e1457940a4228e2cacf04e69476d1f8b56928debdb7bc5505c48f3f604297966')),
+    '.docs/rw0-d1-offline-process-and-capsule-spine.md': ((9442, '1b943647fdbbeec3e6f5d25da94591ced2fb385a5fb9813d921131c34f9e3753'),
+        (12214, '7b2335ccafbb12d425f9abbe1051a0052ca338dbbe984bafad0604119c6951a5')),
+    '.docs/rw0-remote-worker-contact-phase-entry.md': ((65397, '2021ae46e8dce5d40057d1cf84d69177db2a63953f488716322ea9f2d49cd7c2'),
+        (68169, 'c3c9d4168bb41eac9e5e86f63e4bc2ea5731005586488fff0b3fcebc30316401')),
+    '.docs/rw0-terminal-outcome-physical-closure.md': ((19889, '8dc761f3be97905fa980a31df04dcd3bc36e781b51af65ffa052050739ad953e'),
+        (22661, '2a4d9d6ab013e3abbb828417e9cf4e74d45550102658be19452b56dba152f02e')),
+    '.docs/software-development-progression-boundary.md': ((32361, 'ff4bf801de9101892a28ffb992d4ad620ab38065097d95e24cb17b33e35d4df7'),
+        (35133, '181f48db9081381e739aee7d873aa1eaed4993c692494afacda6c5c120fe3676')),
+    '.docs/sqlite-bootstrap-and-migrations.md': ((43109, '95feb34848d62ba55d3bac7a67d187f85db20b8144da6b282044e2fa3fb1dbc0'),
+        (45881, '8c685e1e672747dc24c8dff2c765b268e1c76884bc752b40d9b122cec84d23bf')),
+    '.docs/sqlite-operations-and-recovery.md': ((48849, '4c6030ecaa25fe6aba170e89973553ed4c3d6c548ecd6c3791b7795692e5d37e'),
+        (51621, 'c06e2b08619f1f121f2bfeee3bd7b56120be0ae30ed4a682abf3449cffa4aef1')),
+    '.docs/sqlite-schema-v1.md': ((29957, 'f302822cf32c9ff478c1c7f37351211e1fc97a47e8558b3b2ecd021648f57ea4'),
+        (32729, '32f1f9d9994e2e2b9c4f5042ff2704cf8a5aa8aa05dd27782c595e145833b64b')),
+    '.docs/sqlite-state-backend-adr.md': ((39374, '9c4ec4237034fca9ef292df6d0c12bbcc02df257d1d7658e725e4bfb268a27a9'),
+        (42146, 'a008461489d16e82a39ede0fa9691d187df76de153be95014b2217d1d5128207')),
+    '.docs/worker-execution-boundary.md': ((38234, 'deb4e0a9572ae43f1b80bf23a282e85b52b6adb329f0fe87fe5253e4cc66fa1f'),
+        (41006, '75b7bc80bd90127fdda4773795ffc0e13e8b570b5aceb73be331555a717e0c9c')),
+    '.docs/writer-session-authority.md': ((61686, 'd1c1468496d33ecc50410ac62abfb60c58129b3a7535f6856d9661f8980325a2'),
+        (64458, '89f24e3c41467d33c04b84d6112e99268f3ab96d2af31d9fcb81ec8a6469c314')),
+    'AGENTS.md': ((78298, '798429772e14d564701f93be43e8bc2da23893f05f4f99abc2f3a040e696e8c7'),
+        (81070, 'caa39d06fa7622bfa93f6922c0a2c7d708b1728f1220cc5864585aa9ebed3fb7')),
+    'README.md': ((54619, 'e54ea88e20143f0b1eaf612388adb31f8f5db63c9a5901db606a5641fa899f3f'),
+        (57391, 'a29df64142da4deb5a9df702e8d85d9927d4ff1126b95f0e69da123a1a2d5f2d')),
+}
+_RW0_POST_MERGE_CROSS_STAGE_PATHS = frozenset({
+    '.docs/rw0-b2-wire-protocol.md',
+    '.docs/rw0-c2-scope-admission-provisioning-contract.md',
+    '.docs/rw0-d1-offline-process-and-capsule-spine.md',
+})
+_RW0_POST_MERGE_OWNER = '.docs/rw0-terminal-outcome-physical-closure.md'
+_RW0_POST_MERGE_BEGIN = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->'
+_RW0_POST_MERGE_END = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_END -->'
+_RW0_POST_MERGE_ADDITION_IDENTITY = (
+    2772, 'a3eb717cb1586c055b65c33b442903f6aa427a714093fff297c3079523893c52'
+)
+_RW0_POST_MERGE_BLOCK_IDENTITY = (
+    2771, '563d2d78a16fd606290394b4132805b3195edce6dd6c9f3787e95aee55de865c'
+)
+
+
+def _rw0_post_merge_status_predecessor(
+    relative_path: str, payload: bytes,
+    *, boundary: str = 'guard:rw0_post_merge_status',
+) -> tuple[bytes, bytes]:
+    expected_predecessor, expected_current = _RW0_POST_MERGE_STATUS_IDENTITIES[relative_path]
+    begin = b'\n' + _RW0_POST_MERGE_BEGIN + b'\n'
+    end = _RW0_POST_MERGE_END + b'\n'
+    _require(type(payload) is bytes and
+             payload.count(_RW0_POST_MERGE_BEGIN) == 1 and
+             payload.count(_RW0_POST_MERGE_END) == 1 and
+             payload.count(begin) == 1 and payload.count(end) == 1 and
+             payload.index(begin) < payload.index(end),
+             boundary + ':markers:' + relative_path)
+    start = payload.index(begin)
+    size, digest = _RW0_POST_MERGE_ADDITION_IDENTITY
+    addition = payload[start:start + size]
+    _require(len(addition) == size and addition.startswith(begin) and
+             addition.endswith(end) and
+             hashlib.sha256(addition).hexdigest() == digest and
+             (len(addition[1:]), hashlib.sha256(addition[1:]).hexdigest()) ==
+             _RW0_POST_MERGE_BLOCK_IDENTITY,
+             boundary + ':addition_identity:' + relative_path)
+    previous_end = (
+        b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_CROSS_STAGE_STATUS_REPAIR_END -->\n'
+        if relative_path in _RW0_POST_MERGE_CROSS_STAGE_PATHS else
+        b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    )
+    tail = payload[start + size:]
+    _require(payload[:start].endswith(previous_end) and
+             (tail.startswith(b'\nStatus: uncommitted implementation candidate')
+              if relative_path == _RW0_POST_MERGE_OWNER else tail == b''),
+             boundary + ':placement:' + relative_path)
+    predecessor = payload[:start] + tail
+    _require((len(predecessor), hashlib.sha256(predecessor).hexdigest()) ==
+             expected_predecessor,
+             boundary + ':predecessor_identity:' + relative_path)
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) == expected_current,
+             boundary + ':current_identity:' + relative_path)
+    return predecessor, addition
+
+
+def _assert_rw0_post_merge_status_semantics(addition: bytes) -> None:
+    compact = b' '.join(addition.split())
+    boundary = 'guard:rw0_post_merge_status:'
+    required = (
+        b'Classification: `CURRENT INTEGRATED CAPABILITY STATUS`',
+        b'`trunk_dev` by squash commit `3be0096c163b456c9975326be3eb2c30d2b4bbd1`',
+        b'sole parent `61d0330aba1160f7f5e7d9c541a325222d1c61e5`',
+        b'integrated capability tree `bc10382edd1b2c097fc729e4e168d72e710391fe`',
+        b'Git objects and refs own the current containing commit and publication truth',
+        b'`artificial_offline_normal.v1` source',
+        b'normal `accept`, `repair`, `replan`, `terminal_reject`, and `block`',
+        b'P0 scope admission, P1 progression decision with its acceptance-only fact, and terminal closure remain separate private fenced transactions and facts',
+        b'Migration `0008_rw0_terminal_outcome` remains the source/catalog suffix',
+        b'P0 grants no current permission',
+        b'P1 remains prior decision history rather than terminal truth',
+        b'normal accept binds the immutable acceptance fact without mutation or replenishment',
+        b'implementation staged-tree gate passed 9,568 / 9,568 tests',
+        b'status staged-tree focused gate passed 5,655 / 5,655 tests',
+        b'Independent artifact review accepted the exact status tree `bc10382edd1b2c097fc729e4e168d72e710391fe`',
+        b'9,597-test selector-free FULL record was carried evidence on that tree and was not rerun during integration',
+        b'No tests ran during the integration operation itself',
+        b'not validation of this later status-only correction',
+        b'earlier candidate-stage, local-commit-stage, and cross-stage status passages in this document are preserved historical evidence',
+        b'uncommitted, only a local topic-branch commit, or followed by no push, PR, merge, or source publication are stage-local',
+        b'no active-cancel terminal family or executable permission',
+        b'no live supplier/custody, worker/provider, or physical remote contact',
+        b'no ES/Bridge route',
+        b'no Coordinator-owned product Git-effect or runtime publication authority',
+        b'no service, queue, scheduler, deployment, or autonomous-runtime loop',
+        b'Existing F03/F05 nonblocking provenance limits retain their recorded scope and are not repaired',
+    )
+    forbidden = (
+        b'3be0096c163b456c9975326be3eb2c30d2b4bbd1 is permanently the current containing HEAD',
+        b'9,597-test selector-free FULL record was rerun during integration',
+        b'Tests ran during integration',
+        b'candidate-stage status is current repository status',
+        b'local-commit-stage status is current repository status',
+        b'active-cancel terminal family is implemented',
+        b'executable permission is granted',
+        b'live supplier/custody is available',
+        b'live worker/provider contact is active',
+        b'ES/Bridge route is active',
+        b'Coordinator owns product Git-effect authority',
+        b'service, queue, scheduler, deployment, or autonomous runtime is active',
+        b'F03/F05 were repaired',
+    )
+    for phrase in forbidden:
+        _require(phrase not in compact, boundary + 'authority_overclaim')
+    for phrase in required:
+        _require(phrase in compact, boundary + 'semantic_required')
+
+
+def test_rw0_post_merge_status_exact_25_document_successor() -> None:
+    assert len(_RW0_POST_MERGE_STATUS_IDENTITIES) == 25
+    assert len(_RW0_POST_MERGE_CROSS_STAGE_PATHS) == 3
+    additions = []
+    for relative_path in _RW0_POST_MERGE_STATUS_IDENTITIES:
+        predecessor, addition = _rw0_post_merge_status_predecessor(
+            relative_path, (ROOT / relative_path).read_bytes())
+        assert predecessor and addition
+        _assert_rw0_post_merge_status_semantics(addition)
+        additions.append(addition)
+    assert len(set(additions)) == 1
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('missing', 'markers'), ('duplicate', 'markers'),
+    ('truncated', 'markers'), ('moved', 'placement'),
+    ('reordered', 'markers'), ('predecessor_mutation', 'predecessor_identity'),
+    ('wrong_commit', 'addition_identity'), ('wrong_tree', 'addition_identity'),
+    ('wrong_parent', 'addition_identity'),
+))
+def test_rw0_post_merge_status_exact_negative_specimens(case: str, boundary: str) -> None:
+    path = 'AGENTS.md'
+    current = (ROOT / path).read_bytes()
+    predecessor, addition = _rw0_post_merge_status_predecessor(path, current)
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + addition
+    elif case == 'truncated':
+        changed = current[:-1]
+    elif case == 'moved':
+        changed = addition + predecessor
+    elif case == 'reordered':
+        changed = current.replace(_RW0_POST_MERGE_BEGIN, b'__POST_MERGE_TEMP__', 1).replace(
+            _RW0_POST_MERGE_END, _RW0_POST_MERGE_BEGIN, 1).replace(
+            b'__POST_MERGE_TEMP__', _RW0_POST_MERGE_END, 1)
+    elif case == 'predecessor_mutation':
+        changed = b'X' + predecessor[1:] + addition
+    else:
+        old = {
+            'wrong_commit': b'3be0096c163b456c9975326be3eb2c30d2b4bbd1',
+            'wrong_tree': b'bc10382edd1b2c097fc729e4e168d72e710391fe',
+            'wrong_parent': b'61d0330aba1160f7f5e7d9c541a325222d1c61e5',
+        }[case]
+        changed = predecessor + addition.replace(old, b'0' * 40, 1)
+    assert changed != current
+    with pytest.raises(AssertionError, match='^guard:rw0_post_merge_status:' + boundary):
+        _rw0_post_merge_status_predecessor(path, changed)
+
+
+@pytest.mark.parametrize('case', (
+    'current_head', 'full_rerun', 'integration_tests', 'candidate_current',
+    'local_current', 'active_cancel', 'executable_permission',
+    'live_supplier', 'live_worker', 'es_bridge', 'product_git',
+    'service_runtime', 'f03_f05',
+))
+def test_rw0_post_merge_status_semantic_negative_specimens(case: str) -> None:
+    _predecessor, addition = _rw0_post_merge_status_predecessor(
+        'AGENTS.md', (ROOT / 'AGENTS.md').read_bytes())
+    claim = {
+        'current_head': b'3be0096c163b456c9975326be3eb2c30d2b4bbd1 is permanently the current containing HEAD',
+        'full_rerun': b'9,597-test selector-free FULL record was rerun during integration',
+        'integration_tests': b'Tests ran during integration',
+        'candidate_current': b'candidate-stage status is current repository status',
+        'local_current': b'local-commit-stage status is current repository status',
+        'active_cancel': b'active-cancel terminal family is implemented',
+        'executable_permission': b'executable permission is granted',
+        'live_supplier': b'live supplier/custody is available',
+        'live_worker': b'live worker/provider contact is active',
+        'es_bridge': b'ES/Bridge route is active',
+        'product_git': b'Coordinator owns product Git-effect authority',
+        'service_runtime': b'service, queue, scheduler, deployment, or autonomous runtime is active',
+        'f03_f05': b'F03/F05 were repaired',
+    }[case]
+    changed = addition.replace(_RW0_POST_MERGE_END,
+                               claim + b'\n' + _RW0_POST_MERGE_END, 1)
+    assert changed != addition
+    with pytest.raises(AssertionError, match='^guard:rw0_post_merge_status:authority_overclaim$'):
+        _assert_rw0_post_merge_status_semantics(changed)
+
+
 # The later local-commit status is a fixed successor to the exact committed
 # candidate-stage documents. These literals are frozen from the accepted edit,
 # never derived from a document while a test is evaluating that document.
@@ -2071,6 +2316,9 @@ _RW0_LOCAL_TERMINAL_OWNER_PREFIX = b'# RW0 normal terminal outcome physical clos
 
 def _rw0_local_terminal_status_predecessor(relative_path: str, payload: bytes,
                                            *, boundary: str) -> tuple[bytes, bytes]:
+    if _RW0_POST_MERGE_BEGIN in payload:
+        payload, _post_merge_status = _rw0_post_merge_status_predecessor(
+            relative_path, payload)
     current, expected_predecessor = _RW0_LOCAL_TERMINAL_STATUS_IDENTITIES[relative_path]
     if relative_path == '.docs/rw0-terminal-outcome-physical-closure.md':
         size, digest = _RW0_LOCAL_TERMINAL_OWNER_INSERT
@@ -2163,7 +2411,8 @@ def test_rw0_local_terminal_status_successor_preserves_all_committed_documents()
 ))
 def test_rw0_local_terminal_status_exact_negative_controls(case: str, boundary: str) -> None:
     relative_path = 'AGENTS.md'
-    current = (ROOT / relative_path).read_bytes()
+    current, _post_merge_status = _rw0_post_merge_status_predecessor(
+        relative_path, (ROOT / relative_path).read_bytes())
     predecessor, addition = _rw0_local_terminal_status_predecessor(
         relative_path, current, boundary='guard:rw0_local_terminal_status')
     if case == 'omitted':
@@ -2439,6 +2688,9 @@ _RW0_TERMINAL_CROSS_STAGE_SUFFIX = (
 def _rw0_terminal_cross_stage_repair_predecessor(
     relative_path: str, payload: bytes,
 ) -> tuple[bytes, bytes]:
+    if _RW0_POST_MERGE_BEGIN in payload:
+        payload, _post_merge_status = _rw0_post_merge_status_predecessor(
+            relative_path, payload)
     current, previous = _RW0_TERMINAL_CROSS_STAGE_REPAIR_IDENTITIES[relative_path]
     size, digest = _RW0_TERMINAL_CROSS_STAGE_SUFFIX
     boundary = 'guard:rw0_terminal_cross_stage_repair:'
@@ -2518,7 +2770,8 @@ def test_rw0_terminal_cross_stage_repair_reconstructs_exact_three_predecessors()
 ))
 def test_rw0_terminal_cross_stage_repair_exact_negative_controls(case: str) -> None:
     path = '.docs/rw0-b2-wire-protocol.md'
-    current = (ROOT / path).read_bytes()
+    current, _post_merge_status = _rw0_post_merge_status_predecessor(
+        path, (ROOT / path).read_bytes())
     predecessor, addition = _rw0_terminal_cross_stage_repair_predecessor(path, current)
     prior_begin = b'<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->'
     if case == 'omitted':

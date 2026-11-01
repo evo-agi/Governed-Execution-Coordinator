@@ -17,6 +17,7 @@ import pytest
 from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
     _rw0_c2_current_drift_predecessor,
     _rw0_local_terminal_status_predecessor,
+    _rw0_post_merge_status_predecessor,
 )
 
 
@@ -4591,6 +4592,8 @@ def test_supporting_documents_are_bounded_cross_references_not_second_owners() -
         assert not path.is_symlink() and path.resolve(strict=True) == path
         owner = path.read_bytes()
         if spec.relative_path == '.docs/software-development-progression-boundary.md':
+            owner, _post_merge_status = _rw0_post_merge_status_predecessor(
+                spec.relative_path, owner)
             # The fixed local-commit status heading follows this historical
             # cross-reference's end-of-document range. Reconstruct the exact
             # predecessor before testing that range and its negative controls.
