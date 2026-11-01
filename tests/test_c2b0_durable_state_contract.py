@@ -28,6 +28,26 @@ _RW0_TERMINAL_CURRENT_SUFFIX_IDENTITY = (994, 'b90b2b2b1f3cca2aee41db543d828b373
 
 _RW0_TERMINAL_LOCAL_COMMIT_OWNER_IDENTITY = (1909248, 'bdf3ed6a8189dedd224c2d742884429aeda13d799ecf13a1fa16c2c1c991d274')
 _RW0_TERMINAL_LOCAL_COMMIT_SUFFIX_IDENTITY = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
+_RW0_POST_MERGE_C2B_IDENTITY = (1912020, '5f83b36c09133a943a3581390ab832705eec3ed042da8eb96648e212ae0dea27')
+_RW0_POST_MERGE_SUFFIX_IDENTITY = (2772, 'a3eb717cb1586c055b65c33b442903f6aa427a714093fff297c3079523893c52')
+
+
+def _strip_rw0_post_merge_status(payload: bytes) -> bytes:
+    begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_END -->\n'
+    previous_end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
+    size, digest = _RW0_POST_MERGE_SUFFIX_IDENTITY
+    if (type(payload) is not bytes or len(payload) < size or
+            payload.count(begin) != 1 or payload.count(end) != 1 or
+            not payload.endswith(end) or not payload[-size:].startswith(begin) or
+            not payload[:-size].endswith(previous_end) or
+            hashlib.sha256(payload[-size:]).hexdigest() != digest or
+            (len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_POST_MERGE_C2B_IDENTITY):
+        raise AssertionError('c2b:rw0_post_merge_status_identity')
+    predecessor = payload[:-size]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _RW0_TERMINAL_LOCAL_COMMIT_OWNER_IDENTITY:
+        raise AssertionError('c2b:rw0_post_merge_predecessor_identity')
+    return predecessor
 
 def _strip_rw0_terminal_local_commit_status(payload: bytes) -> bytes:
     begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
@@ -67,6 +87,7 @@ def _strip_rw0_terminal_current_successor(payload: bytes) -> bytes:
 
 
 def _c2b_pre_p0_bytes(payload: bytes) -> bytes:
+    payload = _strip_rw0_post_merge_status(payload)
     payload = _strip_rw0_terminal_local_commit_status(payload)
     payload = _strip_rw0_terminal_current_successor(payload)
     status_begin = b'\n<!-- RW0_C2_P0_P1_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
@@ -4228,7 +4249,7 @@ def _owner() -> str:
 
 
 def test_rw0_terminal_current_successor_preserves_exact_c2b_predecessor() -> None:
-    current = OWNER_PATH.read_bytes()
+    current = _strip_rw0_post_merge_status(OWNER_PATH.read_bytes())
     candidate_stage = _strip_rw0_terminal_local_commit_status(current)
     predecessor = _strip_rw0_terminal_current_successor(candidate_stage)
     assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == _RW0_C2_LOCAL_STATUS_OWNER_IDENTITY

@@ -3,6 +3,9 @@ import hashlib
 import re
 
 import pytest
+from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
+    _rw0_post_merge_status_predecessor,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -315,6 +318,10 @@ def _assert_complete_rw0_architecture_map(documents: dict[str, str]) -> str:
 
 
 def _rw0_live_owner_body(text: str) -> str:
+    if '<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->' in text:
+        predecessor, _post_merge_status = _rw0_post_merge_status_predecessor(
+            '.docs/rw0-remote-worker-contact-phase-entry.md', text.encode('utf-8'))
+        text = predecessor.decode('utf-8')
     local_begin = '\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_BEGIN -->\n'
     local_end = '<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'
     if local_begin in text:
@@ -828,6 +835,9 @@ def test_docs_pin_authority_boundaries() -> None:
     owner_body = _rw0_live_owner_body(owner)
     assert "RW0-B1 now implements only the private pure semantic values and relations" in owner_body
     assert ".docs/rw0-b1-pure-phase-values.md" in owner_body
+    owner, _post_merge_status = _rw0_post_merge_status_predecessor(
+        owner_path, owner.encode('utf-8'))
+    owner = owner.decode('utf-8')
     live_prose = "This region authorizes a second author attempt and immediate worker launch."
     unexpected_owner_acceptances = []
     for label, candidate in (

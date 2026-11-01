@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 from test_rw0_c2_bootstrap_acceptance_guard_semantic_contract import (
     _rw0_c2_current_drift_predecessor,
+    _rw0_post_merge_status_predecessor,
 )
 
 import ge_nwp_coordinator._rw0_worker_mechanism_capability_values as capability
@@ -200,6 +201,10 @@ _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES = {
 _RW0_LOCAL_TERMINAL_CAPABILITY_SUFFIX = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
 
 def _peel_rw0_normal_terminal_successor(relative_path: str, payload: bytes) -> bytes:
+    if (relative_path in _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES and
+            b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->' in payload):
+        payload, _post_merge_status = _rw0_post_merge_status_predecessor(
+            relative_path, payload)
     if relative_path == 'tests/test_c2b2_development_row_value_boundaries.py':
         if ((len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_NORMAL_TERMINAL_P09_IDENTITY
                 or payload.count(_RW0_NORMAL_TERMINAL_P09_ADDITION) != 1):
@@ -282,6 +287,9 @@ def test_rw0_normal_terminal_successor_reconstructs_protected_predecessor(
     relative_path: str,
 ) -> None:
     current = (ROOT / relative_path).read_bytes()
+    if relative_path in _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES:
+        current, _post_merge_status = _rw0_post_merge_status_predecessor(
+            relative_path, current)
     predecessor = _peel_rw0_normal_terminal_successor(relative_path, current)
     expected = {
         'AGENTS.md': _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES['AGENTS.md'][0],
