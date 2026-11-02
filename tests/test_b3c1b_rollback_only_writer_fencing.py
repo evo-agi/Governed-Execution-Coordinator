@@ -2353,6 +2353,7 @@ def test_new_module_is_private_unexported_and_static_shape_is_closed() -> None:
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
+        "0009_rw0_terminal_anchor_registry.sql",
     ]
 def test_open_faulting_connection_setup_baseexception_closes_exact_local_connection_and_preserves_primary(
     tmp_path: Path,

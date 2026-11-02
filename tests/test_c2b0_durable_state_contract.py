@@ -32,7 +32,22 @@ _RW0_POST_MERGE_C2B_IDENTITY = (1912020, '5f83b36c09133a943a3581390ab832705eec3e
 _RW0_POST_MERGE_SUFFIX_IDENTITY = (2772, 'a3eb717cb1586c055b65c33b442903f6aa427a714093fff297c3079523893c52')
 
 
+def _strip_rw0_anchor_0009_status(payload: bytes) -> bytes:
+    begin = b'\n<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->\n'
+    assert payload.count(begin) == payload.count(end) == 1
+    assert payload.endswith(end)
+    predecessor, addition = payload.split(begin, 1)
+    addition = begin + addition
+    for phrase in (b'0009_rw0_terminal_anchor_registry',
+                   b'CURRENT UNCOMMITTED IMPLEMENTATION CANDIDATE',
+                   b'artificial_offline_normal.v1', b'no physical cancel capability'):
+        assert phrase in addition
+    return predecessor
+
+
 def _strip_rw0_post_merge_status(payload: bytes) -> bytes:
+    payload = _strip_rw0_anchor_0009_status(payload)
     begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->\n'
     end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_END -->\n'
     previous_end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_LOCAL_COMMIT_STATUS_SUCCESSOR_END -->\n'

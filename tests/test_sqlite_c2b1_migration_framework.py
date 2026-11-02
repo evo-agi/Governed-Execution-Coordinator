@@ -250,7 +250,7 @@ def _assert_expected_manifest_inspection_failure(inspection) -> None:
     assert inspection.classification.name == "UNKNOWN"
     assert inspection.classification.value == "unknown"
     assert inspection.current_sequence == 0
-    assert inspection.latest_sequence == 8
+    assert inspection.latest_sequence == 9
     assert inspection.current_migration_id is None
     assert inspection.reason == "schema_verification_failed"
     assert not hasattr(inspection, "administrative_eligible")
@@ -260,9 +260,9 @@ def _assert_production_managed_inspection(inspection) -> None:
     assert type(inspection) is migration_module.DatabaseInspection
     assert inspection.classification.name == "MANAGED"
     assert inspection.classification.value == "managed"
-    assert inspection.current_sequence == 8
-    assert inspection.latest_sequence == 8
-    assert inspection.current_migration_id == "0008_rw0_terminal_outcome"
+    assert inspection.current_sequence == 9
+    assert inspection.latest_sequence == 9
+    assert inspection.current_migration_id == "0009_rw0_terminal_anchor_registry"
     assert inspection.reason is None
 
 
@@ -1721,6 +1721,7 @@ def test_c2b1_filesystem_migration_resources_require_regular_nonsymlink_files(
     scope_admission_production = production_catalog.migrations[5]
     progression_production = production_catalog.migrations[6]
     terminal_production = production_catalog.migrations[7]
+    anchor_production = production_catalog.migrations[8]
     sqlite_calls = 0
 
     def forbidden_sqlite_connect(*args, **kwargs):
@@ -1756,6 +1757,9 @@ def test_c2b1_filesystem_migration_resources_require_regular_nonsymlink_files(
     )
     (package / "0008_rw0_terminal_outcome.sql").write_bytes(
         terminal_production.sql_bytes
+    )
+    (package / "0009_rw0_terminal_anchor_registry.sql").write_bytes(
+        anchor_production.sql_bytes
     )
     private_marker = "private-resource-marker"
     if resource_kind in {"regular", "replace_before_open", "replace_during_read"}:

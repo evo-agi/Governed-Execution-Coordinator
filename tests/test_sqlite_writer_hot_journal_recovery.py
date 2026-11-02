@@ -196,7 +196,7 @@ def test_recovery_of_exact_older_prefix_changes_storage_but_does_not_issue(
     with acquire_state_authority_lock(location):
         pass
     upgraded = migrate_database(location)
-    assert upgraded.current_sequence == upgraded.latest_sequence == 8
+    assert upgraded.current_sequence == upgraded.latest_sequence == 9
 
 
 def test_uncommitted_interrupted_issuance_is_rolled_back_before_next_generation(

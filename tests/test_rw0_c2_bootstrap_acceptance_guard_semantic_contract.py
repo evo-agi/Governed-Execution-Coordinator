@@ -2073,6 +2073,22 @@ _RW0_POST_MERGE_CROSS_STAGE_PATHS = frozenset({
 _RW0_POST_MERGE_OWNER = '.docs/rw0-terminal-outcome-physical-closure.md'
 _RW0_POST_MERGE_BEGIN = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->'
 _RW0_POST_MERGE_END = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_END -->'
+
+
+def _strip_rw0_anchor_0009_status(payload: bytes) -> bytes:
+    begin = b'\n<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->\n'
+    if begin not in payload:
+        return payload
+    _require(payload.count(begin) == payload.count(end) == 1 and payload.endswith(end),
+             'guard:rw0_anchor_0009_status:markers')
+    predecessor, body = payload.split(begin, 1)
+    addition = begin + body
+    for phrase in (b'0009_rw0_terminal_anchor_registry',
+                   b'CURRENT UNCOMMITTED IMPLEMENTATION CANDIDATE',
+                   b'artificial_offline_normal.v1', b'no physical cancel capability'):
+        _require(phrase in addition, 'guard:rw0_anchor_0009_status:semantic')
+    return predecessor
 _RW0_POST_MERGE_ADDITION_IDENTITY = (
     2772, 'a3eb717cb1586c055b65c33b442903f6aa427a714093fff297c3079523893c52'
 )
@@ -2085,6 +2101,7 @@ def _rw0_post_merge_status_predecessor(
     relative_path: str, payload: bytes,
     *, boundary: str = 'guard:rw0_post_merge_status',
 ) -> tuple[bytes, bytes]:
+    payload = _strip_rw0_anchor_0009_status(payload)
     expected_predecessor, expected_current = _RW0_POST_MERGE_STATUS_IDENTITIES[relative_path]
     begin = b'\n' + _RW0_POST_MERGE_BEGIN + b'\n'
     end = _RW0_POST_MERGE_END + b'\n'
@@ -2179,8 +2196,11 @@ def test_rw0_post_merge_status_exact_25_document_successor() -> None:
     assert len(_RW0_POST_MERGE_CROSS_STAGE_PATHS) == 3
     additions = []
     for relative_path in _RW0_POST_MERGE_STATUS_IDENTITIES:
+        payload = (ROOT / relative_path).read_bytes()
+        assert payload.count(
+            b'\n<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_BEGIN -->\n') == 1
         predecessor, addition = _rw0_post_merge_status_predecessor(
-            relative_path, (ROOT / relative_path).read_bytes())
+            relative_path, payload)
         assert predecessor and addition
         _assert_rw0_post_merge_status_semantics(addition)
         additions.append(addition)
@@ -2196,7 +2216,7 @@ def test_rw0_post_merge_status_exact_25_document_successor() -> None:
 ))
 def test_rw0_post_merge_status_exact_negative_specimens(case: str, boundary: str) -> None:
     path = 'AGENTS.md'
-    current = (ROOT / path).read_bytes()
+    current = _strip_rw0_anchor_0009_status((ROOT / path).read_bytes())
     predecessor, addition = _rw0_post_merge_status_predecessor(path, current)
     if case == 'missing':
         changed = predecessor

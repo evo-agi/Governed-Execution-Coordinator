@@ -22,7 +22,7 @@ def _inventory(connection):
 
 def test_0006_literal_catalog_and_earlier_checksums():
     catalog = migration.load_migration_catalog()
-    assert tuple(item.sequence for item in catalog.migrations) == tuple(range(1, 9))
+    assert tuple(item.sequence for item in catalog.migrations) == tuple(range(1, 10))
     assert tuple(item.checksum for item in catalog.migrations[:5]) == (
         "1a3af0f4dc3a9df8fe0a745a68a98590e56dd6f9dc7aeeced3aa975839543148",
         "5859f49994b1467db71911fb60db4f1cfc562af7517dc6e4d81b5b29ca44d56c",
@@ -105,7 +105,7 @@ def test_0006_fresh_schema_and_zero_seed(tmp_path):
             ).fetchone()[0] == 0
     current_inspection = migration.validate_database(location)
     assert current_inspection.classification is migration.DatabaseClassification.UNKNOWN
-    assert current_inspection.latest_sequence == 8
+    assert current_inspection.latest_sequence == 9
 
 
 def test_populated_0005_prefix_requires_explicit_upgrade(tmp_path):
@@ -143,9 +143,9 @@ def test_populated_0005_prefix_requires_explicit_upgrade(tmp_path):
         with acquire_sqlite_writer_session(location):
             pass
     result = migration.migrate_database(location)
-    assert result.current_sequence == result.latest_sequence == 8
+    assert result.current_sequence == result.latest_sequence == 9
     with sqlite3.connect(location.database_path) as connection:
-        assert _inventory(connection) == (78, 142, 5)
+        assert _inventory(connection) == (79, 146, 5)
         assert connection.execute("SELECT writer_ref,generation FROM writer_ownership").fetchone() == (
             "writer-synthetic", 1,
         )

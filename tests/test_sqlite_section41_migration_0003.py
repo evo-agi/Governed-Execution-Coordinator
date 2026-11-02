@@ -176,7 +176,7 @@ def _open_production_schema(tmp_path: Path, name: str) -> sqlite3.Connection:
 
 def test_catalog_identity_and_literal_sql_statement_inventory() -> None:
     catalog = load_migration_catalog()
-    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7, 8)
+    assert tuple(item.sequence for item in catalog.migrations) == (1, 2, 3, 4, 5, 6, 7, 8, 9)
     migration = catalog.by_sequence(3)
     assert migration.migration_id == MIGRATION_ID
     assert migration.sequence == 3
@@ -268,16 +268,16 @@ def test_generation_two_fresh_database_has_exact_cumulative_inventory(
         )
     finally:
         connection.close()
-    assert len(tables) == 78
-    assert columns == 1793
-    assert foreign_keys == 240
-    assert len(triggers) == 142
+    assert len(tables) == 79
+    assert columns == 1814
+    assert foreign_keys == 242
+    assert len(triggers) == 146
     assert len(explicit_indexes) == 5
     assert seed_count == 0
     assert history[-1] == (
-        8,
-        "0008_rw0_terminal_outcome",
-        "a199ea64b4546d441cde00d8c7def62405ed28a89841a181dc6ba93871845254",
+        9,
+        "0009_rw0_terminal_anchor_registry",
+        "ee9a063b4974bffee39af691dc059535172f189e89d96789befe716cd89b3d25",
         2,
         2,
     )

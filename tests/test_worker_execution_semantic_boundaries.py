@@ -373,6 +373,7 @@ def test_package_root_pyproject_schema_and_migration_bytes_remain_exact() -> Non
         "src/ge_nwp_coordinator/sqlite_migrations/0006_rw0_c2_scope_admission.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0007_rw0_c2_progression_decision.sql",
         "src/ge_nwp_coordinator/sqlite_migrations/0008_rw0_terminal_outcome.sql",
+        "src/ge_nwp_coordinator/sqlite_migrations/0009_rw0_terminal_anchor_registry.sql",
     )
     assert _sha256(ROOT / schema_paths[0]) == (
         "e51902dd7e151f32a82b32cef7bbe535489f1558ce78fed63e0207df828f9e73"

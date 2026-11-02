@@ -127,6 +127,7 @@ def test_p0_preprogram_commit_replay_and_readback(tmp_path):
         "rw0_terminal_outcomes",
         "rw0_terminal_results",
         "rw0_terminal_receipts",
+        "rw0_terminal_anchors",
     ):
         assert _count(location, table) == 0
 
