@@ -2075,7 +2075,109 @@ _RW0_POST_MERGE_BEGIN = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUC
 _RW0_POST_MERGE_END = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_END -->'
 
 
-def _strip_rw0_anchor_0009_status(payload: bytes) -> bytes:
+_RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES = {
+    '.docs/architecture.md': ((55801, 'da4dd2308322999a27bce03b65212bf995a42cb28745979a95ae669292ba1e42'),
+        (58675, 'b7303726a131500a8d8fdbed4819fc3469389780134275febb810f86c70c76c2')),
+    '.docs/authority-boundaries.md': ((46297, '7b0d2ed29f3a669f480d89afefa685239066b3211c0990671c2251e7ceb3ecc1'),
+        (49171, 'f64edb1aafeaac3cafa4d19bcbb40b0c00fb85d53e8488532135d52cae402380')),
+    '.docs/autonomous-software-development-operating-model.md': ((52699, 'd0b6dc430ecc04ea949fc45e398578895b396e59396592186b5d76eb97023ab9'),
+        (55573, '8e1e8c974a164db159467453e7ca007095d6ba839f529309f10e672c51669c09')),
+    '.docs/c2b-durable-development-state.md': ((1913623, 'e7f4c6913489c408abb7284f9189407d9f9d82fdd1e65a4ecc6e139ed3bc09e4'),
+        (1916497, 'f3222dfeb4a8bc6c9b667bf36584ecd712e64173abef92bd5dae465f016e0031')),
+    '.docs/c2b2-migration-0002.md': ((19000, 'ded14bdcfd84c8aa6303e6a50bfb58408d07fc3451ba98fb3e212882bcaff1c8'),
+        (21874, '07eeb0b126133c965df19d5b2bf369ed3df30102bc304b04768597b8e95c27f8')),
+    '.docs/durable-state-model.md': ((52296, '2bd85a61dc19e329c2429bff40d95d4d6672624cca6ae1d751c3362d12e95add'),
+        (55170, '8dc0ebd6705f3dc56107bfe45c6adafe716938f63c3c4962d886fc068302f2fc')),
+    '.docs/rw0-b1-pure-phase-values.md': ((43257, 'd052b088f6a560a2afa08542331e9117b9f5cf902943bd762f23b01dc7963f1f'),
+        (46131, '619a305aafadda1c82885ec7f0a140515b01255e615b30c117cf9f2605de1272')),
+    '.docs/rw0-b2-wire-protocol.md': ((34339, '665b3d8959552fbd71ff4475877901819b620b5c3621d9601bb9a7b814a1d8ac'),
+        (37213, 'dd7d90a2e8431e15562a9a664ea903846471251268595bee1e45a1c1ea2daa3e')),
+    '.docs/rw0-c2-durable-progression-decision-semantic-contract.md': ((86783, '66064dc85e52f0930837d1ac11f8b14c5d1d6fa2fe07e3d71159f9811dff4dda'),
+        (89657, 'a3cf8c6f1c8eec55c11bb58afd4d723b71ffdde4340f0d5106d2f7a11ff4449d')),
+    '.docs/rw0-c2-first-live-proof-posture.md': ((26449, '4859cd9b5f595c99f7e6b64c32a7cf61246d81375ae6535c47147b7fed633763'),
+        (29323, 'a3c84f2f3b20a8f25578a9ccba6bc1c1cac4efc8a88e7d148b67a1a626ee9328')),
+    '.docs/rw0-c2-physical-p0-p1-implementation.md': ((28016, '0e94b83206a1f2d449cc082e16dcaf1d6bf9208178ccd968040f15191bcd7d2c'),
+        (30890, '9426c2a7ab389fe5ea2fbfaaedf2dcc4adac5f3511f277ea3d0d28062dee20f5')),
+    '.docs/rw0-c2-private-value-versioning.md': ((227953, 'd5b2df69b0d7e12ad3a80723163c3abb9cc5d0753825ab1be182ec02d53ff1b2'),
+        (230827, 'bf2cd04df7204fe76685e96ca42730dfe8571eb2032371951c32d0365401ab6a')),
+    '.docs/rw0-c2-scope-admission-provisioning-contract.md': ((33995, '206340a388a90cd72d38f7d9b97286ba7776b3383aa04df9a5e1dd6cb5ef00a5'),
+        (36869, '2f6d17248d6d2244787fca6e126b725cfc305eeb14bdcec841f8c02a8e4828b5')),
+    '.docs/rw0-d1-offline-process-and-capsule-spine.md': ((13817, '2f2852aefb0d51f5123ed38c5ebbdf74ab9e7ed081fb83eda59e36f7b2f16054'),
+        (16691, 'dd6ea2e1f8c0180c2b8a47d4d7fcf260fc67543f554260c3de882986a87bb112')),
+    '.docs/rw0-remote-worker-contact-phase-entry.md': ((69772, 'b0f6f033ea87b92e722009a48ed9f5aafa2c52b7582feaa530089a5087238d00'),
+        (72646, 'df98318fe3dda25884769d7c7f7dde415bb63ea9817d6b59bbf1048ab4a17ff6')),
+    '.docs/rw0-terminal-outcome-physical-closure.md': ((24990, '39b36de10dc4837752c39ddf6cbeb1b72697aa6712c51282406b6f5b1d5dd583'),
+        (27864, 'ec6d4724e91e8ef102d073f5e6e7fd5a39812161c6ae2172ce99861c464f70b9')),
+    '.docs/software-development-progression-boundary.md': ((36736, 'dc6bb2906896cb754d676f1b8e0d89de9afbafaf627775d733e8092b36c42b3e'),
+        (39610, '52edff5dcd992916db19aa8ed19cc1c530a64e4c3afdfb1f2d7ed7cf74e260b4')),
+    '.docs/sqlite-bootstrap-and-migrations.md': ((48374, '0e13fb9a43beb859b405465d726a7fc3a1f56d6f05c97febb8b9043a2bf477c1'),
+        (51248, 'dd42a891d50a44553485d52a8c222114618d63f1142b51e811ec2de70d43d72f')),
+    '.docs/sqlite-operations-and-recovery.md': ((53817, '7a4af0fbce0766a0d0df548bf617e191282ca7602c3e064a825761142e62e8c5'),
+        (56691, '62c7614f8028b39ae07f28264319bd1802831d0877e5797fa049ac7f6e6eda91')),
+    '.docs/sqlite-schema-v1.md': ((34332, 'e2389abf361cbeac6857a16fe1d4b93e1e40e1a274fe18c8d6390db4e39dd6e3'),
+        (37206, 'a63e01ee9b739c7f392cd8a981e5c680c30e062db13c590e6920936f3bae01de')),
+    '.docs/sqlite-state-backend-adr.md': ((44220, 'cba762db3bd30130a3faee3b5b86660a5a7bb09c5b3ac7b38bfd1545ab94ac8b'),
+        (47094, '50bd55dd5ddfe722c70033767c83b5f52742e2012f30ffd10f6aefe9ce0773a7')),
+    '.docs/worker-execution-boundary.md': ((42609, 'cb00450991529a7a879d5fe32ca325713473d91a617f9ffbe7b05a12e5a4b493'),
+        (45483, 'f8c51bbacdd1d037bc0812ee8ece596bb0ccd69dd89e9784e58f4be870861d1b')),
+    '.docs/writer-session-authority.md': ((66061, '2b63de11421f60e1f7a693e70c12dc5046f29d1754429e8d98a964f45c2fa88c'),
+        (68935, '9e70bf93755ab0cf025e9446187875f39608fb38dcd32ff91d94498bbac3c1bf')),
+    'AGENTS.md': ((82673, '96927b3c1a47bf723ab0fe06e01f60b860a912e06d88672a53d2b40b2641a647'),
+        (85547, 'e6120cd8a38150d4dbad00e68da5e24f6d31e1e59c40a01633d220aff883843f')),
+    'README.md': ((58994, 'fa6052d7e28711a33b94fd296da776d79f5a4964e39279d79ed7a8da1f8b9cba'),
+        (61868, '8a29714c63db465b78c3535cd0e11dbb60eae5414c7a8d5cbdb77cc27ad3ba19')),
+}
+_RW0_ANCHOR_POST_MERGE_BEGIN = b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->'
+_RW0_ANCHOR_POST_MERGE_END = b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->'
+_RW0_ANCHOR_POST_MERGE_BLOCK_IDENTITY = (
+    2873, '3347d82a9f9dcae95bf38c278719cdd1ad328ebd761f8a6d9168aa22aac7be0a'
+)
+_RW0_ANCHOR_POST_MERGE_ADDITION_IDENTITY = (
+    2874, '22435582c72614a7fc4ee875cd7ed93cfd0599d96a3dfb551dc9ae823b5a5d90'
+)
+_RW0_ANCHOR_CANDIDATE_END = b'<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->\n'
+
+
+def _rw0_anchor_post_merge_status_predecessor(
+    relative_path: str, payload: bytes,
+    *, boundary: str = 'guard:rw0_anchor_post_merge_status',
+) -> tuple[bytes, bytes]:
+    expected_predecessor, expected_current = (
+        _RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES[relative_path]
+    )
+    begin = b'\n' + _RW0_ANCHOR_POST_MERGE_BEGIN + b'\n'
+    end = _RW0_ANCHOR_POST_MERGE_END + b'\n'
+    _require(type(payload) is bytes and
+             payload.count(_RW0_ANCHOR_POST_MERGE_BEGIN) == 1 and
+             payload.count(_RW0_ANCHOR_POST_MERGE_END) == 1 and
+             payload.count(begin) == 1 and payload.count(end) == 1 and
+             payload.index(begin) < payload.index(end),
+             boundary + ':markers:' + relative_path)
+    start = payload.index(begin)
+    predecessor, addition = payload[:start], payload[start:]
+    _require(predecessor.endswith(_RW0_ANCHOR_CANDIDATE_END) and
+             addition.endswith(end),
+             boundary + ':placement:' + relative_path)
+    size, digest = _RW0_ANCHOR_POST_MERGE_ADDITION_IDENTITY
+    _require((len(addition), hashlib.sha256(addition).hexdigest()) ==
+             (size, digest) and
+             (len(addition[1:]), hashlib.sha256(addition[1:]).hexdigest()) ==
+             _RW0_ANCHOR_POST_MERGE_BLOCK_IDENTITY,
+             boundary + ':addition_identity:' + relative_path)
+    _require((len(predecessor), hashlib.sha256(predecessor).hexdigest()) ==
+             expected_predecessor,
+             boundary + ':predecessor_identity:' + relative_path)
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) ==
+             expected_current,
+             boundary + ':current_identity:' + relative_path)
+    return predecessor, addition
+
+
+def _strip_rw0_anchor_0009_status(relative_path: str, payload: bytes) -> bytes:
+    if (_RW0_ANCHOR_POST_MERGE_BEGIN in payload or
+            _RW0_ANCHOR_POST_MERGE_END in payload):
+        payload, _status = _rw0_anchor_post_merge_status_predecessor(
+            relative_path, payload)
     begin = b'\n<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_BEGIN -->\n'
     end = b'<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->\n'
     if begin not in payload:
@@ -2101,7 +2203,7 @@ def _rw0_post_merge_status_predecessor(
     relative_path: str, payload: bytes,
     *, boundary: str = 'guard:rw0_post_merge_status',
 ) -> tuple[bytes, bytes]:
-    payload = _strip_rw0_anchor_0009_status(payload)
+    payload = _strip_rw0_anchor_0009_status(relative_path, payload)
     expected_predecessor, expected_current = _RW0_POST_MERGE_STATUS_IDENTITIES[relative_path]
     begin = b'\n' + _RW0_POST_MERGE_BEGIN + b'\n'
     end = _RW0_POST_MERGE_END + b'\n'
@@ -2216,7 +2318,7 @@ def test_rw0_post_merge_status_exact_25_document_successor() -> None:
 ))
 def test_rw0_post_merge_status_exact_negative_specimens(case: str, boundary: str) -> None:
     path = 'AGENTS.md'
-    current = _strip_rw0_anchor_0009_status((ROOT / path).read_bytes())
+    current = _strip_rw0_anchor_0009_status(path, (ROOT / path).read_bytes())
     predecessor, addition = _rw0_post_merge_status_predecessor(path, current)
     if case == 'missing':
         changed = predecessor
@@ -2273,6 +2375,174 @@ def test_rw0_post_merge_status_semantic_negative_specimens(case: str) -> None:
     assert changed != addition
     with pytest.raises(AssertionError, match='^guard:rw0_post_merge_status:authority_overclaim$'):
         _assert_rw0_post_merge_status_semantics(changed)
+
+
+def _assert_rw0_anchor_post_merge_status_semantics(addition: bytes) -> None:
+    compact = b' '.join(addition.split())
+    lower = compact.lower()
+    boundary = 'guard:rw0_anchor_post_merge_status:'
+    required = (
+        b'CURRENT INTEGRATED CAPABILITY STATUS',
+        b'RW0 terminal-anchor evolution was integrated into',
+        b'856c5ac7efd268f70512169c127c91cf097bd200',
+        b'69fc836dbaa0e2124b427bc9611de2e0fba77040',
+        b'575a8da09b4da2539e8e8d6c1deb475a71627d03',
+        b'PR #20 and source topic commit',
+        b'5961cf6bb1dd810eb5260e11b9f9f9054dd41d7d',
+        b'are source-publication provenance',
+        b'not self-identified as the permanent current HEAD',
+        b'Git objects and refs own current commit and publication truth',
+        b'0009_rw0_terminal_anchor_registry',
+        b'is the current integrated catalog suffix',
+        b'Migrations 0001-0008 and existing normal-family rows remain preserved',
+        b'rw0_terminal_anchors',
+        b'owns the sole cross-profile phase route',
+        b'The selected complete branch family retains terminal outcome, graph, result, receipt, and semantic meaning',
+        b'The registry is no outcome, progression decision, effect basis, authorization, or independent terminal fact',
+        b'Migration 0009 admits only',
+        b'artificial_offline_normal.v1',
+        b'A later terminal family requires a separate explicit migration evolving family admission while preserving the same phase-unique registry',
+        b'Active cancellation is an authorized subsequent Coordinator capability',
+        b'implements no cancel decision, cancel effect, request, source observation, reconciliation, or terminal cancel family',
+        b'Progression pause/resume remains a separate nonterminal lifecycle concern',
+        b'not represented by the terminal registry and is not implemented here',
+        b'T2-R1 remains optional fixture hardening and is not implemented',
+        b'12 / 12, 421 / 421, 194 / 194, 68 / 68, 791 / 791',
+        b'full suite of 9,648 / 9,648 tests',
+        b'three expected Python 3.13 fork deprecation warnings',
+        b'All 68 source paths passed staged and committed blob/mode/size equality',
+        b'No tests ran in the merge gate itself',
+        b'not validation of this later status-only correction',
+        b'Earlier candidate, repair, audit, local-commit, and publication passages',
+        b'uncommitted or unmerged statements are stage-local rather than current repository status',
+        b'no live supplier/custody, worker/provider, ES, CP, Bridge, or Temporal route',
+        b'no Coordinator-owned product Git effect, scheduler, queue, service, successor launch, deployment, or autonomous runtime loop',
+        b'Source publication does not itself establish product runtime authority',
+    )
+    forbidden = (
+        b'active cancellation is implemented',
+        b'active cancellation is physically implemented',
+        b'pause/resume is terminal',
+        b'pause/resume is implemented',
+        b'terminal registry represents pause/resume',
+        b'registry owns terminal meaning',
+        b'registry grants effect authority',
+        b'migration 0009 admits a cancel profile',
+        b'migration 0009 admits a live-normal profile',
+        b'tests ran during merge',
+        b'tests ran during the squash merge',
+        b'new status-only commit is permanently the current repository head',
+        b'governance-process finding was retroactively cured',
+        b'self-granted workspace-write transition was retroactively validated',
+    )
+    for phrase in forbidden:
+        _require(phrase not in lower, boundary + 'authority_overclaim')
+    for phrase in required:
+        _require(phrase in compact, boundary + 'semantic_required')
+
+
+def test_rw0_anchor_post_merge_status_exact_25_document_successor() -> None:
+    assert len(_RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES) == 25
+    assert set(_RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES) == set(
+        _RW0_POST_MERGE_STATUS_IDENTITIES)
+    additions = []
+    for relative_path in _RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES:
+        payload = (ROOT / relative_path).read_bytes()
+        predecessor, addition = _rw0_anchor_post_merge_status_predecessor(
+            relative_path, payload)
+        _rw0_post_merge_status_predecessor(relative_path, predecessor)
+        _assert_rw0_anchor_post_merge_status_semantics(addition)
+        additions.append(addition)
+    assert len(set(additions)) == 1
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('missing', 'markers'), ('duplicate', 'markers'),
+    ('truncated', 'markers'), ('moved', 'placement'),
+    ('reordered_markers', 'markers'),
+    ('predecessor_mutation', 'predecessor_identity'),
+    ('wrong_commit', 'addition_identity'),
+    ('wrong_parent', 'addition_identity'),
+    ('wrong_tree', 'addition_identity'),
+    ('wrong_source', 'addition_identity'),
+    ('wrong_migration_id', 'addition_identity'),
+))
+def test_rw0_anchor_post_merge_status_exact_negative_specimens(
+    case: str, boundary: str,
+) -> None:
+    path = 'AGENTS.md'
+    current = (ROOT / path).read_bytes()
+    predecessor, addition = _rw0_anchor_post_merge_status_predecessor(
+        path, current)
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + addition
+    elif case == 'truncated':
+        changed = current[:-1]
+    elif case == 'moved':
+        changed = addition + predecessor
+    elif case == 'reordered_markers':
+        changed = current.replace(
+            _RW0_ANCHOR_POST_MERGE_BEGIN, b'__RW0_ANCHOR_TEMP__', 1).replace(
+            _RW0_ANCHOR_POST_MERGE_END, _RW0_ANCHOR_POST_MERGE_BEGIN, 1).replace(
+            b'__RW0_ANCHOR_TEMP__', _RW0_ANCHOR_POST_MERGE_END, 1)
+    elif case == 'predecessor_mutation':
+        changed = b'X' + predecessor[1:] + addition
+    else:
+        old, new = {
+            'wrong_commit': (b'856c5ac7efd268f70512169c127c91cf097bd200', b'0' * 40),
+            'wrong_parent': (b'69fc836dbaa0e2124b427bc9611de2e0fba77040', b'0' * 40),
+            'wrong_tree': (b'575a8da09b4da2539e8e8d6c1deb475a71627d03', b'0' * 40),
+            'wrong_source': (b'5961cf6bb1dd810eb5260e11b9f9f9054dd41d7d', b'0' * 40),
+            'wrong_migration_id': (
+                b'0009_rw0_terminal_anchor_registry',
+                b'9999_rw0_terminal_anchor_registry'),
+        }[case]
+        changed = predecessor + addition.replace(old, new, 1)
+    assert changed != current
+    with pytest.raises(
+        AssertionError,
+        match='^guard:rw0_anchor_post_merge_status:' + boundary,
+    ):
+        _rw0_anchor_post_merge_status_predecessor(path, changed)
+
+
+@pytest.mark.parametrize('case,claim', (
+    ('active_cancel', b'active cancellation is implemented'),
+    ('pause_terminal', b'pause/resume is terminal'),
+    ('pause_implemented', b'pause/resume is implemented'),
+    ('registry_meaning', b'registry owns terminal meaning'),
+    ('merge_tests', b'tests ran during merge'),
+    ('permanent_head', b'new status-only commit is permanently the current repository HEAD'),
+    ('governance_cured', b'governance-process finding was retroactively cured'),
+))
+def test_rw0_anchor_post_merge_status_semantic_negative_specimens(
+    case: str, claim: bytes,
+) -> None:
+    _predecessor, addition = _rw0_anchor_post_merge_status_predecessor(
+        'AGENTS.md', (ROOT / 'AGENTS.md').read_bytes())
+    changed = addition.replace(_RW0_ANCHOR_POST_MERGE_END,
+                               claim + b'\n' + _RW0_ANCHOR_POST_MERGE_END, 1)
+    assert changed != addition, case
+    with pytest.raises(
+        AssertionError,
+        match='^guard:rw0_anchor_post_merge_status:authority_overclaim$',
+    ):
+        _assert_rw0_anchor_post_merge_status_semantics(changed)
+
+
+def test_rw0_anchor_post_merge_status_missing_required_semantic() -> None:
+    _predecessor, addition = _rw0_anchor_post_merge_status_predecessor(
+        'AGENTS.md', (ROOT / 'AGENTS.md').read_bytes())
+    changed = addition.replace(b'artificial_offline_normal.v1',
+                               b'artificial_offline_normal.v2', 1)
+    assert changed != addition
+    with pytest.raises(
+        AssertionError,
+        match='^guard:rw0_anchor_post_merge_status:semantic_required$',
+    ):
+        _assert_rw0_anchor_post_merge_status_semantics(changed)
 
 
 # The later local-commit status is a fixed successor to the exact committed
