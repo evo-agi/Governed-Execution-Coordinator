@@ -3202,6 +3202,7 @@ def test_tests_only_schema_setup_is_not_a_fixture_or_production_capability_progr
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
+        "0009_rw0_terminal_anchor_registry.sql",
     ]
     assert json.loads(json.dumps({"capability": "tests-only"})) == {"capability": "tests-only"}
 

@@ -69,6 +69,7 @@ EXPECTED_PRODUCTION_FILES = (
     "_rw0_terminal_outcome_contracts.py",
     "_rw0_terminal_outcome_plan.py",
     "_rw0_terminal_outcome_rows.py",
+    "_rw0_terminal_anchor_rows.py",
     "_rw0_c2_scope_admission_contracts.py",
     "_section41_post_execution_proposal_family_projection.py",
     "_section41_post_execution_proposal_mutation_contracts.py",
@@ -86,6 +87,8 @@ EXPECTED_PRODUCTION_FILES = (
     "_sqlite_rw0_c2_scope_admission.py",
     "_sqlite_rw0_c2_progression.py",
     "_sqlite_rw0_terminal_outcome.py",
+    "_sqlite_rw0_terminal_anchor.py",
+    "_sqlite_rw0_terminal_anchor_migration_invariants.py",
     "_sqlite_section41_post_execution_proposal.py",
     "_rw0_phase_entry_semantic_values.py",
     "_rw0_wire_protocol_values.py",
@@ -114,6 +117,7 @@ EXPECTED_PRODUCTION_FILES = (
     "sqlite_migrations/0006_rw0_c2_scope_admission.sql",
     "sqlite_migrations/0007_rw0_c2_progression_decision.sql",
     "sqlite_migrations/0008_rw0_terminal_outcome.sql",
+    "sqlite_migrations/0009_rw0_terminal_anchor_registry.sql",
     "sqlite_migrations/__init__.py",
     "sqlite_mutation_transaction_contracts.py",
     "sqlite_security.py",
@@ -560,6 +564,7 @@ def test_exact_c2a1_source_allowance_and_runtime_nonimplementation() -> None:
         "sqlite_migrations/0006_rw0_c2_scope_admission.sql",
         "sqlite_migrations/0007_rw0_c2_progression_decision.sql",
         "sqlite_migrations/0008_rw0_terminal_outcome.sql",
+        "sqlite_migrations/0009_rw0_terminal_anchor_registry.sql",
         "sqlite_migrations/__init__.py",
     )
 

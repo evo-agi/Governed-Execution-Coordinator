@@ -27,6 +27,9 @@ from ge_nwp_coordinator._rw0_terminal_outcome_contracts import (
 from ge_nwp_coordinator._rw0_terminal_outcome_rows import (
     COLUMNS, CONTEXT, OUTCOME, RECEIPT, RESULT, TABLES, checked_row, seal_row,
 )
+from ge_nwp_coordinator._rw0_terminal_anchor_rows import (
+    COLUMNS as ANCHOR_COLUMNS, SCHEMA as ANCHOR_SCHEMA,
+)
 from ge_nwp_coordinator.sqlite_errors import SQLiteMutationStoreError
 from ge_nwp_coordinator.sqlite_writer_session import acquire_sqlite_writer_session
 from test_sqlite_rw0_terminal_connected import _terminal_selector, prepared_normal_case
@@ -440,17 +443,31 @@ def _replace_family(db: sqlite3.Connection, rows):
     triggers = db.execute(
         "SELECT name, sql FROM sqlite_schema WHERE type='trigger' "
         "AND tbl_name IN ('rw0_terminal_contexts','rw0_terminal_outcomes',"
-        "'rw0_terminal_results','rw0_terminal_receipts') ORDER BY name"
+        "'rw0_terminal_results','rw0_terminal_receipts',"
+        "'rw0_terminal_anchors') ORDER BY name"
     ).fetchall()
-    assert len(triggers) == 8
+    assert len(triggers) == 12
     db.execute("BEGIN IMMEDIATE")
     for name, _ in triggers:
         db.execute("DROP TRIGGER " + name)
+    db.execute("DELETE FROM rw0_terminal_anchors")
     for table in reversed(TABLES):
         db.execute("DELETE FROM " + table)
     for row in rows:
         db.execute("INSERT INTO " + row.table + " (" + ", ".join(COLUMNS[row.table])
                    + ") VALUES (" + ", ".join("?" for _ in row.values) + ")", row.values)
+    c, o, result, r = (row.mapping for row in rows)
+    anchor = (
+        ANCHOR_SCHEMA, r["phase_basis_ref"], r["phase_basis_digest"], r["profile"],
+        r["family_route"], r["mutation_ref"], r["command_digest"], c["program_ref"],
+        r["p1_decision_ref"], r["context_ref"], r["context_digest"],
+        r["outcome_value_ref"], r["outcome_value_digest"], r["result_ref"],
+        r["result_digest"], r["receipt_ref"], r["receipt_digest"],
+        r["graph_profile"], r["graph_digest"], r["committed_result_digest"],
+        r["recorded_at"],
+    )
+    db.execute("INSERT INTO rw0_terminal_anchors (" + ", ".join(ANCHOR_COLUMNS)
+               + ") VALUES (" + ", ".join("?" for _ in anchor) + ")", anchor)
     for _, sql in triggers:
         db.execute(sql)
     db.commit()

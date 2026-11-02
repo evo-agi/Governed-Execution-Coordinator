@@ -21,10 +21,12 @@ from ._rw0_terminal_outcome_plan import (
 from ._rw0_terminal_head_witness import (
     TerminalHeadWitness, witness_from_bytes, witness_from_typed,
 )
+from ._rw0_terminal_anchor_rows import TerminalAnchorRow, expected_normal_anchor
 from ._rw0_terminal_outcome_rows import (
     CONTEXT, OUTCOME, RESULT, RECEIPT, COLUMNS, PRIMARY, TABLES,
     TerminalRow, checked_row,
 )
+from ._sqlite_rw0_terminal_anchor import read_terminal_anchor
 from ._sqlite_development_pre_execution_plan_disposition import _read_exact_row
 from ._sqlite_rw0_c1 import (
     _read_rw0_c1_checked_family_after_fencing, _verify_phase_family_rows,
@@ -259,7 +261,11 @@ def _current(
     return witness, stop
 
 
-def _route_occupied(capability: object, command: RecordRW0TerminalOutcomeCommandV1) -> bool:
+def _route_occupied(
+    capability: object, command: RecordRW0TerminalOutcomeCommandV1,
+    checked_anchors: tuple[TerminalAnchorRow, ...],
+) -> bool:
+    """Reject any normal-family alias outside the checked registered families."""
     safe = command.to_mapping()
     probes = (
         (CONTEXT, "context_ref", safe["context_ref"]),
@@ -280,8 +286,18 @@ def _route_occupied(capability: object, command: RecordRW0TerminalOutcomeCommand
         (RECEIPT, "outcome_value_ref", safe["outcome_value_ref"]),
         (RECEIPT, "result_ref", safe["result_ref"]),
     )
-    return any(_one(capability, table, column, value) is not None
-               for table, column, value in probes)
+    registered = {
+        table: {anchor.mapping[PRIMARY[table]] for anchor in checked_anchors}
+        for table in TABLES
+    }
+    occupied = False
+    for table, column, value in probes:
+        row = _one(capability, table, column, value)
+        if row is not None:
+            if row.mapping[PRIMARY[table]] not in registered[table]:
+                raise _integrity() from None
+            occupied = True
+    return occupied
 
 
 def _original_alias_occupied_excluding_phase(
@@ -313,6 +329,59 @@ def _plan_exact(capability: object, plan: TerminalPlan, *, receipt: bool) -> Non
                       row.mapping[PRIMARY[row.table]])
         if actual != row:
             raise _integrity() from None
+
+
+def _anchor_family_exact(capability: object, anchor: TerminalAnchorRow) -> TerminalRow:
+    """Check the selected persisted family before interpreting its receipt."""
+    a = anchor.mapping
+    context = _one(capability, CONTEXT, "context_ref", a["context_ref"])
+    outcome = _one(capability, OUTCOME, "outcome_value_ref", a["outcome_value_ref"])
+    result = _one(capability, RESULT, "result_ref", a["result_ref"])
+    receipt = _one(capability, RECEIPT, "receipt_ref", a["receipt_ref"])
+    if any(row is None for row in (context, outcome, result, receipt)):
+        raise _integrity() from None
+    try:
+        expected = expected_normal_anchor(
+            cast(TerminalRow, context), cast(TerminalRow, outcome),
+            cast(TerminalRow, result), cast(TerminalRow, receipt),
+        )
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        raise _integrity() from None
+    if expected != anchor:
+        raise _integrity() from None
+    return cast(TerminalRow, receipt)
+
+
+def _checked_anchor_aliases(
+    capability: object, command: RecordRW0TerminalOutcomeCommandV1,
+) -> tuple[TerminalAnchorRow, ...]:
+    """Probe all seven unique aliases and verify each selected family once."""
+    safe = command.to_mapping()
+    probes = (
+        ("family_route", safe["family_route"]),
+        ("mutation_ref", safe["mutation_ref"]),
+        ("decision_ref", safe["p1"]["relation"]["preassigned_decision_ref"]),
+        ("context_ref", safe["context_ref"]),
+        ("outcome_value_ref", safe["outcome_value_ref"]),
+        ("result_ref", safe["result_ref"]),
+        ("receipt_ref", safe["receipt_ref"]),
+    )
+    checked: dict[str, TerminalAnchorRow] = {}
+    for column, value in probes:
+        anchor = read_terminal_anchor(capability, column, value)
+        if anchor is None:
+            continue
+        phase_ref = cast(str, anchor.mapping["phase_basis_ref"])
+        prior = checked.get(phase_ref)
+        if prior is not None:
+            if prior != anchor:
+                raise _integrity() from None
+            continue
+        _anchor_family_exact(capability, anchor)
+        checked[phase_ref] = anchor
+    return tuple(checked.values())
 
 
 def _historical_exact(
@@ -348,10 +417,19 @@ def read_after_fencing(
     capability: object, command: RecordRW0TerminalOutcomeCommandV1,
     source: ArtificialDecisionGuardSourceV1, timestamp: str,
 ) -> TerminalCommittedV1 | None:
-    receipt = _one(capability, RECEIPT, "mutation_ref",
-                   command.to_mapping()["mutation_ref"])
     _disclosure(command, source, timestamp, recording=False)
-    if receipt is None:
+    safe = command.to_mapping()
+    anchor = read_terminal_anchor(capability, "phase_basis_ref", safe["phase_basis_ref"])
+    if anchor is None:
+        aliases = _checked_anchor_aliases(capability, command)
+        _route_occupied(capability, command, aliases)
+        if aliases:
+            raise _integrity() from None
+        return None
+    receipt = _anchor_family_exact(capability, anchor)
+    if anchor.mapping["mutation_ref"] != safe["mutation_ref"]:
+        aliases = _checked_anchor_aliases(capability, command)
+        _route_occupied(capability, command, (anchor, *aliases))
         return None
     return _historical_exact(capability, command, receipt)
 
@@ -361,20 +439,35 @@ def write_fresh_after_fencing(
     command: RecordRW0TerminalOutcomeCommandV1,
     source: ArtificialDecisionGuardSourceV1, timestamp: str,
 ) -> FreshTerminal | TerminalCommittedV1 | TerminalConflictV1:
-    receipt = _one(capability, RECEIPT, "mutation_ref",
-                   command.to_mapping()["mutation_ref"])
     try:
-        _disclosure(command, source, timestamp, recording=receipt is None)
+        _disclosure(command, source, timestamp, recording=False)
     except ProtectedPostureUnavailable:
         return TerminalConflictV1("protected_posture_unavailable")
-    if receipt is not None:
+    safe = command.to_mapping()
+    anchor = read_terminal_anchor(capability, "phase_basis_ref", safe["phase_basis_ref"])
+    if anchor is not None and anchor.mapping["mutation_ref"] == safe["mutation_ref"]:
+        receipt = _anchor_family_exact(capability, anchor)
         try:
             return _historical_exact(capability, command, receipt)
         except ValueError as exc:
             if str(exc) == "terminal_command_reused":
+                aliases = _checked_anchor_aliases(capability, command)
+                _route_occupied(capability, command, (anchor, *aliases))
                 return TerminalConflictV1("command_reuse")
             raise
-    safe = command.to_mapping()
+    if anchor is not None:
+        _anchor_family_exact(capability, anchor)
+        aliases = _checked_anchor_aliases(capability, command)
+        _route_occupied(capability, command, (anchor, *aliases))
+        return TerminalConflictV1("route_collision")
+    try:
+        _disclosure(command, source, timestamp, recording=True)
+    except ProtectedPostureUnavailable:
+        return TerminalConflictV1("protected_posture_unavailable")
+    aliases = _checked_anchor_aliases(capability, command)
+    _route_occupied(capability, command, aliases)
+    if aliases:
+        return TerminalConflictV1("route_collision")
     facts = _predecessors(capability, command)
     witness, stop = _current(capability, command)
     if witness.coordinates != tuple(safe["heads"]) or stop != safe["stop"]:
@@ -385,8 +478,6 @@ def write_fresh_after_fencing(
         or safe["expected_outcome"] is not None
            and safe["expected_outcome"] != NORMAL_PAIRS[facts.prior.branch]):
         return TerminalConflictV1("predecessor_mismatch")
-    if _route_occupied(capability, command):
-        return TerminalConflictV1("route_collision")
     try:
         plan = build_terminal_plan(command, facts, witness, stop, timestamp)
     except (KeyboardInterrupt, SystemExit, GeneratorExit):
@@ -398,6 +489,10 @@ def write_fresh_after_fencing(
     _plan_exact(capability, plan, receipt=False)
     _insert(connection, plan.rows[3])
     _plan_exact(capability, plan, receipt=True)
+    inserted_anchor = read_terminal_anchor(capability, "phase_basis_ref", safe["phase_basis_ref"])
+    if inserted_anchor is None:
+        raise _integrity() from None
+    _anchor_family_exact(capability, inserted_anchor)
     return FreshTerminal(plan.committed)
 
 
@@ -412,15 +507,12 @@ def recover_after_fencing(
         # A different transient P1 operand cannot prove the original operation
         # absent. Reauthenticate it under this same fenced capability first.
         _predecessors(capability, command)
-        winner = _one(capability, CONTEXT, "phase_basis_ref",
-                      command.to_mapping()["phase_basis_ref"])
+        winner = read_terminal_anchor(
+            capability, "phase_basis_ref", command.to_mapping()["phase_basis_ref"])
         if winner is not None:
             if winner.mapping["mutation_ref"] == command.to_mapping()["mutation_ref"]:
                 return TerminalRecoveryV1("unresolved")
-            other_receipt = _one(capability, RECEIPT, "mutation_ref",
-                                 winner.mapping["mutation_ref"])
-            if other_receipt is None:
-                return TerminalRecoveryV1("unresolved")
+            other_receipt = _anchor_family_exact(capability, winner)
             try:
                 _historical_exact(capability, command, other_receipt)
             except ValueError as exc:
@@ -428,10 +520,15 @@ def recover_after_fencing(
                     return TerminalRecoveryV1("unresolved")
             except Exception:
                 return TerminalRecoveryV1("unresolved")
-            if _original_alias_occupied_excluding_phase(capability, command):
+            aliases = _checked_anchor_aliases(capability, command)
+            if (any(alias != winner for alias in aliases)
+                or _original_alias_occupied_excluding_phase(capability, command)):
                 return TerminalRecoveryV1("unresolved")
             return TerminalRecoveryV1("definitely_not_committed")
-        if _route_occupied(capability, command):
+        aliases = _checked_anchor_aliases(capability, command)
+        if aliases:
+            return TerminalRecoveryV1("unresolved")
+        if _route_occupied(capability, command, aliases):
             return TerminalRecoveryV1("unresolved")
         if not source.old_execution_excluded:
             return TerminalRecoveryV1("unresolved")

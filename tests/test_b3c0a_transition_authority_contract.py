@@ -567,6 +567,7 @@ def test_historical_b3c0a_tranche_preserves_migration_0001_without_c2b_runtime()
         "0006_rw0_c2_scope_admission.sql",
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
+        "0009_rw0_terminal_anchor_registry.sql",
     ]
     migration_bytes = (PACKAGE_DIR / "sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

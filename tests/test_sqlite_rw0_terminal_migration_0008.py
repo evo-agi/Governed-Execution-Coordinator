@@ -44,9 +44,9 @@ def _inventory(connection):
 
 def test_0008_catalog_literal_and_prior_bytes():
     catalog = migration.load_migration_catalog()
-    assert tuple(x.sequence for x in catalog.migrations) == tuple(range(1, 9))
+    assert tuple(x.sequence for x in catalog.migrations[:8]) == tuple(range(1, 9))
     assert tuple(x.checksum for x in catalog.migrations[:7]) == _OLD_SHA
-    tip = catalog.migrations[-1]
+    tip = catalog.migrations[7]
     assert tip.migration_id == "0008_rw0_terminal_outcome"
     assert tip.resource_name == "0008_rw0_terminal_outcome.sql"
     assert hashlib.sha256(tip.sql_bytes).hexdigest() == tip.checksum == _SHA
@@ -88,7 +88,7 @@ def test_0008_literal_catalog_applies_independently_with_exact_prefix_inventorie
 
 
 def test_0008_sql_normal_shape_checks_reject_cancel_and_partial_pairs():
-    tip = migration.load_migration_catalog().migrations[-1]
+    tip = migration.load_migration_catalog().migrations[7]
     logical = _normal_mapping()
     heads = logical.pop("closure_heads")
     stop = logical.pop("closure_stop")
@@ -119,10 +119,14 @@ def test_0008_sql_normal_shape_checks_reject_cancel_and_partial_pairs():
 
 def test_0008_fresh_and_explicit_0007_upgrade_preserve_prior_schema(tmp_path):
     full = migration.load_migration_catalog()
+    old_catalog = migration.MigrationCatalog(full.migrations[:8])
     fresh = CoordinatorStateLocation.from_trusted_root(tmp_path / "fresh")
-    initialized = migration.initialize_database(fresh)
+    initialized = migration._initialize_database_with_catalog(
+        fresh, old_catalog, current_app_schema=2, verify_managed_invariants=True)
     assert initialized.current_sequence == initialized.latest_sequence == 8
-    assert migration.validate_database(fresh) == initialized
+    assert migration._assess_location_database(
+        fresh, old_catalog, current_app_schema=2, verify_managed_invariants=True,
+    ).disposition is migration._MigrationDatabaseDisposition.CURRENT
     with sqlite3.connect(fresh.database_path) as db:
         db.execute("PRAGMA foreign_keys=ON")
         assert _inventory(db) == (78, 142, 5)
@@ -148,9 +152,14 @@ def test_0008_fresh_and_explicit_0007_upgrade_preserve_prior_schema(tmp_path):
     with pytest.raises(Exception):
         with acquire_sqlite_writer_session(prefix_location):
             pass
-    upgraded = migration.migrate_database(prefix_location)
+    upgraded = migration._migrate_database_with_catalog(
+        prefix_location, old_catalog, current_app_schema=2,
+        verify_managed_invariants=True)
     assert upgraded.current_sequence == upgraded.latest_sequence == 8
-    assert migration.validate_database(prefix_location) == upgraded
+    assert migration._assess_location_database(
+        prefix_location, old_catalog, current_app_schema=2,
+        verify_managed_invariants=True,
+    ).disposition is migration._MigrationDatabaseDisposition.CURRENT
     with sqlite3.connect(prefix_location.database_path) as db:
         after = _schema(db)
         assert all(after[key] == value for key, value in before.items())
@@ -167,7 +176,9 @@ def test_0008_fresh_and_explicit_0007_upgrade_preserve_prior_schema(tmp_path):
     with sqlite3.connect(older_location.database_path) as db:
         older_schema = _schema(db)
         assert _inventory(db) == (68, 122, 5)
-    upgraded_from_0006 = migration.migrate_database(older_location)
+    upgraded_from_0006 = migration._migrate_database_with_catalog(
+        older_location, old_catalog, current_app_schema=2,
+        verify_managed_invariants=True)
     assert upgraded_from_0006.current_sequence == upgraded_from_0006.latest_sequence == 8
     with sqlite3.connect(older_location.database_path) as db:
         complete_schema = _schema(db)
@@ -241,6 +252,9 @@ def test_0008_all_recorded_at_columns_enforce_calendar_and_ascii_bytes(monkeypat
         with closing(sqlite3.connect(":memory:")) as synthetic:
             with closing(sqlite3.connect(location.database_path)) as before:
                 before.backup(synthetic)
+            # Exercise the unchanged 0008 column checks independently of the
+            # 0009 receipt-trigger family registration.
+            synthetic.execute("DROP TRIGGER rw0_terminal_receipts_register_anchor")
             synthetic.execute("PRAGMA foreign_keys=ON")
             assert synthetic.execute("PRAGMA foreign_keys").fetchone() == (1,)
             with acquire_sqlite_writer_session(location) as writer:

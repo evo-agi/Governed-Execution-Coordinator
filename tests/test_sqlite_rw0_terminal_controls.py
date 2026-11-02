@@ -392,6 +392,10 @@ def test_partial_phase_family_and_alias_probe_remain_unresolved(monkeypatch):
         assert _counts(location) == (1, 0, 0, 0)
         with sqlite3.connect(location.database_path) as db:
             db.execute("PRAGMA foreign_keys=ON")
+            registration = db.execute(
+                "SELECT sql FROM sqlite_schema WHERE name='rw0_terminal_receipts_register_anchor'"
+            ).fetchone()[0]
+            db.execute("DROP TRIGGER rw0_terminal_receipts_register_anchor")
             for row in captured[1:]:
                 values = list(row.values)
                 if row.table == terminal.RECEIPT:
@@ -399,6 +403,7 @@ def test_partial_phase_family_and_alias_probe_remain_unresolved(monkeypatch):
                 db.execute(
                     f"INSERT INTO {row.table} ({', '.join(terminal.COLUMNS[row.table])}) "
                     f"VALUES ({', '.join('?' for _ in values)})", values)
+            db.execute(registration)
         assert _counts(location) == (1, 1, 1, 1)
         with acquire_sqlite_writer_session(location) as writer:
             assert writer._recover_terminal_outcome(command, source).classification == "unresolved"

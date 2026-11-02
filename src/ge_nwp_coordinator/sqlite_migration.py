@@ -41,6 +41,7 @@ _POST_EXECUTION_PROPOSAL_MIGRATION_ID = "0005_section41_post_execution_proposal_
 _RW0_C2_SCOPE_ADMISSION_MIGRATION_ID = "0006_rw0_c2_scope_admission"
 _RW0_C2_PROGRESSION_DECISION_MIGRATION_ID = "0007_rw0_c2_progression_decision"
 _RW0_TERMINAL_OUTCOME_MIGRATION_ID = "0008_rw0_terminal_outcome"
+_RW0_TERMINAL_ANCHOR_MIGRATION_ID = "0009_rw0_terminal_anchor_registry"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -265,6 +266,7 @@ _EMPTY_AFTER_RW0_TERMINAL_OUTCOME_MIGRATION_TABLES = frozenset(
         "rw0_terminal_receipts",
     }
 )
+_EMPTY_AFTER_RW0_TERMINAL_ANCHOR_MIGRATION_TABLES = frozenset({"rw0_terminal_anchors"})
 
 
 class DatabaseClassification(str, Enum):
@@ -518,6 +520,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="Private artificial-offline normal RW0 terminal outcome",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_RW0_TERMINAL_ANCHOR_MIGRATION_ID,
+        sequence=9,
+        resource_name="0009_rw0_terminal_anchor_registry.sql",
+        literal_checksum="ee9a063b4974bffee39af691dc059535172f189e89d96789befe716cd89b3d25",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="Branch-neutral RW0 terminal anchor registry and normal-family backfill",
     ),
 )
 
@@ -1787,6 +1799,8 @@ def _run_bound_migration_plan(
             verify_managed_invariants=plan.verify_managed_invariants,
             fresh_install=plan.fresh_install,
         )
+        if plan.target_sequence >= 9:
+            _verify_rw0_terminal_anchor_backfill(connection)
         terminal = completed_history[-1]
         if terminal.min_app_schema > current_app_schema:
             raise SQLiteStateError(SQLiteStateErrorCode.DATABASE_SCHEMA_TOO_NEW)
@@ -2080,6 +2094,8 @@ def _recover_migration_outcome(
                         fresh_install=plan.fresh_install,
                         verify_managed_invariants=plan.verify_managed_invariants,
                     )
+                if plan.target_sequence >= 9:
+                    _verify_rw0_terminal_anchor_backfill(connection)
                 terminal = history[-1]
                 if terminal.min_app_schema <= current_app_schema <= terminal.max_app_schema:
                     result = _MigrationRecoveryResult(
@@ -2435,6 +2451,19 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_tables(connection, _EMPTY_AFTER_RW0_C2_PROGRESSION_DECISION_MIGRATION_TABLES)
     if migration.migration_id == _RW0_TERMINAL_OUTCOME_MIGRATION_ID:
         _verify_empty_tables(connection, _EMPTY_AFTER_RW0_TERMINAL_OUTCOME_MIGRATION_TABLES)
+    if fresh_install and migration.migration_id == _RW0_TERMINAL_ANCHOR_MIGRATION_ID:
+        _verify_empty_tables(connection, _EMPTY_AFTER_RW0_TERMINAL_ANCHOR_MIGRATION_TABLES)
+
+
+def _verify_rw0_terminal_anchor_backfill(connection: sqlite3.Connection) -> None:
+    """Read-only administrative invariant, never part of pre-fence writer admission."""
+    try:
+        from ._sqlite_rw0_terminal_anchor_migration_invariants import verify_terminal_anchor_backfill
+        verify_terminal_anchor_backfill(connection)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
 
 
 def _verify_empty_bootstrap_tables(connection: sqlite3.Connection) -> None:

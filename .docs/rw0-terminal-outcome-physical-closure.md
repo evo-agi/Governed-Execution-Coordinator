@@ -296,3 +296,15 @@ actual closure snapshot/time, context digest, outcome digest, result digest,
 closed role graph digest, and receipt digest. No earlier preimage includes its
 own digest or a later identity. The current physical 0008 profile has no
 cancel row, no new evidence set, and no acceptance mutation.
+
+<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_BEGIN -->
+## RW0 terminal anchor registry implementation status
+
+Classification: `CURRENT UNCOMMITTED IMPLEMENTATION CANDIDATE`.
+
+Migration `0009_rw0_terminal_anchor_registry` is the current source/catalog suffix at application schema generation 2. The integrated migration-0008 normal closure status above remains historical. Its four branch-family rows and normal semantic payload are unchanged. Explicit 0008-prefix migration registers each complete existing normal family without rewriting its rows; fresh normal receipts register an immutable anchor in the same transaction. The `rw0_terminal_anchors` phase key is the sole cross-profile route, while the selected checked branch family retains terminal semantic meaning. The registry is no independent outcome, progression decision, authorization, effect basis, or cryptographic replacement.
+
+Migration 0009 admits only `artificial_offline_normal.v1`. Any later branch profile requires a separate explicit migration evolving the family-validation trigger; it must use the same phase-unique registry and cannot introduce a second phase-unique terminal store. This candidate adds no physical cancel capability, cancellation decision or outcome, cancellation effect or request, process observation, external source reconciliation, qualified supplier or custody, successor launch, live execution, Git effect, publication, or deployment. Git objects and refs remain publication truth; this uncommitted source status and validation are evidence only.
+
+For the normal writer, the guarded order remains context, outcome, result, receipt. The receipt stays the last branch-family row, and its AFTER INSERT trigger creates the matching anchor atomically. Before one commit attempt, guarded code reads back the four unchanged rows and exact copied anchor coordinates. Following common admission, fencing, and positive protected disclosure, the anchor is the first terminal-family routing lookup. Replay checks historical command and immutable predecessors with the saved head witness and stop; it does not consult later mutable heads or the current semantic stop. Anchor-only, family-only, partial, aliased, contradictory, or unsupported routes are integrity failures, not absence.
+<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->
