@@ -30,6 +30,48 @@ _RW0_TERMINAL_LOCAL_COMMIT_OWNER_IDENTITY = (1909248, 'bdf3ed6a8189dedd224c2d742
 _RW0_TERMINAL_LOCAL_COMMIT_SUFFIX_IDENTITY = (2746, '123d4c562ecc39e492aa6636912abb2423b00a5de91a7e0858496d8f4d06064c')
 _RW0_POST_MERGE_C2B_IDENTITY = (1912020, '5f83b36c09133a943a3581390ab832705eec3ed042da8eb96648e212ae0dea27')
 _RW0_POST_MERGE_SUFFIX_IDENTITY = (2772, 'a3eb717cb1586c055b65c33b442903f6aa427a714093fff297c3079523893c52')
+_RW0_ANCHOR_POST_MERGE_PREDECESSOR_OWNER_IDENTITY = (1913623, 'e7f4c6913489c408abb7284f9189407d9f9d82fdd1e65a4ecc6e139ed3bc09e4')
+_RW0_ANCHOR_POST_MERGE_CURRENT_OWNER_IDENTITY = (1916497, 'f3222dfeb4a8bc6c9b667bf36584ecd712e64173abef92bd5dae465f016e0031')
+_RW0_ANCHOR_POST_MERGE_SUFFIX_IDENTITY = (2874, '22435582c72614a7fc4ee875cd7ed93cfd0599d96a3dfb551dc9ae823b5a5d90')
+
+
+def _strip_rw0_anchor_post_merge_status(payload: bytes) -> bytes:
+    begin = b'\n<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->\n'
+    end = b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->\n'
+    size, digest = _RW0_ANCHOR_POST_MERGE_SUFFIX_IDENTITY
+    if (type(payload) is not bytes or len(payload) < size or
+            payload.count(begin) != 1 or payload.count(end) != 1 or
+            not payload.endswith(end) or not payload[-size:].startswith(begin)):
+        raise AssertionError('c2b:rw0_anchor_post_merge_status_structure')
+    successor = payload[-size:]
+    if hashlib.sha256(successor).hexdigest() != digest:
+        raise AssertionError('c2b:rw0_anchor_post_merge_status_suffix_identity')
+    predecessor = payload[:-size]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _RW0_ANCHOR_POST_MERGE_PREDECESSOR_OWNER_IDENTITY:
+        raise AssertionError('c2b:rw0_anchor_post_merge_status_predecessor_identity')
+    if (len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_ANCHOR_POST_MERGE_CURRENT_OWNER_IDENTITY:
+        raise AssertionError('c2b:rw0_anchor_post_merge_status_current_identity')
+    compact = b' '.join(successor.split())
+    for phrase in (
+        b'CURRENT INTEGRATED CAPABILITY STATUS',
+        b'856c5ac7efd268f70512169c127c91cf097bd200',
+        b'69fc836dbaa0e2124b427bc9611de2e0fba77040',
+        b'575a8da09b4da2539e8e8d6c1deb475a71627d03',
+        b'0009_rw0_terminal_anchor_registry',
+        b'rw0_terminal_anchors',
+        b'artificial_offline_normal.v1',
+        b'Active cancellation is an authorized subsequent Coordinator capability',
+        b'this integrated source implements no cancel decision',
+        b'Progression pause/resume remains a separate nonterminal lifecycle concern',
+        b'not represented by the terminal registry and is not implemented here',
+        b'owns the sole cross-profile phase route',
+        b'The selected complete branch family retains terminal outcome, graph, result, receipt, and semantic meaning',
+        b'The registry is no outcome, progression decision, effect basis, authorization, or independent terminal fact',
+        b'No tests ran in the merge gate itself',
+    ):
+        if phrase not in compact:
+            raise AssertionError('c2b:rw0_anchor_post_merge_status_semantics')
+    return predecessor
 
 
 def _strip_rw0_anchor_0009_status(payload: bytes) -> bytes:
@@ -47,6 +89,7 @@ def _strip_rw0_anchor_0009_status(payload: bytes) -> bytes:
 
 
 def _strip_rw0_post_merge_status(payload: bytes) -> bytes:
+    payload = _strip_rw0_anchor_post_merge_status(payload)
     payload = _strip_rw0_anchor_0009_status(payload)
     begin = b'\n<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->\n'
     end = b'<!-- RW0_NORMAL_TERMINAL_CLOSURE_POST_MERGE_STATUS_SUCCESSOR_END -->\n'
@@ -4278,6 +4321,44 @@ def test_rw0_terminal_current_successor_preserves_exact_c2b_predecessor() -> Non
                     current.replace(b'd3fd741c872b26aa2dfe927ab6dccc638cdcf356', b'0' * 40, 1)):
         with pytest.raises(AssertionError, match='^c2b:rw0_terminal_local_commit_status_identity$'):
             _strip_rw0_terminal_local_commit_status(changed)
+
+
+def test_rw0_anchor_post_merge_status_preserves_exact_candidate_owner() -> None:
+    predecessor = _strip_rw0_anchor_post_merge_status(OWNER_PATH.read_bytes())
+    assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == (
+        _RW0_ANCHOR_POST_MERGE_PREDECESSOR_OWNER_IDENTITY)
+    assert predecessor.endswith(b'<!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->\n')
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('missing', 'structure'),
+    ('moved_before_candidate', 'structure'),
+    ('appended_bytes', 'structure'),
+    ('wrong_suffix', 'suffix_identity'),
+    ('wrong_predecessor', 'predecessor_identity'),
+))
+def test_rw0_anchor_post_merge_status_rejects_nonexact_owner(
+    case: str, boundary: str,
+) -> None:
+    current = OWNER_PATH.read_bytes()
+    suffix_size = _RW0_ANCHOR_POST_MERGE_SUFFIX_IDENTITY[0]
+    predecessor, successor = current[:-suffix_size], current[-suffix_size:]
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'moved_before_candidate':
+        changed = successor + predecessor
+    elif case == 'appended_bytes':
+        changed = current + b'arbitrary bytes'
+    elif case == 'wrong_suffix':
+        changed = predecessor + successor.replace(
+            b'856c5ac7efd268f70512169c127c91cf097bd200', b'0' * 40, 1)
+    else:
+        changed = b'X' + predecessor[1:] + successor
+    with pytest.raises(
+        AssertionError,
+        match='^c2b:rw0_anchor_post_merge_status_' + boundary + '$',
+    ):
+        _strip_rw0_anchor_post_merge_status(changed)
 
 
 def _compact(text: str) -> str:

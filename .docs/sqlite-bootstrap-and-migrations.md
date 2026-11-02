@@ -756,3 +756,19 @@ Migration 0009 admits only `artificial_offline_normal.v1`. Any later branch prof
 
 The packaged 0009 suffix has six statements: one 21-column STRICT anchor table, four immutable/admission/receipt-registration triggers, and one deterministic receipt-led normal-family backfill. The table adds one phase primary key, seven individual route uniqueness constraints, a phase-pair uniqueness constraint, and composite FKs to the phase and development decision. It has no self-digest and no unconditional FK to the normal receipt. Fresh inventory is 79 tables, 146 triggers, five explicit indexes, 1814 columns, and 242 foreign keys. Exact nonempty 0008 history remains an explicit administrative migration only. A private read-only verifier checks full normal-family and anchor one-to-one validity after statements and before the single commit attempt, and again for exact committed migration recovery. Ordinary pre-fence writer admission does not scan protected terminal rows.
 <!-- RW0_TERMINAL_ANCHOR_0009_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->
+## RW0 terminal anchor evolution integrated capability status
+
+Classification: `CURRENT INTEGRATED CAPABILITY STATUS`.
+
+RW0 terminal-anchor evolution was integrated into `trunk_dev` by squash commit `856c5ac7efd268f70512169c127c91cf097bd200`, with sole parent `69fc836dbaa0e2124b427bc9611de2e0fba77040` and integrated capability tree `575a8da09b4da2539e8e8d6c1deb475a71627d03`. PR #20 and source topic commit `5961cf6bb1dd810eb5260e11b9f9f9054dd41d7d` are source-publication provenance. The commit containing this status-only successor is intentionally not self-identified as the permanent current HEAD; Git objects and refs own current commit and publication truth.
+
+Migration `0009_rw0_terminal_anchor_registry` is the current integrated catalog suffix. Migrations 0001-0008 and existing normal-family rows remain preserved. The `rw0_terminal_anchors` registry owns the sole cross-profile phase route. The selected complete branch family retains terminal outcome, graph, result, receipt, and semantic meaning. The registry is no outcome, progression decision, effect basis, authorization, or independent terminal fact. Migration 0009 admits only `artificial_offline_normal.v1`. A later terminal family requires a separate explicit migration evolving family admission while preserving the same phase-unique registry.
+
+Active cancellation is an authorized subsequent Coordinator capability, but this integrated source implements no cancel decision, cancel effect, request, source observation, reconciliation, or terminal cancel family. Progression pause/resume remains a separate nonterminal lifecycle concern; it is not represented by the terminal registry and is not implemented here. T2-R1 remains optional fixture hardening and is not implemented by this status correction.
+
+The accepted source validation passed 12 / 12, 421 / 421, 194 / 194, 68 / 68, 791 / 791, and a full suite of 9,648 / 9,648 tests, with only the three expected Python 3.13 fork deprecation warnings. All 68 source paths passed staged and committed blob/mode/size equality. No tests ran in the merge gate itself. These records are evidence for the integrated source tree, not validation of this later status-only correction.
+
+Earlier candidate, repair, audit, local-commit, and publication passages in this document remain preserved historical evidence; their uncommitted or unmerged statements are stage-local rather than current repository status. The integrated source adds no live supplier/custody, worker/provider, ES, CP, Bridge, or Temporal route; no Coordinator-owned product Git effect, scheduler, queue, service, successor launch, deployment, or autonomous runtime loop. Source publication does not itself establish product runtime authority.
+<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->
