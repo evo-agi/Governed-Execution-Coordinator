@@ -42,6 +42,7 @@ _RW0_C2_SCOPE_ADMISSION_MIGRATION_ID = "0006_rw0_c2_scope_admission"
 _RW0_C2_PROGRESSION_DECISION_MIGRATION_ID = "0007_rw0_c2_progression_decision"
 _RW0_TERMINAL_OUTCOME_MIGRATION_ID = "0008_rw0_terminal_outcome"
 _RW0_TERMINAL_ANCHOR_MIGRATION_ID = "0009_rw0_terminal_anchor_registry"
+_RW0_CANCEL_PRE_EFFECT_MIGRATION_ID = "0010_rw0_active_cancel_pre_effect_safety_closure"
 _SQLITE_STRICT_MINIMUM_VERSION = (3, 37, 0)
 RFC3339_UTC_Z = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 _SQLITE_VALIDATION_OPERATIONAL_PRIMARY_RESULT_CODES = frozenset(
@@ -267,6 +268,11 @@ _EMPTY_AFTER_RW0_TERMINAL_OUTCOME_MIGRATION_TABLES = frozenset(
     }
 )
 _EMPTY_AFTER_RW0_TERMINAL_ANCHOR_MIGRATION_TABLES = frozenset({"rw0_terminal_anchors"})
+_EMPTY_AFTER_RW0_CANCEL_PRE_EFFECT_MIGRATION_TABLES = frozenset({
+    "rw0_cancel_decision_evidence_bindings", "rw0_cancel_decision_receipts",
+    "rw0_cancel_pre_effect_contexts", "rw0_cancel_pre_effect_outcomes",
+    "rw0_cancel_pre_effect_results", "rw0_cancel_pre_effect_receipts",
+})
 
 
 class DatabaseClassification(str, Enum):
@@ -530,6 +536,16 @@ _PACKAGED_MIGRATION_SPECS = (
         max_app_schema=2,
         destructive=False,
         description="Branch-neutral RW0 terminal anchor registry and normal-family backfill",
+    ),
+    _PackagedMigrationSpec(
+        migration_id=_RW0_CANCEL_PRE_EFFECT_MIGRATION_ID,
+        sequence=10,
+        resource_name="0010_rw0_active_cancel_pre_effect_safety_closure.sql",
+        literal_checksum="f23009dacd6a746fe1230b0ce6960fe296dbeee3947946dc83963baabc1367b2",
+        min_app_schema=2,
+        max_app_schema=2,
+        destructive=False,
+        description="RW0 active-cancel pre-effect decision and proven-unusable terminal closure",
     ),
 )
 
@@ -1799,7 +1815,9 @@ def _run_bound_migration_plan(
             verify_managed_invariants=plan.verify_managed_invariants,
             fresh_install=plan.fresh_install,
         )
-        if plan.target_sequence >= 9:
+        if plan.target_sequence >= 10:
+            _verify_rw0_cancel_pre_effect_anchor_invariant(connection)
+        elif plan.target_sequence >= 9:
             _verify_rw0_terminal_anchor_backfill(connection)
         terminal = completed_history[-1]
         if terminal.min_app_schema > current_app_schema:
@@ -2094,7 +2112,9 @@ def _recover_migration_outcome(
                         fresh_install=plan.fresh_install,
                         verify_managed_invariants=plan.verify_managed_invariants,
                     )
-                if plan.target_sequence >= 9:
+                if plan.target_sequence >= 10:
+                    _verify_rw0_cancel_pre_effect_anchor_invariant(connection)
+                elif plan.target_sequence >= 9:
                     _verify_rw0_terminal_anchor_backfill(connection)
                 terminal = history[-1]
                 if terminal.min_app_schema <= current_app_schema <= terminal.max_app_schema:
@@ -2453,6 +2473,8 @@ def _verify_applied_migration_zero_seed_invariants(
         _verify_empty_tables(connection, _EMPTY_AFTER_RW0_TERMINAL_OUTCOME_MIGRATION_TABLES)
     if fresh_install and migration.migration_id == _RW0_TERMINAL_ANCHOR_MIGRATION_ID:
         _verify_empty_tables(connection, _EMPTY_AFTER_RW0_TERMINAL_ANCHOR_MIGRATION_TABLES)
+    if migration.migration_id == _RW0_CANCEL_PRE_EFFECT_MIGRATION_ID:
+        _verify_empty_tables(connection, _EMPTY_AFTER_RW0_CANCEL_PRE_EFFECT_MIGRATION_TABLES)
 
 
 def _verify_rw0_terminal_anchor_backfill(connection: sqlite3.Connection) -> None:
@@ -2460,6 +2482,17 @@ def _verify_rw0_terminal_anchor_backfill(connection: sqlite3.Connection) -> None
     try:
         from ._sqlite_rw0_terminal_anchor_migration_invariants import verify_terminal_anchor_backfill
         verify_terminal_anchor_backfill(connection)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        raise SQLiteStateError(SQLiteStateErrorCode.SCHEMA_VERIFICATION_FAILED) from None
+
+
+def _verify_rw0_cancel_pre_effect_anchor_invariant(connection: sqlite3.Connection) -> None:
+    """Read-only sequence-10 mixed-profile family and route proof."""
+    try:
+        from ._sqlite_rw0_terminal_anchor_migration_invariants_0010 import verify_terminal_anchor_families_0010
+        verify_terminal_anchor_families_0010(connection)
     except (KeyboardInterrupt, SystemExit, GeneratorExit):
         raise
     except Exception:

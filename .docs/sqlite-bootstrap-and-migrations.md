@@ -772,3 +772,17 @@ The accepted source validation passed 12 / 12, 421 / 421, 194 / 194, 68 / 68, 79
 
 Earlier candidate, repair, audit, local-commit, and publication passages in this document remain preserved historical evidence; their uncommitted or unmerged statements are stage-local rather than current repository status. The integrated source adds no live supplier/custody, worker/provider, ES, CP, Bridge, or Temporal route; no Coordinator-owned product Git effect, scheduler, queue, service, successor launch, deployment, or autonomous runtime loop. Source publication does not itself establish product runtime authority.
 <!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->
+
+<!-- RW0_ACTIVE_CANCEL_PRE_EFFECT_SAFETY_CLOSURE_STATUS_SUCCESSOR_BEGIN -->
+## RW0 active-cancel pre-effect safety closure candidate
+
+Classification: `CURRENT UNCOMMITTED IMPLEMENTATION CANDIDATE`.
+
+Migration `0010_rw0_active_cancel_pre_effect_safety_closure` is a candidate suffix to the exact `trunk_dev` baseline commit `6931ae92126abaf89a75dcf0eb3781f23b4a9363` and tree `1aea0d26cdb578267eed2c0d850c3beef40f81e1`. The prior integrated migration-0009 status remains historical and current predecessor evidence. Migration 0008 and 0009 SQL bytes are unchanged. The candidate production catalog is [0001_initial, 0002_development_program_and_effect_state, 0003_cognitive_proposal_and_selection_state, 0004_rw0_c1_durable_evidence, 0005_section41_post_execution_proposal_family, 0006_rw0_c2_scope_admission, 0007_rw0_c2_progression_decision, 0008_rw0_terminal_outcome, 0009_rw0_terminal_anchor_registry, 0010_rw0_active_cancel_pre_effect_safety_closure], with short sequence catalog [0001, 0002, 0003, 0004, 0005, 0006, 0007, 0008, 0009, 0010]; the current production SQL resource count is `10`.
+
+The private artificial-offline candidate records one immutable generic `cancel/effect_cancellation` decision with a distinct exact receipt and closed safe evidence bindings. Receipt-first same-command replay, changed-command conflict, and exact three-way commit recovery are candidate behavior. A separate fenced verifier rereads Coordinator-owned facts. Exact proven Coordinator-owned mismatch may close one cancel-bound `pre_effect_cancel_basis_unusable` terminal `block`, after the same mismatch is proven again in the terminal transaction. There is no replacement C2B block decision. The `rw0_terminal_anchors` registry remains the sole phase route; the selected complete family owns terminal meaning.
+
+No authenticated current external source authority exists in this candidate. Supplied source evidence is a safe binding, not permission. Missing or unavailable external source evidence is unresolved. Exact local equality returns `locally_current_source_unverified`, never effect eligibility. A missing immutable predecessor is corruption; a complete competing terminal family occupies the phase.
+
+This candidate performs no cancellation effect, fence creation, delivery, request, signal, process control, teardown, terminal cancel, live source contact, ES, CP, Bridge, Temporal, product Git effect, publication, deployment, or pause/resume. It adds no public StateStore route. Independent read-only audit remains required before any integration claim.
+<!-- RW0_ACTIVE_CANCEL_PRE_EFFECT_SAFETY_CLOSURE_STATUS_SUCCESSOR_END -->

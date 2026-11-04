@@ -86,8 +86,8 @@ _LEASE_ID = "lease-b3-fixture"
 _BACKLOG_ID = "backlog-b3-fixture"
 _WORK_ITEM_ID = "wi-b3-fixture"
 _DEPENDENCY_DECISION_REF = "deps-b3-fixture-ready"
-_CURRENT_PHYSICAL_SEQUENCE = 9
-_CURRENT_PHYSICAL_MIGRATION_ID = "0009_rw0_terminal_anchor_registry"
+_CURRENT_PHYSICAL_SEQUENCE = 10
+_CURRENT_PHYSICAL_MIGRATION_ID = "0010_rw0_active_cancel_pre_effect_safety_closure"
 _FIXTURE_WRITER_GENERATION = 2
 _C2B2_PHYSICAL_TABLES = (
     "development_program_heads",

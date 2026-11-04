@@ -33,9 +33,65 @@ _RW0_POST_MERGE_SUFFIX_IDENTITY = (2772, 'a3eb717cb1586c055b65c33b442903f6aa427a
 _RW0_ANCHOR_POST_MERGE_PREDECESSOR_OWNER_IDENTITY = (1913623, 'e7f4c6913489c408abb7284f9189407d9f9d82fdd1e65a4ecc6e139ed3bc09e4')
 _RW0_ANCHOR_POST_MERGE_CURRENT_OWNER_IDENTITY = (1916497, 'f3222dfeb4a8bc6c9b667bf36584ecd712e64173abef92bd5dae465f016e0031')
 _RW0_ANCHOR_POST_MERGE_SUFFIX_IDENTITY = (2874, '22435582c72614a7fc4ee875cd7ed93cfd0599d96a3dfb551dc9ae823b5a5d90')
+_RW0_CANCEL_STATUS_CURRENT_OWNER_IDENTITY = (1919129, 'f74b109bad6e24cb2fb92c996141975c0fe770c87ec440c7a9dfd046497d477e')
+_RW0_CANCEL_STATUS_SUFFIX_IDENTITY = (2632, 'ce76e321a86598b06dd289cebb21f30d8019f66dce3bc702a2015c8a7d43cfc6')
+_RW0_CANCEL_STATUS_BEGIN = b'<!-- RW0_ACTIVE_CANCEL_PRE_EFFECT_SAFETY_CLOSURE_STATUS_SUCCESSOR_BEGIN -->'
+_RW0_CANCEL_STATUS_END = b'<!-- RW0_ACTIVE_CANCEL_PRE_EFFECT_SAFETY_CLOSURE_STATUS_SUCCESSOR_END -->'
+
+
+def _strip_rw0_cancel_status(payload: bytes) -> bytes:
+    begin = b'\n' + _RW0_CANCEL_STATUS_BEGIN + b'\n'
+    end = _RW0_CANCEL_STATUS_END + b'\n'
+    size, digest = _RW0_CANCEL_STATUS_SUFFIX_IDENTITY
+    if (type(payload) is not bytes or payload.count(begin) != 1 or
+            payload.count(end) != 1 or not payload.endswith(end) or
+            len(payload) < size or not payload[-size:].startswith(begin)):
+        raise AssertionError('c2b:rw0_cancel_status_structure')
+    if hashlib.sha256(payload[-size:]).hexdigest() != digest:
+        raise AssertionError('c2b:rw0_cancel_status_suffix_identity')
+    predecessor = payload[:-size]
+    if (len(predecessor), hashlib.sha256(predecessor).hexdigest()) != _RW0_ANCHOR_POST_MERGE_CURRENT_OWNER_IDENTITY:
+        raise AssertionError('c2b:rw0_cancel_status_predecessor_identity')
+    if (len(payload), hashlib.sha256(payload).hexdigest()) != _RW0_CANCEL_STATUS_CURRENT_OWNER_IDENTITY:
+        raise AssertionError('c2b:rw0_cancel_status_current_identity')
+    compact = b' '.join(payload[-size:].split())
+    for phrase in (b'0010_rw0_active_cancel_pre_effect_safety_closure',
+                   b'locally_current_source_unverified',
+                   b'no replacement C2B block decision',
+                   b'Independent read-only audit remains required'):
+        if phrase not in compact:
+            raise AssertionError('c2b:rw0_cancel_status_semantics')
+    return predecessor
+
+
+def test_rw0_cancel_status_exact_c2b_owner() -> None:
+    assert _strip_rw0_cancel_status(OWNER_PATH.read_bytes()).endswith(
+        b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->\n')
+
+
+@pytest.mark.parametrize(('case', 'boundary'), (
+    ('missing', 'structure'), ('duplicate', 'structure'),
+    ('suffix_edit', 'suffix_identity'), ('prior_edit', 'predecessor_identity'),
+))
+def test_rw0_cancel_status_rejects_exact_mutants(case, boundary):
+    current = OWNER_PATH.read_bytes()
+    predecessor = _strip_rw0_cancel_status(current)
+    suffix = current[len(predecessor):]
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + suffix
+    elif case == 'suffix_edit':
+        changed = predecessor + suffix.replace(b'block decision', b'clock decision', 1)
+    else:
+        changed = b'X' + current[1:]
+    with pytest.raises(AssertionError, match='^c2b:rw0_cancel_status_' + boundary + '$'):
+        _strip_rw0_cancel_status(changed)
 
 
 def _strip_rw0_anchor_post_merge_status(payload: bytes) -> bytes:
+    if _RW0_CANCEL_STATUS_BEGIN in payload or _RW0_CANCEL_STATUS_END in payload:
+        payload = _strip_rw0_cancel_status(payload)
     begin = b'\n<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->\n'
     end = b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->\n'
     size, digest = _RW0_ANCHOR_POST_MERGE_SUFFIX_IDENTITY
@@ -4340,7 +4396,7 @@ def test_rw0_anchor_post_merge_status_preserves_exact_candidate_owner() -> None:
 def test_rw0_anchor_post_merge_status_rejects_nonexact_owner(
     case: str, boundary: str,
 ) -> None:
-    current = OWNER_PATH.read_bytes()
+    current = _strip_rw0_cancel_status(OWNER_PATH.read_bytes())
     suffix_size = _RW0_ANCHOR_POST_MERGE_SUFFIX_IDENTITY[0]
     predecessor, successor = current[:-suffix_size], current[-suffix_size:]
     if case == 'missing':
@@ -11343,6 +11399,18 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
         ROOT / "src/ge_nwp_coordinator/_rw0_terminal_outcome_rows.py",
         ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_terminal_outcome.py",
     }
+    rw0_cancel_bounded_sources = {
+        ROOT / "src/ge_nwp_coordinator/_rw0_cancel_decision_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_cancel_decision_plan.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_cancel_decision_rows.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_cancel_pre_effect_terminal_contracts.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_cancel_pre_effect_terminal_plan.py",
+        ROOT / "src/ge_nwp_coordinator/_rw0_cancel_pre_effect_terminal_rows.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_cancel_currentness.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_cancel_decision.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_cancel_pre_effect_terminal.py",
+        ROOT / "src/ge_nwp_coordinator/_sqlite_rw0_terminal_anchor_migration_invariants_0010.py",
+    }
     assert {
         path
         for path in (ROOT / "src/ge_nwp_coordinator").glob("*development*.py")
@@ -11374,6 +11442,7 @@ def test_c2b0_history_and_current_c2b2_section41_source_boundaries_are_distinct(
             | section41_post_execution_family_reader_sources
             | rw0_c2_p1_bounded_sources
                 | rw0_terminal_bounded_sources
+                | rw0_cancel_bounded_sources
         )
     )
     assert all(

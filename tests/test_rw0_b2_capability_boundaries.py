@@ -191,6 +191,61 @@ _RW0_NORMAL_TERMINAL_CURRENT_IDENTITIES = {
 _RW0_NORMAL_TERMINAL_P09_IDENTITY = (19320, '15bd748914eb55f3427d02cf53eeace7529ec7812b883352e2f33f3577aaecad')
 _RW0_NORMAL_TERMINAL_P09_ADDITION = b'''        "_rw0_terminal_head_witness.py":{\n            "_development_effect_row_values",\n            "_development_program_row_values",\n        },\n        "_rw0_terminal_outcome_plan.py":{\n            "_development_decision_row_values",\n        },\n        "_sqlite_rw0_terminal_outcome.py":{\n            "_development_decision_row_values",\n            "_development_program_row_values",\n        },\n'''
 
+# The active-cancel candidate adds exactly four C2B2 row-value consumers to
+# the normal-terminal P09 inventory. Authenticate the full candidate and the
+# one insertion before reconstructing the unchanged historical chain.
+_RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_IDENTITY = (20132, 'ba27f57237f628236a72516f8eb831661af2d867b47f7838f6665ee48ac8c31a')
+_RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION_IDENTITY = (812, 'f1d9a4442691666261181fe8f2d38d1684b409e10f51215099558fb408f31015')
+_RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_INSERT_OFFSET = 11572
+_RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION = (
+    b'    # Private cancel decision contracts bind checked effect-head columns.\n'
+    b'        "_rw0_cancel_decision_contracts.py":{\n'
+    b'            "_development_effect_row_values",\n'
+    b'        },\n'
+    b'        # The private cancel plan builds a checked decision row and digest.\n'
+    b'        "_rw0_cancel_decision_plan.py":{\n'
+    b'            "_development_decision_row_values",\n'
+    b'            "_development_row_value_support",\n'
+    b'        },\n'
+    b'        # Private cancel currentness reconstructs checked program/effect rows.\n'
+    b'        "_sqlite_rw0_cancel_currentness.py":{\n'
+    b'            "_development_effect_row_values",\n'
+    b'            "_development_program_row_values",\n'
+    b'        },\n'
+    b'        # The private SQLite cancel owner persists and reads exact decisions.\n'
+    b'        "_sqlite_rw0_cancel_decision.py":{\n'
+    b'            "_development_decision_row_values",\n'
+    b'        },\n'
+    b'    '
+)
+
+
+def _peel_rw0_active_cancel_pre_effect_p09_successor(
+    relative_path: str, payload: bytes,
+) -> bytes:
+    if relative_path != 'tests/test_c2b2_development_row_value_boundaries.py':
+        return payload
+    if type(payload) is not bytes:
+        raise AssertionError('P09:active_cancel_successor_identity')
+    addition = _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION
+    offset = _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_INSERT_OFFSET
+    if ((len(payload), hashlib.sha256(payload).hexdigest()) !=
+            _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_IDENTITY
+            or (len(addition), hashlib.sha256(addition).hexdigest()) !=
+            _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION_IDENTITY
+            or payload.count(addition) != 1
+            or payload.find(addition) != offset
+            or not payload[offset + len(addition):].startswith(
+                b'}\n    observed_consumers={}'
+            )):
+        raise AssertionError('P09:active_cancel_successor_identity')
+    predecessor = payload[:offset] + payload[offset + len(addition):]
+    if ((len(predecessor), hashlib.sha256(predecessor).hexdigest()) !=
+            _RW0_NORMAL_TERMINAL_P09_IDENTITY
+            or predecessor.count(_RW0_NORMAL_TERMINAL_P09_ADDITION) != 1):
+        raise AssertionError('P09:active_cancel_successor_identity')
+    return predecessor
+
 
 # Exact local-commit status successor to the three bounded capability docs.
 _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES = {
@@ -256,6 +311,7 @@ def _peel_rw0_c2_local_status(relative_path: str, payload: bytes) -> bytes:
 
 def _protected_historical_bytes(relative_path: str, payload: bytes) -> bytes:
     """Verify bounded successors, then retain each old exact identity oracle."""
+    payload = _peel_rw0_active_cancel_pre_effect_p09_successor(relative_path, payload)
     payload = _peel_rw0_normal_terminal_successor(relative_path, payload)
     if relative_path == 'tests/test_c2b2_development_row_value_boundaries.py':
         if (len(payload), hashlib.sha256(payload).hexdigest()) != _P09_RW0_C2_P1_SUCCESSOR_IDENTITY:
@@ -290,6 +346,7 @@ def test_rw0_normal_terminal_successor_reconstructs_protected_predecessor(
     if relative_path in _RW0_LOCAL_TERMINAL_CAPABILITY_IDENTITIES:
         current, _post_merge_status = _rw0_post_merge_status_predecessor(
             relative_path, current)
+    current = _peel_rw0_active_cancel_pre_effect_p09_successor(relative_path, current)
     predecessor = _peel_rw0_normal_terminal_successor(relative_path, current)
     expected = {
         'AGENTS.md': _RW0_C2_LOCAL_STATUS_DOCUMENT_IDENTITIES['AGENTS.md'][0],
@@ -338,7 +395,9 @@ _P09_RW0_C2_P1_ADDITION = b'''        # P1 consumes existing typed 0002 values i
 def test_p09_exact_post_d2_reader_consumer_successor_preserves_predecessor() -> None:
     current = _peel_rw0_normal_terminal_successor(
         'tests/test_c2b2_development_row_value_boundaries.py',
-        (ROOT / 'tests/test_c2b2_development_row_value_boundaries.py').read_bytes())
+        _peel_rw0_active_cancel_pre_effect_p09_successor(
+            'tests/test_c2b2_development_row_value_boundaries.py',
+            (ROOT / 'tests/test_c2b2_development_row_value_boundaries.py').read_bytes()))
     assert (len(current), hashlib.sha256(current).hexdigest()) == _P09_RW0_C2_P1_SUCCESSOR_IDENTITY
     assert current.count(_P09_RW0_C2_P1_ADDITION) == 1
     post_d2 = current.replace(_P09_RW0_C2_P1_ADDITION, b'', 1)
@@ -347,6 +406,49 @@ def test_p09_exact_post_d2_reader_consumer_successor_preserves_predecessor() -> 
     assert post_d2.count(_P09_POST_D2_ADDITION + _P09_POST_D2_FOLLOWING) == 1
     predecessor = post_d2.replace(_P09_POST_D2_ADDITION, b'', 1)
     assert (len(predecessor), hashlib.sha256(predecessor).hexdigest()) == _P09_POST_D2_PREDECESSOR_IDENTITY
+
+
+def test_p09_active_cancel_successor_reconstructs_original_protected_identity() -> None:
+    relative_path = 'tests/test_c2b2_development_row_value_boundaries.py'
+    current = (ROOT / relative_path).read_bytes()
+    assert (len(current), hashlib.sha256(current).hexdigest()) == _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_IDENTITY
+    addition = _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION
+    assert (len(addition), hashlib.sha256(addition).hexdigest()) == _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION_IDENTITY
+    assert current.count(addition) == 1
+    normal_terminal = _peel_rw0_active_cancel_pre_effect_p09_successor(relative_path, current)
+    assert (len(normal_terminal), hashlib.sha256(normal_terminal).hexdigest()) == _RW0_NORMAL_TERMINAL_P09_IDENTITY
+    assert normal_terminal.count(_RW0_NORMAL_TERMINAL_P09_ADDITION) == 1
+    p1 = _peel_rw0_normal_terminal_successor(relative_path, normal_terminal)
+    assert (len(p1), hashlib.sha256(p1).hexdigest()) == _P09_RW0_C2_P1_SUCCESSOR_IDENTITY
+    historical = _protected_historical_bytes(relative_path, current)
+    protected_p09 = PROTECTED_CONTENT_ROWS[8]
+    assert protected_p09[:2] == ('P09', relative_path)
+    assert (len(historical), hashlib.sha256(historical).hexdigest()) == protected_p09[2:4]
+    assert _peel_rw0_active_cancel_pre_effect_p09_successor('README.md', current) is current
+
+
+@pytest.mark.parametrize('specimen', (
+    'missing_addition', 'duplicate_addition', 'moved_addition',
+    'mutated_addition', 'predecessor_mutation', 'trailing_bytes',
+    'non_bytes',
+))
+def test_p09_active_cancel_successor_rejects_changed_bytes(specimen: str) -> None:
+    relative_path = 'tests/test_c2b2_development_row_value_boundaries.py'
+    current = (ROOT / relative_path).read_bytes()
+    addition = _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_ADDITION
+    offset = _RW0_ACTIVE_CANCEL_PRE_EFFECT_P09_INSERT_OFFSET
+    predecessor = current[:offset] + current[offset + len(addition):]
+    variants = {
+        'missing_addition': predecessor,
+        'duplicate_addition': current[:offset] + addition + current[offset:],
+        'moved_addition': predecessor[:offset - 1] + addition + predecessor[offset - 1:],
+        'mutated_addition': current[:offset] + b'X' + current[offset + 1:],
+        'predecessor_mutation': b'X' + current[1:],
+        'trailing_bytes': current + b'X',
+        'non_bytes': bytearray(current),
+    }
+    with pytest.raises(AssertionError, match=r'^P09:active_cancel_successor_identity$'):
+        _peel_rw0_active_cancel_pre_effect_p09_successor(relative_path, variants[specimen])
 
 
 def _assert_single_literal_protected_rows_source(source: str) -> tuple:

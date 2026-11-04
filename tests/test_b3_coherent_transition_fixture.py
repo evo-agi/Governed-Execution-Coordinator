@@ -482,9 +482,9 @@ def test_base_fixture_uses_current_physical_schema_and_builds_historical_exact_g
         assert not fixture.location.state_root.is_relative_to(ROOT)
         inspection = validate_database(fixture.location)
         assert inspection.classification is DatabaseClassification.MANAGED
-        assert inspection.current_sequence == 9
-        assert inspection.latest_sequence == 9
-        assert inspection.current_migration_id == "0009_rw0_terminal_anchor_registry"
+        assert inspection.current_sequence == 10
+        assert inspection.latest_sequence == 10
+        assert inspection.current_migration_id == "0010_rw0_active_cancel_pre_effect_safety_closure"
 
         assert fixture.lease_identity_validation.identity_valid is True
         assert fixture.lease_identity_validation.lease_ref == fixture.lease.lease_id
@@ -749,6 +749,7 @@ def test_migration_boundary_related_surfaces_and_repo_artifacts_remain_frozen() 
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
         "0009_rw0_terminal_anchor_registry.sql",
+        "0010_rw0_active_cancel_pre_effect_safety_closure.sql",
     ]
 
     source_paths = tuple(

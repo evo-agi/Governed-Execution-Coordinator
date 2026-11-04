@@ -1784,7 +1784,8 @@ def test_b1_pair_and_migration_catalog_remain_current():
            "p0_catalog_successor_prefix")
     _exact(resources[6:], ["0007_rw0_c2_progression_decision.sql",
                            "0008_rw0_terminal_outcome.sql",
-                           "0009_rw0_terminal_anchor_registry.sql"],
+                           "0009_rw0_terminal_anchor_registry.sql",
+                           "0010_rw0_active_cancel_pre_effect_safety_closure.sql"],
            "p1_current_catalog_successor")
     assert not (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0005_rw0_c2_guard.sql").exists()
     assert {path.name for path in (ROOT / "src/ge_nwp_coordinator/sqlite_migrations").glob("0005*")} == {

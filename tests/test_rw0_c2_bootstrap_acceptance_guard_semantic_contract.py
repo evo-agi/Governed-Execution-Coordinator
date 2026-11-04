@@ -2127,6 +2127,101 @@ _RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES = {
     'README.md': ((58994, 'fa6052d7e28711a33b94fd296da776d79f5a4964e39279d79ed7a8da1f8b9cba'),
         (61868, '8a29714c63db465b78c3535cd0e11dbb60eae5414c7a8d5cbdb77cc27ad3ba19')),
 }
+_RW0_CANCEL_STATUS_CURRENT_IDENTITIES = {
+    '.docs/architecture.md': (61307, '2db546a0b92feb2d5696612141e17ffaef03a4878f796a2b2d2bfdf1bc78e9b5'),
+    '.docs/authority-boundaries.md': (51803, '27a218c9bfc175da6eb244635a3005f747672f03a406bfbc7bca01b6117e0ab3'),
+    '.docs/autonomous-software-development-operating-model.md': (58205, '1d7ea0ad1ebec95261a9092ba5fd7fe0625b576bf7e083a9a6198f4450f9a78a'),
+    '.docs/c2b-durable-development-state.md': (1919129, 'f74b109bad6e24cb2fb92c996141975c0fe770c87ec440c7a9dfd046497d477e'),
+    '.docs/c2b2-migration-0002.md': (24506, '4b9b9d2d0e5031a15f8f264a0a90591da21778770e7dce18998148a516baf77f'),
+    '.docs/durable-state-model.md': (57802, '0072b371e77babe3b26319683f605d4b0b74663300e6ac73da61b3ecf122010a'),
+    '.docs/rw0-b1-pure-phase-values.md': (48763, '854a076d43ccdaeb58c55b8f43abc666c0d71aa23b85431f9a05da4b08045f86'),
+    '.docs/rw0-b2-wire-protocol.md': (39845, '635371ea4003ed93d5e178d1f7139c83c7e95a83c5ae394689a9f4e4410f0e0b'),
+    '.docs/rw0-c2-durable-progression-decision-semantic-contract.md': (92289, 'ce78bcd197ec45b665a61e096f831235a4274bf9ea5da20cd0f032747fd586d4'),
+    '.docs/rw0-c2-first-live-proof-posture.md': (31955, 'c49ad458fab3969d0ec524fc28dc32dafb5d9f62c1e70f4ac512c64e8b8da0c9'),
+    '.docs/rw0-c2-physical-p0-p1-implementation.md': (33522, '57c26987e350ebf6020d18e366a1038b8830a3ae07c1cacb7e05875f0f8606af'),
+    '.docs/rw0-c2-private-value-versioning.md': (233459, 'ab5dac5abd9f82ef350a308349f2f91fed9e6522fa37633400ade9e4caba04b6'),
+    '.docs/rw0-c2-scope-admission-provisioning-contract.md': (39501, 'c36f584daa796eb6682e6c945f18778a6c4e6050cbac0b75b674dfa9d20502cc'),
+    '.docs/rw0-d1-offline-process-and-capsule-spine.md': (19323, 'dee2f5b6af2024c31c7d657c3b0641d403ef73620b3cd0a70fb5cc0dead43a95'),
+    '.docs/rw0-remote-worker-contact-phase-entry.md': (75278, 'daa4d6d7be8ce5e3612188d175265ce23ea7485037b09f8c2dab8dbbb7250adb'),
+    '.docs/rw0-terminal-outcome-physical-closure.md': (30496, '0366df62982c450e02e51488b5e05087df9acb2a398885cd085fbdba8ebb83cc'),
+    '.docs/software-development-progression-boundary.md': (42242, '2dcc378b69107e55486f2140a02475822dd73873d72679f595e489aba0140bef'),
+    '.docs/sqlite-bootstrap-and-migrations.md': (53880, 'b2f66cb06a5d9872829d3aec979d52345047d4455bd0046805cfd85b55398510'),
+    '.docs/sqlite-operations-and-recovery.md': (59323, '63030bf41a18afa927168626e46d742b3e3c4707f7b7059ecfa527cc7ac39cc0'),
+    '.docs/sqlite-schema-v1.md': (39838, '490044d70cf63dd19e1580710600a86f9591267dc7e87fce662e3db8f8a2a506'),
+    '.docs/sqlite-state-backend-adr.md': (49726, 'f29c532295603c919309814913563f3cf90f4fbdbccecd7618470e9920e8eeed'),
+    '.docs/worker-execution-boundary.md': (48115, 'd867a7a9a62c138fe47c6f56241105cf811ec29db9a8f9129615547e6c58b480'),
+    '.docs/writer-session-authority.md': (71567, '44e9d9ccd54be19fa41d2aeb513cca8bcaf8ac4066f9dbd7a24558ba204db63f'),
+    'AGENTS.md': (88179, 'c5b2fb6482d62c1557e520181e6fe4c479af6e1903d5317fd576da900f33da38'),
+    'README.md': (64500, '6cf7156e24b0e3dd917c8fa4084adb75da0c1d42d6e6e77057521741284da29a'),
+}
+_RW0_CANCEL_STATUS_BEGIN = b'<!-- RW0_ACTIVE_CANCEL_PRE_EFFECT_SAFETY_CLOSURE_STATUS_SUCCESSOR_BEGIN -->'
+_RW0_CANCEL_STATUS_END = b'<!-- RW0_ACTIVE_CANCEL_PRE_EFFECT_SAFETY_CLOSURE_STATUS_SUCCESSOR_END -->'
+_RW0_CANCEL_STATUS_ADDITION_IDENTITY = (2632, 'ce76e321a86598b06dd289cebb21f30d8019f66dce3bc702a2015c8a7d43cfc6')
+
+
+def _rw0_cancel_status_predecessor(relative_path: str, payload: bytes) -> bytes:
+    boundary = 'guard:rw0_cancel_status:' + relative_path
+    begin = b'\n' + _RW0_CANCEL_STATUS_BEGIN + b'\n'
+    end = _RW0_CANCEL_STATUS_END + b'\n'
+    _require(type(payload) is bytes and payload.count(begin) == 1
+             and payload.count(end) == 1 and payload.endswith(end),
+             boundary + ':markers')
+    size, digest = _RW0_CANCEL_STATUS_ADDITION_IDENTITY
+    addition = payload[-size:]
+    _require(addition.startswith(begin) and
+             (len(addition), hashlib.sha256(addition).hexdigest()) == (size, digest),
+             boundary + ':addition_identity')
+    predecessor = payload[:-size]
+    _require((len(predecessor), hashlib.sha256(predecessor).hexdigest()) ==
+             _RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES[relative_path][1],
+             boundary + ':predecessor_identity')
+    _require((len(payload), hashlib.sha256(payload).hexdigest()) ==
+             _RW0_CANCEL_STATUS_CURRENT_IDENTITIES[relative_path],
+             boundary + ':current_identity')
+    compact = b' '.join(addition.split())
+    for phrase in (
+        b'CURRENT UNCOMMITTED IMPLEMENTATION CANDIDATE',
+        b'0010_rw0_active_cancel_pre_effect_safety_closure',
+        b'6931ae92126abaf89a75dcf0eb3781f23b4a9363',
+        b'1aea0d26cdb578267eed2c0d850c3beef40f81e1',
+        b'locally_current_source_unverified',
+        b'proven Coordinator-owned mismatch',
+        b'no replacement C2B block decision',
+        b'no cancellation effect',
+        b'Independent read-only audit remains required',
+    ):
+        _require(phrase in compact, boundary + ':semantics')
+    return predecessor
+
+
+def test_rw0_cancel_status_exact_25_owner_successor() -> None:
+    assert set(_RW0_CANCEL_STATUS_CURRENT_IDENTITIES) == set(
+        _RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES)
+    assert len(_RW0_CANCEL_STATUS_CURRENT_IDENTITIES) == 25
+    for relative_path in _RW0_CANCEL_STATUS_CURRENT_IDENTITIES:
+        _rw0_cancel_status_predecessor(relative_path, (ROOT / relative_path).read_bytes())
+
+
+@pytest.mark.parametrize('case,boundary', (
+    ('missing', 'markers'), ('duplicate', 'markers'),
+    ('suffix_edit', 'addition_identity'), ('old_edit', 'predecessor_identity'),
+))
+def test_rw0_cancel_status_exact_negative_specimens(case: str, boundary: str) -> None:
+    path = 'AGENTS.md'
+    current = (ROOT / path).read_bytes()
+    predecessor = _rw0_cancel_status_predecessor(path, current)
+    suffix = current[len(predecessor):]
+    if case == 'missing':
+        changed = predecessor
+    elif case == 'duplicate':
+        changed = current + suffix
+    elif case == 'suffix_edit':
+        changed = current.replace(b'local equality returns', b'local equality grants', 1)
+    else:
+        changed = b'X' + current[1:]
+    with pytest.raises(AssertionError, match='^guard:rw0_cancel_status:' + path + ':' + boundary + '$'):
+        _rw0_cancel_status_predecessor(path, changed)
+
 _RW0_ANCHOR_POST_MERGE_BEGIN = b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_BEGIN -->'
 _RW0_ANCHOR_POST_MERGE_END = b'<!-- RW0_TERMINAL_ANCHOR_EVOLUTION_POST_MERGE_STATUS_SUCCESSOR_END -->'
 _RW0_ANCHOR_POST_MERGE_BLOCK_IDENTITY = (
@@ -2142,6 +2237,8 @@ def _rw0_anchor_post_merge_status_predecessor(
     relative_path: str, payload: bytes,
     *, boundary: str = 'guard:rw0_anchor_post_merge_status',
 ) -> tuple[bytes, bytes]:
+    if _RW0_CANCEL_STATUS_BEGIN in payload or _RW0_CANCEL_STATUS_END in payload:
+        payload = _rw0_cancel_status_predecessor(relative_path, payload)
     expected_predecessor, expected_current = (
         _RW0_ANCHOR_POST_MERGE_STATUS_IDENTITIES[relative_path]
     )
@@ -2471,7 +2568,7 @@ def test_rw0_anchor_post_merge_status_exact_negative_specimens(
     case: str, boundary: str,
 ) -> None:
     path = 'AGENTS.md'
-    current = (ROOT / path).read_bytes()
+    current = _rw0_cancel_status_predecessor(path, (ROOT / path).read_bytes())
     predecessor, addition = _rw0_anchor_post_merge_status_predecessor(
         path, current)
     if case == 'missing':

@@ -1466,6 +1466,119 @@ class _CoordinatorMutationTransactionController:
             raise _mutation_failed()
         return result
 
+    def run_cancel_operation(self, *, command: object, mode: str,
+                             family: str) -> object:
+        """Private fenced cancel decision or pre-effect terminal operation."""
+        from ._rw0_cancel_decision_contracts import RecordRW0ActiveCancelDecisionCommandV1
+        from ._rw0_cancel_pre_effect_terminal_contracts import RecordRW0CancelPreEffectTerminalCommandV1
+        from . import _sqlite_rw0_cancel_decision as decision
+        from . import _sqlite_rw0_cancel_pre_effect_terminal as terminal
+        if (family not in ("decision", "terminal") or mode not in ("record", "read", "recovery")
+            or (family == "decision" and type(command) is not RecordRW0ActiveCancelDecisionCommandV1)
+            or (family == "terminal" and type(command) is not RecordRW0CancelPreEffectTerminalCommandV1)):
+            raise _mutation_failed()
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result: object | None = None
+        failure: BaseException | None = None
+        cleanup: SQLiteMutationStoreError | None = None
+        module = decision if family == "decision" else terminal
+        try:
+            try:
+                if self._run_until_writer_fencing_resolution() is not _WriterIssuanceMatch.MATCH:
+                    raise _mutation_failed()
+                timestamp = _capture_transaction_timestamp()
+                if mode == "recovery":
+                    result = module.recover_after_fencing(self._capability, command)
+                elif mode == "read":
+                    result = module.read_after_fencing(self._capability, command)
+                    if result is None:
+                        raise _database_integrity_failure()
+                else:
+                    connection = self._connection
+                    if type(connection) is not sqlite3.Connection:
+                        raise _mutation_failed()
+                    self._set_resolution_state(_MutationCommitResolutionState.PLANNED_OUTCOME)
+                    candidate = module.write_after_fencing(self._capability, connection, command, timestamp)
+                    if type(candidate) in (decision.FreshCancelDecision, terminal.FreshCancelTerminal):
+                        self._set_resolution_state(_MutationCommitResolutionState.WRITES_PERFORMED)
+                        result = self._commit_after_fresh_writes(
+                            candidate.committed, force_cleanup_on_uncertainty=True)
+                    else:
+                        result = candidate
+                if not self._commit_attempt_started:
+                    cleanup = self._resolve_rollback_before_commit()
+            except (_WriterSessionAuthorityClosed, _WriterSessionAuthorityUnavailable):
+                failure = _mutation_failed()
+            except (WriterSessionError, SQLiteMutationStoreError) as error:
+                failure = error
+            except Exception:
+                failure = _mutation_failed()
+            except BaseException:
+                if not self._commit_attempt_started:
+                    try:
+                        self._resolve_rollback_before_commit()
+                    except BaseException:
+                        pass
+                raise
+            if failure is not None and not self._commit_attempt_started:
+                cleanup = self._resolve_rollback_before_commit()
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                if self._commit_attempt_started:
+                    failure = _commit_outcome_unknown()
+                    cleanup = None
+                    result = None
+                else:
+                    cleanup = cleanup or _mutation_failed()
+        witness = self._rw0_c1_commit_close_witness
+        if (type(witness) is _RW0C1CommitCloseWitness
+            and witness.ordinary_failure_is_commit_uncertain
+            and (cleanup is not None or failure is not None or result is None)):
+            failure = _commit_outcome_unknown()
+            cleanup = None
+            result = None
+        if cleanup is not None or failure is not None or result is None:
+            if mode == "recovery":
+                return module.unresolved_recovery()
+            raise cleanup or failure or _mutation_failed()
+        return result
+
+    def run_cancel_verification(self, *, command: object,
+                                external_source_available: bool) -> object:
+        from ._rw0_cancel_decision_contracts import RecordRW0ActiveCancelDecisionCommandV1
+        from ._sqlite_rw0_cancel_currentness import verify_after_fencing, CancelCurrentnessV1
+        if (type(command) is not RecordRW0ActiveCancelDecisionCommandV1
+            or type(external_source_available) is not bool):
+            raise _mutation_failed()
+        self._require_new_owner()
+        mutation_lease = self._acquire_controller_mutation_lease()
+        result: object = CancelCurrentnessV1("commit_or_readback_unresolved")
+        try:
+            if self._run_until_writer_fencing_resolution() is _WriterIssuanceMatch.MATCH:
+                result = verify_after_fencing(
+                    self._capability, command,
+                    external_source_available=external_source_available)
+            cleanup = self._resolve_rollback_before_commit()
+            if cleanup is not None:
+                result = CancelCurrentnessV1("commit_or_readback_unresolved")
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            try:
+                self._resolve_rollback_before_commit()
+            except Exception:
+                pass
+            result = CancelCurrentnessV1("commit_or_readback_unresolved")
+        finally:
+            try:
+                mutation_lease._close()
+            except Exception:
+                result = CancelCurrentnessV1("commit_or_readback_unresolved")
+        return result
+
     def run_atomic_post_execution_proposal(
         self, *, command: RecordPostExecutionProposalCommandV1,
         run: RW0D2OfflineRun, safe_basis_bytes: bytes,
@@ -3171,6 +3284,8 @@ class _CoordinatorMutationTransactionController:
         )
         self._prepare_controller_scope()
         commit_observation: object = _SQLITE_COMMIT_NOT_RETURNED
+        from ._rw0_cancel_decision_contracts import CancelDecisionCommittedV1
+        from ._rw0_cancel_pre_effect_terminal_contracts import CancelTerminalCommittedV1
         require_complete_close_proof = type(planned_result) in (
             RW0C1EstablishPhaseResultV1,
             RW0C1AdmitEvidenceResultV1,
@@ -3178,6 +3293,8 @@ class _CoordinatorMutationTransactionController:
             ScopeAdmissionCommittedV1,
             ProgressionDecisionCommittedV1,
             TerminalCommittedV1,
+            CancelDecisionCommittedV1,
+            CancelTerminalCommittedV1,
         )
         commit_close_witness = self._rw0_c1_commit_close_witness
         if require_complete_close_proof and type(
@@ -4200,6 +4317,76 @@ def _run_terminal_operation(
         operation_lease = None  # type: ignore[assignment]
         source = None  # type: ignore[assignment]
     return result
+
+
+def _insert_cancel_sqlite_row(connection: sqlite3.Connection, table: str,
+                              columns: tuple[str, ...], values: tuple[object, ...]) -> None:
+    """Preserve the private terminal call edge; SQL belongs to the cancel owner."""
+    from ._sqlite_rw0_cancel_decision import _insert_cancel_sqlite_row as owner_insert
+    owner_insert(connection, table, columns, values, sqlite_api=sqlite3)
+
+
+def _run_cancel_operation(
+    *, operation_lease: _WriterSessionOperationLease,
+    command: object, mode: str, family: str,
+    commit_close_witness: _RW0C1CommitCloseWitness | None = None,
+) -> object:
+    """Only private session/operation-lease callers can reach this controller."""
+    if (type(operation_lease) is not _WriterSessionOperationLease
+        or family not in ("decision", "terminal")
+        or mode not in ("record", "read", "recovery")
+        or (mode == "record") != (type(commit_close_witness) is _RW0C1CommitCloseWitness)):
+        return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.MUTATION_FAILED)
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY,
+            operation_lease=operation_lease,
+            rw0_c1_commit_close_witness=commit_close_witness,
+        )
+        return controller.run_cancel_operation(command=command, mode=mode, family=family)
+    except SQLiteMutationStoreError as error:
+        if (type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain):
+            return _new_safe_mutation_failure_disposition(SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN)
+        return _safe_mutation_failure_disposition(error)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        if mode == "recovery":
+            from ._sqlite_rw0_cancel_decision import unresolved_recovery as decision_unresolved
+            from ._sqlite_rw0_cancel_pre_effect_terminal import unresolved_recovery as terminal_unresolved
+            return decision_unresolved() if family == "decision" else terminal_unresolved()
+        return _new_safe_mutation_failure_disposition(
+            SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+            if type(commit_close_witness) is _RW0C1CommitCloseWitness
+            and commit_close_witness.ordinary_failure_is_commit_uncertain
+            else SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE)
+    finally:
+        controller = None
+        operation_lease = None  # type: ignore[assignment]
+
+
+def _run_cancel_verification(*, operation_lease: _WriterSessionOperationLease,
+                             command: object,
+                             external_source_available: bool) -> object:
+    from ._sqlite_rw0_cancel_currentness import CancelCurrentnessV1
+    if (type(operation_lease) is not _WriterSessionOperationLease
+        or type(external_source_available) is not bool):
+        return CancelCurrentnessV1("commit_or_readback_unresolved")
+    controller: _CoordinatorMutationTransactionController | None = None
+    try:
+        controller = _CoordinatorMutationTransactionController(
+            key=_CONTROLLER_CONSTRUCTION_KEY, operation_lease=operation_lease)
+        return controller.run_cancel_verification(
+            command=command, external_source_available=external_source_available)
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        raise
+    except Exception:
+        return CancelCurrentnessV1("commit_or_readback_unresolved")
+    finally:
+        controller = None
+        operation_lease = None  # type: ignore[assignment]
 
 
 def _run_rw0_d2_current_owner_snapshot(
