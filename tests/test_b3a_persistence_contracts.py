@@ -756,6 +756,7 @@ def test_b3a_static_boundary_has_no_runtime_sqlite_mutation_or_admission_surface
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
         "0009_rw0_terminal_anchor_registry.sql",
+        "0010_rw0_active_cancel_pre_effect_safety_closure.sql",
     ]
     migration_bytes = (ROOT / "src/ge_nwp_coordinator/sqlite_migrations/0001_initial.sql").read_bytes()
     assert hashlib.sha256(migration_bytes).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM

@@ -258,6 +258,24 @@ def test_no_callable_registry_or_hidden_existing_source_consumer_exists()->None:
             "_development_decision_row_values",
             "_development_program_row_values",
         },
+        # Private cancel decision contracts bind checked effect-head columns.
+        "_rw0_cancel_decision_contracts.py":{
+            "_development_effect_row_values",
+        },
+        # The private cancel plan builds a checked decision row and digest.
+        "_rw0_cancel_decision_plan.py":{
+            "_development_decision_row_values",
+            "_development_row_value_support",
+        },
+        # Private cancel currentness reconstructs checked program/effect rows.
+        "_sqlite_rw0_cancel_currentness.py":{
+            "_development_effect_row_values",
+            "_development_program_row_values",
+        },
+        # The private SQLite cancel owner persists and reads exact decisions.
+        "_sqlite_rw0_cancel_decision.py":{
+            "_development_decision_row_values",
+        },
     }
     observed_consumers={}
     for path in (ROOT/"src/ge_nwp_coordinator").glob("*.py"):

@@ -1014,6 +1014,7 @@ def test_b3c0b_boundary_files_and_migrations_remain_frozen() -> None:
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
         "0009_rw0_terminal_anchor_registry.sql",
+        "0010_rw0_active_cancel_pre_effect_safety_closure.sql",
     ]
     assert hashlib.sha256(MIGRATION_PATH.read_bytes()).hexdigest() == EXPECTED_MIGRATION_0001_CHECKSUM
     assert not (PACKAGE_DIR / "sqlite_transition_fixtures.py").exists()

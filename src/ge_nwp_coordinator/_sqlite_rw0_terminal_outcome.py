@@ -331,9 +331,15 @@ def _plan_exact(capability: object, plan: TerminalPlan, *, receipt: bool) -> Non
             raise _integrity() from None
 
 
-def _anchor_family_exact(capability: object, anchor: TerminalAnchorRow) -> TerminalRow:
+def _anchor_family_exact(capability: object, anchor: TerminalAnchorRow) -> object:
     """Check the selected persisted family before interpreting its receipt."""
     a = anchor.mapping
+    if a["family_profile"] != PROFILE:
+        from ._rw0_cancel_pre_effect_terminal_rows import PROFILE as CANCEL_PROFILE
+        if a["family_profile"] != CANCEL_PROFILE:
+            raise _integrity() from None
+        from ._sqlite_rw0_cancel_pre_effect_terminal import family_from_anchor
+        return family_from_anchor(capability, anchor)
     context = _one(capability, CONTEXT, "context_ref", a["context_ref"])
     outcome = _one(capability, OUTCOME, "outcome_value_ref", a["outcome_value_ref"])
     result = _one(capability, RESULT, "result_ref", a["result_ref"])
@@ -420,6 +426,8 @@ def read_after_fencing(
     _disclosure(command, source, timestamp, recording=False)
     safe = command.to_mapping()
     anchor = read_terminal_anchor(capability, "phase_basis_ref", safe["phase_basis_ref"])
+    from ._sqlite_rw0_cancel_pre_effect_terminal import check_phase_route_rows
+    check_phase_route_rows(capability, cast(str, safe["phase_basis_ref"]), anchor)
     if anchor is None:
         aliases = _checked_anchor_aliases(capability, command)
         _route_occupied(capability, command, aliases)
@@ -427,6 +435,10 @@ def read_after_fencing(
             raise _integrity() from None
         return None
     receipt = _anchor_family_exact(capability, anchor)
+    if anchor.mapping["family_profile"] != PROFILE:
+        aliases = _checked_anchor_aliases(capability, command)
+        _route_occupied(capability, command, (anchor, *aliases))
+        return None
     if anchor.mapping["mutation_ref"] != safe["mutation_ref"]:
         aliases = _checked_anchor_aliases(capability, command)
         _route_occupied(capability, command, (anchor, *aliases))
@@ -445,8 +457,13 @@ def write_fresh_after_fencing(
         return TerminalConflictV1("protected_posture_unavailable")
     safe = command.to_mapping()
     anchor = read_terminal_anchor(capability, "phase_basis_ref", safe["phase_basis_ref"])
+    from ._sqlite_rw0_cancel_pre_effect_terminal import check_phase_route_rows
+    check_phase_route_rows(capability, cast(str, safe["phase_basis_ref"]), anchor)
     if anchor is not None and anchor.mapping["mutation_ref"] == safe["mutation_ref"]:
         receipt = _anchor_family_exact(capability, anchor)
+        if anchor.mapping["family_profile"] != PROFILE:
+            _route_occupied(capability, command, (anchor,))
+            return TerminalConflictV1("route_collision")
         try:
             return _historical_exact(capability, command, receipt)
         except ValueError as exc:

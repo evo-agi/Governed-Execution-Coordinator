@@ -29,6 +29,22 @@ BACKFILL_COLUMNS = (
 )
 
 
+def _catalog_0009():
+    return migration.MigrationCatalog(migration.load_migration_catalog().migrations[:9])
+
+
+def _initialize_0009(location):
+    return migration._initialize_database_with_catalog(
+        location, _catalog_0009(), current_app_schema=2,
+        verify_managed_invariants=True)
+
+
+def _migrate_0009(location):
+    return migration._migrate_database_with_catalog(
+        location, _catalog_0009(), current_app_schema=2,
+        verify_managed_invariants=True)
+
+
 def _inventory(connection: sqlite3.Connection) -> tuple[int, int, int, int, int]:
     tables = tuple(row[0] for row in connection.execute(
         "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
@@ -42,7 +58,7 @@ def _inventory(connection: sqlite3.Connection) -> tuple[int, int, int, int, int]
 
 
 def test_0009_literal_catalog_and_fresh_install(tmp_path):
-    catalog = migration.load_migration_catalog()
+    catalog = _catalog_0009()
     assert tuple(item.sequence for item in catalog.migrations) == tuple(range(1, 10))
     tip = catalog.migrations[-1]
     assert tip.migration_id == "0009_rw0_terminal_anchor_registry"
@@ -54,9 +70,9 @@ def test_0009_literal_catalog_and_fresh_install(tmp_path):
     assert sum("CREATE TABLE" in statement.upper() for statement in statements) == 1
     assert sum(statement.lstrip().upper().startswith("CREATE TRIGGER") for statement in statements) == 4
     location = CoordinatorStateLocation.from_trusted_root(tmp_path / "fresh")
-    inspected = migration.initialize_database(location)
+    inspected = _initialize_0009(location)
     assert inspected.current_sequence == inspected.latest_sequence == 9
-    assert migration.validate_database(location) == inspected
+    assert migration.validate_database(location).classification is migration.DatabaseClassification.UNKNOWN
     with sqlite3.connect(location.database_path) as connection:
         assert _inventory(connection) == (79, 146, 5, 1814, 242)
         assert tuple(row[1] for row in connection.execute(
@@ -67,14 +83,14 @@ def test_0009_literal_catalog_and_fresh_install(tmp_path):
 
 
 def test_0009_exact_empty_0008_prefix_requires_explicit_migration(tmp_path):
-    catalog = migration.load_migration_catalog()
+    catalog = _catalog_0009()
     prefix = migration.MigrationCatalog(catalog.migrations[:8])
     location = CoordinatorStateLocation.from_trusted_root(tmp_path / "prefix")
     old = migration._initialize_database_with_catalog(
         location, prefix, current_app_schema=2, verify_managed_invariants=True)
     assert old.current_sequence == 8
     assert migration.validate_database(location).classification is migration.DatabaseClassification.UNKNOWN
-    migrated = migration.migrate_database(location)
+    migrated = _migrate_0009(location)
     assert migrated.current_sequence == migrated.latest_sequence == 9
     with sqlite3.connect(location.database_path) as connection:
         assert _inventory(connection) == (79, 146, 5, 1814, 242)
@@ -82,10 +98,10 @@ def test_0009_exact_empty_0008_prefix_requires_explicit_migration(tmp_path):
 
 
 def test_0008_catalog_cannot_admit_0009_database(tmp_path):
-    catalog = migration.load_migration_catalog()
+    catalog = _catalog_0009()
     prefix = migration.MigrationCatalog(catalog.migrations[:8])
     location = CoordinatorStateLocation.from_trusted_root(tmp_path / "newer")
-    migration.initialize_database(location)
+    _initialize_0009(location)
     old_binary_assessment = migration._assess_location_database(
         location, prefix, current_app_schema=2,
         verify_managed_invariants=True)
@@ -110,7 +126,7 @@ def _retarget_terminal_mutation(command, mutation_ref):
 @contextmanager
 def _committed_0008_family(monkeypatch, tmp_path, *, mutation_ref=None, recorded_at=None):
     """Put source-coherent normal rows into an exact 0008 physical/history tip."""
-    catalog = migration.load_migration_catalog()
+    catalog = _catalog_0009()
     prefix = migration.MigrationCatalog(catalog.migrations[:8])
     with prepared_normal_case(monkeypatch) as (source_location, command, source, _):
         if mutation_ref is not None:
@@ -126,9 +142,18 @@ def _committed_0008_family(monkeypatch, tmp_path, *, mutation_ref=None, recorded
             history_guard = old_db.execute(
                 "SELECT sql FROM sqlite_schema WHERE name='schema_migrations_no_delete'"
             ).fetchone()[0]
+            old_db.execute("DROP TRIGGER rw0_cancel_pre_effect_receipts_register_anchor")
+            old_db.execute("DROP TRIGGER rw0_terminal_anchors_require_registered_family")
+            for table in (
+                "rw0_cancel_pre_effect_receipts", "rw0_cancel_pre_effect_results",
+                "rw0_cancel_pre_effect_outcomes", "rw0_cancel_pre_effect_contexts",
+                "rw0_cancel_decision_receipts", "rw0_cancel_decision_evidence_bindings",
+            ):
+                old_db.execute(f"DROP TABLE {table}")
             old_db.execute("DROP TRIGGER rw0_terminal_receipts_register_anchor")
             old_db.execute("DROP TABLE rw0_terminal_anchors")
             old_db.execute("DROP TRIGGER schema_migrations_no_delete")
+            old_db.execute("DELETE FROM schema_migrations WHERE sequence=10")
             old_db.execute("DELETE FROM schema_migrations WHERE sequence=9")
             old_db.execute(history_guard)
             old_db.commit()
@@ -175,7 +200,7 @@ def test_0009_populated_0008_prefix_backfills_exactly_without_rewriting(
             assert _inventory(before)[:3] == (78, 142, 5)
             assert all(before.execute(f"SELECT * FROM {table}").fetchone() == original[table]
                        for table in TABLES)
-        migrated = migration.migrate_database(location)
+        migrated = _migrate_0009(location)
         assert migrated.current_sequence == migrated.latest_sequence == 9
         with closing(sqlite3.connect(location.database_path)) as after:
             assert _inventory(after) == (79, 146, 5, 1814, 242)
@@ -206,6 +231,9 @@ def test_0009_populated_0008_prefix_backfills_exactly_without_rewriting(
                 f"SELECT {', '.join(BACKFILL_COLUMNS)} FROM rw0_terminal_anchors"
             ).fetchall()
             assert anchor == [expected]
+        # The historical 0009 proof is complete; current writer admission now
+        # requires the separately packaged 0010 suffix.
+        migration.migrate_database(location)
         with acquire_sqlite_writer_session(location) as writer:
             assert writer._record_terminal_outcome(command, source).outcome == "accept"
             assert writer._recover_terminal_outcome(command, source).classification == "committed_exact"
@@ -231,7 +259,7 @@ def test_0009_malformed_0008_family_rolls_back(monkeypatch, tmp_path, damage):
                 connection.execute(guard)
             connection.commit()
         with pytest.raises(SQLiteStateError):
-            migration.migrate_database(location)
+            _migrate_0009(location)
         with closing(sqlite3.connect(location.database_path)) as after:
             assert _inventory(after)[:3] == (78, 142, 5)
             assert after.execute(
@@ -252,7 +280,7 @@ def test_0009_commit_response_loss_recovers_populated_backfill(monkeypatch, tmp_
 
         with monkeypatch.context() as patch:
             patch.setattr(migration, "_attempt_migration_commit", lost_response)
-            migrated = migration.migrate_database(location)
+            migrated = _migrate_0009(location)
         assert migrated.current_sequence == migrated.latest_sequence == 9
         assert attempts == [1]
         with closing(sqlite3.connect(location.database_path)) as connection:
@@ -262,7 +290,7 @@ def test_0009_commit_response_loss_recovers_populated_backfill(monkeypatch, tmp_
 
 
 def test_0009_precommit_response_loss_is_definitely_not_committed(tmp_path, monkeypatch):
-    catalog = migration.load_migration_catalog()
+    catalog = _catalog_0009()
     prefix = migration.MigrationCatalog(catalog.migrations[:8])
     location = CoordinatorStateLocation.from_trusted_root(tmp_path / "old")
     migration._initialize_database_with_catalog(
@@ -276,7 +304,7 @@ def test_0009_precommit_response_loss_is_definitely_not_committed(tmp_path, monk
     with monkeypatch.context() as patch:
         patch.setattr(migration, "_attempt_migration_commit", fail_before_commit)
         with pytest.raises(SQLiteStateError) as caught:
-            migration.migrate_database(location)
+            _migrate_0009(location)
     assert caught.value.error_class == SQLiteStateErrorCode.MIGRATION_FAILED.value
     assert attempts == [1]
     assert migration._assess_location_database(
@@ -306,13 +334,13 @@ def test_0009_committed_but_broken_backfill_is_unresolved(monkeypatch, tmp_path)
         with monkeypatch.context() as patch:
             patch.setattr(migration, "_attempt_migration_commit", corrupt_after_commit)
             with pytest.raises(SQLiteStateError) as caught:
-                migration.migrate_database(location)
+                _migrate_0009(location)
         assert caught.value.error_class == SQLiteStateErrorCode.MIGRATION_OUTCOME_UNRESOLVED.value
         assert attempts == [1]
 
 
 def test_0009_post_commit_close_failure_recovers(monkeypatch, tmp_path):
-    catalog = migration.load_migration_catalog()
+    catalog = _catalog_0009()
     prefix = migration.MigrationCatalog(catalog.migrations[:8])
     location = CoordinatorStateLocation.from_trusted_root(tmp_path / "old")
     migration._initialize_database_with_catalog(
@@ -329,7 +357,7 @@ def test_0009_post_commit_close_failure_recovers(monkeypatch, tmp_path):
 
     with monkeypatch.context() as patch:
         patch.setattr(migration, "_close_migration_connection", close_then_fail)
-        migrated = migration.migrate_database(location)
+        migrated = _migrate_0009(location)
     assert migrated.current_sequence == migrated.latest_sequence == 9
     assert len(calls) >= 2
 

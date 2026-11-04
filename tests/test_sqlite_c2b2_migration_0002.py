@@ -4401,8 +4401,8 @@ def test_literal_table_column_key_check_fk_trigger_and_index_inventory() -> None
 def test_current_migration_documentation_matches_catalog_and_scopes_historical_0002() -> None:
     catalog = migration_module.load_migration_catalog()
     production = _PRODUCTION_CATALOG_LOADER()
-    assert tuple(item.sequence for item in production.migrations) == (1, 2, 3, 4, 5, 6, 7, 8, 9)
-    assert production.migrations[-1].migration_id == "0009_rw0_terminal_anchor_registry"
+    assert tuple(item.sequence for item in production.migrations) == tuple(range(1, 11))
+    assert production.migrations[-1].migration_id == "0010_rw0_active_cancel_pre_effect_safety_closure"
     migrations = catalog.migrations
     current_tip = migrations[-1].migration_id
     complete_catalog = "[" + ", ".join(item.migration_id for item in migrations) + "]"
@@ -4431,8 +4431,8 @@ def test_current_migration_documentation_matches_catalog_and_scopes_historical_0
     assert f"current production SQL resource count is `{resource_count}`" in backend_status
     current_catalog = "[" + ", ".join(item.migration_id for item in production.migrations) + "]"
     assert current_catalog in migration_status
-    assert "current production SQL resource count is `7`" in migration_status
-    assert "current production SQL resource count is `7`" in backend_status
+    assert "current production SQL resource count is `10`" in migration_status
+    assert "current production SQL resource count is `10`" in backend_status
     assert "Migration 0002 is an unchanged historical prefix" in migration_status
     assert "Migration 0002 remains an unchanged historical prefix" in backend_status
     assert "C2B2 did not implement or acquire ownership of migration 0003" in migration_status
@@ -4559,6 +4559,7 @@ def test_generation_two_catalog_is_exact_and_0001_is_preserved() -> None:
         "0007_rw0_c2_progression_decision.sql",
         "0008_rw0_terminal_outcome.sql",
         "0009_rw0_terminal_anchor_registry.sql",
+        "0010_rw0_active_cancel_pre_effect_safety_closure.sql",
     )
 
 

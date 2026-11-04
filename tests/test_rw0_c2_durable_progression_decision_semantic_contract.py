@@ -993,6 +993,7 @@ CURRENT_MIGRATION_SHA256 = MIGRATION_SHA256 | {
     "0007_rw0_c2_progression_decision.sql": "505d72c9c54f68e248bebab928e76564d45b853068b8b4021ebc708b640e430c",
     "0008_rw0_terminal_outcome.sql": "a199ea64b4546d441cde00d8c7def62405ed28a89841a181dc6ba93871845254",
     "0009_rw0_terminal_anchor_registry.sql": "ee9a063b4974bffee39af691dc059535172f189e89d96789befe716cd89b3d25",
+    "0010_rw0_active_cancel_pre_effect_safety_closure.sql": "f23009dacd6a746fe1230b0ce6960fe296dbeee3947946dc83963baabc1367b2",
 }
 
 

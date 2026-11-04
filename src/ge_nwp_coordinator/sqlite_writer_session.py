@@ -6866,6 +6866,106 @@ class _SQLiteWriterSession(WriterSession):
     def _recover_terminal_outcome(self, command: object, source: object) -> object:
         return self._run_terminal_operation(command, source, mode="recovery")
 
+    def _record_active_cancel_decision(self, command: object) -> object:
+        return self._run_active_cancel_operation(command, mode="record", family="decision")
+
+    def _read_active_cancel_decision(self, command: object) -> object:
+        return self._run_active_cancel_operation(command, mode="read", family="decision")
+
+    def _recover_active_cancel_decision(self, command: object) -> object:
+        return self._run_active_cancel_operation(command, mode="recovery", family="decision")
+
+    def _verify_active_cancel_currentness(self, command: object,
+                                           external_source_available: bool = True) -> object:
+        """Use an artificial caller-supplied source flag for private diagnostics."""
+        return self._run_active_cancel_operation(
+            command, mode="verify", family="decision",
+            external_source_available=external_source_available)
+
+    def _record_cancel_pre_effect_block(self, command: object) -> object:
+        return self._run_active_cancel_operation(command, mode="record", family="terminal")
+
+    def _read_cancel_pre_effect_block(self, command: object) -> object:
+        return self._run_active_cancel_operation(command, mode="read", family="terminal")
+
+    def _recover_cancel_pre_effect_block(self, command: object) -> object:
+        return self._run_active_cancel_operation(command, mode="recovery", family="terminal")
+
+    def _run_active_cancel_operation(self, command: object, *, mode: str,
+                                     family: str,
+                                     external_source_available: bool = True) -> object:
+        """Private operation-guarded active-cancel entry, with no public export."""
+        try:
+            from ge_nwp_coordinator._rw0_cancel_decision_contracts import RecordRW0ActiveCancelDecisionCommandV1
+            from ge_nwp_coordinator._rw0_cancel_pre_effect_terminal_contracts import RecordRW0CancelPreEffectTerminalCommandV1
+            from ge_nwp_coordinator._rw0_c1_mutation_contracts import _RW0C1CommitCloseWitness
+            if (family not in ("decision", "terminal")
+                or mode not in ("record", "read", "recovery", "verify")
+                or (mode == "verify" and family != "decision")
+                or type(external_source_available) is not bool):
+                raise ValueError("invalid cancel operation")
+            if family == "decision":
+                if type(command) is not RecordRW0ActiveCancelDecisionCommandV1:
+                    raise ValueError("invalid cancel decision")
+                RecordRW0ActiveCancelDecisionCommandV1(command.safe_bytes)
+            else:
+                if type(command) is not RecordRW0CancelPreEffectTerminalCommandV1:
+                    raise ValueError("invalid cancel terminal")
+                RecordRW0CancelPreEffectTerminalCommandV1(command.safe_bytes)
+        except (KeyboardInterrupt, SystemExit, GeneratorExit):
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.DATABASE_INTEGRITY_FAILURE))
+        witness = _RW0C1CommitCloseWitness() if mode == "record" else None
+        resource_reference = weakref.ref(self._resource)
+        correlation: _OperationInvocationCorrelation | None = None
+        try:
+            correlation = self._resource._new_operation_invocation_correlation()
+            bound_guard = self._resource.operation_guard
+            keywords = ({"_invocation_correlation": correlation}
+                        if type(bound_guard) is MethodType else {})
+            with bound_guard(self, **keywords) as operation_lease:
+                from ge_nwp_coordinator.sqlite_transition_transaction import _run_cancel_operation, _run_cancel_verification
+                if mode == "verify":
+                    result = _run_cancel_verification(
+                        operation_lease=operation_lease, command=command,
+                        external_source_available=external_source_available)
+                else:
+                    result = _run_cancel_operation(
+                        operation_lease=operation_lease, command=command,
+                        family=family, mode=mode, commit_close_witness=witness)
+                if type(result) is _SafeMutationFailureDisposition:
+                    _raise_safe_mutation_store_error(_safe_mutation_error_from_disposition(result))
+            resource = resource_reference()
+            _stabilize_rw0_c1_outer_operation_close(resource, correlation)
+            if witness is not None:
+                _complete_rw0_c1_writer_post_operation(
+                    commit_close_witness=witness, recovery_close_witness=None)
+            return result
+        except (KeyboardInterrupt, SystemExit, GeneratorExit) as governing:
+            resource = resource_reference()
+            if type(resource) is _WriterSessionResource:
+                try:
+                    resource._stabilize_operation_exit_for_process_control(correlation)
+                except BaseException:
+                    pass
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                governing, _sanitize_exception_traceback_graph)
+            raise
+        except (WriterSessionError, SQLiteMutationStoreError) as safe_error:
+            if witness is not None and witness.ordinary_failure_is_commit_uncertain:
+                _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                    SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN))
+            _sanitize_exception_traceback_graph_at_outward_boundary(
+                safe_error, _sanitize_exception_traceback_graph)
+            raise
+        except Exception:
+            _raise_safe_mutation_store_error(_new_safe_mutation_store_error(
+                SQLiteMutationStoreErrorCode.COMMIT_OUTCOME_UNKNOWN
+                if witness is not None and witness.ordinary_failure_is_commit_uncertain
+                else SQLiteMutationStoreErrorCode.MUTATION_FAILED))
+
     def _run_terminal_operation(
         self, command: object, source: object, *, mode: str,
     ) -> object:

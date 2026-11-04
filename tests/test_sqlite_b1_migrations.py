@@ -107,6 +107,12 @@ EXPECTED_TABLES = {
     "rw0_terminal_results",
     "rw0_terminal_receipts",
     "rw0_terminal_anchors",
+    "rw0_cancel_decision_evidence_bindings",
+    "rw0_cancel_decision_receipts",
+    "rw0_cancel_pre_effect_contexts",
+    "rw0_cancel_pre_effect_outcomes",
+    "rw0_cancel_pre_effect_results",
+    "rw0_cancel_pre_effect_receipts",
 }
 
 EXPECTED_LITERAL_MIGRATION_CATALOG = (
@@ -187,6 +193,15 @@ EXPECTED_LITERAL_MIGRATION_CATALOG = (
         "0009_rw0_terminal_anchor_registry",
         "0009_rw0_terminal_anchor_registry.sql",
         "ee9a063b4974bffee39af691dc059535172f189e89d96789befe716cd89b3d25",
+        2,
+        2,
+        False,
+    ),
+    (
+        10,
+        "0010_rw0_active_cancel_pre_effect_safety_closure",
+        "0010_rw0_active_cancel_pre_effect_safety_closure.sql",
+        "f23009dacd6a746fe1230b0ce6960fe296dbeee3947946dc83963baabc1367b2",
         2,
         2,
         False,
@@ -678,9 +693,9 @@ def test_initialize_database_installs_complete_generation_two_catalog(tmp_path: 
     inspection = initialize_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == 9
-    assert inspection.latest_sequence == 9
-    assert inspection.current_migration_id == "0009_rw0_terminal_anchor_registry"
+    assert inspection.current_sequence == 10
+    assert inspection.latest_sequence == 10
+    assert inspection.current_migration_id == "0010_rw0_active_cancel_pre_effect_safety_closure"
     assert _table_names(location) == EXPECTED_TABLES
     assert _mode(location.state_root) == 0o700
     assert _mode(location.database_path) == 0o600
@@ -751,7 +766,7 @@ def test_repeated_initialize_is_idempotent_for_valid_current_database(tmp_path: 
     second = initialize_database(location)
 
     assert first == second
-    assert _count(location, "schema_migrations") == 9
+    assert _count(location, "schema_migrations") == 10
 
 
 def test_managed_current_database_validates_observationally(tmp_path: Path) -> None:
@@ -762,7 +777,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     inspection = validate_database(location)
 
     assert inspection.classification is DatabaseClassification.MANAGED
-    assert inspection.current_sequence == inspection.latest_sequence == 9
+    assert inspection.current_sequence == inspection.latest_sequence == 10
     assert _file_digest(location.database_path) == before
 
 
@@ -770,7 +785,7 @@ def test_managed_current_database_validates_observationally(tmp_path: Path) -> N
     ("rows", "reason"),
     [
         ([ _catalog_row(checksum="0" * 64) ], "migration_checksum_mismatch"),
-        ([ _catalog_row(sequence=10) ], "database_schema_too_new"),
+        ([ _catalog_row(sequence=11) ], "database_schema_too_new"),
         ([ _catalog_row(migration_id="0001_other") ], "migration_history_invalid"),
         ([ _catalog_row(), _catalog_row_0002(migration_id="0002_future") ], "migration_history_invalid"),
         ([ _catalog_row(min_app_schema=2, max_app_schema=2) ], "migration_history_invalid"),
@@ -802,7 +817,9 @@ def test_migration_history_missing_duplicate_and_unknown_rows_block(tmp_path: Pa
             _catalog_row_0004(),
             _catalog_row_0005(),
             _catalog_row_0006(),
-            _catalog_row_0006(migration_id="0010_future", sequence=10),
+            *((entry[1], entry[0], entry[3], "2026-07-16T00:00:00Z", 2, 2)
+              for entry in EXPECTED_LITERAL_MIGRATION_CATALOG[6:]),
+            _catalog_row_0006(migration_id="0011_future", sequence=11),
         ],
     )
     _assert_unknown(inspect_database(unknown), "database_schema_too_new")
